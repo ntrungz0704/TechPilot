@@ -48,6 +48,7 @@ $total = $total ?? 0;
                 <label>Ghi chú đơn hàng (Không bắt buộc)</label>
                 <textarea name="note" rows="3" placeholder="Ví dụ: Giao hàng vào giờ hành chính, gọi điện trước khi giao..."></textarea>
             </div>
+            <input type="hidden" name="submit_token" value="<?= e($_SESSION['submit_token'] ?? '') ?>">
             <button type="submit" class="btn btn--block" style="height: 48px; font-size: 15px;">Xác nhận đặt hàng ngay <i class="fa-solid fa-square-check"></i></button>
         </form>
     </div>
@@ -64,10 +65,85 @@ $total = $total ?? 0;
         </div>
 
         <div class="summary-row"><span>Tạm tính</span><strong><?= formatPrice($subtotal) ?></strong></div>
+        <div class="summary-row" id="discountRow" style="display: none;"><span>Giảm giá</span><strong id="discountValue" style="color: var(--primary);">-0đ</strong></div>
         <div class="summary-row"><span>Phí vận chuyển</span><strong style="color: var(--success);"><?= $shipping > 0 ? formatPrice($shipping) : 'Miễn phí' ?></strong></div>
-        <div class="summary-row total"><span>Tổng tiền phải trả</span><strong><?= formatPrice($total) ?></strong></div>
+        <div class="summary-row total"><span>Tổng tiền phải trả</span><strong id="totalValue"><?= formatPrice($total) ?></strong></div>
+
+        <!-- Coupon Form -->
+        <div class="coupon-section" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="couponInput" placeholder="Nhập mã giảm giá..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                <button type="button" id="applyCouponBtn" class="btn btn--sm" style="padding: 0 15px; font-size: 13px;">Áp dụng</button>
+            </div>
+            <p id="couponMsg" style="margin: 6px 0 0 0; font-size: 12px; display: none;"></p>
+        </div>
     </aside>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const applyBtn = document.getElementById('applyCouponBtn');
+    const couponInput = document.getElementById('couponInput');
+    const couponMsg = document.getElementById('couponMsg');
+    const discountRow = document.getElementById('discountRow');
+    const discountValue = document.getElementById('discountValue');
+    const totalValue = document.getElementById('totalValue');
+
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function() {
+            const code = couponInput.value.trim();
+            if (code === '') {
+                showMsg('Vui lòng nhập mã giảm giá.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('coupon_code', code);
+            formData.append('subtotal', '<?= (float)$subtotal ?>');
+            formData.append('csrf_token', '<?= csrf_token() ?>');
+
+            applyBtn.disabled = true;
+            applyBtn.innerText = 'Đang áp dụng...';
+
+            fetch('<?= url("checkout/apply_coupon") ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                applyBtn.disabled = false;
+                applyBtn.innerText = 'Áp dụng';
+
+                if (data.success) {
+                    showMsg(data.message, 'success');
+                    discountRow.style.display = 'flex';
+                    discountValue.innerText = data.discount_formatted;
+                    totalValue.innerText = data.new_total_formatted;
+                } else {
+                    showMsg(data.message, 'error');
+                    discountRow.style.display = 'none';
+                    totalValue.innerText = '<?= formatPrice($total) ?>';
+                }
+            })
+            .catch(err => {
+                applyBtn.disabled = false;
+                applyBtn.innerText = 'Áp dụng';
+                showMsg('Lỗi kết nối máy chủ.', 'error');
+            });
+        });
+    }
+
+    function showMsg(text, type) {
+        couponMsg.style.display = 'block';
+        couponMsg.innerText = text;
+        if (type === 'success') {
+            couponMsg.style.color = 'var(--success)';
+        } else {
+            couponMsg.style.color = '#EF4444';
+        }
+    }
+});
+</script>
 
 <style>
     .checkout-page {
