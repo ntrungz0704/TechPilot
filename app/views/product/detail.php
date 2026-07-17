@@ -124,22 +124,62 @@ $reviews = $reviews ?? [];
 
     <!-- Panel Đánh giá -->
     <div class="product-tabs__panel" id="tab-reviews">
+        <?php if (!empty($_SESSION['flashes'])): ?>
+            <?php foreach (pullFlashes() as $f): ?>
+                <div class="alert alert--<?= e($f['type']) ?>" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 6px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 10px; background-color: <?= $f['type'] === 'success' ? '#D1FAE5' : '#FEE2E2' ?>; color: <?= $f['type'] === 'success' ? '#065F46' : '#991B1B' ?>; border: 1px solid <?= $f['type'] === 'success' ? '#10B981' : '#F87171' ?>;">
+                    <i class="fa-solid <?= $f['type'] === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i>
+                    <span><?= e($f['message']) ?></span>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+        <?php if ($canReview): ?>
+            <div class="write-review-card" style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: var(--shadow-card);">
+                <h3 style="font-weight: 700; margin: 0 0 15px 0; font-size: 16px; color: var(--text-primary);">Viết đánh giá của bạn</h3>
+                <form method="post" action="<?= url('product/review') ?>" style="display: flex; flex-direction: column; gap: 15px;">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">Số sao đánh giá</label>
+                        <select name="rating" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background-color: var(--bg-white); color: var(--text-primary); width: 160px; font-weight: 600;">
+                            <option value="5">⭐⭐⭐⭐⭐ 5 Sao</option>
+                            <option value="4">⭐⭐⭐⭐ 4 Sao</option>
+                            <option value="3">⭐⭐⭐ 3 Sao</option>
+                            <option value="2">⭐⭐ 2 Sao</option>
+                            <option value="1">⭐ 1 Sao</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">Nội dung bình luận</label>
+                        <textarea name="comment" rows="4" required placeholder="Chia sẻ trải nghiệm chân thực của bạn về sản phẩm này để giúp những người mua sau nhé..." style="padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; width: 100%; resize: vertical; color: var(--text-primary); background-color: var(--bg-white);"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn" style="align-self: flex-start; padding: 10px 25px; font-weight: 600;">Gửi đánh giá</button>
+                </form>
+            </div>
+        <?php endif; ?>
+
         <div class="review-grid">
             <?php if (!empty($reviews)): ?>
                 <?php foreach ($reviews as $rev): ?>
-                    <div class="review-card" style="margin-bottom: 16px;">
-                        <div class="review-card__head">
-                            <i class="fa-solid fa-circle-user" style="font-size: 26px;"></i>
-                            <strong><?= e($rev['reviewer_name']) ?></strong>
+                    <div class="review-card" style="margin-bottom: 16px; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow-card);">
+                        <div class="review-card__head" style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                            <i class="fa-solid fa-circle-user" style="font-size: 32px; color: var(--text-secondary);"></i>
+                            <div>
+                                <strong style="display: block; font-size: 14.5px; color: var(--text-primary);"><?= e($rev['reviewer_name']) ?></strong>
+                                <span style="font-size: 11.5px; color: var(--text-secondary);"><?= date('d/m/Y H:i', strtotime($rev['created_at'])) ?></span>
+                            </div>
                         </div>
-                        <div class="stars">
+                        <div class="stars" style="margin-bottom: 10px;">
                             <?= renderStars((float)$rev['rating']) ?>
                         </div>
-                        <p><?= e($rev['comment']) ?></p>
+                        <p style="color: var(--text-primary); font-size: 14px; line-height: 1.6; margin: 0;"><?= e($rev['comment']) ?></p>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <p style="text-align: center; color: var(--text-secondary);">Chưa có đánh giá nào cho sản phẩm này. Hãy mua hàng và để lại ý kiến đầu tiên!</p>
+                <p style="text-align: center; color: var(--text-secondary); font-size: 14px; padding: 20px 0;">Chưa có đánh giá nào cho sản phẩm này. Hãy mua hàng và để lại ý kiến đầu tiên!</p>
             <?php endif; ?>
         </div>
     </div>

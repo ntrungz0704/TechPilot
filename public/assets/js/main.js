@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function pad(n) { return n.toString().padStart(2, '0'); }
 
-        // Phân tách định dạng "YYYY-MM-DD HH:MM:SS" theo giờ địa phương
-        const parts = endTimeStr.split(/[- :]/);
-        const end = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+        // Chuẩn hoá định dạng "YYYY-MM-DD HH:MM:SS" thành ISO 8601 múi giờ +07:00 (Asia/Ho_Chi_Minh)
+        const isoStr = endTimeStr.replace(' ', 'T') + '+07:00';
+        const end = new Date(isoStr);
 
         function tick() {
             const now = new Date();

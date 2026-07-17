@@ -36,24 +36,37 @@ class Order
 
         try {
             $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+            $couponId = isset($payload['coupon_id']) ? (int)$payload['coupon_id'] : null;
+            $discountAmount = isset($payload['discount_amount']) ? (float)$payload['discount_amount'] : 0.0;
+
             $stmt = $this->db->prepare(
-                'INSERT INTO orders (order_code, user_id, customer_name, phone, address, note, payment_method, subtotal, shipping_fee, total_amount, status)
-                 VALUES (:order_code, :user_id, :customer_name, :phone, :address, :note, :payment_method, :subtotal, :shipping_fee, :total_amount, :status)'
+                'INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, subtotal, discount_amount, shipping_fee, total_amount, status)
+                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status)'
             );
 
             $stmt->execute([
                 ':order_code' => $orderCode,
                 ':user_id' => $userId,
+                ':coupon_id' => $couponId,
                 ':customer_name' => $payload['customer_name'] ?? '',
                 ':phone' => $payload['phone'] ?? '',
                 ':address' => $payload['address'] ?? '',
                 ':note' => $payload['note'] ?? '',
                 ':payment_method' => $payload['payment_method'] ?? 'COD',
                 ':subtotal' => (float)($payload['subtotal'] ?? 0),
+                ':discount_amount' => $discountAmount,
                 ':shipping_fee' => (float)($payload['shipping_fee'] ?? 0),
                 ':total_amount' => (float)($payload['total_amount'] ?? 0),
                 ':status' => 'pending',
             ]);
+
+            // Cập nhật tăng lượt dùng cho coupon
+            if ($couponId) {
+                $couponUpdateStmt = $this->db->prepare(
+                    'UPDATE coupons SET used_qty = used_qty + 1 WHERE id = :coupon_id'
+                );
+                $couponUpdateStmt->execute([':coupon_id' => $couponId]);
+            }
 
             $orderId = (int)$this->db->lastInsertId();
 
