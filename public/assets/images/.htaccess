@@ -1,0 +1,16 @@
+# Chặn tuyệt đối thực thi PHP và các script khác trong thư mục upload hình ảnh
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Vô hiệu hoá Engine PHP để tăng cường bảo mật
+<IfModule mod_php5.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
