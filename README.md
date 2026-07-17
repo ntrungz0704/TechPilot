@@ -113,3 +113,69 @@ php -l app/models/Order.php
 ```
 
 Trước khi bàn giao môi trường thật, cần kiểm thử lại toàn bộ luồng đăng ký → đăng nhập → thêm giỏ → checkout trên database đã import.
+
+---
+
+## 👨‍💻 Hướng dẫn sử dụng Git & GitHub (Dành cho thành viên mới bắt đầu)
+
+Dưới đây là hướng dẫn từng bước cực kỳ đơn giản để 4 thành viên trong nhóm (**trung**, **dinh**, **kim**, **hieu**) làm việc chung mà không lo bị ghi đè, mất code hoặc lỗi Git.
+
+### 1. Lần đầu tiên lấy code về máy (Clone)
+Mở Terminal/PowerShell tại thư mục bạn muốn lưu code (ví dụ `D:\`) và chạy:
+```bash
+git clone https://github.com/ntrungz0704/TechPilot.git
+cd TechPilot
+```
+
+### 2. Luồng làm việc hàng ngày của mỗi thành viên (Quy trình 5 bước)
+
+#### Bước 2.1: Chuyển sang nhánh cá nhân của bạn
+Trước khi gõ bất kỳ dòng code nào, hãy chắc chắn bạn đang đứng ở nhánh của chính mình để không đè vào code người khác:
+* **Bạn Trung**: `git checkout trung`
+* **Bạn Dinh**: `git checkout dinh`
+* **Bạn Kim**: `git checkout kim`
+* **Bạn Hieu**: `git checkout hieu`
+
+*(Nếu muốn kiểm tra xem mình đang đứng ở nhánh nào, gõ lệnh: `git branch`)*
+
+#### Bước 2.2: Cập nhật code mới nhất từ nhóm về máy
+Mỗi ngày trước khi code, hãy lấy những phần code mới nhất mà các bạn khác đã gộp vào nhánh chung `develop` về máy mình:
+```bash
+git pull origin develop
+```
+
+#### Bước 2.3: Viết code và kiểm tra các file đã sửa
+Sau khi bạn code xong hoặc sửa lỗi xong, gõ lệnh này để xem danh sách các file bạn đã chỉnh sửa:
+```bash
+git status
+```
+
+#### Bước 2.4: Đóng gói code trên máy của bạn (Commit)
+Để lưu lại những gì bạn vừa làm vào lịch sử máy của bạn, chạy 2 lệnh sau:
+```bash
+# Đưa các file đã sửa vào trạng thái chờ đóng gói (Lưu ý dấu chấm .)
+git add .
+
+# Đóng gói và viết ghi chú ngắn gọn bạn đã làm gì
+git commit -m "Ghi chu ngan gon viec ban da lam (vi du: sua giao dien header)"
+```
+
+#### Bước 2.5: Đẩy code lên GitHub (Push)
+Để gửi gói code từ máy của bạn lên trên GitHub, hãy chạy lệnh tương ứng với tên của bạn:
+* **Bạn Trung**: `git push origin trung`
+* **Bạn Dinh**: `git push origin dinh`
+* **Bạn Kim**: `git push origin kim`
+* **Bạn Hieu**: `git push origin hieu`
+
+---
+
+### 3. Cách gộp code của bạn vào nhánh chung (Tạo Pull Request - PR)
+Khi bạn đã hoàn thành một tính năng ở nhánh cá nhân và muốn gộp vào nhánh chung `develop`:
+1. Mở trang web GitHub của dự án: [GitHub TechPilot](https://github.com/ntrungz0704/TechPilot).
+2. Bạn sẽ thấy một nút màu vàng hiện lên có chữ **"Compare & pull request"**. Hãy nhấp vào đó.
+3. Chọn gộp code:
+   * Ô bên trái (base): Chọn `develop` (nhánh chung của nhóm).
+   * Ô bên phải (compare): Chọn nhánh của bạn (ví dụ: `dinh`, `kim`...).
+4. Nhập tiêu đề mô tả bạn đã làm gì rồi nhấn **"Create pull request"**.
+5. Nhờ trưởng nhóm (Trung) kiểm tra code và bấm nút **"Merge pull request"** để gộp code của bạn vào nhánh chung `develop` an toàn!
+
