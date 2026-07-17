@@ -2231,10 +2231,11 @@ body.dark-mode .countdown-box__num {
 }
 
 .countdown-separator {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 900;
-    color: #000000 !important;
-    margin-top: -16px;
+    color: #1F2937 !important;
+    align-self: flex-start;
+    margin-top: 8px;
     animation: flashBlink 1s infinite;
 }
 

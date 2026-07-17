@@ -309,7 +309,7 @@ $reviews = $reviews ?? [];
 <section class="container section section-flash-sale">
     <div class="section__head section__head--flash">
         <h2><i class="fa-solid fa-bolt"></i> FLASH SALE</h2>
-        <div class="countdown" id="flashCountdown" data-hours="2" data-minutes="15" data-seconds="30">
+        <div class="countdown" id="flashCountdown" data-end-time="<?= !empty($flashSale) ? e($flashSale[0]['end_time']) : '' ?>">
             <div class="countdown-box">
                 <span class="countdown-box__num" id="cd-h">02</span>
                 <span class="countdown-box__label">Giờ</span>

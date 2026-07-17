@@ -35,7 +35,7 @@
                 <?php
                 $sold = (int)($p['fs_sold'] ?? 0);
                 $stock = (int)($p['fs_stock'] ?? 10);
-                $percent = $stock > 0 ? min(100, round(($sold / $stock) * 100)) : 0;
+                $percent = $stock > 0 ? max(0, min(100, round(($sold / $stock) * 100))) : 0;
                 ?>
                 <div class="sold-bar">
                     <div class="sold-bar__track">
