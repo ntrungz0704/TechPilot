@@ -30,9 +30,9 @@ base_commit: "3c3a2b989b85b4e8fa643caf8604151ce0755798"
 candidate_commit: CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT
 reviewed_commit: UNRESOLVED
 contract_path: "docs/checkpoints/CP-05.0-MVC-CLEANUP.md"
-handoff_path: "C:\\Users\\ntrun\\.gemini\\antigravity\\brain\\f5a2e044-4e8e-450c-bfe2-d6233e176cbc/walkthrough.md"
+handoff_path: "C:/Users/ntrun/.gemini/antigravity/brain/f5a2e044-4e8e-450c-bfe2-d6233e176cbc/walkthrough.md"
 review_path: UNRESOLVED
-evidence_path: "C:\\Users\\ntrun\\.gemini\antigravity\\brain\\f5a2e044-4e8e-450c-bfe2-d6233e176cbc/walkthrough.md"
+evidence_path: "C:/Users/ntrun/.gemini/antigravity/brain/f5a2e044-4e8e-450c-bfe2-d6233e176cbc/walkthrough.md"
 allowed_paths:
   - "router.php"
   - "public/**"
