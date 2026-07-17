@@ -30,7 +30,7 @@
                     
                     <!-- Nút xóa nhanh -->
                     <form method="post" action="<?= url('wishlist/remove') ?>" style="position: absolute; top: 12px; right: 12px; z-index: 10;">
-                        <?= csrfField() ?>
+                        <?= csrf_field() ?>
                         <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
                         <button type="submit" style="background: rgba(255,255,255,0.9); border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #EF4444; box-shadow: 0 2px 6px rgba(0,0,0,0.1); transition: background-color 0.2s;" title="Xóa khỏi yêu thích">
                             <i class="fa-solid fa-trash-can"></i>
@@ -56,14 +56,14 @@
                     <div style="display: flex; gap: 8px;">
                         <!-- Nút mua ngay -->
                         <form method="post" action="<?= url('cart/add?buynow=1') ?>" style="flex: 1;">
-                            <?= csrfField() ?>
+                            <?= csrf_field() ?>
                             <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit" class="btn btn--sm" style="width: 100%; padding: 8px 0; font-size: 12px; font-weight: 600; text-align: center;">Mua Ngay</button>
                         </form>
                         <!-- Nút thêm giỏ -->
                         <form method="post" action="<?= url('cart/add') ?>">
-                            <?= csrfField() ?>
+                            <?= csrf_field() ?>
                             <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit" class="btn btn--light btn--sm" style="padding: 8px 12px;" title="Thêm vào giỏ"><i class="fa-solid fa-cart-plus"></i></button>

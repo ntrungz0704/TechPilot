@@ -50,6 +50,7 @@
         
         <!-- Nút thêm nhanh vào giỏ hàng xuất hiện khi hover -->
         <form method="post" action="<?= url('cart/add') ?>">
+            <?= csrf_field() ?>
             <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
             <input type="hidden" name="quantity" value="1">
             <button type="submit" class="product-card__add">

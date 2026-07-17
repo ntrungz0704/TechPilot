@@ -67,6 +67,7 @@ $reviews = $reviews ?? [];
 
         <!-- Biểu mẫu Mua hàng / Thêm giỏ hàng -->
         <form method="post" action="<?= url('cart/add') ?>" id="purchaseForm">
+            <?= csrf_field() ?>
             <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
             <div class="product-detail__actions">
                 <div class="qty-selector">
