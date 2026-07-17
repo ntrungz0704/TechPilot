@@ -19,6 +19,7 @@ $old = $old ?? ['email' => ''];
         <?php endif; ?>
 
         <form method="post" action="<?= url('auth/login') ?>" class="auth-form" novalidate>
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label for="email">Email</label>
                 <div class="input-icon">

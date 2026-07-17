@@ -1,34 +1,40 @@
-# Báo cáo Dọn dẹp Tài nguyên Dự án TechPilot (Cleanup Report)
+# Báo cáo Dọn dẹp Dự án An toàn (Cleanup Report) — TechPilot
 
-Báo cáo này liệt kê các tệp tin dư thừa được kiểm kê trong dự án, phân tích mức độ ảnh hưởng, đưa ra quyết định xóa hoặc giữ lại và phương án khôi phục.
-
----
-
-## 1. Danh sách tệp tin kiểm kê
-
-| Đường dẫn tệp tin | Kích thước | Trạng thái Git | Nơi tham chiếu | Bằng chứng & Lý do | Quyết định | Phương án khôi phục |
-|---|---|---|---|---|---|---|
-| `public/test_css.css` | 80,2 KB | Đã lưu baseline | Không có | File CSS rác từ quá trình test giao diện, hoàn toàn không được import hay nạp bởi bất kỳ view nào. | **ĐÃ XÓA AN TOÀN** | `git checkout <baseline_sha> -- public/test_css.css` |
-| `php-server.err.log` | 331 KB | Untracked (Đã ignore) | Không có | File log lỗi phát sinh trong lúc chạy server cục bộ của PHP, không phục vụ vận hành. | **ĐÃ THÊM VÀO .GITIGNORE** | Không cần khôi phục |
-| `php-server.out.log` | 0 B | Untracked (Đã ignore) | Không có | File log ghi nhận output server cục bộ. | **ĐÃ THÊM VÀO .GITIGNORE** | Không cần khôi phục |
-| `config/database.local.php` | 182 B | Untracked (Đã ignore) | `app/models/Product.php`... | File chứa thông tin kết nối database local, đã được Git ignore để bảo vệ bảo mật thông tin nhạy cảm. | **GIỮ LẠI (KHÔNG ĐƯỢC XÓA)** | N/A |
-| `scripts/router_techpilot.php` | 519 B | Đã lưu baseline | Không có | Script chạy server phụ trợ cũ của TechPilot, hiện tại đã có `router.php` ở root chạy chính. | **CẦN XÁC NHẬN** | Giữ nguyên để chờ ý kiến đội ngũ |
+Báo cáo này liệt kê kết quả kiểm kê các tệp tin trong dự án TechPilot, đánh giá mức độ ảnh hưởng và các hành động dọn dẹp an toàn đã thực hiện thành công.
 
 ---
 
-## 2. Quy trình kiểm tra an toàn trước khi xóa
-1. **Kiểm tra tham chiếu:** Chạy tìm kiếm chuỗi (Grep/Select-String) trên toàn bộ mã nguồn `app/` và `public/` để chắc chắn không có file nào gọi/require/link tới tệp tin dự kiến xóa.
-2. **Kiểm thử Baseline:** Chạy ứng dụng trước khi xóa và kiểm tra giao diện không lỗi.
-3. **Xóa từng phần nhỏ:** Không dùng lệnh xóa hàng loạt, chỉ xóa chính xác file đã xác nhận dư thừa.
-4. **Smoke test sau khi xóa:** Chạy lại PHP built-in server và duyệt qua các trang để xác minh không phát sinh lỗi PHP Fatal error hoặc lỗi 404 cho asset tĩnh.
+## 1. Danh sách tệp tin kiểm kê và đánh giá ảnh hưởng
+
+| Đường dẫn tệp tin | Dung lượng | Trạng thái Git | Nơi tham chiếu | Hành động & Kết quả |
+|---|---|---|---|---|
+| `public/assets/js/product-detail.js` | 2.2 KB | Đã xóa | Không có | **Đã xóa khỏi Git** — File JS cũ của V1, không được nạp trong views V2. |
+| `public/assets/js/products.js` | 3.8 KB | Đã xóa | Không có | **Đã xóa khỏi Git** — File JS cũ của V1, không được nạp trong views V2. |
+| `public/assets/js/shopping-cart.js` | 2.4 KB | Đã xóa | Không có | **Đã xóa khỏi Git** — File JS cũ của V1, không được nạp trong views V2. |
+| `public/assets/js/trang-chu.js` | 5.7 KB | Đã xóa | Không có | **Đã xóa khỏi Git** — File JS cũ của V1, không được nạp trong views V2. |
+| `php-server.err.log` | 331 KB | Ignored | Không có | **Giữ lại local / Bỏ qua Git** — Tệp log runtime tự sinh bởi PHP server. Đã được cấu hình trong `.gitignore`. |
+| `php-server.out.log` | 0 KB | Ignored | Không có | **Giữ lại local / Bỏ qua Git** — Tệp log runtime tự sinh bởi PHP server. Đã được cấu hình trong `.gitignore`. |
+| `index.php` (tại root) | 736 B | Tracked | Web Server | **KHÔNG ĐƯỢC XÓA** — Entry point (Front Controller) chính của dự án. |
+| `router.php` (tại root) | 1.3 KB | Tracked | PHP CLI | **KHÔNG ĐƯỢC XÓA** — Bộ định tuyến tài nguyên tĩnh hỗ trợ PHP built-in server. |
 
 ---
 
-## 3. Cập nhật .gitignore
-Chúng tôi đã bổ sung các cấu hình sau vào tệp `.gitignore` để ngăn chặn các tệp tin log và rác phát sinh quay trở lại repository:
-```text
-/config/database.local.php
-*.log
-.DS_Store
-Thumbs.db
+## 2. Quy trình thực hiện dọn dẹp an toàn
+
+1. **Xác nhận không ảnh hưởng**: Đã chạy thử nghiệm grep toàn bộ codebase và xác nhận không có bất kỳ dòng lệnh `<script src="...">` nào tham chiếu đến 4 file JS cũ trên.
+2. **Tiến hành xóa file**: Đã chạy thành công lệnh xóa và tự động stage vào Git:
+   ```bash
+   git rm public/assets/js/product-detail.js
+   git rm public/assets/js/products.js
+   git rm public/assets/js/shopping-cart.js
+   git rm public/assets/js/trang-chu.js
+   ```
+
+---
+
+## 3. Cách khôi phục nếu phát hiện lỗi phát sinh
+
+Nếu phát hiện bất kỳ tính năng cũ nào bị lỗi do thiếu các file JS này, có thể khôi phục lại ngay lập tức bằng lệnh:
+```bash
+git checkout HEAD~1 -- public/assets/js/
 ```

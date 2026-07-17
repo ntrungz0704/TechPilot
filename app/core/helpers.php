@@ -92,3 +92,46 @@ if (!function_exists('cartSubtotal')) {
         return $subtotal;
     }
 }
+
+if (!function_exists('flash')) {
+    function flash(string $type, string $message): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['flashes'])) {
+            $_SESSION['flashes'] = [];
+        }
+        $_SESSION['flashes'][] = [
+            'type' => $type,
+            'message' => $message
+        ];
+    }
+}
+
+if (!function_exists('pullFlashes')) {
+    function pullFlashes(): array
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $flashes = $_SESSION['flashes'] ?? [];
+        unset($_SESSION['flashes']);
+        return $flashes;
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    function csrf_token(): string
+    {
+        return $_SESSION['csrf_token'] ?? '';
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
+    }
+}
+

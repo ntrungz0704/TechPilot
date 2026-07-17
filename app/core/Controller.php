@@ -18,6 +18,14 @@ class Controller
         }
 
         if ($useLayout) {
+            // Lấy danh mục chung cho header (MVC Standard)
+            require_once ROOT_PATH . '/config/database.php';
+            $db = Database::getConnection();
+            $globalCategories = [];
+            if ($db) {
+                $globalCategories = $db->query('SELECT * FROM categories WHERE status = "active" ORDER BY sort_order ASC, id ASC')->fetchAll(PDO::FETCH_ASSOC);
+            }
+            
             require ROOT_PATH . '/app/views/layouts/header.php';
             require $viewFile;
             require ROOT_PATH . '/app/views/layouts/footer.php';

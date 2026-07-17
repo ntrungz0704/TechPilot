@@ -24,6 +24,7 @@ class AuthController extends Controller
                 $user = $userModel->verify($email, $password);
 
                 if ($user) {
+                    session_regenerate_id(true);
                     $_SESSION['user'] = $user;
                     $this->redirect('/');
                     return;

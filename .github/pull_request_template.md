@@ -1,19 +1,26 @@
-# Pull Request Template
+# Mô tả Pull Request (Pull Request Template)
 
-## Mục tiêu (Objective)
-Mô tả ngắn gọn về các thay đổi và lý do thực hiện.
+## 📌 Mục tiêu (Objective)
+*Mô tả ngắn gọn về tính năng, sửa lỗi hoặc cải tiến được thực hiện trong PR này.*
 
-## Các file đã sửa đổi (Modified Files)
-Liệt kê các tệp tin đã chỉnh sửa hoặc tạo mới.
+## 📸 Ảnh chụp màn hình Before / After (nếu có thay đổi UI)
+| Trước (Before) | Sau (After) |
+|---|---|
+| *Chèn ảnh hoặc mô tả* | *Chèn ảnh hoặc mô tả* |
 
-## Cách thức kiểm thử (Testing Strategy)
-Mô tả cách bạn đã tự kiểm tra các thay đổi trên máy local (các breakpoint đã xem, luồng nghiệp vụ đã chạy thử).
+## 🛠️ Danh sách file thay đổi (Files Changed)
+- [ ] `đường/dẫn/file.php` - *Mô tả thay đổi*
 
-## Ảnh minh họa (Screenshots - Nếu có thay đổi giao diện)
-Đặt ảnh Before / After vào đây để người review dễ so sánh.
+## 🧪 Cách kiểm thử (How to Test)
+1. *Mô tả các bước chạy thử và dữ liệu kiểm thử ở local.*
+2. *Chạy lệnh server:* `php -S 127.0.0.1:8000 router.php`
+3. *Đường dẫn test:* `http://127.0.0.1:8000/...`
 
-## Checklist trước khi bàn giao
-- [ ] Tôi đã tự kiểm tra lỗi cú pháp (Syntax lint check) thành công.
-- [ ] Giao diện responsive tốt trên desktop, tablet và mobile.
-- [ ] Không chứa bất kỳ thông tin nhạy cảm (secrets/passwords) nào.
-- [ ] Lịch sử commit tuân thủ quy tắc Conventional Commits.
+## ⚠️ Rủi ro tiềm ẩn (Potential Risks)
+- [ ] *Có ảnh hưởng đến database schema hoặc các trang khác không?*
+
+## ✅ Checklist nghiệm thu (Acceptance Criteria)
+- [ ] Mã nguồn đã được format sạch sẽ, không chứa code thừa/debug.
+- [ ] Giao diện responsive tốt trên Desktop, Tablet và Mobile (360px).
+- [ ] Chạy thử không gặp lỗi Fatal/Warning hay JavaScript console error.
+- [ ] Đã tag ít nhất 1 thành viên review.

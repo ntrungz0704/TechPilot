@@ -243,7 +243,7 @@ class Product
         $query .= ' WHERE 1=1';
 
         if (!empty($keyword)) {
-            $query .= ' AND (p.name LIKE :keyword OR p.short_desc LIKE :keyword OR p.description LIKE :keyword)';
+            $query .= ' AND (p.name LIKE :keyword1 OR p.short_desc LIKE :keyword2 OR p.description LIKE :keyword3)';
         }
 
         if (!empty($categorySlug)) {
@@ -255,7 +255,10 @@ class Product
         $stmt = $this->db->prepare($query);
 
         if (!empty($keyword)) {
-            $stmt->bindValue(':keyword', '%' . $keyword . '%');
+            $kw = '%' . $keyword . '%';
+            $stmt->bindValue(':keyword1', $kw);
+            $stmt->bindValue(':keyword2', $kw);
+            $stmt->bindValue(':keyword3', $kw);
         }
 
         if (!empty($categorySlug)) {

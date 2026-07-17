@@ -23,6 +23,7 @@ $total = $total ?? 0;
         <?php endif; ?>
 
         <form method="post" action="<?= url('checkout/submit') ?>" class="checkout-form">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label>Họ và tên người nhận</label>
                 <input type="text" name="customer_name" required placeholder="Nguyễn Văn A">

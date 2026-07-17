@@ -19,6 +19,7 @@ $old = $old ?? ['full_name' => '', 'email' => '', 'phone' => ''];
         <?php endif; ?>
 
         <form method="post" action="<?= url('auth/register') ?>" class="auth-form" novalidate>
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label for="full_name">Họ và tên</label>
                 <div class="input-icon">

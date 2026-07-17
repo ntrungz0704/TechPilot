@@ -57,21 +57,54 @@ class Order
 
             $orderId = (int)$this->db->lastInsertId();
 
+            $productCheckStmt = $this->db->prepare(
+                'SELECT name, price, stock FROM products WHERE id = :id FOR UPDATE'
+            );
+
+            $updateStockStmt = $this->db->prepare(
+                'UPDATE products SET stock = stock - :qty WHERE id = :id'
+            );
+
             $itemStmt = $this->db->prepare(
                 'INSERT INTO order_items (order_id, product_id, product_name, price, quantity, line_total)
                  VALUES (:order_id, :product_id, :product_name, :price, :quantity, :line_total)'
             );
 
             foreach ($payload['items'] ?? [] as $item) {
+                $productId = (int)($item['product_id'] ?? 0);
                 $qty = max(1, (int)($item['quantity'] ?? 1));
-                $price = (float)($item['price'] ?? 0);
+
+                // 1. Khóa và lấy thông tin tồn kho & giá thực tế từ Database
+                $productCheckStmt->execute([':id' => $productId]);
+                $dbProduct = $productCheckStmt->fetch();
+
+                if (!$dbProduct) {
+                    throw new Exception('Sản phẩm không tồn tại.');
+                }
+
+                $dbStock = (int)$dbProduct['stock'];
+                $dbPrice = (float)$dbProduct['price'];
+                $dbName = $dbProduct['name'];
+
+                // 2. Kiểm tra tồn kho
+                if ($dbStock < $qty) {
+                    throw new Exception("Sản phẩm '{$dbName}' không đủ hàng tồn kho (Còn lại: {$dbStock}).");
+                }
+
+                // 3. Ghi chi tiết đơn hàng (lấy giá gốc từ DB)
                 $itemStmt->execute([
                     ':order_id' => $orderId,
-                    ':product_id' => (int)($item['product_id'] ?? 0),
-                    ':product_name' => $item['name'] ?? 'Sản phẩm',
-                    ':price' => $price,
+                    ':product_id' => $productId,
+                    ':product_name' => $dbName,
+                    ':price' => $dbPrice,
                     ':quantity' => $qty,
-                    ':line_total' => $price * $qty,
+                    ':line_total' => $dbPrice * $qty,
+                ]);
+
+                // 4. Trừ tồn kho
+                $updateStockStmt->execute([
+                    ':qty' => $qty,
+                    ':id' => $productId,
                 ]);
             }
 
@@ -94,5 +127,39 @@ class Order
             $this->db->rollBack();
             return false;
         }
+    }
+
+    public function getByUserId(int $userId): array
+    {
+        if ($this->useFallback) {
+            return [];
+        }
+
+        $stmt = $this->db->prepare('SELECT * FROM orders WHERE user_id = :user_id ORDER BY id DESC');
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getById(int $id, int $userId): array|false
+    {
+        if ($this->useFallback) {
+            return false;
+        }
+
+        // Chặn IDOR: luôn lọc theo cả id và user_id của chủ sở hữu đơn hàng
+        $stmt = $this->db->prepare('SELECT * FROM orders WHERE id = :id AND user_id = :user_id LIMIT 1');
+        $stmt->execute([':id' => $id, ':user_id' => $userId]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) {
+            return false;
+        }
+
+        // Lấy chi tiết sản phẩm của đơn hàng
+        $itemStmt = $this->db->prepare('SELECT * FROM order_items WHERE order_id = :order_id');
+        $itemStmt->execute([':order_id' => $id]);
+        $order['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $order;
     }
 }

@@ -47,13 +47,8 @@
                 <select name="cat" class="search-bar__select">
                     <option value="">Tất cả danh mục</option>
                     <?php
-                    // Lấy danh mục động nếu có
-                    $db = Database::getConnection();
-                    $categories = [];
-                    if ($db) {
-                        $categories = $db->query('SELECT * FROM categories ORDER BY id ASC')->fetchAll();
-                    }
-                    foreach ($categories as $cat): ?>
+                    $categoriesList = $globalCategories ?? [];
+                    foreach ($categoriesList as $cat): ?>
                         <option value="<?= e($cat['slug']) ?>"><?= e($cat['name']) ?></option>
                     <?php endforeach; ?>
                 </select>

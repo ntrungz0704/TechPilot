@@ -34,7 +34,10 @@ class Router
         $controller = new $controllerName();
 
         if (!method_exists($controller, $action)) {
+            $controllerName = 'HomeController';
             $action = 'notFound';
+            require_once ROOT_PATH . '/app/controllers/HomeController.php';
+            $controller = new HomeController();
         }
 
         call_user_func_array([$controller, $action], $params);
