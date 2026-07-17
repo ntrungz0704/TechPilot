@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+    Options -MultiViews
+    RewriteEngine On
+
+    # Nếu request trỏ tới file/tư mục thật thì giữ nguyên
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Gửi tất cả request còn lại về public/index.php để router xử lý
+    RewriteRule ^(.*)$ index.php?url=$1 [L,QSA]
+</IfModule>
