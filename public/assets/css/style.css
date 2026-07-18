@@ -2686,6 +2686,13 @@ body.dark-mode .logo-brand-title span {
     transform: translateX(3px);
 }
 
+/* Mặc định ẩn các phần tử di động trên Desktop */
+.mobile-menu-toggle,
+.mobile-search-container,
+.mobile-category-pills {
+    display: none !important;
+}
+
 /* ===== 📱 MOBILE OPTIMIZATIONS FOR 440px AND BELOW ===== */
 @media (max-width: 480px) {
     /* 1. Top Announcement Bar */
