@@ -279,6 +279,7 @@ class Product
     /** Lấy danh sách sản phẩm từ list IDs */
     public function getProductsByIds(array $ids): array
     {
+        $ids = array_values($ids);
         if ($this->db === null || empty($ids)) return [];
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
