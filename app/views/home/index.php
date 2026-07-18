@@ -389,7 +389,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 8. BEST SELLER PRODUCTS WITH TABS ===== -->
-<section class="container section">
+<section class="container section section-best-sellers">
     <div class="best-seller-section__header">
         <h2>Sản phẩm bán chạy</h2>
         <div class="tabs-nav">
@@ -562,7 +562,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== APPLE ZONE ===== -->
-<section class="container section">
+<section class="container section section-apple-zone">
     <div class="section__head">
         <h2>Apple Zone</h2>
         <a href="<?= url('home/search?cat=apple') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
