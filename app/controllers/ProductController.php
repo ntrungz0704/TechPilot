@@ -26,14 +26,38 @@ class ProductController extends Controller
             $canReview = $reviewModel->hasPurchasedProduct($userId, (int)$product['id']);
         }
 
+        // Logic lưu sản phẩm xem gần đây vào session
+        if (!isset($_SESSION['recently_viewed'])) {
+            $_SESSION['recently_viewed'] = [];
+        }
+        $recentlyViewed = $_SESSION['recently_viewed'];
+        $productId = (int)$product['id'];
+        $recentlyViewed = array_filter($recentlyViewed, function($id) use ($productId) {
+            return $id !== $productId;
+        });
+        array_unshift($recentlyViewed, $productId);
+        $recentlyViewed = array_slice($recentlyViewed, 0, 10);
+        $_SESSION['recently_viewed'] = $recentlyViewed;
+
+        $recentlyViewedProducts = [];
+        if (!empty($recentlyViewed)) {
+            $rvIds = array_filter($recentlyViewed, function($id) use ($productId) {
+                return $id !== $productId;
+            });
+            if (!empty($rvIds)) {
+                $recentlyViewedProducts = $productModel->getProductsByIds($rvIds);
+            }
+        }
+
         $this->render('product/detail', [
-            'pageTitle'     => $product['name'],
-            'product'       => $product,
-            'specs'         => $specs,
-            'related'       => $related,
-            'productImages' => $productImages,
-            'reviews'       => $reviews,
-            'canReview'     => $canReview,
+            'pageTitle'              => $product['name'],
+            'product'                => $product,
+            'specs'                  => $specs,
+            'related'                => $related,
+            'productImages'          => $productImages,
+            'reviews'                => $reviews,
+            'canReview'              => $canReview,
+            'recentlyViewedProducts' => $recentlyViewedProducts,
         ]);
     }
 

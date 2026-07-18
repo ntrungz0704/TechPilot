@@ -73,6 +73,9 @@ class User
         $user = $this->findByEmail($email);
 
         if ($user && password_verify($password, $user['password'])) {
+            if (($user['status'] ?? 'active') !== 'active') {
+                return false;
+            }
             unset($user['password']);
             return $user;
         }

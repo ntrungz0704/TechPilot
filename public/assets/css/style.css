@@ -2773,4 +2773,71 @@ body.dark-mode .logo-brand-title span {
     .category-strip__item span {
         font-size: 12px !important;
     }
+
+    /* 6. Products Grid mobile format */
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        padding: 0 4px !important;
+    }
+    .product-card {
+        padding: 8px !important;
+    }
+    .product-card__name {
+        font-size: 12px !important;
+        height: 34px !important;
+        line-height: 1.4 !important;
+    }
+    .product-card__price-new {
+        font-size: 13px !important;
+    }
+    .product-card__price-old {
+        font-size: 10px !important;
+    }
+
+    /* 7. Cart mobile stack layout */
+    .cart-layout {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .cart-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+        padding: 12px !important;
+    }
+    .cart-item__image {
+        width: 72px !important;
+        height: 72px !important;
+    }
+    .cart-item__info {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    /* 8. Checkout page stack layout */
+    .checkout-layout {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .checkout-billing, .checkout-summary {
+        padding: 14px !important;
+    }
+
+    /* 9. Product Detail layout */
+    .product-detail-layout {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .product-detail-info {
+        padding: 12px !important;
+    }
+    .product-detail-info h1 {
+        font-size: 18px !important;
+    }
+
+    /* 10. Hide unsupported ERD15 widgets */
+    .ai-chat-widget, .return-button, .address-selector {
+        display: none !important;
+    }
 }
