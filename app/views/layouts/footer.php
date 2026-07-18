@@ -88,17 +88,66 @@
         </div>
     </footer>
 
+    <!-- Bottom Navigation dành riêng cho Mobile (Display: None on Desktop) -->
+    <div class="mobile-bottom-nav">
+        <a href="<?= url('/') ?>" class="mobile-bottom-nav__item">
+            <i class="fa-solid fa-house"></i>
+            <span>Trang chủ</span>
+        </a>
+        <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavCats" style="background: none; border: none; cursor: pointer; color: inherit;">
+            <i class="fa-solid fa-list"></i>
+            <span>Danh mục</span>
+        </button>
+        <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavSearch" style="background: none; border: none; cursor: pointer; color: inherit;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Tìm kiếm</span>
+        </button>
+        <a href="<?= url('wishlist') ?>" class="mobile-bottom-nav__item">
+            <i class="fa-solid fa-heart"></i>
+            <span>Yêu thích</span>
+        </a>
+        <a href="<?= url('cart') ?>" class="mobile-bottom-nav__item">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span>Giỏ hàng</span>
+            <span class="cart-badge"><?= (int)cartCount() ?></span>
+        </a>
+    </div>
+
     <script src="<?= url('assets/js/main.js?v=7.0') ?>"></script>
     <script>
-        // Xử lý menu hamburger trên Mobile
-        document.getElementById('mobileMenuToggle')?.addEventListener('click', function() {
-            document.querySelector('.main-nav')?.classList.toggle('is-active');
+        // Xử lý menu hamburger và drawer menu trên Mobile
+        const mainNav = document.querySelector('.main-nav');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileDrawerClose = document.getElementById('mobileDrawerClose');
+        const bottomNavCats = document.getElementById('mobileBottomNavCats');
+
+        function openMenu() {
+            mainNav?.classList.add('is-active');
+        }
+
+        function closeMenu() {
+            mainNav?.classList.remove('is-active');
+        }
+
+        mobileMenuToggle?.addEventListener('click', openMenu);
+        mobileDrawerClose?.addEventListener('click', closeMenu);
+        bottomNavCats?.addEventListener('click', openMenu);
+
+        // Bấm "Tìm kiếm" ở bottom nav -> cuộn lên đầu & focus vào search bar di động
+        document.getElementById('mobileBottomNavSearch')?.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(function() {
+                const searchInput = document.querySelector('.mobile-search-bar input');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }, 300);
         });
 
         // Xử lý accordion của Footer trên Mobile
         document.querySelectorAll('.site-footer .footer-col h4').forEach(function(header) {
             header.addEventListener('click', function() {
-                if (window.innerWidth <= 480) {
+                if (window.innerWidth <= 575) {
                     const parent = this.parentElement;
                     parent.classList.toggle('is-active');
                 }
