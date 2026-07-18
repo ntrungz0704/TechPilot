@@ -281,22 +281,22 @@ INSERT INTO categories (id, name, slug, icon) VALUES
 
 -- 2. Nạp thương hiệu (brands)
 INSERT INTO brands (id, name, slug, logo) VALUES 
-(1, 'ASUS', 'asus', 'asus.png'),
-(2, 'MSI', 'msi', 'msi.png'),
-(3, 'GIGABYTE', 'gigabyte', 'gigabyte.png'),
-(4, 'DELL', 'dell', 'dell.png'),
-(5, 'HP', 'hp', 'hp.png'),
-(6, 'Lenovo', 'lenovo', 'lenovo.png'),
-(7, 'Razer', 'razer', 'razer.png'),
-(8, 'Corsair', 'corsair', 'corsair.png'),
-(9, 'Intel', 'intel', 'intel.png'),
-(10, 'AMD', 'amd', 'amd.png'),
-(11, 'Samsung', 'samsung', 'samsung.png'),
-(12, 'Apple', 'apple', 'apple.png'),
-(13, 'Logitech', 'logitech', 'logitech.png'),
-(14, 'NVIDIA', 'nvidia', 'nvidia.png'),
-(15, 'Acer', 'acer', 'acer.png'),
-(16, 'LG', 'lg', 'lg.png');
+(1, 'ASUS', 'asus', 'asus.svg'),
+(2, 'MSI', 'msi', 'msi.svg'),
+(3, 'GIGABYTE', 'gigabyte', 'gigabyte.svg'),
+(4, 'DELL', 'dell', 'dell.svg'),
+(5, 'HP', 'hp', 'hp.svg'),
+(6, 'Lenovo', 'lenovo', 'lenovo.svg'),
+(7, 'Razer', 'razer', 'razer.svg'),
+(8, 'Corsair', 'corsair', 'corsair.svg'),
+(9, 'Intel', 'intel', 'intel.svg'),
+(10, 'AMD', 'amd', 'amd.svg'),
+(11, 'Samsung', 'samsung', 'samsung.svg'),
+(12, 'Apple', 'apple', 'apple.svg'),
+(13, 'Logitech', 'logitech', 'logitech.svg'),
+(14, 'NVIDIA', 'nvidia', 'nvidia.svg'),
+(15, 'Acer', 'acer', 'acer.svg'),
+(16, 'LG', 'lg', 'lg.svg');
 
 -- 3. Nạp sản phẩm (products)
 INSERT INTO products (id, category_id, brand_id, name, slug, short_desc, description, price, old_price, sale_price, discount_percent, image, rating, review_count, stock, specs, is_flash_sale, is_best_seller, is_new_arrival, is_ai_recommend) VALUES 

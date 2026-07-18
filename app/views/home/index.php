@@ -613,7 +613,7 @@ $reviews = $reviews ?? [];
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($brand['logo'])) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
+                    <img src="<?= url('assets/images/brands/' . str_replace('.png', '.svg', e($brand['logo']))) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
                 </div>
             <?php endforeach; ?>
         </div>
