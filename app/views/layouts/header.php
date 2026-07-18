@@ -8,7 +8,7 @@
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="<?= url('assets/css/style.css?v=18.0') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/style.css?v=18.1') ?>">
 </head>
 
 <body>

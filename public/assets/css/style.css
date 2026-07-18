@@ -2915,10 +2915,14 @@ body.dark-mode .logo-brand-title span {
         padding: 0 20px 40px 20px !important;
     }
     .main-nav__categories {
+        display: block !important;
         width: 100% !important;
+        background-color: transparent !important;
+        color: #1E293B !important;
+        padding: 12px 0 !important;
         border-bottom: 1px solid #E2E8F0 !important;
-        padding-bottom: 12px !important;
         margin-bottom: 12px !important;
+        height: auto !important;
     }
     .main-nav__categories-panel {
         display: block !important;
