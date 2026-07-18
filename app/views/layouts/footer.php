@@ -88,30 +88,46 @@
         </div>
     </footer>
 
-    <!-- Bottom Navigation dành riêng cho Mobile (Display: None on Desktop) -->
-    <div class="mobile-bottom-nav">
-        <a href="<?= url('/') ?>" class="mobile-bottom-nav__item">
-            <i class="fa-solid fa-house"></i>
-            <span>Trang chủ</span>
-        </a>
-        <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavCats" style="background: none; border: none; cursor: pointer; color: inherit;">
-            <i class="fa-solid fa-list"></i>
-            <span>Danh mục</span>
-        </button>
-        <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavSearch" style="background: none; border: none; cursor: pointer; color: inherit;">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span>Tìm kiếm</span>
-        </button>
-        <a href="<?= url('wishlist') ?>" class="mobile-bottom-nav__item">
-            <i class="fa-solid fa-heart"></i>
-            <span>Yêu thích</span>
-        </a>
-        <a href="<?= url('cart') ?>" class="mobile-bottom-nav__item">
-            <i class="fa-solid fa-cart-shopping"></i>
-            <span>Giỏ hàng</span>
-            <span class="cart-badge"><?= (int)cartCount() ?></span>
-        </a>
-    </div>
+    <!-- Adaptive Bottom Nav / Fixed Buy Bar for Mobile (Display: None on Desktop) -->
+    <?php 
+    $isProductDetail = (strpos($_SERVER['REQUEST_URI'], '/product/detail/') !== false);
+    if ($isProductDetail && !empty($product)): 
+    ?>
+        <div class="mobile-fixed-buy-bar">
+            <div class="fixed-buy-bar__info">
+                <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="thumb">
+                <div class="fixed-buy-bar__txt">
+                    <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
+                    <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>
+                </div>
+            </div>
+            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm giỏ</button>
+        </div>
+    <?php else: ?>
+        <div class="mobile-bottom-nav">
+            <a href="<?= url('/') ?>" class="mobile-bottom-nav__item">
+                <i class="fa-solid fa-house"></i>
+                <span>Trang chủ</span>
+            </a>
+            <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavCats" style="background: none; border: none; cursor: pointer; color: inherit;">
+                <i class="fa-solid fa-list"></i>
+                <span>Danh mục</span>
+            </button>
+            <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavSearch" style="background: none; border: none; cursor: pointer; color: inherit;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>Tìm kiếm</span>
+            </button>
+            <a href="<?= url('wishlist') ?>" class="mobile-bottom-nav__item">
+                <i class="fa-solid fa-heart"></i>
+                <span>Yêu thích</span>
+            </a>
+            <a href="<?= url('cart') ?>" class="mobile-bottom-nav__item">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>Giỏ hàng</span>
+                <span class="cart-badge"><?= (int)cartCount() ?></span>
+            </a>
+        </div>
+    <?php endif; ?>
 
     <script src="<?= url('assets/js/main.js?v=7.0') ?>"></script>
     <script>
