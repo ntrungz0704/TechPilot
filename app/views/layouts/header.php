@@ -8,7 +8,7 @@
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="<?= url('assets/css/style.css?v=17.7') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/style.css?v=18.0') ?>">
 </head>
 
 <body>
@@ -93,37 +93,47 @@
             </div>
         </div>
 
-        <!-- 2.5. Mobile Search and Category Pills (Display: None on Desktop) -->
+        <!-- 2.5. Mobile Search and Quick Categories (Display: None on Desktop) -->
         <div class="mobile-search-container">
             <form class="mobile-search-bar" action="<?= url('home/search') ?>" method="get">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" name="q" placeholder="Bạn cần tìm gì hôm nay?" required>
+                <input type="text" name="q" placeholder="Tìm sản phẩm..." aria-label="Tìm sản phẩm" required>
             </form>
         </div>
 
-        <div class="mobile-category-pills scroll-x-container">
-            <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="pill-item">
-                <i class="fa-solid fa-laptop"></i> Laptop
+        <div class="mobile-quick-categories">
+            <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-laptop"></i>
+                <span>Laptop</span>
             </a>
-            <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="pill-item">
-                <i class="fa-solid fa-desktop"></i> PC
+            <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-desktop"></i>
+                <span>PC</span>
             </a>
-            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="pill-item">
-                <i class="fa-solid fa-microchip"></i> Linh kiện
+            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-microchip"></i>
+                <span>Linh kiện</span>
             </a>
-            <a href="<?= url('home/search?cat=man-hinh') ?>" class="pill-item">
-                <i class="fa-solid fa-tv"></i> Màn hình
+            <a href="<?= url('home/search?cat=man-hinh') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-tv"></i>
+                <span>Màn hình</span>
             </a>
-            <a href="<?= url('home/search?cat=gaming-gear') ?>" class="pill-item">
-                <i class="fa-solid fa-gamepad"></i> Gaming Gear
+            <a href="<?= url('home/search?cat=gaming-gear') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-gamepad"></i>
+                <span>Gaming Gear</span>
             </a>
-            <a href="#" class="pill-item text-hot">
-                <i class="fa-solid fa-fire"></i> Khuyến mãi
+            <a href="#" class="quick-cat-item text-hot">
+                <i class="fa-solid fa-fire"></i>
+                <span>Khuyến mãi</span>
             </a>
         </div>
 
         <!-- 3. Navigation Menu -->
         <nav class="main-nav">
+            <!-- Nút đóng Drawer trên Mobile -->
+            <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Đóng Menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
             <div class="container main-nav__inner">
                 <div class="main-nav__categories">
                     <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
