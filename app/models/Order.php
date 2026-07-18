@@ -63,7 +63,7 @@ class Order
             // Cập nhật tăng lượt dùng cho coupon
             if ($couponId) {
                 $couponUpdateStmt = $this->db->prepare(
-                    'UPDATE coupons SET used_qty = used_qty + 1 WHERE id = :coupon_id'
+                    'UPDATE coupons SET used_count = used_count + 1 WHERE id = :coupon_id'
                 );
                 $couponUpdateStmt->execute([':coupon_id' => $couponId]);
             }

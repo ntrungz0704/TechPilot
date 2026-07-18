@@ -9,7 +9,8 @@
 - Đăng ký, đăng nhập, đăng xuất an toàn.
 - Giỏ hàng phía máy chủ, cập nhật số lượng và xóa sản phẩm.
 - Checkout COD, kiểm tra lại giá/tồn kho và tạo đơn trong transaction.
-- Schema V2 cho vai trò, biến thể, kho, đơn hàng, thanh toán, vận chuyển, đánh giá, wishlist, flash sale, thông báo, so sánh và đổi trả.
+- Chuẩn hóa 15 bảng cơ sở dữ liệu chính thức theo ERD của giảng viên, loại bỏ hoàn toàn các thực thể dư thừa như variants, warehouses, notifications, return requests.
+- Hỗ trợ tối ưu hóa Responsive toàn diện cho mọi thiết bị di động, đặc biệt là khung hiển thị di động chuẩn 440×956.
 
 ## Cấu trúc chính
 
