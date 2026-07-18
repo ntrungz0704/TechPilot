@@ -1539,6 +1539,17 @@ body.dark-mode .logo-text span {
     transition: var(--transition);
 }
 
+.footer-social a i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+}
+
 .footer-social a:hover {
     background-color: var(--primary);
     color: #FFFFFF;
