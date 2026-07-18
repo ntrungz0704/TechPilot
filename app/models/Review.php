@@ -28,7 +28,7 @@ class Review
             ];
         }
 
-        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE status = \'approved\' ORDER BY id DESC LIMIT :limit');
+        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE status = \'published\' ORDER BY id DESC LIMIT :limit');
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -41,7 +41,7 @@ class Review
             return [];
         }
 
-        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE product_id = :product_id AND status = \'approved\' ORDER BY id DESC');
+        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE product_id = :product_id AND status = \'published\' ORDER BY id DESC');
         $stmt->execute([':product_id' => $productId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -78,7 +78,7 @@ class Review
 
         $stmt = $this->db->prepare(
             'INSERT INTO reviews (product_id, user_id, reviewer_name, rating, comment, status)
-             VALUES (:product_id, :user_id, :reviewer_name, :rating, :comment, \'approved\')'
+             VALUES (:product_id, :user_id, :reviewer_name, :rating, :comment, \'published\')'
         );
         return $stmt->execute([
             ':product_id' => $productId,

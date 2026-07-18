@@ -23,7 +23,6 @@ class Product
         return $stmt->fetchAll();
     }
 
-    /** Lấy sản phẩm đang Flash Sale cùng thông tin đếm ngược, số lượng bán */
     public function getFlashSale(int $limit = 6): array
     {
         if ($this->db === null) {
@@ -31,11 +30,12 @@ class Product
         }
 
         $stmt = $this->db->prepare(
-            'SELECT p.*, fsi.discount_price, fsi.allocation_quantity as fs_stock, fsi.sold_quantity as fs_sold, fs.end_time 
+            'SELECT p.*, p.sale_price as discount_price, p.stock as fs_stock, 
+                    0 as fs_sold, fs.end_time 
              FROM products p
-             JOIN flash_sale_items fsi ON p.id = fsi.product_id
-             JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
+             CROSS JOIN flash_sales fs
              WHERE fs.start_time <= NOW() AND fs.end_time >= NOW() AND fs.status = \'active\'
+               AND p.is_flash_sale = 1 AND p.sale_price IS NOT NULL
              ORDER BY p.id DESC LIMIT :limit'
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -274,5 +274,23 @@ class Product
     public function getByCategory(string $slug, int $limit = 24): array
     {
         return $this->getByCategorySlug($slug, $limit);
+    }
+
+    /** Lấy danh sách sản phẩm từ list IDs */
+    public function getProductsByIds(array $ids): array
+    {
+        $ids = array_values($ids);
+        if ($this->db === null || empty($ids)) return [];
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT p.*, b.name as brand_name, c.name as category_name 
+             FROM products p
+             LEFT JOIN brands b ON p.brand_id = b.id
+             LEFT JOIN categories c ON p.category_id = c.id
+             WHERE p.id IN ($placeholders) AND p.status = 'active'"
+        );
+        $stmt->execute(array_map('intval', $ids));
+        return $stmt->fetchAll();
     }
 }

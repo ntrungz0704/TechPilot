@@ -389,7 +389,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 8. BEST SELLER PRODUCTS WITH TABS ===== -->
-<section class="container section">
+<section class="container section section-best-sellers">
     <div class="best-seller-section__header">
         <h2>Sản phẩm bán chạy</h2>
         <div class="tabs-nav">
@@ -472,8 +472,92 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
+<!-- ===== MOBILE EXPLORE BY CATEGORIES (Mobile-Only) ===== -->
+<section class="container section mobile-explore-section">
+    <div class="mobile-explore-header">
+        <h2>Khám phá theo danh mục</h2>
+        <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more" id="mobileExploreSeeAll">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+    
+    <!-- Tab Navigation di động cuộn ngang -->
+    <div class="mobile-explore-tabs scroll-x-container">
+        <button class="explore-tab-btn active" data-target="m-tab-laptop" data-url="<?= url('home/search?cat=laptop-gaming') ?>">Laptop</button>
+        <button class="explore-tab-btn" data-target="m-tab-pc" data-url="<?= url('home/search?cat=pc-build-san') ?>">PC Build</button>
+        <button class="explore-tab-btn" data-target="m-tab-components" data-url="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện</button>
+        <button class="explore-tab-btn" data-target="m-tab-gear" data-url="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</button>
+        <button class="explore-tab-btn" data-target="m-tab-monitor" data-url="<?= url('home/search?cat=man-hinh') ?>">Màn hình</button>
+    </div>
+
+    <!-- Tab Contents panels -->
+    <div class="mobile-explore-content">
+        <!-- Tab Laptop -->
+        <div class="explore-tab-panel active" id="m-tab-laptop">
+            <div class="product-grid">
+                <?php foreach (array_slice(array_merge($laptopGaming, $laptopVanPhong), 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        
+        <!-- Tab PC Build -->
+        <div class="explore-tab-panel" id="m-tab-pc">
+            <div class="product-grid">
+                <?php foreach (array_slice($pcBuildSan, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Tab Linh kiện -->
+        <div class="explore-tab-panel" id="m-tab-components">
+            <div class="product-grid">
+                <?php foreach (array_slice($pcLinhKien, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Tab Gaming Gear -->
+        <div class="explore-tab-panel" id="m-tab-gear">
+            <div class="product-grid">
+                <?php foreach (array_slice($gamingGear, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Tab Màn hình -->
+        <div class="explore-tab-panel" id="m-tab-monitor">
+            <div class="product-grid">
+                <?php foreach (array_slice($monHinh, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.explore-tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.explore-tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                document.querySelectorAll('.explore-tab-panel').forEach(p => p.classList.remove('active'));
+                const targetId = this.getAttribute('data-target');
+                document.getElementById(targetId)?.classList.add('active');
+                
+                const seeAllBtn = document.getElementById('mobileExploreSeeAll');
+                const targetUrl = this.getAttribute('data-url');
+                if (seeAllBtn && targetUrl) {
+                    seeAllBtn.setAttribute('href', targetUrl);
+                }
+            });
+        });
+    </script>
+</section>
+
 <!-- ===== LAPTOP GAMING ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Laptop Gaming</h2>
         <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -486,7 +570,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== BANNER TRẢ GÓP ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="promo-banner" style="background-image: url('<?= url('assets/images/installment-banner.jpg') ?>');">
         <div class="promo-banner__content">
             <h3>TRẢ GÓP 0% LÃI SUẤT QUA THẺ TÍN DỤNG</h3>
@@ -497,7 +581,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== LAPTOP VĂN PHÒNG ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Laptop Văn Phòng</h2>
         <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -510,7 +594,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== PC BUILD SẴN ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>PC Build Sẵn</h2>
         <a href="<?= url('home/search?cat=pc-build-san') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -523,7 +607,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 10. PC COMPONENTS ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Linh Kiện PC</h2>
         <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -536,7 +620,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 11. GAMING GEAR ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Gaming Gear</h2>
         <a href="<?= url('home/search?cat=gaming-gear') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -549,7 +633,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== MÀN HÌNH ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Màn Hình</h2>
         <a href="<?= url('home/search?cat=man-hinh') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -562,7 +646,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== APPLE ZONE ===== -->
-<section class="container section">
+<section class="container section section-apple-zone">
     <div class="section__head">
         <h2>Apple Zone</h2>
         <a href="<?= url('home/search?cat=apple') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -602,7 +686,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 13. FEATURED BRANDS (ĐỐI TÁC CHIẾN LƯỢC) ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head section__head--brand-partners">
         <h2>ĐỐI TÁC CHIẾN LƯỢC</h2>
     </div>
@@ -613,7 +697,7 @@ $reviews = $reviews ?? [];
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($brand['logo'])) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
+                    <img src="<?= url('assets/images/brands/' . str_replace('.png', '.svg', e($brand['logo']))) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
                 </div>
             <?php endforeach; ?>
         </div>
@@ -621,7 +705,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== ĐÁNH GIÁ KHÁCH HÀNG ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Khách hàng nói gì về TechPilot</h2>
     </div>
