@@ -77,9 +77,9 @@ class CheckoutController extends Controller
             exit;
         }
 
-        $usedQty = (int)$coupon['used_qty'];
-        $maxQty = (int)$coupon['quantity'];
-        if ($usedQty >= $maxQty) {
+        $usedQty = (int)$coupon['used_count'];
+        $maxQty = $coupon['usage_limit'] !== null ? (int)$coupon['usage_limit'] : null;
+        if ($maxQty !== null && $usedQty >= $maxQty) {
             echo json_encode(['success' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.']);
             exit;
         }
@@ -91,12 +91,12 @@ class CheckoutController extends Controller
         }
 
         $discount = 0.0;
-        $discountType = $coupon['discount_type'];
+        $discountType = $coupon['type'];
         $discountValue = (float)$coupon['discount_value'];
 
-        if ($discountType === 'percentage') {
+        if ($discountType === 'percent') {
             $discount = $subtotal * ($discountValue / 100);
-            $maxDiscount = (float)($coupon['max_discount_value'] ?? 0);
+            $maxDiscount = (float)($coupon['max_discount'] ?? 0);
             if ($maxDiscount > 0 && $discount > $maxDiscount) {
                 $discount = $maxDiscount;
             }

@@ -65,6 +65,14 @@ $reviews = $reviews ?? [];
             <?php endif; ?>
         </div>
 
+        <!-- Khung Ưu đãi dành riêng cho bạn -->
+        <div class="product-detail__promo-box">
+            <div class="promo-box__title"><i class="fa-solid fa-gift"></i> Ưu đãi dành riêng cho bạn</div>
+            <div class="promo-box__content">
+                <span>Voucher giảm thêm đến 500k khi thanh toán qua VNPay. <a href="#">Xem chi tiết &gt;</a></span>
+            </div>
+        </div>
+
         <!-- Biểu mẫu Mua hàng / Thêm giỏ hàng -->
         <form method="post" action="<?= url('cart/add') ?>" id="purchaseForm">
             <?= csrf_field() ?>
@@ -97,11 +105,21 @@ $reviews = $reviews ?? [];
         <button class="product-tabs__btn" onclick="switchProdTab('tab-reviews', this)">Đánh giá (<?= count($reviews) ?>)</button>
     </div>
 
+    <!-- Accordion Trigger 1 (Mô tả sản phẩm) -->
+    <button type="button" class="accordion-trigger is-active" onclick="toggleMobileAccordion('tab-desc', this)">
+        <span>Mô tả sản phẩm</span>
+        <i class="fa-solid fa-chevron-up"></i>
+    </button>
     <!-- Panel Mô tả -->
     <div class="product-tabs__panel is-active" id="tab-desc">
         <p><?= nl2br(e($product['description'] ?? 'Đang cập nhật thông tin chi tiết.')) ?></p>
     </div>
 
+    <!-- Accordion Trigger 2 (Thông số kỹ thuật) -->
+    <button type="button" class="accordion-trigger" onclick="toggleMobileAccordion('tab-specs', this)">
+        <span>Thông số kỹ thuật</span>
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
     <!-- Panel Thông số -->
     <div class="product-tabs__panel" id="tab-specs">
         <table class="specs-table">
@@ -122,6 +140,11 @@ $reviews = $reviews ?? [];
         </table>
     </div>
 
+    <!-- Accordion Trigger 3 (Đánh giá) -->
+    <button type="button" class="accordion-trigger" onclick="toggleMobileAccordion('tab-reviews', this)">
+        <span>Đánh giá (<?= count($reviews) ?>)</span>
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
     <!-- Panel Đánh giá -->
     <div class="product-tabs__panel" id="tab-reviews">
         <?php if (!empty($_SESSION['flashes'])): ?>
@@ -231,5 +254,22 @@ $reviews = $reviews ?? [];
         const tabBtns = document.querySelectorAll('.product-tabs__btn');
         tabBtns.forEach(b => b.classList.remove('is-active'));
         btn.classList.add('is-active');
+    }
+
+    function toggleMobileAccordion(panelId, btn) {
+        if (window.innerWidth > 575) return;
+        
+        const panel = document.getElementById(panelId);
+        const icon = btn.querySelector('i');
+        
+        if (panel.classList.contains('is-active')) {
+            panel.classList.remove('is-active');
+            btn.classList.remove('is-active');
+            icon.className = 'fa-solid fa-chevron-down';
+        } else {
+            panel.classList.add('is-active');
+            btn.classList.add('is-active');
+            icon.className = 'fa-solid fa-chevron-up';
+        }
     }
 </script>

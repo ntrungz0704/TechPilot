@@ -8,7 +8,7 @@
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="<?= url('assets/css/style.css?v=17.1') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.5') ?>">
 </head>
 
 <body>
@@ -18,13 +18,9 @@
         <div class="container top-bar__inner">
             <div class="top-bar__left">
                 <span><i class="fa-solid fa-truck-fast"></i> Miễn phí giao hàng toàn quốc</span>
-                <span><i class="fa-solid fa-shield-halved"></i> Bảo hành chính hãng 100%</span>
-                <span><i class="fa-solid fa-headset"></i> Hỗ trợ 24/7 toàn quốc</span>
-                <span><i class="fa-solid fa-rotate-left"></i> Hoàn tiền 7 ngày đổi mới</span>
             </div>
             <div class="top-bar__right">
                 <a href="#"><i class="fa-solid fa-credit-card"></i> Trả góp 0% qua thẻ tín dụng</a>
-                <a href="#"><i class="fa-solid fa-circle-question"></i> Hỗ trợ mua hàng</a>
             </div>
         </div>
     </div>
@@ -32,6 +28,11 @@
     <!-- 2. Main Header -->
     <header class="site-header">
         <div class="container site-header__inner">
+            <!-- Hamburger menu toggle for mobile -->
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu Toggle">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
             <!-- Logo Thương hiệu -->
             <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
                 <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
@@ -65,18 +66,18 @@
                     <i class="fa-solid fa-location-dot"></i>
                     <span>Cửa hàng</span>
                 </a>
-                <a href="#" class="header-actions__item">
+                <a href="#" class="header-actions__item header-actions__wishlist">
                     <i class="fa-regular fa-heart"></i>
                     <span>Yêu thích</span>
                 </a>
-                <a href="<?= url('cart') ?>" class="header-actions__item">
+                <a href="<?= url('cart') ?>" class="header-actions__item header-actions__cart">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span>Giỏ hàng</span>
                     <span class="cart-badge"><?= (int)cartCount() ?></span>
                 </a>
                 
                 <?php if ($u = currentUser()): ?>
-                    <div class="header-actions__item dropdown">
+                    <div class="header-actions__item dropdown header-actions__account">
                         <i class="fa-solid fa-circle-user"></i>
                         <span><?= e($u['full_name']) ?></span>
                         <div class="dropdown__menu">
@@ -84,7 +85,7 @@
                         </div>
                     </div>
                 <?php else: ?>
-                    <a href="<?= url('auth/login') ?>" class="header-actions__item">
+                    <a href="<?= url('auth/login') ?>" class="header-actions__item header-actions__account">
                         <i class="fa-regular fa-circle-user"></i>
                         <span>Tài khoản</span>
                     </a>
@@ -92,13 +93,55 @@
             </div>
         </div>
 
+        <!-- 2.5. Mobile Search and Quick Categories (Display: None on Desktop) -->
+        <div class="mobile-search-container">
+            <form class="mobile-search-bar" action="<?= url('home/search') ?>" method="get">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" name="q" placeholder="Tìm sản phẩm..." aria-label="Tìm sản phẩm" required>
+            </form>
+        </div>
+
+        <div class="mobile-quick-categories">
+            <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-laptop"></i>
+                <span>Laptop</span>
+            </a>
+            <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-desktop"></i>
+                <span>PC</span>
+            </a>
+            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-microchip"></i>
+                <span>Linh kiện</span>
+            </a>
+            <a href="<?= url('home/search?cat=man-hinh') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-tv"></i>
+                <span>Màn hình</span>
+            </a>
+            <a href="<?= url('home/search?cat=gaming-gear') ?>" class="quick-cat-item">
+                <i class="fa-solid fa-gamepad"></i>
+                <span>Gaming Gear</span>
+            </a>
+            <a href="#" class="quick-cat-item text-hot">
+                <i class="fa-solid fa-fire"></i>
+                <span>Khuyến mãi</span>
+            </a>
+        </div>
+
         <!-- 3. Navigation Menu -->
         <nav class="main-nav">
+            <!-- Nút đóng Drawer trên Mobile -->
+            <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Đóng Menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
             <div class="container main-nav__inner">
                 <div class="main-nav__categories">
                     <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
                     <div class="main-nav__categories-panel">
-                        <?php foreach ($categories as $cat): ?>
+                        <?php 
+                        $categoriesList = $categories ?? $globalCategories ?? [];
+                        foreach ($categoriesList as $cat): 
+                        ?>
                             <a href="<?= url('home/search?cat=' . $cat['slug']) ?>">
                                 <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>"></i>
                                 <?= e($cat['name']) ?>
@@ -109,13 +152,13 @@
                 
                 <ul class="main-nav__links">
                     <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
-                    <li><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
-                    <li><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
-                    <li><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
-                    <li><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
-                    <li><a href="#">Thiết bị mạng</a></li>
-                    <li><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
-                    <li><a href="#">Thiết bị văn phòng</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
+                    <li class="desktop-only-link"><a href="#">Thiết bị mạng</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
+                    <li class="desktop-only-link"><a href="#">Thiết bị văn phòng</a></li>
                     <li><a href="#" class="text-hot">Khuyến mãi cực hot <span class="dot-hot"></span></a></li>
                     <li><a href="#">Tin công nghệ</a></li>
                 </ul>
