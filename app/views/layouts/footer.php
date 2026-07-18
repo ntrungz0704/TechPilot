@@ -89,6 +89,22 @@
     </footer>
 
     <script src="<?= url('assets/js/main.js?v=7.0') ?>"></script>
+    <script>
+        // Xử lý menu hamburger trên Mobile
+        document.getElementById('mobileMenuToggle')?.addEventListener('click', function() {
+            document.querySelector('.main-nav')?.classList.toggle('is-active');
+        });
+
+        // Xử lý accordion của Footer trên Mobile
+        document.querySelectorAll('.site-footer .footer-col h4').forEach(function(header) {
+            header.addEventListener('click', function() {
+                if (window.innerWidth <= 480) {
+                    const parent = this.parentElement;
+                    parent.classList.toggle('is-active');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

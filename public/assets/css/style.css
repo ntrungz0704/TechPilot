@@ -2688,114 +2688,566 @@ body.dark-mode .logo-brand-title span {
 
 /* ===== 📱 MOBILE OPTIMIZATIONS FOR 440px AND BELOW ===== */
 @media (max-width: 480px) {
-    /* 1. Header & Logo adjustments */
+    /* 1. Top Announcement Bar */
+    .top-bar {
+        display: block !important;
+        height: auto !important;
+        padding: 8px 0 !important;
+        background-color: #0F172A !important;
+    }
+    .top-bar__inner {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0 12px !important;
+        font-size: 11px !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    .top-bar__left {
+        display: flex !important;
+        align-items: center !important;
+    }
+    .top-bar__left span {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        font-size: 11px !important;
+    }
+    .top-bar__right {
+        display: flex !important;
+        align-items: center !important;
+    }
+    .top-bar__right a {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        font-size: 11px !important;
+        color: #FFFFFF !important;
+        text-decoration: none !important;
+    }
+    .top-bar__left span:not(:first-child), .top-bar__right a:not(:first-child) {
+        display: none !important;
+    }
+
+    /* 2. Main Header */
+    .site-header {
+        position: sticky !important;
+        top: 0 !important;
+        background-color: #FFFFFF !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        z-index: 1000 !important;
+        padding: 6px 0 !important;
+    }
     .site-header__inner {
-        height: 64px !important;
-        gap: 12px !important;
-        padding: 0 10px !important;
+        height: 52px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0 12px !important;
+        gap: 8px !important;
     }
-    .logo-text {
-        font-size: 18px !important;
+    .mobile-menu-toggle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: none !important;
+        border: none !important;
+        color: #334155 !important;
+        font-size: 22px !important;
+        cursor: pointer !important;
+        padding: 4px !important;
     }
-    .logo-brand-tagline {
-        display: none !important; /* Ẩn slogan/tagline phụ trên mobile */
+    .logo {
+        margin-right: auto !important;
+        margin-left: 4px !important;
+    }
+    .logo img {
+        height: 32px !important;
     }
     .logo-brand-info {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
     }
     .logo-brand-title {
         font-size: 18px !important;
+        font-weight: 800 !important;
     }
+    .logo-brand-tagline {
+        display: none !important;
+    }
+    
+    /* Ẩn search bar desktop */
+    .search-bar {
+        display: none !important;
+    }
+
+    /* Actions buttons */
     .header-actions {
-        gap: 8px !important;
+        gap: 12px !important;
+        align-items: center !important;
+    }
+    .header-actions__item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        color: #334155 !important;
+        position: relative !important;
+        text-decoration: none !important;
     }
     .header-actions__item i {
-        font-size: 18px !important;
+        font-size: 22px !important;
+    }
+    .header-actions__item span:not(.cart-badge) {
+        display: none !important; /* Ẩn text trên mobile */
+    }
+    .header-actions__item.theme-toggle,
+    .header-actions__item:nth-child(2) {
+        display: none !important; /* Ẩn nút Darkmode & Locator trên mobile */
+    }
+    .cart-badge {
+        position: absolute !important;
+        top: -6px !important;
+        right: -8px !important;
+        background-color: #EF4444 !important;
+        color: #FFFFFF !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        width: 16px !important;
+        height: 16px !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
-    /* 2. Banner slider size */
-    .hero-slider {
+    /* 3. Mobile Search Container */
+    .mobile-search-container {
+        display: block !important;
+        padding: 6px 12px !important;
+        background-color: #FFFFFF !important;
+    }
+    .mobile-search-bar {
+        position: relative !important;
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .mobile-search-bar input {
+        width: 100% !important;
+        padding: 10px 12px 10px 38px !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 9999px !important;
+        font-size: 13px !important;
+        background-color: #F8FAFC !important;
+        outline: none !important;
+        color: #334155 !important;
+    }
+    .mobile-search-bar .search-icon {
+        position: absolute !important;
+        left: 14px !important;
+        color: #94A3B8 !important;
+        font-size: 14px !important;
+    }
+
+    /* 4. Mobile Category Pills Scroll */
+    .mobile-category-pills {
+        display: flex !important;
+        gap: 8px !important;
+        padding: 8px 12px !important;
+        background-color: #FFFFFF !important;
+        border-bottom: 1px solid #F1F5F9 !important;
+    }
+    .pill-item {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        white-space: nowrap !important;
+        padding: 6px 14px !important;
+        background-color: #F8FAFC !important;
+        border-radius: 9999px !important;
+        font-size: 12px !important;
+        color: #475569 !important;
+        text-decoration: none !important;
+        border: 1px solid #E2E8F0 !important;
+        font-weight: 500 !important;
+    }
+    .pill-item i {
+        color: #3B82F6 !important;
+    }
+    .pill-item.text-hot {
+        border-color: #FCA5A5 !important;
+    }
+    .pill-item.text-hot i {
+        color: #EF4444 !important;
+    }
+
+    /* Scroll X Helper */
+    .scroll-x-container {
+        display: flex !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        -webkit-overflow-scrolling: touch !important;
+        scroll-behavior: smooth !important;
+    }
+    .scroll-x-container::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    /* 5. Mobile Mega Menu Drawer */
+    .main-nav {
+        position: fixed !important;
+        top: 0 !important;
+        left: -280px !important;
+        width: 280px !important;
+        height: 100vh !important;
+        background-color: #FFFFFF !important;
+        z-index: 99999 !important;
+        transition: left 0.3s ease !important;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.1) !important;
+        display: block !important;
+    }
+    .main-nav.is-active {
+        left: 0 !important;
+    }
+    .main-nav__inner {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 20px !important;
+    }
+    .main-nav__categories {
+        width: 100% !important;
+        border-bottom: 1px solid #E2E8F0 !important;
+        padding-bottom: 12px !important;
+        margin-bottom: 12px !important;
+    }
+    .main-nav__categories-panel {
+        display: block !important;
+        position: static !important;
+        box-shadow: none !important;
+        padding: 10px 0 !important;
+    }
+    .main-nav__links {
+        flex-direction: column !important;
+        gap: 14px !important;
+        width: 100% !important;
+    }
+    .main-nav__links a {
+        font-size: 14px !important;
+        padding: 6px 0 !important;
+        display: block !important;
+    }
+
+    /* 6. Banner Hero slider */
+    .hero-section {
+        grid-template-columns: 1fr !important;
+        gap: 0 !important;
+        margin-top: 8px !important;
+        padding: 0 12px !important;
+    }
+    .hero-section__left, .hero-section__right {
+        display: none !important; /* Ẩn sidebar categories và 3 banner phụ bên phải */
+    }
+    .hero-section__center {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+    }
+    .carousel-slide {
+        padding: 24px 20px !important;
+        height: 200px !important;
+    }
+    .carousel-slide h2 {
+        font-size: 20px !important;
+        margin-top: 4px !important;
+    }
+    .carousel-slide p {
+        font-size: 12px !important;
+    }
+    .carousel-slide__specs {
+        display: none !important; /* Ẩn specs to trên mobile */
+    }
+    .carousel-slide__price {
+        font-size: 13px !important;
         margin-top: 10px !important;
     }
+    .carousel-slide .btn {
+        padding: 8px 16px !important;
+        font-size: 12px !important;
+    }
 
-    /* 3. Flash Sale Layout alignment */
+    /* 7. Service features */
+    .features-bar {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        padding: 16px 12px !important;
+    }
+    .feature-item {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 6px !important;
+    }
+    .feature-item i {
+        font-size: 18px !important;
+        color: #3B82F6 !important;
+    }
+    .feature-item span {
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+        text-align: left !important;
+    }
+
+    /* 8. Horizontal scroll cho toàn bộ các lưới sản phẩm */
+    .section-flash-sale .product-grid,
+    .section-best-sellers .tabs-content__panel .product-grid,
+    .section .product-grid:not(.apple-products-grid) {
+        display: flex !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 10px !important;
+        padding: 4px 12px 14px 12px !important;
+        margin: 0 -12px !important;
+    }
+    .section-flash-sale .product-grid::-webkit-scrollbar,
+    .section-best-sellers .tabs-content__panel .product-grid::-webkit-scrollbar,
+    .section .product-grid:not(.apple-products-grid)::-webkit-scrollbar {
+        display: none !important;
+    }
+    
+    /* Cố định kích thước card trong dải cuộn ngang */
+    .section-flash-sale .product-card,
+    .section-best-sellers .tabs-content__panel .product-card,
+    .section .product-card:not(.apple-products-grid .product-card) {
+        min-width: 160px !important;
+        max-width: 160px !important;
+        scroll-snap-align: start !important;
+        flex: 0 0 auto !important;
+    }
+
+    /* 9. Flash Sale Countdown */
     .section__head--flash {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0 12px 10px 12px !important;
+    }
+    .countdown {
+        gap: 4px !important;
+    }
+    .countdown-box__num {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
+    }
+    .countdown-box__label {
+        font-size: 8px !important;
+    }
+
+    /* 10. Popular Categories */
+    .category-strip {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 8px !important;
+        padding: 0 12px !important;
+    }
+    .category-strip__item {
+        padding: 8px 4px !important;
+        border-radius: 8px !important;
+        background-color: #F8FAFC !important;
+        border: 1px solid #F1F5F9 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+    }
+    .category-strip__icon {
+        width: 24px !important;
+        height: 24px !important;
+        margin-bottom: 0 !important;
+    }
+    .category-strip__icon img {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    .category-strip__item span {
+        font-size: 10px !important;
+        font-weight: 500 !important;
+        color: #334155 !important;
+        text-align: left !important;
+    }
+
+    /* 11. Intermediate & Large Banners */
+    .promo-banner {
+        height: 120px !important;
+        padding: 16px !important;
+        border-radius: 8px !important;
+    }
+    .promo-banner__content h3 {
+        font-size: 15px !important;
+    }
+    .promo-banner__content p {
+        font-size: 11px !important;
+    }
+    .promo-banner .btn {
+        display: none !important; /* Ẩn nút banner để tăng diện tích hiển thị ảnh */
+    }
+
+    /* 12. Best Sellers Tabs Nav */
+    .best-seller-section__header {
         flex-direction: column !important;
         align-items: flex-start !important;
         gap: 12px !important;
-        border-bottom: 2px solid #EF4444 !important;
-        padding-bottom: 12px !important;
+        padding: 0 12px !important;
     }
-    .section__head--flash h2 {
-        font-size: 20px !important;
-        margin-bottom: 0 !important;
-    }
-    .countdown {
-        margin-left: 0 !important;
+    .tabs-nav {
+        display: flex !important;
         gap: 6px !important;
+        overflow-x: auto !important;
+        width: 100% !important;
+        padding-bottom: 6px !important;
     }
-    .countdown-box__num {
-        width: 34px !important;
-        height: 34px !important;
-        font-size: 14px !important;
+    .tabs-nav::-webkit-scrollbar {
+        display: none !important;
     }
-    .countdown-box__label {
-        font-size: 10px !important;
-    }
-    .countdown-separator {
-        font-size: 18px !important;
-    }
-
-    /* 4. Service benefits icons spacing */
-    .features-bar {
-        gap: 14px !important;
-        padding: 16px !important;
-    }
-    .feature-item i {
-        font-size: 22px !important;
-    }
-    .feature-item span {
-        font-size: 13px !important;
-    }
-
-    /* 5. Category icons layout */
-    .category-strip {
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 12px !important;
-    }
-    .category-strip__icon {
-        width: 56px !important;
-        height: 56px !important;
-        margin-bottom: 6px !important;
-    }
-    .category-strip__item span {
+    .tab-btn {
+        padding: 6px 12px !important;
         font-size: 12px !important;
+        border-radius: 9999px !important;
+        white-space: nowrap !important;
     }
 
-    /* 6. Products Grid mobile format */
-    .products-grid {
+    /* 13. Apple Zone Layout */
+    .section-apple-zone .product-grid {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        padding: 0 12px !important;
+        margin: 0 !important;
+    }
+    .apple-banner {
+        grid-column: span 1 !important;
+        width: 100% !important;
+        height: 150px !important;
+        padding: 20px !important;
+        border-radius: 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+    .apple-products-grid {
+        display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 10px !important;
-        padding: 0 4px !important;
+        width: 100% !important;
     }
-    .product-card {
-        padding: 8px !important;
-    }
-    .product-card__name {
-        font-size: 12px !important;
-        height: 34px !important;
-        line-height: 1.4 !important;
-    }
-    .product-card__price-new {
-        font-size: 13px !important;
-    }
-    .product-card__price-old {
-        font-size: 10px !important;
+    .apple-products-grid .product-card {
+        min-width: unset !important;
+        max-width: unset !important;
     }
 
-    /* 7. Cart mobile stack layout */
+    /* 14. Tin tức & Review cuộn ngang */
+    .news-grid {
+        display: flex !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        gap: 12px !important;
+        padding: 4px 12px 14px 12px !important;
+        margin: 0 -12px !important;
+    }
+    .news-grid::-webkit-scrollbar {
+        display: none !important;
+    }
+    .news-card {
+        min-width: 250px !important;
+        max-width: 250px !important;
+        flex: 0 0 auto !important;
+        scroll-snap-align: start !important;
+    }
+
+    .review-strip {
+        display: flex !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        gap: 12px !important;
+        padding: 4px 12px 14px 12px !important;
+        margin: 0 -12px !important;
+    }
+    .review-strip::-webkit-scrollbar {
+        display: none !important;
+    }
+    .review-card {
+        min-width: 260px !important;
+        max-width: 260px !important;
+        flex: 0 0 auto !important;
+        scroll-snap-align: start !important;
+    }
+
+    /* 15. Partner Marquee */
+    .brand-slider {
+        padding: 10px 0 !important;
+    }
+    .brand-logo-card {
+        width: 80px !important;
+        height: 40px !important;
+        padding: 6px !important;
+    }
+
+    /* 16. Footer Accordion */
+    .footer-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0 !important;
+    }
+    .footer-col {
+        border-bottom: 1px solid #E2E8F0 !important;
+        padding: 12px 0 !important;
+    }
+    .footer-col.footer-brand {
+        border-bottom: none !important;
+        padding-bottom: 20px !important;
+    }
+    .footer-col h4 {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 0 !important;
+        cursor: pointer !important;
+        font-size: 14px !important;
+        color: #1E293B !important;
+        padding: 4px 0 !important;
+    }
+    .footer-col h4::after {
+        content: '\f107' !important;
+        font-family: 'Font Awesome 6 Free' !important;
+        font-weight: 900 !important;
+        font-size: 14px !important;
+        transition: transform 0.2s ease !important;
+        color: #64748B !important;
+    }
+    .footer-col.is-active h4::after {
+        transform: rotate(180deg) !important;
+    }
+    
+    /* Ẩn/Hiện nội dung link cột footer */
+    .footer-col a, .footer-col p, .footer-col form, .footer-col .payment-icons {
+        display: none !important;
+    }
+    .footer-col.footer-brand p, .footer-col.footer-brand .footer-social {
+        display: block !important;
+    }
+    .footer-col.is-active a, 
+    .footer-col.is-active p, 
+    .footer-col.is-active form, 
+    .footer-col.is-active .payment-icons {
+        display: block !important;
+        margin-top: 8px !important;
+    }
+    .newsletter-form {
+        display: flex !important;
+    }
+
+    /* 17. Cart mobile stack layout */
     .cart-layout {
         grid-template-columns: 1fr !important;
         gap: 16px !important;
@@ -2815,7 +3267,7 @@ body.dark-mode .logo-brand-title span {
         width: 100% !important;
     }
 
-    /* 8. Checkout page stack layout */
+    /* 18. Checkout page stack layout */
     .checkout-layout {
         grid-template-columns: 1fr !important;
         gap: 16px !important;
@@ -2824,7 +3276,7 @@ body.dark-mode .logo-brand-title span {
         padding: 14px !important;
     }
 
-    /* 9. Product Detail layout */
+    /* 19. Product Detail layout */
     .product-detail-layout {
         grid-template-columns: 1fr !important;
         gap: 16px !important;
@@ -2836,7 +3288,7 @@ body.dark-mode .logo-brand-title span {
         font-size: 18px !important;
     }
 
-    /* 10. Hide unsupported ERD15 widgets */
+    /* 20. Hide unsupported ERD15 widgets */
     .ai-chat-widget, .return-button, .address-selector {
         display: none !important;
     }
