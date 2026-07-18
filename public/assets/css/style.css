@@ -2943,6 +2943,7 @@ body.dark-mode .logo-brand-title span {
         gap: 0 !important;
         margin-top: 8px !important;
         padding: 0 14px !important;
+        height: auto !important;
     }
     .hero-section__left, .hero-section__right {
         display: none !important; /* Ẩn sidebar categories và 3 banner phụ bên phải */
@@ -2950,6 +2951,7 @@ body.dark-mode .logo-brand-title span {
     .hero-section__center {
         border-radius: 8px !important;
         overflow: hidden !important;
+        height: 190px !important;
     }
     .carousel-slide {
         padding: 20px 16px !important;
