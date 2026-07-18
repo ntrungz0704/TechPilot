@@ -1539,6 +1539,17 @@ body.dark-mode .logo-text span {
     transition: var(--transition);
 }
 
+.footer-social a i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+}
+
 .footer-social a:hover {
     background-color: var(--primary);
     color: #FFFFFF;
@@ -2673,4 +2684,93 @@ body.dark-mode .logo-brand-title span {
 .vertical-menu__item:hover .vertical-menu__link .arrow-right {
     color: #FFFFFF !important;
     transform: translateX(3px);
+}
+
+/* ===== 📱 MOBILE OPTIMIZATIONS FOR 440px AND BELOW ===== */
+@media (max-width: 480px) {
+    /* 1. Header & Logo adjustments */
+    .site-header__inner {
+        height: 64px !important;
+        gap: 12px !important;
+        padding: 0 10px !important;
+    }
+    .logo-text {
+        font-size: 18px !important;
+    }
+    .logo-brand-tagline {
+        display: none !important; /* Ẩn slogan/tagline phụ trên mobile */
+    }
+    .logo-brand-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .logo-brand-title {
+        font-size: 18px !important;
+    }
+    .header-actions {
+        gap: 8px !important;
+    }
+    .header-actions__item i {
+        font-size: 18px !important;
+    }
+
+    /* 2. Banner slider size */
+    .hero-slider {
+        margin-top: 10px !important;
+    }
+
+    /* 3. Flash Sale Layout alignment */
+    .section__head--flash {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+        border-bottom: 2px solid #EF4444 !important;
+        padding-bottom: 12px !important;
+    }
+    .section__head--flash h2 {
+        font-size: 20px !important;
+        margin-bottom: 0 !important;
+    }
+    .countdown {
+        margin-left: 0 !important;
+        gap: 6px !important;
+    }
+    .countdown-box__num {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+    }
+    .countdown-box__label {
+        font-size: 10px !important;
+    }
+    .countdown-separator {
+        font-size: 18px !important;
+    }
+
+    /* 4. Service benefits icons spacing */
+    .features-bar {
+        gap: 14px !important;
+        padding: 16px !important;
+    }
+    .feature-item i {
+        font-size: 22px !important;
+    }
+    .feature-item span {
+        font-size: 13px !important;
+    }
+
+    /* 5. Category icons layout */
+    .category-strip {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+    }
+    .category-strip__icon {
+        width: 56px !important;
+        height: 56px !important;
+        margin-bottom: 6px !important;
+    }
+    .category-strip__item span {
+        font-size: 12px !important;
+    }
 }
