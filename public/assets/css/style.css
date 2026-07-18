@@ -2929,6 +2929,9 @@ body.dark-mode .logo-brand-title span {
         position: static !important;
         box-shadow: none !important;
         padding: 10px 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
     }
     .main-nav__links {
         flex-direction: column !important;
