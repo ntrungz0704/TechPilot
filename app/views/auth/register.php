@@ -62,8 +62,9 @@ $old = $old ?? ['full_name' => '', 'email' => '', 'phone' => ''];
                 </div>
             </div>
 
-            <label class="checkbox agree-terms">
-                <input type="checkbox" required> Tôi đồng ý với <a href="#">Điều khoản dịch vụ</a> và <a href="#">Chính sách bảo mật</a>
+            <label class="checkbox agree-terms" style="display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; line-height: 1.5; margin-bottom: 20px;">
+                <input type="checkbox" required style="margin-top: 3px;">
+                <span>Tôi đồng ý với<br><a href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;">Điều khoản dịch vụ</a> và <a href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;">Chính sách bảo mật</a></span>
             </label>
 
             <button type="submit" class="btn btn--block">Đăng ký</button>
