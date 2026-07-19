@@ -94,6 +94,15 @@
                         <span style="font-weight: 700;">Tổng thanh toán:</span>
                         <strong style="color: var(--primary); font-size: 18px; font-weight: 800;"><?= number_format($order['total_amount'], 0, ',', '.') ?>đ</strong>
                     </div>
+                    <?php if ($order['status'] === 'pending'): ?>
+                        <form method="post" action="<?= url('profile/cancel_order') ?>" style="margin-top: 15px; width: 280px; text-align: right;" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>">
+                            <button type="submit" class="btn" style="background-color: #EF4444; color: #FFF; padding: 8px 18px; font-weight: 600; border-radius: 8px; width: 100%; height: 40px; border: none; cursor: pointer;">
+                                <i class="fa-solid fa-ban"></i> Hủy đơn hàng
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

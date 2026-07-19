@@ -121,6 +121,22 @@ class Order
                 ]);
             }
 
+            // Xóa/đóng giỏ hàng active của user trong database
+            if ($userId) {
+                $cartStmt = $this->db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' LIMIT 1");
+                $cartStmt->execute([':user_id' => $userId]);
+                $cart = $cartStmt->fetch();
+                if ($cart) {
+                    $cartId = (int)$cart['id'];
+                    // Chuyển status giỏ hàng sang converted
+                    $updateCartStmt = $this->db->prepare("UPDATE carts SET status = 'converted' WHERE id = :cart_id");
+                    $updateCartStmt->execute([':cart_id' => $cartId]);
+                    // Xóa sạch các mặt hàng trong giỏ
+                    $clearItemsStmt = $this->db->prepare("DELETE FROM cart_items WHERE cart_id = :cart_id");
+                    $clearItemsStmt->execute([':cart_id' => $cartId]);
+                }
+            }
+
             $this->db->commit();
 
             return [
