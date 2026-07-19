@@ -35,32 +35,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* ============ FLASH SALE COUNTDOWN ============ */
     const countdownEl = document.getElementById('flashCountdown');
-    if (countdownEl) {
-        let totalSeconds =
-            (parseInt(countdownEl.dataset.hours, 10) * 3600) +
-            (parseInt(countdownEl.dataset.minutes, 10) * 60) +
-            parseInt(countdownEl.dataset.seconds, 10);
-
+    if (countdownEl && countdownEl.dataset.endTime) {
+        const endTimeStr = countdownEl.dataset.endTime;
         const hEl = document.getElementById('cd-h');
         const mEl = document.getElementById('cd-m');
         const sEl = document.getElementById('cd-s');
 
         function pad(n) { return n.toString().padStart(2, '0'); }
 
+        // Chuẩn hoá định dạng "YYYY-MM-DD HH:MM:SS" thành ISO 8601 múi giờ +07:00 (Asia/Ho_Chi_Minh)
+        const isoStr = endTimeStr.replace(' ', 'T') + '+07:00';
+        const end = new Date(isoStr);
+
         function tick() {
-            if (totalSeconds <= 0) {
-                totalSeconds = 3 * 3600; // Reset vòng lặp demo
+            const now = new Date();
+            const diffMs = end.getTime() - now.getTime();
+            
+            if (diffMs <= 0) {
+                if (hEl) hEl.textContent = '00';
+                if (mEl) mEl.textContent = '00';
+                if (sEl) sEl.textContent = '00';
+                clearInterval(intervalId);
+                return;
             }
-            totalSeconds--;
+
+            const totalSeconds = Math.floor(diffMs / 1000);
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = totalSeconds % 60;
+
             if (hEl) hEl.textContent = pad(h);
             if (mEl) mEl.textContent = pad(m);
             if (sEl) sEl.textContent = pad(s);
         }
 
-        setInterval(tick, 1000);
+        tick();
+        const intervalId = setInterval(tick, 1000);
     }
 
     /* ============ HERO CAROUSEL ============ */

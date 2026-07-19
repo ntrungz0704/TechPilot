@@ -28,10 +28,10 @@ class Review
             ];
         }
 
-        $stmt = $this->db->prepare('SELECT * FROM reviews ORDER BY id DESC LIMIT :limit');
+        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE status = \'published\' ORDER BY id DESC LIMIT :limit');
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /** Lấy đánh giá theo sản phẩm */
@@ -41,8 +41,51 @@ class Review
             return [];
         }
 
-        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE product_id = :product_id ORDER BY id DESC');
+        $stmt = $this->db->prepare('SELECT * FROM reviews WHERE product_id = :product_id AND status = \'published\' ORDER BY id DESC');
         $stmt->execute([':product_id' => $productId]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Kiểm tra xem user đã từng mua sản phẩm này (đơn completed) chưa */
+    public function hasPurchasedProduct(int $userId, int $productId): bool
+    {
+        if ($this->db === null) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM order_items oi
+             JOIN orders o ON oi.order_id = o.id
+             WHERE o.user_id = :user_id 
+               AND oi.product_id = :product_id 
+               AND o.status = \'completed\''
+        );
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':product_id' => $productId
+        ]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /** Thêm review mới với comment được escape chống XSS */
+    public function create(int $productId, int $userId, string $reviewerName, int $rating, string $comment): bool
+    {
+        if ($this->db === null) {
+            return false;
+        }
+
+        $cleanComment = htmlspecialchars(trim($comment), ENT_QUOTES, 'UTF-8');
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO reviews (product_id, user_id, reviewer_name, rating, comment, status)
+             VALUES (:product_id, :user_id, :reviewer_name, :rating, :comment, \'published\')'
+        );
+        return $stmt->execute([
+            ':product_id' => $productId,
+            ':user_id' => $userId,
+            ':reviewer_name' => $reviewerName,
+            ':rating' => $rating,
+            ':comment' => $cleanComment
+        ]);
     }
 }
