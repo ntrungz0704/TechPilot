@@ -113,51 +113,185 @@ input, select, textarea, button {
     }
 }
 
-/* ===== ANNOUNCEMENT BAR ===== */
-.top-bar {
-    background-color: #0D1B2A;
-    color: #E5E7EB;
+/* ===== TECHPILOT TOP BAR ===== */
+:root {
+    --techpilot-blue: #146EF5;
+    --techpilot-cyan: #00C8FF;
+    --techpilot-violet: #5B5BFF;
+    --techpilot-graphite: #0E1320;
+    --techpilot-white: #F6F8FC;
+}
+
+.techpilot-topbar {
+    background-color: var(--techpilot-graphite);
+    color: var(--techpilot-white);
     font-size: 13px;
     font-weight: 500;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.top-bar__inner {
+.techpilot-topbar__container {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    height: 42px;
+    height: 36px;
 }
 
-.top-bar__left {
+.techpilot-topbar__marquee {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.techpilot-topbar__track {
     display: flex;
-    gap: 20px;
+    width: 200%;
+    height: 100%;
+    animation: techpilot-topbar-scroll 22s linear infinite;
+    will-change: transform;
 }
 
-.top-bar__left span {
+.techpilot-topbar__marquee:hover .techpilot-topbar__track,
+.techpilot-topbar__marquee:focus-within .techpilot-topbar__track {
+    animation-play-state: paused;
+}
+
+.techpilot-topbar__group {
+    display: flex;
+    align-items: center;
+    flex: 0 0 50%;
+    width: 50%;
+    min-width: 0;
+}
+
+.techpilot-topbar__message {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px;
+    color: var(--techpilot-white);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.techpilot-topbar__message:hover,
+.techpilot-topbar__message:focus {
+    color: var(--techpilot-blue);
+}
+
+.techpilot-topbar__message i {
+    color: var(--techpilot-cyan);
+}
+
+.techpilot-topbar__message:not(:last-child)::after {
+    content: "•";
+    position: absolute;
+    right: 0;
+    color: var(--techpilot-cyan);
+    font-size: 8px;
+    opacity: 0.5;
+}
+
+@keyframes techpilot-topbar-scroll {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        transform: translate3d(-50%, 0, 0);
+    }
+}
+
+.techpilot-topbar__actions {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-left: 16px;
+}
+
+.techpilot-topbar__action {
     display: flex;
     align-items: center;
     gap: 6px;
+    color: var(--techpilot-white);
+    text-decoration: none;
+    transition: color 0.2s ease;
 }
 
-.top-bar__right {
-    display: flex;
-    gap: 20px;
+.techpilot-topbar__action i {
+    color: var(--techpilot-cyan);
 }
 
-.top-bar__right a {
-    color: #E5E7EB;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.techpilot-topbar__action:hover,
+.techpilot-topbar__action:focus {
+    color: var(--techpilot-blue);
 }
 
-.top-bar__right a:hover {
-    color: var(--primary);
+.techpilot-topbar__divider {
+    width: 1px;
+    height: 12px;
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
-@media (max-width: 1024px) {
-    .top-bar__left span:not(:first-child), .top-bar__right a:not(:first-child) {
+/* Responsive: Tablet */
+@media (max-width: 1023px) {
+    .techpilot-topbar {
+        font-size: 12px;
+    }
+    .techpilot-topbar__container {
+        height: 32px;
+    }
+    .techpilot-topbar__action-text {
+        display: none;
+    }
+    .techpilot-topbar__actions {
+        gap: 8px;
+    }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 767px) {
+    .techpilot-topbar__container {
+        height: 28px;
+        padding: 0;
+    }
+    .techpilot-topbar__actions {
+        display: none;
+    }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .techpilot-topbar__track {
+        width: 100%;
+        animation: none;
+        transform: none;
+    }
+    .techpilot-topbar__group {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+    .techpilot-topbar__group[aria-hidden="true"] {
+        display: none;
+    }
+}
+
+/* Mobile + Reduced Motion */
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+    .techpilot-topbar__message:not(:first-child) {
+        display: none;
+    }
+    .techpilot-topbar__message {
+        padding: 0;
+    }
+    .techpilot-topbar__message::after {
         display: none;
     }
 }
@@ -279,51 +413,88 @@ html.dark-mode .logo-text span {
     background-color: var(--primary-hover);
 }
 
+.header-category-btn {
+    background-color: var(--primary);
+    color: #fff;
+    border: none;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: var(--radius-elem);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+}
+.header-category-btn i {
+    font-size: 18px;
+}
+
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
 }
 
 .header-actions__item {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    gap: 4px;
+    gap: 8px;
     position: relative;
     cursor: pointer;
     background: none;
     border: none;
+    text-decoration: none;
+    text-align: left;
+    white-space: nowrap;
 }
 
 .header-actions__item i {
     font-size: 20px;
-    color: var(--text-primary);
-    transition: var(--transition);
 }
 
-.header-actions__item:hover i {
+.header-actions__item:hover {
     color: var(--primary);
+}
+
+.header-actions__text {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-actions__text span {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.header-actions__text strong {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.header-actions__cart {
+    background-color: var(--secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-elem);
 }
 
 .cart-badge {
     position: absolute;
-    top: -6px;
-    right: 4px;
+    top: 2px;
+    left: 18px;
     background-color: var(--accent);
     color: #fff;
     font-size: 10px;
     font-weight: 700;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 2px 6px;
+    border-radius: 12px;
 }
 
 @media (max-width: 1024px) {
@@ -379,137 +550,92 @@ html.dark-mode .logo-text span {
 }
 
 /* ===== COMMERCE HEADER STACK ===== */
-@media (min-width: 1025px) {
-    #commerceHeaderSentinel {
-        width: 100%;
-        height: 1px;
-        pointer-events: none;
-    }
-
-    .commerce-header-stack {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        width: 100%;
-        background: var(--surface-card);
-    }
-
-    .commerce-header-stack.is-stuck {
-        box-shadow: 0 10px 30px rgba(14, 19, 32, 0.16);
-    }
-
-    .commerce-header-stack .site-header {
-        position: relative;
-        top: auto;
-        z-index: auto;
-        box-shadow: none;
-    }
-
-    .commerce-header-stack .main-nav {
-        position: relative;
-        top: auto;
-        z-index: auto;
-    }
+/* ===== COMMERCE HEADER STACK ===== */
+#commerceHeaderSentinel {
+    width: 100%;
+    height: 1px;
+    pointer-events: none;
 }
 
-@media (max-width: 1024px) {
-    .commerce-header-stack {
-        position: static;
-        z-index: auto;
-        box-shadow: none;
-    }
+.commerce-header-stack {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    background: var(--surface-card);
 }
 
-/* ===== NAVIGATION MENU ===== */
+.commerce-header-stack.is-stuck {
+    box-shadow: 0 10px 30px rgba(14, 19, 32, 0.16);
+}
+
+.commerce-header-stack .site-header {
+    position: relative;
+    top: auto;
+    z-index: auto;
+    box-shadow: none;
+}
+
+.commerce-header-stack .main-nav {
+    position: relative;
+    top: auto;
+    z-index: auto;
+}
+
+/* ===== NAVIGATION MENU (SUB-HEADER) ===== */
 .main-nav {
-    background-color: var(--primary);
-    height: 50px;
-    transition: background-color 180ms ease;
+    background-color: var(--bg-white);
+    border-bottom: 1px solid var(--border);
 }
 
 .main-nav__inner {
     display: flex;
     align-items: center;
-    height: 100%;
-}
-
-.main-nav__categories {
-    background-color: #004FEE;
-    color: #fff;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 0 24px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    position: relative;
-    z-index: 10;
-}
-
-.main-nav__categories-panel {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 280px;
-    background-color: var(--bg-white);
-    border: 1px solid var(--border);
-    border-radius: 0 0 var(--radius-elem) var(--radius-elem);
-    box-shadow: var(--shadow-hover);
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(10px);
-    transition: var(--transition);
-    padding: 8px 0;
-}
-
-.main-nav__categories:hover .main-nav__categories-panel {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.main-nav__categories-panel a {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    font-size: 14px;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.main-nav__categories-panel a:hover {
-    background-color: var(--secondary);
-    color: var(--primary);
+    height: 40px; /* Thinner for quick links */
 }
 
 .main-nav__links {
     display: flex;
     align-items: center;
-    height: 100%;
-    margin-left: 24px;
     gap: 24px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 
 .main-nav__links a {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 14px;
-    font-weight: 600;
-    height: 100%;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: none;
+    position: relative;
+    padding: 8px 0;
     display: flex;
     align-items: center;
-    position: relative;
+    transition: var(--transition);
 }
 
-.main-nav__links a:hover, .main-nav__links a.is-active {
-    color: #fff;
+.main-nav__links a:hover,
+.main-nav__links a.is-active {
+    color: var(--primary);
 }
 
-.main-nav__links a.text-hot {
-    color: #FFE033;
+.main-nav__links a.is-active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary);
 }
+
+.main-nav__links .text-hot {
+    color: var(--accent);
+    font-weight: 700;
+}
+
 
 .main-nav__links a.text-hot .dot-hot {
     width: 8px;
@@ -1208,30 +1334,28 @@ html.dark-mode .logo-text span {
 .product-card__add {
     background-color: var(--primary);
     color: #fff;
-    position: absolute;
-    bottom: -50px;
-    left: 16px;
-    right: 16px;
-    height: 38px;
+    width: 100%;
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+    margin-top: 0;
+    border: none;
     border-radius: var(--radius-elem);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 12.5px;
-    transition: var(--transition);
-    opacity: 0;
+    transition: all 0.3s ease;
     cursor: pointer;
     box-shadow: 0 4px 10px rgba(10, 91, 255, 0.2);
 }
 
 .product-card:hover .product-card__add {
-    bottom: 16px;
+    height: 38px;
     opacity: 1;
-}
-
-.product-card:hover .product-card__rating {
-    opacity: 0;
+    visibility: visible;
+    margin-top: 12px;
 }
 
 /* ===== POPULAR CATEGORIES ===== */
@@ -3609,20 +3733,12 @@ body {
         width: 100% !important;
     }
 
-    /* 1. Ã¡ÂºÂ¨n top announcement bar */
-    .top-bar {
-        display: none !important;
-    }
+    /* 1. techpilot-topbar: Không ẩn toàn bộ trên mobile, chỉ ẩn actions qua CSS bên trên */
 
-    /* 2. Main Header - Sticky chÃ¡Â»â€° thanh logo trÃƒÂªn cÃƒÂ¹ng */
+    /* 2. Main Header - Mobile */
     .site-header {
-        position: sticky !important;
-        top: 0 !important;
-        left: 0 !important;
         width: 100% !important;
         background-color: var(--surface-card) !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
-        z-index: 1000 !important;
         padding: 0 !important;
         border-bottom: 1px solid var(--border) !important;
     }
