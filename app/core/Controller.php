@@ -71,7 +71,7 @@ class Controller
     protected function requireAdmin(): array
     {
         $user = $this->requireAuth();
-        if ((int)($user['role_id'] ?? 0) !== 1) {
+        if (($user['role'] ?? '') !== 'admin') {
             http_response_code(403);
             die('<h1>403 Forbidden</h1><p>Bạn không có quyền truy cập trang này.</p>');
         }

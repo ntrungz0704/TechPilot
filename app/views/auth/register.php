@@ -162,7 +162,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
                 <!-- Terms checkbox -->
                 <label class="auth-checkbox-label auth-checkbox-label--terms">
                     <input type="checkbox" name="agree_terms" id="agreeTerms" class="auth-checkbox" required>
-                    <span>Tôi đồng ý với <a href="#" class="auth-link-accent">Điều khoản sử dụng</a> và <a href="#" class="auth-link-accent">Chính sách bảo mật</a></span>
+                    <span>Tôi đồng ý với <a href="<?= url('/') ?>" class="auth-link-accent">Điều khoản sử dụng</a> và <a href="<?= url('/') ?>" class="auth-link-accent">Chính sách bảo mật</a></span>
                 </label>
 
                 <!-- Submit -->

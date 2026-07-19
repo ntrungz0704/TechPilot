@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
-    phone VARCHAR(20) DEFAULT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
     address TEXT DEFAULT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id INT UNSIGNED DEFAULT NULL,
     coupon_id INT UNSIGNED DEFAULT NULL,
     customer_name VARCHAR(150) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
     email VARCHAR(150) DEFAULT NULL,
     address TEXT NOT NULL,
     note TEXT DEFAULT NULL,
@@ -274,7 +274,7 @@ INSERT INTO categories (id, name, slug, icon) VALUES
 (3, 'PC Build Sẵn', 'pc-build-san', 'fa-solid fa-desktop'),
 (4, 'Linh Kiện PC', 'pc-linh-kien', 'fa-solid fa-microchip'),
 (5, 'Màn Hình', 'man-hinh', 'fa-solid fa-tv'),
-(6, 'Apple Zone', 'apple', 'fa-brands fa-apple'),
+(6, 'Máy tính bộ', 'may-tinh-bo', 'fa-solid fa-desktop'),
 (7, 'Gaming Gear', 'gaming-gear', 'fa-solid fa-gamepad'),
 (8, 'Thiết Bị Văn Phòng', 'office-gear', 'fa-solid fa-print'),
 (9, 'Thiết Bị Mạng', 'networking', 'fa-solid fa-wifi');
@@ -292,7 +292,7 @@ INSERT INTO brands (id, name, slug, logo) VALUES
 (9, 'Intel', 'intel', 'intel.svg'),
 (10, 'AMD', 'amd', 'amd.svg'),
 (11, 'Samsung', 'samsung', 'samsung.svg'),
-(12, 'Apple', 'apple', 'apple.svg'),
+(12, 'TechPilot', 'techpilot', 'techpilot.svg'),
 (13, 'Logitech', 'logitech', 'logitech.svg'),
 (14, 'NVIDIA', 'nvidia', 'nvidia.svg'),
 (15, 'Acer', 'acer', 'acer.svg'),
@@ -318,7 +318,7 @@ INSERT INTO products (id, category_id, brand_id, name, slug, short_desc, descrip
 
 -- Flash Sale (Được thiết lập sẵn sale_price)
 (13, 1, 1, 'ASUS ROG Ally X', 'asus-rog-ally-x', 'Máy chơi game cầm tay mạnh mẽ nhất hiện nay', 'ROG Ally X sở hữu CPU AMD Ryzen Z1 Extreme, RAM LPDDR5X lên tới 24GB cùng dung lượng pin 80Wh gấp đôi thế hệ trước.', 22990000, 22990000, 18990000, 17, 'rog-ally-x.jpg', 4.9, 320, 8, '{"CPU": "AMD Ryzen Z1 Extreme", "RAM": "24GB LPDDR5X", "SSD": "1TB M.2 PCIe 4.0", "VGA": "AMD Radeon RDNA 3", "Màn hình": "7 inch FHD 120Hz"}', 1, 0, 0, 0),
-(14, 6, 12, 'iPhone 15 Pro Max 256GB', 'iphone-15-pro-max-256gb', 'Khung Titan siêu bền, vi xử lý A17 Pro đỉnh cao', 'Chiếc iPhone mạnh mẽ nhất với cổng USB-C tốc độ cao, camera zoom quang học 5x sắc nét.', 31990000, 31990000, 28990000, 9, 'iphone-15-pro-max.jpg', 4.9, 786, 14, '{"Chip": "Apple A17 Pro 6 nhân", "RAM": "8GB", "Bộ nhớ": "256GB", "Màn hình": "6.7 inch Super Retina XDR", "Camera": "48MP + 12MP + 12MP"}', 1, 1, 0, 0),
+(14, 3, 12, 'PC Gaming TechPilot Extreme V1', 'pc-gaming-techpilot-extreme-v1', 'PC Gaming cấu hình cao chiến mượt mọi game AAA', 'Cấu hình tối ưu hiệu năng với Intel Core i5 và RTX 4060, giúp bạn chiến mượt mà mọi tựa game Esport và đồ họa.', 28990000, 31990000, 28990000, 9, 'pc-build.jpg', 4.9, 786, 14, '{"CPU": "Intel Core i5-13400F", "Mainboard": "B760M", "RAM": "16GB DDR5", "SSD": "512GB NVMe", "VGA": "RTX 4060 8GB"}', 1, 1, 0, 0),
 (15, 7, 13, 'Logitech G Pro X Wireless', 'logitech-g-pro-x-wireless', 'Tai nghe gaming không dây chuẩn thi đấu', 'Sử dụng công nghệ không dây LIGHTSPEED, màng loa PRO-G 50mm và công nghệ lọc âm Blue VO!CE chuyên nghiệp.', 4090000, 4090000, 3290000, 20, 'logitech-g-pro-x-wireless.jpg', 4.8, 375, 10, '{"Kết nối": "Không dây Lightspeed 2.4GHz", "Driver": "PRO-G 50mm", "Micro": "Blue VO!CE 6mm", "Thời lượng pin": "Lên tới 20 giờ"}', 1, 0, 0, 0),
 (16, 5, 11, 'Samsung Odyssey G5 27"', 'samsung-odyssey-g5-27', 'Màn hình cong gaming QHD 165Hz', 'Độ cong 1000R tối ưu tầm nhìn, thời gian phản hồi 1ms và công nghệ AMD FreeSync Premium chống xé hình.', 5990000, 5990000, 5490000, 8, 'samsung-odyssey-g5.jpg', 4.6, 164, 15, '{"Kích thước": "27 inch", "Độ cong": "1000R", "Độ phân giải": "2560 x 1440 (2K)", "Tần số quét": "165Hz", "Tấm nền": "VA"}', 1, 0, 0, 0),
 (17, 4, 14, 'RTX 4070 SUPER 12GB', 'rtx-4070-super-12gb', 'Card đồ họa đỉnh cao kiến trúc Ada Lovelace', 'Hỗ trợ DLSS 3, Ray Tracing thời gian thực siêu mượt cho trải nghiệm chiến game 2K đỉnh cao.', 21990000, 21990000, 18990000, 13, 'rtx-4070-super.jpg', 4.9, 149, 10, '{"Nhân CUDA": "7168", "VRAM": "12GB GDDR6X", "Bus": "192-bit", "Nguồn yêu cầu": "650W trở lên"}', 1, 0, 1, 1),
@@ -344,9 +344,9 @@ INSERT INTO products (id, category_id, brand_id, name, slug, short_desc, descrip
 (31, 5, 11, 'Màn hình Samsung Odyssey G6 27"', 'man-hinh-samsung-odyssey-g6', 'Màn hình cong gaming 2K 240Hz thông minh', 'Tần số quét siêu khủng 240Hz, tấm nền cong QLED, tích hợp kho ứng dụng Smart TV tiện ích.', 11990000, 13990000, NULL, 14, 'monitor-samsung-g6.jpg', 4.8, 322, 12, '{"Kích thước": "27 inch", "Độ cong": "1000R", "Độ phân giải": "2560x1440", "Tần số quét": "240Hz", "Tấm nền": "VA"}', 0, 1, 0, 0),
 
 -- Apple Zone
-(32, 6, 12, 'MacBook Air M2 (8GB RAM / 256GB SSD)', 'macbook-air-m2-8gb-256gb', 'Mỏng nhẹ tinh tế, hiệu năng chip M2 vượt trội', 'Thiết kế tai thỏ sang trọng, vỏ nhôm nguyên khối siêu mỏng nhẹ, pin lên tới 18 tiếng.', 24990000, 26990000, NULL, 7, 'macbook-air-m2.jpg', 4.8, 342, 18, '{"Chip": "Apple M2 8 nhân", "RAM": "8GB", "SSD": "256GB", "Màn hình": "13.6 inch Liquid Retina", "Trọng lượng": "1.24 kg"}', 0, 1, 0, 0),
-(33, 6, 12, 'MacBook Pro 14" M3 Pro 2024', 'macbook-pro-14-m3-pro', 'Sức mạnh quái vật cho lập trình viên & designer', 'Chip M3 Pro mạnh mẽ, màn hình Liquid Retina XDR 120Hz Liquid Retina hiển thị siêu chuẩn màu.', 48990000, 52990000, NULL, 7, 'macbook-pro-m3.jpg', 4.9, 120, 10, '{"Chip": "Apple M3 Pro 11 nhân CPU", "RAM": "18GB", "SSD": "512GB", "Màn hình": "14.2 inch Liquid Retina XDR", "Hệ điều hành": "macOS"}', 0, 0, 1, 1),
-(34, 6, 12, 'iMac 24 inch M3 2024', 'imac-24-inch-m3', 'Máy tính All-in-One rực rỡ sắc màu thế hệ mới', 'Thiết kế siêu mỏng 11.5mm đầy màu sắc, chip M3 mạnh mẽ đi kèm chuột và bàn phím đồng bộ.', 32990000, 35990000, NULL, 8, 'imac-m3.jpg', 4.8, 62, 7, '{"Chip": "Apple M3 8 nhân CPU", "RAM": "8GB Unified", "SSD": "256GB", "Màn hình": "24 inch Retina 4.5K"}', 0, 0, 0, 0),
+(32, 2, 1, 'Laptop ASUS Vivobook S 14', 'laptop-asus-vivobook-s-14', 'Laptop văn phòng cao cấp, mỏng nhẹ tinh tế', 'Thiết kế mỏng nhẹ sang trọng, thời lượng pin ấn tượng và màn hình OLED sắc nét đáp ứng tối đa nhu cầu làm việc công sở.', 24990000, 26990000, NULL, 7, 'laptop-asus.jpg', 4.8, 342, 18, '{"CPU": "Intel Core i5-13500H", "RAM": "16GB DDR5", "SSD": "512GB NVMe", "Màn hình": "14 inch OLED 2.8K"}', 0, 1, 0, 0),
+(33, 1, 6, 'Laptop Gaming Lenovo Legion Pro 5', 'laptop-gaming-lenovo-legion-pro-5', 'Laptop gaming hiệu năng đỉnh cao, tản nhiệt tối ưu', 'Lenovo Legion Pro 5 trang bị Core i7 thế hệ mới cùng card đồ họa RTX 4060, đáp ứng xuất sắc nhu cầu chơi game nặng và đồ họa chuyên nghiệp.', 48990000, 52990000, NULL, 7, 'laptop-gaming.jpg', 4.9, 120, 10, '{"CPU": "Intel Core i7-14700HX", "RAM": "32GB DDR5", "SSD": "1TB NVMe", "VGA": "RTX 4060 8GB", "Màn hình": "16 inch QHD+ 165Hz"}', 0, 0, 1, 1),
+(34, 3, 1, 'PC All-in-One ASUS A3402', 'pc-all-in-one-asus-a3402', 'Máy tính All-in-One mỏng nhẹ gọn gàng cho văn phòng', 'ASUS A3402 tích hợp toàn bộ linh kiện vào sau màn hình 24 inch sắc nét, đi kèm bàn phím và chuột không dây đồng bộ.', 32990000, 35990000, NULL, 8, 'pc-build.jpg', 4.8, 62, 7, '{"CPU": "Intel Core i5-1235U", "RAM": "16GB DDR4", "SSD": "512GB NVMe", "Màn hình": "23.8 inch FHD IPS"}', 0, 0, 0, 0),
 
 -- Gaming Gear
 (35, 7, 13, 'Bàn phím cơ Logitech G213 Prodigy', 'ban-phim-logitech-g213', 'Bàn phím giả cơ chống tràn nước, đèn RGB', 'Phím nhấn nhạy bén gấp 4 lần phím thường, chỗ nghỉ tay thoải mái khi gõ văn bản lâu.', 890000, 1190000, NULL, 25, 'keyboard-logitech.jpg', 4.4, 215, 30, '{"Kiểu kết nối": "Có dây USB", "Loại phím": "Giả cơ (Membrane)", "Đèn nền": "RGB 5 vùng", "Chống nước": "Có"}', 0, 0, 0, 0),
@@ -357,7 +357,7 @@ INSERT INTO products (id, category_id, brand_id, name, slug, short_desc, descrip
 INSERT INTO product_images (product_id, image_url) VALUES 
 (1, 'rog-zephyrus-1.jpg'), (1, 'rog-zephyrus-2.jpg'), (1, 'rog-zephyrus-3.jpg'), (1, 'rog-zephyrus-4.jpg'),
 (13, 'rog-ally-x-1.jpg'), (13, 'rog-ally-x-2.jpg'),
-(14, 'iphone-15-pro-max-1.jpg'), (14, 'iphone-15-pro-max-2.jpg');
+(14, 'pc-build-1.jpg'), (14, 'pc-build-2.jpg');
 
 -- 5. Nạp quản lý banner quảng cáo (banners)
 INSERT INTO banners (title, image, link, type, position) VALUES 
@@ -380,7 +380,7 @@ INSERT INTO reviews (product_id, user_id, reviewer_name, rating, comment) VALUES
 (1, NULL, 'Nguyễn Hoàng Nam', 5.0, 'Sản phẩm chính hãng, màn hình OLED siêu đẹp, chơi game mượt mà cực kỳ thích! Giao hàng nhanh.'),
 (1, NULL, 'Trần Minh Đức', 4.5, 'Thiết kế mỏng nhẹ tiện mang đi làm, hiệu năng i9 siêu mạnh nhưng máy hơi ấm lên khi chơi game nặng lâu.'),
 (13, NULL, 'Lê Minh Quân', 5.0, 'Màn hình 120Hz mượt, phím bấm nhạy, Ally X dùng sướng hơn bản cũ nhiều, pin trâu hơn hẳn.'),
-(14, NULL, 'Phan Mỹ Linh', 5.0, 'Màu titan tự nhiên siêu đẹp, chụp hình cực nét, máy cầm nhẹ tay hơn bản 14.'),
+(14, NULL, 'Phan Mỹ Linh', 5.0, 'Máy ráp rất chắc chắn, chạy êm và chiến game AAA cực mượt.'),
 (15, NULL, 'Hoàng Quốc Bảo', 5.0, 'Âm thanh vòm nghe tiếng chân địch trong game rất rõ, mic lọc âm tốt.'),
 (16, NULL, 'Vũ Phương Anh', 4.0, 'Màn hình cong đẹp, tần số quét 165Hz chơi game mượt, tuy nhiên chân đế hơi to chiếm diện tích bàn.');
 
@@ -390,10 +390,45 @@ INSERT INTO coupons (code, discount_value, type, max_discount, min_order_value, 
 ('GIAM5PHANTRAM', 5, 'percent', 500000, 5000000, NOW() - INTERVAL 1 DAY, NOW() + INTERVAL 30 DAY);
 
 -- 9. Nạp tài khoản admin và customer mẫu
+-- Admin: email=ntrungz0704@gmail.com / password=Admin@123
+-- Customer: email=customer@gmail.com / password=customer123
 INSERT INTO users (full_name, email, phone, password, role, status) VALUES
-('Nguyễn Phạm Thành Trung', 'ntrungz0704@gmail.com', '0987654321', '$2y$10$tMh5hN258Z39aB/zP8k41On6.M2Pq75yqT5D5aN5E5n5w5x5y5z5u', 'admin', 'active'),
-('Khách hàng Demo', 'customer@gmail.com', '0123456789', '$2y$10$tMh5hN258Z39aB/zP8k41On6.M2Pq75yqT5D5aN5E5n5w5x5y5z5u', 'customer', 'active');
+('Nguyễn Phạm Thành Trung', 'ntrungz0704@gmail.com', '0987654321', '$2y$12$MfxSPGH6pjMqRLNF/3H.FeZP6.ppxtRtqz/StiY0d0BaTUxX3xdB2', 'admin', 'active'),
+('Khách hàng Demo', 'customer@gmail.com', '0123456789', '$2y$12$CYdt4fumZuJ8nc5menHuN.0mJ2zGA.Y5nTTjCnkfLWXfS6if/6WOS', 'customer', 'active');
 
 -- 10. Nạp một chiến dịch Flash Sale
 INSERT INTO flash_sales (id, title, slug, start_time, end_time, status) VALUES
 (1, 'Flash Sale Công Nghệ', 'flash-sale-cong-nghe', NOW() - INTERVAL 1 HOUR, NOW() + INTERVAL 2 HOUR, 'active');
+
+-- 11. Bảng thông báo (notifications)
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    is_read TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 12. Yêu cầu đổi trả (return_requests)
+CREATE TABLE IF NOT EXISTS return_requests (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_code VARCHAR(50) NOT NULL UNIQUE,
+    order_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    description TEXT,
+    status ENUM('requested', 'approved', 'rejected', 'completed') DEFAULT 'requested',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 13. Chi tiết yêu cầu đổi trả (return_items)
+CREATE TABLE IF NOT EXISTS return_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_request_id INT UNSIGNED NOT NULL,
+    order_item_id INT UNSIGNED NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    resolution ENUM('refund', 'replace', 'repair') DEFAULT 'refund',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

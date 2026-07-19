@@ -21,7 +21,7 @@
                 <span><i class="fa-solid fa-truck-fast"></i> Miễn phí giao hàng toàn quốc</span>
             </div>
             <div class="top-bar__right">
-                <a href="#"><i class="fa-solid fa-credit-card"></i> Trả góp 0% qua thẻ tín dụng</a>
+                <span><i class="fa-solid fa-phone"></i> Hỗ trợ: 1800 9999 (miễn cước)</span>
             </div>
         </div>
     </div>
@@ -63,11 +63,11 @@
                     <i class="fa-solid fa-moon"></i>
                     <span>Tối</span>
                 </button>
-                <a href="#" class="header-actions__item">
+                <a href="<?= url('post') ?>" class="header-actions__item">
                     <i class="fa-solid fa-location-dot"></i>
                     <span>Cửa hàng</span>
                 </a>
-                <a href="#" class="header-actions__item header-actions__wishlist">
+                <a href="<?= url('profile/wishlist') ?>" class="header-actions__item header-actions__wishlist">
                     <i class="fa-regular fa-heart"></i>
                     <span>Yêu thích</span>
                 </a>
@@ -82,6 +82,8 @@
                         <i class="fa-solid fa-circle-user"></i>
                         <span><?= e($u['full_name']) ?></span>
                         <div class="dropdown__menu">
+                            <a href="<?= url('profile') ?>"><i class="fa-solid fa-user"></i> Trang cá nhân</a>
+                            <a href="<?= url('profile/orders') ?>"><i class="fa-solid fa-box-open"></i> Đơn hàng của tôi</a>
                             <a href="<?= url('auth/logout') ?>"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
                         </div>
                     </div>
@@ -146,11 +148,11 @@
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
-                    <li class="desktop-only-link"><a href="#">Thiết bị mạng</a></li>
+                    <li><a href="<?= url('home/search?cat=thiet-bi-mang') ?>" class="desktop-only-link">Thiết bị mạng</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
-                    <li class="desktop-only-link"><a href="#">Thiết bị văn phòng</a></li>
-                    <li><a href="#" class="text-hot">Khuyến mãi cực hot <span class="dot-hot"></span></a></li>
-                    <li><a href="#">Tin công nghệ</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=thiet-bi-van-phong') ?>">Thiết bị văn phòng</a></li>
+                    <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
+                    <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
                 </ul>
             </div>
         </nav>
