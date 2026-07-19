@@ -228,6 +228,19 @@ CREATE TABLE IF NOT EXISTS flash_sales (
     INDEX idx_flash_sales_window (status, start_time, end_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS flash_sale_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    flash_sale_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    discount_price DECIMAL(15, 2) NOT NULL,
+    allocation_quantity INT NOT NULL DEFAULT 0,
+    sold_quantity INT NOT NULL DEFAULT 0,
+    limit_per_user INT NOT NULL DEFAULT 1,
+    CONSTRAINT fk_flash_sale_items_campaign FOREIGN KEY (flash_sale_id) REFERENCES flash_sales (id) ON DELETE CASCADE,
+    CONSTRAINT fk_flash_sale_items_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+    UNIQUE KEY uq_campaign_product (flash_sale_id, product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 14. banners (Quảng cáo)
 CREATE TABLE IF NOT EXISTS banners (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
