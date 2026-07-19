@@ -68,12 +68,34 @@ class PcBuilderController extends Controller
         ]);
     }
 
-    /** API: Lấy danh sách linh kiện phù hợp theo danh mục */
+    /** Helper lấy cấu hình chi tiết sản phẩm */
+    private function getProductSpecs(PDO $db, int $id): array
+    {
+        $stmt = $db->prepare('SELECT specs FROM products WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (json_decode($row['specs'] ?? '', true) ?: []) : [];
+    }
+
+    /** Helper lấy tên sản phẩm */
+    private function getProductName(PDO $db, int $id): string
+    {
+        $stmt = $db->prepare('SELECT name FROM products WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (string)$row['name'] : '';
+    }
+
+    /** API: Lấy danh sách linh kiện phù hợp và kiểm tra tương thích */
     public function getProducts(): void
     {
         header('Content-Type: application/json');
         $partKey = trim($_GET['part'] ?? '');
         $search = trim($_GET['search'] ?? '');
+        
+        $cpuId = (int)($_GET['cpu_id'] ?? 0);
+        $mainboardId = (int)($_GET['mainboard_id'] ?? 0);
+        $ramId = (int)($_GET['ram_id'] ?? 0);
 
         if (!array_key_exists($partKey, $this->parts)) {
             echo json_encode([]);
@@ -88,7 +110,7 @@ class PcBuilderController extends Controller
         }
 
         $partInfo = $this->parts[$partKey];
-        $sql = "SELECT id, name, price, image, stock FROM products WHERE {$partInfo['query']} AND status = 'active'";
+        $sql = "SELECT id, name, price, image, stock, specs FROM products WHERE {$partInfo['query']} AND status = 'active'";
         
         $params = [];
         if ($search !== '') {
@@ -101,13 +123,102 @@ class PcBuilderController extends Controller
         $stmt->execute($params);
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Chuẩn hóa đường dẫn hình ảnh và định dạng tiền tệ
-        foreach ($products as &$p) {
+        // Tiến hành lọc tương thích CPU, Mainboard, RAM ở tầng PHP (an toàn & chính xác)
+        $filteredProducts = [];
+        foreach ($products as $p) {
+            $specs = json_decode($p['specs'] ?? '', true) ?: [];
+
+            // 1. Lọc tương thích Socket CPU <-> Mainboard
+            if ($partKey === 'mainboard' && $cpuId > 0) {
+                $cpuSpecs = $this->getProductSpecs($db, $cpuId);
+                $cpuSocket = $cpuSpecs['Socket'] ?? '';
+                $mainboardSocket = $specs['Socket'] ?? '';
+                if ($cpuSocket !== '' && $mainboardSocket !== '' && strcasecmp($cpuSocket, $mainboardSocket) !== 0) {
+                    continue; // Socket không khớp -> loại bỏ
+                }
+            }
+            if ($partKey === 'cpu' && $mainboardId > 0) {
+                $mbSpecs = $this->getProductSpecs($db, $mainboardId);
+                $mbSocket = $mbSpecs['Socket'] ?? '';
+                $cpuSocket = $specs['Socket'] ?? '';
+                if ($mbSocket !== '' && $cpuSocket !== '' && strcasecmp($mbSocket, $cpuSocket) !== 0) {
+                    continue; // Socket không khớp -> loại bỏ
+                }
+            }
+
+            // 2. Lọc tương thích RAM <-> Mainboard (DDR4 / DDR5)
+            if ($partKey === 'ram' && $mainboardId > 0) {
+                $mbSpecs = $this->getProductSpecs($db, $mainboardId);
+                
+                $mbRamSupport = '';
+                foreach ($mbSpecs as $k => $v) {
+                    if (strpos(strtoupper($k), 'RAM') !== false) {
+                        $mbRamSupport = $v;
+                        break;
+                    }
+                }
+                
+                $ramType = '';
+                foreach ($specs as $k => $v) {
+                    if (strpos(strtoupper($k), 'RAM') !== false) {
+                        $ramType = $v;
+                        break;
+                    }
+                }
+                if ($ramType === '' && strpos(strtoupper($p['name']), 'DDR5') !== false) $ramType = 'DDR5';
+                if ($ramType === '' && strpos(strtoupper($p['name']), 'DDR4') !== false) $ramType = 'DDR4';
+
+                if ($mbRamSupport !== '' && $ramType !== '') {
+                    $mbIsDdr5 = (strpos(strtoupper($mbRamSupport), 'DDR5') !== false);
+                    $mbIsDdr4 = (strpos(strtoupper($mbRamSupport), 'DDR4') !== false);
+                    $ramIsDdr5 = (strpos(strtoupper($ramType), 'DDR5') !== false);
+                    $ramIsDdr4 = (strpos(strtoupper($ramType), 'DDR4') !== false);
+
+                    if (($mbIsDdr5 && !$ramIsDdr5) || ($mbIsDdr4 && !$ramIsDdr4)) {
+                        continue; // Chuẩn RAM không khớp -> loại bỏ
+                    }
+                }
+            }
+            if ($partKey === 'mainboard' && $ramId > 0) {
+                $ramSpecs = $this->getProductSpecs($db, $ramId);
+                $ramType = '';
+                foreach ($ramSpecs as $k => $v) {
+                    if (strpos(strtoupper($k), 'RAM') !== false) {
+                        $ramType = $v;
+                        break;
+                    }
+                }
+                $ramName = $this->getProductName($db, $ramId);
+                if ($ramType === '' && strpos(strtoupper($ramName), 'DDR5') !== false) $ramType = 'DDR5';
+                if ($ramType === '' && strpos(strtoupper($ramName), 'DDR4') !== false) $ramType = 'DDR4';
+
+                $mbRamSupport = '';
+                foreach ($specs as $k => $v) {
+                    if (strpos(strtoupper($k), 'RAM') !== false) {
+                        $mbRamSupport = $v;
+                        break;
+                    }
+                }
+
+                if ($mbRamSupport !== '' && $ramType !== '') {
+                    $mbIsDdr5 = (strpos(strtoupper($mbRamSupport), 'DDR5') !== false);
+                    $mbIsDdr4 = (strpos(strtoupper($mbRamSupport), 'DDR4') !== false);
+                    $ramIsDdr5 = (strpos(strtoupper($ramType), 'DDR5') !== false);
+                    $ramIsDdr4 = (strpos(strtoupper($ramType), 'DDR4') !== false);
+
+                    if (($ramIsDdr5 && !$mbIsDdr5) || ($ramIsDdr4 && !$mbIsDdr4)) {
+                        continue; // Chuẩn RAM không khớp -> loại bỏ
+                    }
+                }
+            }
+
             $p['image_url'] = productImageUrl($p['image']);
             $p['price_formatted'] = formatPrice($p['price']);
+            unset($p['specs']); // Bảo mật & tối ưu payload JSON
+            $filteredProducts[] = $p;
         }
 
-        echo json_encode($products);
+        echo json_encode($filteredProducts);
         exit;
     }
 
