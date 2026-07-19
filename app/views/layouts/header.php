@@ -21,18 +21,7 @@
 
 <body>
 
-    <!-- 1. Top Announcement Bar -->
-    <div class="top-bar">
-        <div class="container top-bar__inner">
-            <div class="top-bar__left">
-                <span><i class="fa-solid fa-truck-fast"></i> Miễn phí giao hàng toàn quốc</span>
-            </div>
-            <div class="top-bar__right">
-                <span><i class="fa-solid fa-phone"></i> Hỗ trợ: 1800 9999 (miễn cước)</span>
-            </div>
-        </div>
-    </div>
-
+    <?php require_once __DIR__ . '/partials/topbar.php'; ?>
     <div id="commerceHeaderSentinel" aria-hidden="true"></div>
 
     <div class="commerce-header-stack" id="commerceHeaderStack">
@@ -45,13 +34,18 @@
             </button>
 
             <!-- Logo Thương hiệu -->
-            <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+            <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
                 <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
                 <div class="logo-brand-info">
                     <span class="logo-brand-title">Tech<span>Pilot</span></span>
-                    <span class="logo-brand-tagline">Technology • Trust • Future</span>
                 </div>
             </a>
+
+            <!-- Nút Danh mục sản phẩm -->
+            <button type="button" class="header-category-btn desktop-only-link" id="headerCategoryTrigger" aria-expanded="false" aria-controls="globalCategoryOverlay">
+                <i class="fa-solid fa-bars"></i>
+                <span class="desktop-only-link">Danh mục</span>
+            </button>
 
             <!-- Search Bar với Category Dropdown -->
             <form class="search-bar" action="<?= url('home/search') ?>" method="get">
@@ -67,23 +61,29 @@
                 <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
 
-            <!-- Actions buttons (Locator, Wishlist, Cart, Account, Darkmode) -->
+            <!-- Actions buttons -->
             <div class="header-actions">
                 <button type="button" class="header-actions__item theme-toggle" id="themeToggle" aria-label="Chuyển chế độ tối">
                     <i class="fa-solid fa-moon"></i>
-                    <span>Tối</span>
+                    <div class="header-actions__text">
+                        <span>Giao</span>
+                        <strong>Diện</strong>
+                    </div>
                 </button>
-                <a href="<?= url('post') ?>" class="header-actions__item">
-                    <i class="fa-solid fa-location-dot"></i>
-                    <span>Cửa hàng</span>
-                </a>
-                <a href="<?= url('profile/wishlist') ?>" class="header-actions__item header-actions__wishlist">
+
+                <a href="<?= url('profile/wishlist') ?>" class="header-actions__item header-actions__wishlist desktop-only-link">
                     <i class="fa-regular fa-heart"></i>
-                    <span>Yêu thích</span>
+                    <div class="header-actions__text">
+                        <span>Yêu</span>
+                        <strong>Thích</strong>
+                    </div>
                 </a>
                 <a href="<?= url('cart') ?>" class="header-actions__item header-actions__cart">
                     <i class="fa-solid fa-cart-shopping"></i>
-                    <span>Giỏ hàng</span>
+                    <div class="header-actions__text">
+                        <span>Giỏ</span>
+                        <strong>Hàng</strong>
+                    </div>
                     <span class="cart-badge"><?= (int)cartCount() ?></span>
                 </a>
                 
@@ -100,7 +100,10 @@
                 <?php else: ?>
                     <a href="<?= url('auth/login') ?>" class="header-actions__item header-actions__account">
                         <i class="fa-regular fa-circle-user"></i>
-                        <span>Tài khoản</span>
+                        <div class="header-actions__text">
+                            <span>Đăng</span>
+                            <strong>Nhập</strong>
+                        </div>
                     </a>
                 <?php endif; ?>
             </div>
@@ -149,10 +152,6 @@
             <i class="fa-solid fa-xmark"></i>
         </button>
         <div class="container main-nav__inner">
-            <button type="button" class="main-nav__categories" id="headerCategoryTrigger" aria-expanded="false" aria-controls="globalCategoryOverlay">
-                <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
-            </button>
-            
             <ul class="main-nav__links">
                 <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
                 <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
