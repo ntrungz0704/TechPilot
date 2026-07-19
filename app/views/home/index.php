@@ -258,7 +258,7 @@ $reviews = $reviews ?? [];
                 <h4>BUILD PC THEO YÊU CẦU</h4>
                 <p>Tối ưu cấu hình - Cân mọi ngân sách</p>
             </div>
-            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="btn btn--outline-light btn--sm">Xem ngay</a>
+            <a href="<?= url('build-pc') ?>" class="btn btn--outline-light btn--sm">Xem ngay</a>
         </div>
         
         <div class="promo-card promo-card--blue">

@@ -511,6 +511,9 @@
             </div>
             
             <div class="header__right">
+                <a href="<?= url('/') ?>" style="font-size: 13px; font-weight: 600; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; color: #0B63E5; border: 1px solid #0B63E5; text-decoration: none; border-radius: 8px; margin-right: 15px; transition: all 0.2s;" onmouseover="this.style.background='#0B63E5'; this.style.color='#FFF';" onmouseout="this.style.background='transparent'; this.style.color='#0B63E5';">
+                    <i class="fa-solid fa-globe"></i> Xem Website
+                </a>
                 <div class="header__bell">
                     <i class="fa-solid fa-bell"></i>
                     <span class="header__bell-badge">3</span>

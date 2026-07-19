@@ -157,6 +157,7 @@
                 
                 <ul class="main-nav__links">
                     <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('build-pc') ?>" style="color: #FACC15; font-weight: 700;"><i class="fa-solid fa-screwdriver-wrench" style="margin-right: 4px;"></i> Build PC</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>

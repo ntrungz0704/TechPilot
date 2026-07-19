@@ -99,4 +99,9 @@ $router->get('/admin/posts/edit/{id}', 'AdminPostController@edit');
 $router->post('/admin/posts/update/{id}', 'AdminPostController@update');
 $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
 
+// PC Builder Routes
+$router->get('/build-pc', 'PcBuilderController@index');
+$router->get('/pc-builder/products', 'PcBuilderController@getProducts');
+$router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
+
 $router->dispatch($url);
