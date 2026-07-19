@@ -9,9 +9,9 @@
                 <p>Trải nghiệm thực tế sản phẩm công nghệ cao cấp trên toàn quốc</p>
             </div>
             <div class="bottom-feature-item">
-                <i class="fa-solid fa-credit-card"></i>
-                <h5>Thanh toán linh hoạt</h5>
-                <p>Hỗ trợ thẻ tín dụng, chuyển khoản, ví điện tử, Trả góp 0%</p>
+                <i class="fa-solid fa-money-bill-wave"></i>
+                <h5>Thanh toán khi nhận hàng</h5>
+                <p>Hỗ trợ thanh toán COD (tiền mặt) khi nhận hàng trên toàn quốc</p>
             </div>
             <div class="bottom-feature-item">
                 <i class="fa-solid fa-user-shield"></i>
@@ -39,29 +39,29 @@
                 </a>
                 <p>TechPilot - Chuỗi siêu thị máy tính, laptop và gaming gear hàng đầu Việt Nam. Cam kết chất lượng, bảo hành vượt trội, giá tốt nhất.</p>
                 <div class="footer-social">
-                    <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="#"><i class="fa-brands fa-tiktok"></i></a>
-                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://facebook.com" target="_blank" rel="noopener"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://tiktok.com" target="_blank" rel="noopener"><i class="fa-brands fa-tiktok"></i></a>
+                    <a href="https://instagram.com" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
             
             <div class="footer-col">
                 <h4>Về chúng tôi</h4>
-                <a href="#">Giới thiệu TechPilot</a>
-                <a href="#">Tuyển dụng nhân viên</a>
-                <a href="#">Liên hệ hợp tác</a>
-                <a href="#">Hệ thống cửa hàng</a>
-                <a href="#">Chính sách bảo mật</a>
+                <a href="<?= url('post') ?>">Giới thiệu TechPilot</a>
+                <a href="<?= url('post') ?>">Tuyển dụng nhân viên</a>
+                <a href="<?= url('post') ?>">Liên hệ hợp tác</a>
+                <a href="<?= url('post') ?>">Hệ thống cửa hàng</a>
+                <a href="<?= url('post') ?>">Chính sách bảo mật</a>
             </div>
             
             <div class="footer-col">
                 <h4>Hỗ trợ khách hàng</h4>
-                <a href="#">Hướng dẫn mua hàng online</a>
-                <a href="#">Chính sách đổi trả sản phẩm</a>
-                <a href="#">Chính sách bảo hành sửa chữa</a>
-                <a href="#">Tra cứu hóa đơn điện tử</a>
-                <a href="#">Gửi yêu cầu hỗ trợ kỹ thuật</a>
+                <a href="<?= url('post') ?>">Hướng dẫn mua hàng online</a>
+                <a href="<?= url('profile') ?>">Chính sách đổi trả sản phẩm</a>
+                <a href="<?= url('post') ?>">Chính sách bảo hành sửa chữa</a>
+                <a href="<?= url('profile/orders') ?>">Tra cứu hóa đơn điện tử</a>
+                <a href="<?= url('post') ?>">Gửi yêu cầu hỗ trợ kỹ thuật</a>
             </div>
             
             <div class="footer-col">
@@ -72,10 +72,9 @@
                     <button type="submit">Đăng ký</button>
                 </form>
                 <div class="payment-icons" style="margin-top: 24px;">
-                    <i class="fa-brands fa-cc-visa" title="Visa"></i>
-                    <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
-                    <i class="fa-brands fa-cc-jcb" title="JCB"></i>
-                    <i class="fa-solid fa-qrcode" title="QR Pay"></i>
+                    <i class="fa-solid fa-money-bill-wave" title="Tiền mặt COD"></i>
+                    <i class="fa-solid fa-truck-fast" title="Giao hàng tận nơi"></i>
+                    <i class="fa-solid fa-shield-check" title="Bảo đảm chất lượng"></i>
                 </div>
             </div>
         </div>
@@ -101,7 +100,7 @@
                     <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>
                 </div>
             </div>
-            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm giỏ</button>
+            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
         </div>
     <?php else: ?>
         <div class="mobile-bottom-nav">

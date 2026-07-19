@@ -27,7 +27,7 @@ release_authority: "Human Project Owner"
 merge_approved_by: UNASSIGNED
 release_approved_by: UNASSIGNED
 base_commit: "3c3a2b989b85b4e8fa643caf8604151ce0755798"
-candidate_commit: CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT
+candidate_commit: "b44e5e44265b3a8eac677c6114f3d5490c93b83a"
 reviewed_commit: UNRESOLVED
 contract_path: "docs/checkpoints/CP-05.0-MVC-CLEANUP.md"
 handoff_path: "C:/Users/ntrun/.gemini/antigravity/brain/f5a2e044-4e8e-450c-bfe2-d6233e176cbc/walkthrough.md"

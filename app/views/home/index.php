@@ -126,7 +126,7 @@ $reviews = $reviews ?? [];
                 <div class="carousel-slide__price">
                     Nhận thông tin sớm nhất
                 </div>
-                <a href="#" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
+                <a href="<?= url('auth/register') ?>" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
             </div>
         </div>
 
@@ -146,16 +146,16 @@ $reviews = $reviews ?? [];
                 <h4>BUILD PC THEO YÊU CẦU</h4>
                 <p>Tối ưu cấu hình - Cân mọi ngân sách</p>
             </div>
-            <a href="#" class="btn btn--outline-light btn--sm">Xem ngay</a>
+            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="btn btn--outline-light btn--sm">Xem ngay</a>
         </div>
         
         <div class="promo-card promo-card--blue">
             <div>
-                <h4>TRẢ GÓP LÃI SUẤT 0%</h4>
-                <p>Duyệt nhanh 3 phút - Không giữ giấy tờ</p>
+                <h4>MUA NGAY - TRẢ SAU</h4>
+                <p>Nhận hàng, kiểm tra rồi thanh toán (COD)</p>
             </div>
-            <span class="promo-card__number">0%</span>
-            <a href="#" class="btn btn--sm">Đăng ký</a>
+            <span class="promo-card__number"><i class="fa-solid fa-truck-fast"></i></span>
+            <a href="<?= url('home/search') ?>" class="btn btn--sm">Mua ngay</a>
         </div>
         
         <div class="promo-card">
@@ -163,7 +163,7 @@ $reviews = $reviews ?? [];
                 <h4>THU CŨ ĐỔI MỚI MÁY CŨ</h4>
                 <p>Trợ giá lên tới 6 triệu đồng</p>
             </div>
-            <a href="#" class="btn btn--sm">Xem chi tiết</a>
+            <a href="<?= url('post') ?>" class="btn btn--sm">Xem chi tiết</a>
         </div>
     </div>
 </section>
@@ -184,8 +184,8 @@ $reviews = $reviews ?? [];
             <span>Đổi trả dễ dàng<br><small>Trong 7 ngày đầu</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-credit-card"></i>
-            <span>Trả góp lãi suất 0%<br><small>Qua thẻ tín dụng</small></span>
+            <i class="fa-solid fa-money-bill-wave"></i>
+            <span>Thanh toán COD<br><small>Tiền mặt khi nhận hàng</small></span>
         </div>
         <div class="feature-item">
             <i class="fa-solid fa-headset"></i>
@@ -273,7 +273,7 @@ $reviews = $reviews ?? [];
             <h3>NVIDIA GeForce RTX 50 Series</h3>
             <p>Sức mạnh tối thượng từ kiến trúc Blackwell, dẫn đầu cuộc cách mạng đồ họa AI thế hệ mới.</p>
         </div>
-        <a href="#" class="btn btn--light">Đăng ký thông tin <i class="fa-solid fa-bell"></i></a>
+        <a href="<?= url('auth/register') ?>" class="btn btn--light">Đăng ký thông tin <i class="fa-solid fa-bell"></i></a>
     </div>
 </section>
 
@@ -342,21 +342,21 @@ $reviews = $reviews ?? [];
                 <h3>Build PC Cực Chất</h3>
                 <p>Tặng kèm tản nhiệt khí khí lắp PC nguyên bộ.</p>
             </div>
-            <a href="#" class="btn btn--sm">Build Ngay</a>
+            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="btn btn--sm">Build Ngay</a>
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-2.jpg') ?>');">
             <div class="promo-banner__content">
-                <h3>Trả góp 0% Lãi Suất</h3>
-                <p>Duyệt hồ sơ nhanh chóng qua Home Credit.</p>
+                <h3>BẢO HÀNH CHÍNH HÃNG</h3>
+                <p>Cam kết bảo hành chính hãng 12 tháng cho tất cả sản phẩm.</p>
             </div>
-            <a href="#" class="btn btn--sm">Xem Chi Tiết</a>
+            <a href="<?= url('home/search') ?>" class="btn btn--sm">Xem ngay</a>
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-3.jpg') ?>');">
             <div class="promo-banner__content">
                 <h3>Thu Cũ Đổi Mới</h3>
                 <p>Nâng cấp máy mới trợ giá lên tới 15%.</p>
             </div>
-            <a href="#" class="btn btn--sm">Đổi Máy Ngay</a>
+            <a href="<?= url('post') ?>" class="btn btn--sm">Đổi Máy Ngay</a>
         </div>
     </div>
 </section>
@@ -458,14 +458,14 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
-<!-- ===== BANNER TRẢ GÓP ===== -->
+<!-- ===== BANNER GIAO HÀNG MIỄN PHÍ ===== -->
 <section class="container section desktop-only-section">
     <div class="promo-banner" style="background-image: url('<?= url('assets/images/installment-banner.jpg') ?>');">
         <div class="promo-banner__content">
-            <h3>TRẢ GÓP 0% LÃI SUẤT QUA THẺ TÍN DỤNG</h3>
-            <p>Hỗ trợ hơn 25 ngân hàng liên kết, kỳ hạn linh hoạt 3 - 6 - 9 - 12 tháng không phụ phí.</p>
+            <h3>GIAO HÀNG MIỄN PHÍ TOÀN QUỐC</h3>
+            <p>Giao hàng nhanh — kiểm tra trước, thanh toán sau (COD). Áp dụng cho đơn hàng từ 500.000đ.</p>
         </div>
-        <a href="#" class="btn btn--light">Tìm hiểu thêm <i class="fa-solid fa-circle-info"></i></a>
+        <a href="<?= url('home/search') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 </section>
 
@@ -534,17 +534,17 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
-<!-- ===== APPLE ZONE ===== -->
+<!-- ===== MÁY TÍNH BỘ ===== -->
 <section class="container section section-apple-zone">
     <div class="section__head">
-        <h2>Apple Zone</h2>
-        <a href="<?= url('home/search?cat=apple') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+        <h2>Máy tính bộ</h2>
+        <a href="<?= url('home/search?cat=may-tinh-bo') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="product-grid product-grid--6">
-        <div class="apple-banner" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,0,0,0.4)), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
-            <h3>Apple Authorized Reseller</h3>
-            <p>Trải nghiệm sản phẩm Apple chính hãng (VNA) tại hệ thống ủy quyền TechPilot với mức giá tốt nhất.</p>
-            <a href="<?= url('home/search?cat=apple') ?>" class="btn btn--outline-light btn--sm">Khám phá ngay</a>
+        <div class="apple-banner" style="background-image: linear-gradient(135deg, rgba(15,91,255,0.95), rgba(7,26,51,0.6)), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
+            <h3>Máy tính bộ đồng bộ</h3>
+            <p>Trải nghiệm các bộ máy tính All-in-One, máy tính văn phòng và máy tính đồng bộ cấu hình cao tại TechPilot.</p>
+            <a href="<?= url('home/search?cat=may-tinh-bo') ?>" class="btn btn--outline-light btn--sm">Khám phá ngay</a>
         </div>
         <?php foreach (array_slice($apple, 0, 4) as $p): ?>
             <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
@@ -556,12 +556,12 @@ $reviews = $reviews ?? [];
 <section class="container section">
     <div class="section__head">
         <h2>Tin Tức Công Nghệ</h2>
-        <a href="#" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
+        <a href="<?= url('post') ?>" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="news-grid">
         <?php foreach ($posts as $post): ?>
             <div class="news-card">
-                <a href="#" class="news-card__thumb">
+                <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
                     <img src="<?= url('assets/images/news/' . e($post['image'])) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
                 </a>
                 <div class="news-card__body">

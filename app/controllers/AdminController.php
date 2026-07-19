@@ -20,7 +20,7 @@ class AdminController extends Controller
 
         if ($db) {
             // Tổng số khách hàng
-            $stats['total_users'] = (int)$db->query('SELECT COUNT(*) FROM users WHERE role_id = 2')->fetchColumn();
+            $stats['total_users'] = (int)$db->query('SELECT COUNT(*) FROM users WHERE role = \'customer\'')->fetchColumn();
             
             // Tổng số sản phẩm
             $stats['total_products'] = (int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn();

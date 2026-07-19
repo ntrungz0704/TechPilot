@@ -14,16 +14,19 @@ $url = $_GET['url'] ?? '';
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = $_POST['csrf_token'] ?? '';
-    if ($token === '' || $token !== ($_SESSION['csrf_token'] ?? '')) {
+    // Chấp nhận cả 2 tên field: csrf_token (mặc định) và _csrf (legacy)
+    $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
+    $savedToken = $_SESSION['csrf_token'] ?? '';
+    if ($token === '' || !hash_equals($savedToken, $token)) {
         http_response_code(403);
-        die('Yêu cầu không hợp lệ (CSRF Token mismatch).');
+        die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
     }
 }
 
 $router = new Router();
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
 $router->post('/product/review', 'ProductController@review');
+$router->post('/profile/cancel_order', 'ProfileController@cancel_order');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
