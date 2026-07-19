@@ -102,6 +102,7 @@ $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
 // PC Builder Routes
 $router->get('/build-pc', 'PcBuilderController@index');
 $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
+$router->get('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
 $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 
 $router->dispatch($url);
