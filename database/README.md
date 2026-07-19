@@ -1,62 +1,35 @@
-# TechPilot database V2
+# Cơ sở dữ liệu TechPilot (ERD 15 Bảng chuẩn)
 
-`schema.sql` là schema cài mới dành cho môi trường demo/development. File này sẽ xóa và tạo lại database `techpilot`, vì vậy **không chạy trực tiếp trên database đang có dữ liệu thật**.
+`schema.sql` là schema cài mới dành cho môi trường phát triển (development). File này sẽ xóa và tạo lại database `techpilot` với đúng **15 bảng chuẩn** theo yêu cầu của giảng viên.
 
-## Các quyết định chính
+---
 
-- `roles` là nguồn sự thật cho phân quyền; `users` chỉ giữ `role_id`.
-- Một người dùng có nhiều `user_addresses`; địa chỉ trên `orders` là snapshot bất biến tại lúc đặt hàng.
-- `products` giữ thông tin chung. SKU, giá và thuộc tính lựa chọn nằm trong `product_variants`.
-- Tồn khả dụng được tính bằng `inventory_balances.on_hand - inventory_balances.reserved`; mọi thay đổi kho được ghi vào `inventory_movements`.
-- `flash_sales` là chiến dịch; các sản phẩm và hạn mức nằm trong `flash_sale_items`.
-- Giỏ hàng hỗ trợ cả thành viên và khách vãng lai qua `user_id` hoặc `guest_token`.
-- Đơn hàng tách ba trạng thái: xử lý đơn (`status`), thanh toán (`payment_status`) và giao hàng (`fulfillment_status`).
-- `order_items` luôn lưu snapshot tên, SKU và giá để lịch sử không đổi khi catalog được cập nhật.
-- Ảnh đánh giá được chuẩn hóa trong `review_images`; wishlist có bảng danh sách và bảng item riêng.
-- Các use case theo dõi đơn, thông báo, so sánh, xem gần đây và đổi trả có bảng dữ liệu tương ứng.
+## 1. Thiết kế ERD 15 Bảng chính thức
 
-## Ánh xạ với sơ đồ đã cung cấp
+| STT | Tên bảng | Chức năng / Ý nghĩa nghiệp vụ | Ràng buộc chính |
+|---|---|---|---|
+| 1 | `users` | Tài khoản khách hàng & admin. Phân quyền trực tiếp qua trường `role`. | `email` UNIQUE |
+| 2 | `categories` | Danh mục sản phẩm (cây phân cấp cha-con). | `slug` UNIQUE |
+| 3 | `brands` | Thương hiệu sản phẩm. | `slug` UNIQUE |
+| 4 | `products` | Catalog sản phẩm, giá bán, giá Flash Sale (`sale_price`) và tồn kho (`stock`). | `slug` UNIQUE |
+| 5 | `product_images` | Thư viện hình ảnh phụ của sản phẩm. | FK `product_id` |
+| 6 | `carts` | Giỏ hàng của khách hàng (lưu theo `user_id` hoặc `guest_token`). | FK `user_id` |
+| 7 | `cart_items` | Chi tiết các mặt hàng trong giỏ hàng. | UNIQUE(`cart_id`, `product_id`) |
+| 8 | `coupons` | Mã giảm giá đơn hàng (hạn dùng, lượt dùng, giá trị đơn tối thiểu). | `code` UNIQUE |
+| 9 | `orders` | Đơn hàng COD (chứa thông tin giao hàng, trạng thái thanh toán & vận chuyển). | `order_code` UNIQUE |
+| 10 | `order_items` | Chi tiết sản phẩm trong đơn hàng (lưu snapshot tên, giá tại thời điểm mua). | FK `order_id` |
+| 11 | `reviews` | Đánh giá sản phẩm đã mua (rating 1-5 sao và comment). | FK `product_id`, `user_id` |
+| 12 | `wishlists` | Bảng liên kết sản phẩm yêu thích của khách hàng. | UNIQUE(`user_id`, `product_id`) |
+| 13 | `flash_sales` | Lưu thông tin chiến dịch Flash Sale đang diễn ra (start_time, end_time, status). | `slug` UNIQUE |
+| 14 | `banners` | Ảnh banner quảng cáo trên trang chủ. | - |
+| 15 | `posts` | Bài viết tin tức công nghệ. | `slug` UNIQUE |
 
-| Use case / ERD | Bảng V2 |
-| --- | --- |
-| Quản lý vai trò | `roles`, `users.role_id` |
-| Danh mục, thương hiệu, sản phẩm, biến thể | `categories`, `brands`, `products`, `product_variants`, `product_images` |
-| Nhập/xuất/kiểm kê kho | `warehouses`, `inventory_balances`, `inventory_movements` |
-| Giỏ hàng | `carts`, `cart_items` |
-| Đặt hàng và theo dõi | `orders`, `order_items`, `order_status_history`, `shipments` |
-| Thanh toán | `payments`, `orders.payment_status` |
-| Mã giảm giá | `coupons`, `orders.coupon_id` |
-| Flash sale | `flash_sales`, `flash_sale_items` |
-| Đánh giá có ảnh | `reviews`, `review_images` |
-| Yêu thích, so sánh, đã xem | `wishlists`, `wishlist_items`, `comparison_lists`, `comparison_items`, `recently_viewed_products` |
-| Thông báo | `notifications` |
-| Đổi trả | `return_requests`, `return_items` |
-| Banner, bài viết | `banners`, `posts` |
-| Truy vết thao tác admin | `audit_logs` |
+---
 
-## Quy tắc nghiệp vụ bắt buộc ở service layer
+## 2. Quy tắc nghiệp vụ bắt buộc tại Model & Controller
 
-1. Checkout phải đọc lại giá và tồn kho từ database; không tin giá gửi từ trình duyệt hoặc session.
-2. Tạo đơn, trừ tồn, tạo payment và ghi lịch sử trạng thái phải nằm trong cùng transaction.
-3. Khi trừ tồn phải khóa bản ghi sản phẩm/biến thể (`SELECT ... FOR UPDATE`) để tránh bán vượt số lượng.
-4. Flash sale không được vượt `allocation_quantity` và `limit_per_user`.
-5. Coupon phải kiểm tra thời gian, trạng thái, giá trị đơn tối thiểu và giới hạn sử dụng trước khi ghi đơn.
-6. Không xóa cứng đơn hàng, payment, shipment hoặc refund. Catalog đã phát sinh giao dịch chỉ chuyển trạng thái inactive.
-
-## Cài mới môi trường demo
-
-1. Sao lưu database cũ nếu có dữ liệu cần giữ.
-2. Cấu hình thông tin MySQL trong biến môi trường hoặc `config/database.php`.
-3. Import `database/schema.sql` bằng tài khoản có quyền tạo database.
-4. Mở trang chủ, kiểm tra product detail, cart và checkout.
-
-## Nâng cấp database đang có dữ liệu
-
-Không chạy `schema.sql`. Dùng chiến lược expand/backfill/cutover:
-
-1. Tạo bảng V2 song song và thêm các cột nullable.
-2. Map `users.role` cũ sang `roles`; mỗi product cũ tạo một default variant.
-3. Backfill tồn kho, cart và order item sang variant nhưng giữ nguyên snapshot đơn hàng.
-4. Chạy đối soát count, tổng tiền và tồn kho.
-5. Chuyển code đọc V2 bằng feature flag; chỉ bỏ cột V1 sau khi chạy ổn định và đã có bản sao lưu phục hồi.
-
+1. **Khóa bản ghi khi đặt hàng**: Khi trừ tồn kho sản phẩm tại bước thanh toán, bắt buộc phải dùng lệnh `SELECT ... FOR UPDATE` trên bảng `products` để tránh tranh chấp tài nguyên (race condition) và ngăn chặn bán vượt số lượng tồn kho thực tế.
+2. **Database Transaction**: Quy trình checkout (tính tiền, tạo đơn, ghi chi tiết đơn, trừ tồn kho sản phẩm, cập nhật lượt sử dụng coupon) phải được bọc trong một Database Transaction duy nhất để đảm bảo tính toàn vẹn (rollback toàn bộ nếu có bất kỳ lỗi nào).
+3. **Mã giảm giá (Coupon)**: Phải đối soát chặt chẽ thời gian hiệu lực, tổng giá trị đơn hàng tối thiểu và giới hạn lượt sử dụng (`used_count < usage_limit`) trực tiếp trên server (không chỉ validate qua Javascript trên giao diện).
+4. **Yêu thích (Wishlist)**: Sử dụng cấu trúc liên kết trực tiếp `wishlists` thay thế cho cấu trúc `wishlist_items` cũ.
+5. **So sánh & Đã xem**: Chức năng so sánh sản phẩm (tối đa 4 sản phẩm) và xem gần đây (Recently Viewed) được lưu trữ 100% bằng Session hoặc Cookie, không thiết kế bảng trong cơ sở dữ liệu.

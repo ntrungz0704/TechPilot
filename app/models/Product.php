@@ -23,7 +23,6 @@ class Product
         return $stmt->fetchAll();
     }
 
-    /** Lấy sản phẩm đang Flash Sale cùng thông tin đếm ngược, số lượng bán */
     public function getFlashSale(int $limit = 6): array
     {
         if ($this->db === null) {
@@ -31,11 +30,12 @@ class Product
         }
 
         $stmt = $this->db->prepare(
-            'SELECT p.*, fsi.discount_price, fsi.allocation_quantity as fs_stock, fsi.sold_quantity as fs_sold, fs.end_time 
+            'SELECT p.*, p.sale_price as discount_price, p.stock as fs_stock, 
+                    0 as fs_sold, fs.end_time 
              FROM products p
-             JOIN flash_sale_items fsi ON p.id = fsi.product_id
-             JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
+             CROSS JOIN flash_sales fs
              WHERE fs.start_time <= NOW() AND fs.end_time >= NOW() AND fs.status = \'active\'
+               AND p.is_flash_sale = 1 AND p.sale_price IS NOT NULL
              ORDER BY p.id DESC LIMIT :limit'
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -234,42 +234,133 @@ class Product
             return [];
         }
 
-        $query = 'SELECT p.*, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id';
+        // 1. Chuẩn hóa keyword bằng helper
+        $keyword = normalizeSearchKeyword($keyword);
 
-        if (!empty($categorySlug)) {
-            $query .= ' JOIN categories c ON p.category_id = c.id';
+        $searchAliases = [
+            'máy tính'       => ['pc', 'desktop', 'máy tính để bàn'],
+            'máy bộ'         => ['pc build sẵn', 'desktop'],
+            'máy chơi game'  => ['pc gaming', 'laptop gaming'],
+            'card màn hình'  => ['vga', 'gpu'],
+            'ổ cứng'         => ['ssd', 'hdd'],
+            'bộ nhớ'         => ['ram'],
+            'tai nghe game'  => ['gaming headset'],
+            'bo mạch chủ'    => ['mainboard', 'main'],
+            'nguồn máy tính' => ['psu', 'nguồn pc'],
+            'tản nhiệt'      => ['cooler', 'fan cpu'],
+        ];
+
+        // 2. Tìm từ đồng nghĩa
+        $aliasesFound = [];
+        if (!empty($keyword)) {
+            foreach ($searchAliases as $key => $values) {
+                if (str_contains($keyword, $key)) {
+                    $aliasesFound = array_merge($aliasesFound, $values);
+                }
+                foreach ($values as $val) {
+                    if (str_contains($keyword, $val)) {
+                        $aliasesFound[] = $key;
+                        $aliasesFound = array_merge($aliasesFound, array_diff($values, [$val]));
+                    }
+                }
+            }
+            $aliasesFound = array_unique($aliasesFound);
         }
 
-        $query .= ' WHERE 1=1';
+        // 3. Xây dựng SQL Relevance
+        // NOTE: $relevanceSql chỉ nhúng MỘT LẦN vào SELECT (alias 'relevance').
+        // Không nhúng lại vào WHERE để tránh lỗi HY093 (duplicate named placeholders).
+        $relevanceSql = '0';
+        $params = [];
 
         if (!empty($keyword)) {
-            $query .= ' AND (p.name LIKE :keyword OR p.short_desc LIKE :keyword OR p.description LIKE :keyword)';
+            $relevanceSql = '
+                (CASE WHEN p.name = :exactName THEN 100 ELSE 0 END) +
+                (CASE WHEN p.name LIKE :startsName THEN 70 ELSE 0 END) +
+                (CASE WHEN p.name LIKE :containsName THEN 50 ELSE 0 END) +
+                (CASE WHEN c.name LIKE :containsCat THEN 30 ELSE 0 END) +
+                (CASE WHEN b.name LIKE :containsBrand THEN 20 ELSE 0 END) +
+                (CASE WHEN p.description LIKE :containsDesc THEN 5 ELSE 0 END)
+            ';
+
+            $params[':exactName']     = $keyword;
+            $params[':startsName']    = $keyword . '%';
+            $params[':containsName']  = '%' . $keyword . '%';
+            $params[':containsCat']   = '%' . $keyword . '%';
+            $params[':containsBrand'] = '%' . $keyword . '%';
+            $params[':containsDesc']  = '%' . $keyword . '%';
+
+            // Cộng thêm điểm cho các alias
+            $aliasIdx = 1;
+            foreach ($aliasesFound as $alias) {
+                $aliasParam = ':alias_' . $aliasIdx;
+                $relevanceSql .= " + (CASE WHEN p.name LIKE $aliasParam THEN 35 ELSE 0 END)";
+                $params[$aliasParam] = '%' . $alias . '%';
+                $aliasIdx++;
+            }
+        }
+
+        // $relevanceSql chỉ xuất hiện MỘT LẦN trong SELECT để tạo alias 'relevance'
+        $query = "
+            SELECT p.*, b.name as brand_name, c.name as category_name, ($relevanceSql) as relevance
+            FROM products p
+            LEFT JOIN brands b ON p.brand_id = b.id
+            JOIN categories c ON p.category_id = c.id
+            WHERE p.status = 'active'
+        ";
+
+        if (!empty($keyword)) {
+            // Dùng param TÊN MỚI :filterName / :filterDesc để tránh trùng với params trong $relevanceSql
+            $query .= ' AND (p.name LIKE :filterName OR p.description LIKE :filterDesc)';
+            $params[':filterName'] = '%' . $keyword . '%';
+            $params[':filterDesc'] = '%' . $keyword . '%';
         }
 
         if (!empty($categorySlug)) {
             $query .= ' AND c.slug = :category';
+            $params[':category'] = $categorySlug;
         }
-
-        $query .= ' ORDER BY p.id DESC LIMIT :limit';
-
-        $stmt = $this->db->prepare($query);
 
         if (!empty($keyword)) {
-            $stmt->bindValue(':keyword', '%' . $keyword . '%');
+            // Dùng alias 'relevance' từ SELECT — KHÔNG nhúng lại $relevanceSql
+            $query .= ' ORDER BY relevance DESC, p.created_at DESC';
+        } else {
+            $query .= ' ORDER BY p.id DESC';
         }
 
-        if (!empty($categorySlug)) {
-            $stmt->bindValue(':category', $categorySlug);
-        }
+        $query .= ' LIMIT :limit';
 
+        $stmt = $this->db->prepare($query);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /** Lấy sản phẩm theo danh mục không giới hạn */
     public function getByCategory(string $slug, int $limit = 24): array
     {
         return $this->getByCategorySlug($slug, $limit);
+    }
+
+    /** Lấy danh sách sản phẩm từ list IDs */
+    public function getProductsByIds(array $ids): array
+    {
+        $ids = array_values($ids);
+        if ($this->db === null || empty($ids)) return [];
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT p.*, b.name as brand_name, c.name as category_name 
+             FROM products p
+             LEFT JOIN brands b ON p.brand_id = b.id
+             LEFT JOIN categories c ON p.category_id = c.id
+             WHERE p.id IN ($placeholders) AND p.status = 'active'"
+        );
+        $stmt->execute(array_map('intval', $ids));
+        return $stmt->fetchAll();
     }
 }

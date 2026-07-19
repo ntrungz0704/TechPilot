@@ -27,7 +27,7 @@ class CompareController extends Controller
             'pageTitle' => 'So sánh sản phẩm',
             'products' => $products,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     public function add(): void

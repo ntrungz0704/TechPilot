@@ -73,10 +73,47 @@ class User
         $user = $this->findByEmail($email);
 
         if ($user && password_verify($password, $user['password'])) {
+            if (($user['status'] ?? 'active') !== 'active') {
+                return false;
+            }
             unset($user['password']);
             return $user;
         }
 
         return false;
+    }
+
+    /** Lấy thông tin user theo ID */
+    public function getById(int $id): array|false
+    {
+        if ($this->useFallback) return false;
+        $stmt = $this->db->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /** Cập nhật thông tin cơ bản của user */
+    public function updateProfile(int $id, string $fullName, string $phone): bool
+    {
+        if ($this->useFallback) return false;
+        $stmt = $this->db->prepare('UPDATE users SET full_name = :full_name, phone = :phone WHERE id = :id');
+        return $stmt->execute([
+            ':full_name' => $fullName,
+            ':phone'     => $phone,
+            ':id'        => $id
+        ]);
+    }
+
+    /** Cập nhật mật khẩu mới của user */
+    public function updatePassword(int $id, string $newPassword): bool
+    {
+        if ($this->useFallback) return false;
+        $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmt = $this->db->prepare('UPDATE users SET password = :password WHERE id = :id');
+        return $stmt->execute([
+            ':password' => $hashed,
+            ':id'        => $id
+        ]);
     }
 }

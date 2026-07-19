@@ -29,6 +29,7 @@ $reviews = $reviews ?? [];
 ?>
 
 <!-- ===== 4. HERO SECTION ===== -->
+<div class="home-page-wrapper">
 <section class="container hero-section">
     <!-- Left: Vertical Category Menu (GearVN style Mega Menu) -->
     <div class="hero-section__left">
@@ -262,11 +263,11 @@ $reviews = $reviews ?? [];
         
         <div class="promo-card promo-card--blue">
             <div>
-                <h4>TRẢ GÓP LÃI SUẤT 0%</h4>
-                <p>Duyệt nhanh 3 phút - Không giữ giấy tờ</p>
+                <h4>MUA NGAY - TRẢ SAU</h4>
+                <p>Nhận hàng, kiểm tra rồi thanh toán (COD)</p>
             </div>
-            <span class="promo-card__number">0%</span>
-            <a href="#" class="btn btn--sm">Đăng ký</a>
+            <span class="promo-card__number"><i class="fa-solid fa-truck-fast"></i></span>
+            <a href="<?= url('home/search') ?>" class="btn btn--sm">Mua ngay</a>
         </div>
         
         <div class="promo-card">
@@ -295,8 +296,8 @@ $reviews = $reviews ?? [];
             <span>Đổi trả dễ dàng<br><small>Trong 7 ngày đầu</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-credit-card"></i>
-            <span>Trả góp lãi suất 0%<br><small>Qua thẻ tín dụng</small></span>
+            <i class="fa-solid fa-money-bill-wave"></i>
+            <span>Thanh toán COD<br><small>Tiền mặt khi nhận hàng</small></span>
         </div>
         <div class="feature-item">
             <i class="fa-solid fa-headset"></i>
@@ -389,7 +390,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 8. BEST SELLER PRODUCTS WITH TABS ===== -->
-<section class="container section">
+<section class="container section section-best-sellers">
     <div class="best-seller-section__header">
         <h2>Sản phẩm bán chạy</h2>
         <div class="tabs-nav">
@@ -457,10 +458,10 @@ $reviews = $reviews ?? [];
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-2.jpg') ?>');">
             <div class="promo-banner__content">
-                <h3>Trả góp 0% Lãi Suất</h3>
-                <p>Duyệt hồ sơ nhanh chóng qua Home Credit.</p>
+                <h3>BẢO HÀNH CHÍNH HÃNG</h3>
+                <p>Cam kết bảo hành chính hãng 12 tháng cho tất cả sản phẩm.</p>
             </div>
-            <a href="#" class="btn btn--sm">Xem Chi Tiết</a>
+            <a href="<?= url('home/search') ?>" class="btn btn--sm">Xem ngay</a>
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-3.jpg') ?>');">
             <div class="promo-banner__content">
@@ -472,8 +473,92 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
+<!-- ===== MOBILE EXPLORE BY CATEGORIES (Mobile-Only) ===== -->
+<section class="container section mobile-explore-section">
+    <div class="mobile-explore-header">
+        <h2>Khám phá theo danh mục</h2>
+        <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more" id="mobileExploreSeeAll">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+    
+    <!-- Tab Navigation di động cuộn ngang -->
+    <div class="mobile-explore-tabs scroll-x-container">
+        <button class="explore-tab-btn active" data-target="m-tab-laptop" data-url="<?= url('home/search?cat=laptop-gaming') ?>">Laptop</button>
+        <button class="explore-tab-btn" data-target="m-tab-pc" data-url="<?= url('home/search?cat=pc-build-san') ?>">PC Build</button>
+        <button class="explore-tab-btn" data-target="m-tab-components" data-url="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện</button>
+        <button class="explore-tab-btn" data-target="m-tab-gear" data-url="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</button>
+        <button class="explore-tab-btn" data-target="m-tab-monitor" data-url="<?= url('home/search?cat=man-hinh') ?>">Màn hình</button>
+    </div>
+
+    <!-- Tab Contents panels -->
+    <div class="mobile-explore-content">
+        <!-- Tab Laptop -->
+        <div class="explore-tab-panel active" id="m-tab-laptop">
+            <div class="product-grid">
+                <?php foreach (array_slice(array_merge($laptopGaming, $laptopVanPhong), 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        
+        <!-- Tab PC Build -->
+        <div class="explore-tab-panel" id="m-tab-pc">
+            <div class="product-grid">
+                <?php foreach (array_slice($pcBuildSan, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Tab Linh kiện -->
+        <div class="explore-tab-panel" id="m-tab-components">
+            <div class="product-grid">
+                <?php foreach (array_slice($pcLinhKien, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Tab Gaming Gear -->
+        <div class="explore-tab-panel" id="m-tab-gear">
+            <div class="product-grid">
+                <?php foreach (array_slice($gamingGear, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Tab Màn hình -->
+        <div class="explore-tab-panel" id="m-tab-monitor">
+            <div class="product-grid">
+                <?php foreach (array_slice($monHinh, 0, 4) as $p): ?>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.explore-tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.explore-tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                document.querySelectorAll('.explore-tab-panel').forEach(p => p.classList.remove('active'));
+                const targetId = this.getAttribute('data-target');
+                document.getElementById(targetId)?.classList.add('active');
+                
+                const seeAllBtn = document.getElementById('mobileExploreSeeAll');
+                const targetUrl = this.getAttribute('data-url');
+                if (seeAllBtn && targetUrl) {
+                    seeAllBtn.setAttribute('href', targetUrl);
+                }
+            });
+        });
+    </script>
+</section>
+
 <!-- ===== LAPTOP GAMING ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Laptop Gaming</h2>
         <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -485,19 +570,19 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
-<!-- ===== BANNER TRẢ GÓP ===== -->
-<section class="container section">
+<!-- ===== BANNER GIAO HÀNG MIỄN PHÍ ===== -->
+<section class="container section desktop-only-section">
     <div class="promo-banner" style="background-image: url('<?= url('assets/images/installment-banner.jpg') ?>');">
         <div class="promo-banner__content">
-            <h3>TRẢ GÓP 0% LÃI SUẤT QUA THẺ TÍN DỤNG</h3>
-            <p>Hỗ trợ hơn 25 ngân hàng liên kết, kỳ hạn linh hoạt 3 - 6 - 9 - 12 tháng không phụ phí.</p>
+            <h3>GIAO HÀNG MIỄN PHÍ TOÀN QUỐC</h3>
+            <p>Giao hàng nhanh — kiểm tra trước, thanh toán sau (COD). Áp dụng cho đơn hàng từ 500.000đ.</p>
         </div>
-        <a href="#" class="btn btn--light">Tìm hiểu thêm <i class="fa-solid fa-circle-info"></i></a>
+        <a href="<?= url('home/search') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 </section>
 
 <!-- ===== LAPTOP VĂN PHÒNG ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Laptop Văn Phòng</h2>
         <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -510,7 +595,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== PC BUILD SẴN ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>PC Build Sẵn</h2>
         <a href="<?= url('home/search?cat=pc-build-san') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -523,7 +608,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 10. PC COMPONENTS ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Linh Kiện PC</h2>
         <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -536,7 +621,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 11. GAMING GEAR ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Gaming Gear</h2>
         <a href="<?= url('home/search?cat=gaming-gear') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -549,7 +634,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== MÀN HÌNH ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Màn Hình</h2>
         <a href="<?= url('home/search?cat=man-hinh') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -561,17 +646,17 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
-<!-- ===== APPLE ZONE ===== -->
-<section class="container section">
+<!-- ===== MÁY TÍNH BỘ ===== -->
+<section class="container section section-apple-zone">
     <div class="section__head">
-        <h2>Apple Zone</h2>
-        <a href="<?= url('home/search?cat=apple') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+        <h2>Máy tính bộ</h2>
+        <a href="<?= url('home/search?cat=may-tinh-bo') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="product-grid product-grid--6">
-        <div class="apple-banner" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,0,0,0.4)), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
-            <h3>Apple Authorized Reseller</h3>
-            <p>Trải nghiệm sản phẩm Apple chính hãng (VNA) tại hệ thống ủy quyền TechPilot với mức giá tốt nhất.</p>
-            <a href="<?= url('home/search?cat=apple') ?>" class="btn btn--outline-light btn--sm">Khám phá ngay</a>
+        <div class="apple-banner" style="background-image: linear-gradient(135deg, rgba(15,91,255,0.95), rgba(7,26,51,0.6)), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
+            <h3>Máy tính bộ đồng bộ</h3>
+            <p>Trải nghiệm các bộ máy tính All-in-One, máy tính văn phòng và máy tính đồng bộ cấu hình cao tại TechPilot.</p>
+            <a href="<?= url('home/search?cat=may-tinh-bo') ?>" class="btn btn--outline-light btn--sm">Khám phá ngay</a>
         </div>
         <?php foreach (array_slice($apple, 0, 4) as $p): ?>
             <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
@@ -583,12 +668,12 @@ $reviews = $reviews ?? [];
 <section class="container section">
     <div class="section__head">
         <h2>Tin Tức Công Nghệ</h2>
-        <a href="#" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
+        <a href="<?= url('post') ?>" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="news-grid">
         <?php foreach ($posts as $post): ?>
             <div class="news-card">
-                <a href="#" class="news-card__thumb">
+                <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
                     <img src="<?= url('assets/images/news/' . e($post['image'])) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
                 </a>
                 <div class="news-card__body">
@@ -602,7 +687,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 13. FEATURED BRANDS (ĐỐI TÁC CHIẾN LƯỢC) ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head section__head--brand-partners">
         <h2>ĐỐI TÁC CHIẾN LƯỢC</h2>
     </div>
@@ -613,7 +698,7 @@ $reviews = $reviews ?? [];
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($brand['logo'])) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
+                    <img src="<?= url('assets/images/brands/' . str_replace('.png', '.svg', e($brand['logo']))) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
                 </div>
             <?php endforeach; ?>
         </div>
@@ -621,7 +706,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== ĐÁNH GIÁ KHÁCH HÀNG ===== -->
-<section class="container section">
+<section class="container section desktop-only-section">
     <div class="section__head">
         <h2>Khách hàng nói gì về TechPilot</h2>
     </div>
@@ -640,3 +725,4 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+</div><!-- .home-page-wrapper -->

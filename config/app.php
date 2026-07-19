@@ -4,9 +4,11 @@
  * Cấu hình chung ứng dụng
  */
 
-// Bắt đầu session cho toàn bộ ứng dụng (đăng nhập/đăng ký)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Đường dẫn gốc của website, tự động nhận theo thư mục public đang chạy
