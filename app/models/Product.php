@@ -234,16 +234,15 @@ class Product
             return [];
         }
 
-        $query = 'SELECT p.*, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id';
-
-        if (!empty($categorySlug)) {
-            $query .= ' JOIN categories c ON p.category_id = c.id';
-        }
-
-        $query .= ' WHERE 1=1';
+        // Always join both brands and categories so response always has category_name
+        $query = 'SELECT p.*, b.name as brand_name, c.name as category_name
+                  FROM products p
+                  LEFT JOIN brands b ON p.brand_id = b.id
+                  LEFT JOIN categories c ON p.category_id = c.id
+                  WHERE 1=1';
 
         if (!empty($keyword)) {
-            $query .= ' AND (p.name LIKE :keyword1 OR p.short_desc LIKE :keyword2 OR p.description LIKE :keyword3)';
+            $query .= ' AND (p.name LIKE :keyword1 OR p.short_desc LIKE :keyword2)';
         }
 
         if (!empty($categorySlug)) {
@@ -258,7 +257,6 @@ class Product
             $kw = '%' . $keyword . '%';
             $stmt->bindValue(':keyword1', $kw);
             $stmt->bindValue(':keyword2', $kw);
-            $stmt->bindValue(':keyword3', $kw);
         }
 
         if (!empty($categorySlug)) {
