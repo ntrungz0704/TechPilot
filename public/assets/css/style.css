@@ -136,12 +136,19 @@ input, select, textarea, button {
     }
 }
 
+/* ===== BODY CLASSES ===== */
+html.category-scroll-locked,
+body.category-scroll-locked {
+    overflow: hidden !important;
+    padding-right: var(--scrollbar-width, 0px) !important;
+}
+
 /* ===== MAIN HEADER ===== */
 .site-header {
     background-color: var(--bg-white);
     box-shadow: var(--shadow-card);
-    position: sticky;
-    top: 0;
+    position: relative;
+    top: auto;
     z-index: 100;
     border-bottom: 1px solid var(--border);
 }
@@ -349,6 +356,14 @@ body.dark-mode .logo-text span {
 .main-nav {
     background-color: var(--primary);
     height: 50px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    transition: box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.main-nav.is-stuck {
+    box-shadow: 0 8px 24px rgba(14, 19, 32, 0.16);
 }
 
 .main-nav__inner {
@@ -451,8 +466,77 @@ body.dark-mode .logo-text span {
 }
 
 @media (max-width: 1024px) {
+    /* 5. Mobile Mega Menu Drawer - Slide từ trái vào */
     .main-nav {
-        display: none;
+        position: fixed !important;
+        top: 0 !important;
+        left: -300px !important;
+        width: 280px !important;
+        height: 100vh !important;
+        background-color: #FFFFFF !important;
+        z-index: 99999 !important;
+        transition: left 0.3s ease !important;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.15) !important;
+        display: block !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+    .main-nav.is-active {
+        left: 0 !important;
+    }
+    .mobile-drawer-close {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: none !important;
+        border: none !important;
+        font-size: 22px !important;
+        color: #64748B !important;
+        padding: 12px !important;
+        cursor: pointer !important;
+        margin-left: auto !important;
+        width: 44px !important;
+        height: 44px !important;
+    }
+    .main-nav__inner {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 0 16px 40px 16px !important;
+    }
+    .main-nav__categories {
+        display: block !important;
+        width: 100% !important;
+        background-color: transparent !important;
+        color: #1E293B !important;
+        padding: 12px 0 !important;
+        border-bottom: 1px solid #E2E8F0 !important;
+        margin-bottom: 12px !important;
+        height: auto !important;
+    }
+    .main-nav__categories-panel {
+        display: block !important;
+        position: static !important;
+        box-shadow: none !important;
+        padding: 10px 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+    }
+    .main-nav__links {
+        flex-direction: column !important;
+        gap: 12px !important;
+        width: 100% !important;
+        align-items: flex-start !important;
+        padding: 16px 0 !important;
+        border-top: 1px dashed #E2E8F0 !important;
+        margin-top: 8px !important;
+    }
+    .main-nav__links a {
+        font-size: 14px !important;
+        padding: 4px 0 !important;
+        display: block !important;
+        border-bottom: none !important;
+        color: #475569 !important;
     }
 }
 
@@ -3669,78 +3753,6 @@ html, body {
         display: none !important;
     }
 
-    /* 5. Mobile Mega Menu Drawer - Slide tÃ¡Â»Â« trÃƒÂ¡i vÃƒÂ o */
-    .main-nav {
-        position: fixed !important;
-        top: 0 !important;
-        left: -300px !important;
-        width: 280px !important;
-        height: 100vh !important;
-        background-color: #FFFFFF !important;
-        z-index: 99999 !important;
-        transition: left 0.3s ease !important;
-        box-shadow: 4px 0 20px rgba(0,0,0,0.15) !important;
-        display: block !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-    }
-    .main-nav.is-active {
-        left: 0 !important;
-    }
-    .mobile-drawer-close {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: none !important;
-        border: none !important;
-        font-size: 22px !important;
-        color: #64748B !important;
-        padding: 12px !important;
-        cursor: pointer !important;
-        margin-left: auto !important;
-        width: 44px !important;
-        height: 44px !important;
-    }
-    .main-nav__inner {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        padding: 0 16px 40px 16px !important;
-    }
-    .main-nav__categories {
-        display: block !important;
-        width: 100% !important;
-        background-color: transparent !important;
-        color: #1E293B !important;
-        padding: 12px 0 !important;
-        border-bottom: 1px solid #E2E8F0 !important;
-        margin-bottom: 12px !important;
-        height: auto !important;
-    }
-    .main-nav__categories-panel {
-        display: block !important;
-        position: static !important;
-        box-shadow: none !important;
-        padding: 10px 0 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        transform: none !important;
-    }
-    .main-nav__links {
-        flex-direction: column !important;
-        gap: 12px !important;
-        width: 100% !important;
-        align-items: flex-start !important;
-        padding: 16px 0 !important;
-        border-top: 1px dashed #E2E8F0 !important;
-        margin-top: 8px !important;
-    }
-    .main-nav__links a {
-        font-size: 14px !important;
-        padding: 4px 0 !important;
-        display: block !important;
-        border-bottom: none !important;
-        color: #475569 !important;
-    }
 
     /* 6. Banner Hero slider */
     .hero-section {

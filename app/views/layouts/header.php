@@ -8,8 +8,8 @@
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.5') ?>">
-    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.0') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.6') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.4') ?>">
 </head>
 
 <body>
@@ -130,33 +130,35 @@
                 <span>Khuyến mãi</span>
             </a>
         </div>
-
-        <!-- 3. Navigation Menu -->
-        <nav class="main-nav">
-            <!-- Nút đóng Drawer trên Mobile -->
-            <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Đóng Menu">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <div class="container main-nav__inner">
-                <button type="button" class="main-nav__categories" id="headerCategoryTrigger" aria-expanded="false">
-                    <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
-                </button>
-                
-                <ul class="main-nav__links">
-                    <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
-                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
-                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
-                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
-                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
-                    <li><a href="<?= url('home/search?cat=thiet-bi-mang') ?>" class="desktop-only-link">Thiết bị mạng</a></li>
-                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
-                    <li class="desktop-only-link"><a href="<?= url('home/search?cat=thiet-bi-van-phong') ?>">Thiết bị văn phòng</a></li>
-                    <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
-                    <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
-                </ul>
-            </div>
-        </nav>
     </header>
+
+    <div id="mainNavSentinel" style="width: 100%; height: 0;"></div>
+
+    <!-- 3. Navigation Menu -->
+    <nav class="main-nav">
+        <!-- Nút đóng Drawer trên Mobile -->
+        <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Đóng Menu">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="container main-nav__inner">
+            <button type="button" class="main-nav__categories" id="headerCategoryTrigger" aria-expanded="false" aria-controls="globalCategoryOverlay">
+                <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
+            </button>
+            
+            <ul class="main-nav__links">
+                <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
+                <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
+                <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
+                <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
+                <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
+                <li><a href="<?= url('home/search?cat=thiet-bi-mang') ?>" class="desktop-only-link">Thiết bị mạng</a></li>
+                <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
+                <li class="desktop-only-link"><a href="<?= url('home/search?cat=thiet-bi-van-phong') ?>">Thiết bị văn phòng</a></li>
+                <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
+                <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
+            </ul>
+        </div>
+    </nav>
 
     <!-- Global Category Overlay -->
     <div id="globalCategoryOverlay" class="catalog-overlay" aria-hidden="true">
