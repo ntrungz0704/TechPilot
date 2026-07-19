@@ -390,9 +390,11 @@ INSERT INTO coupons (code, discount_value, type, max_discount, min_order_value, 
 ('GIAM5PHANTRAM', 5, 'percent', 500000, 5000000, NOW() - INTERVAL 1 DAY, NOW() + INTERVAL 30 DAY);
 
 -- 9. Nạp tài khoản admin và customer mẫu
+-- Admin: email=ntrungz0704@gmail.com / password=Admin@123
+-- Customer: email=customer@gmail.com / password=customer123
 INSERT INTO users (full_name, email, phone, password, role, status) VALUES
-('Nguyễn Phạm Thành Trung', 'ntrungz0704@gmail.com', '0987654321', '$2y$10$tMh5hN258Z39aB/zP8k41On6.M2Pq75yqT5D5aN5E5n5w5x5y5z5u', 'admin', 'active'),
-('Khách hàng Demo', 'customer@gmail.com', '0123456789', '$2y$10$tMh5hN258Z39aB/zP8k41On6.M2Pq75yqT5D5aN5E5n5w5x5y5z5u', 'customer', 'active');
+('Nguyễn Phạm Thành Trung', 'ntrungz0704@gmail.com', '0987654321', '$2y$12$MfxSPGH6pjMqRLNF/3H.FeZP6.ppxtRtqz/StiY0d0BaTUxX3xdB2', 'admin', 'active'),
+('Khách hàng Demo', 'customer@gmail.com', '0123456789', '$2y$12$CYdt4fumZuJ8nc5menHuN.0mJ2zGA.Y5nTTjCnkfLWXfS6if/6WOS', 'customer', 'active');
 
 -- 10. Nạp một chiến dịch Flash Sale
 INSERT INTO flash_sales (id, title, slug, start_time, end_time, status) VALUES
