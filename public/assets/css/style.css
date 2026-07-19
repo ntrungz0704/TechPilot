@@ -378,18 +378,53 @@ html.dark-mode .logo-text span {
     color: var(--primary);
 }
 
+/* ===== COMMERCE HEADER STACK ===== */
+@media (min-width: 1025px) {
+    #commerceHeaderSentinel {
+        width: 100%;
+        height: 1px;
+        pointer-events: none;
+    }
+
+    .commerce-header-stack {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        width: 100%;
+        background: var(--surface-card);
+    }
+
+    .commerce-header-stack.is-stuck {
+        box-shadow: 0 10px 30px rgba(14, 19, 32, 0.16);
+    }
+
+    .commerce-header-stack .site-header {
+        position: relative;
+        top: auto;
+        z-index: auto;
+        box-shadow: none;
+    }
+
+    .commerce-header-stack .main-nav {
+        position: relative;
+        top: auto;
+        z-index: auto;
+    }
+}
+
+@media (max-width: 1024px) {
+    .commerce-header-stack {
+        position: static;
+        z-index: auto;
+        box-shadow: none;
+    }
+}
+
 /* ===== NAVIGATION MENU ===== */
 .main-nav {
     background-color: var(--primary);
     height: 50px;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    transition: box-shadow 180ms ease, background-color 180ms ease;
-}
-
-.main-nav.is-stuck {
-    box-shadow: 0 8px 24px rgba(14, 19, 32, 0.16);
+    transition: background-color 180ms ease;
 }
 
 .main-nav__inner {
