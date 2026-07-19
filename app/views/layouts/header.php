@@ -160,12 +160,7 @@
     <div id="globalCategoryOverlay" class="catalog-overlay" aria-hidden="true">
         <div class="catalog-overlay__backdrop" id="categoryBackdrop"></div>
         <div id="overlayCategorySlot">
-            <?php 
-            // In case we are not on home page, load component here
-            if (empty($categoryMenuRendered)) {
-                require ROOT_PATH . '/app/views/components/category-menu.php'; 
-            }
-            ?>
+            <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
         </div>
     </div>
 

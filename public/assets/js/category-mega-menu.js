@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainNavInner = document.querySelector('.main-nav__inner');
     const mainNav = document.querySelector('.main-nav');
     const heroSection = document.querySelector('.hero-section');
-    const menuItems = document.querySelectorAll('.vertical-menu__item');
+    const menuItems = sharedMenu ? sharedMenu.querySelectorAll('.vertical-menu__item') : [];
 
     let isOverlayOpen = false;
     let savedScrollY = 0;
@@ -29,11 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 sharedMenu.classList.add('catalog-menu--mobile');
             }
         } else {
-            if (heroSlot && sharedMenu.parentNode !== heroSlot && !isOverlayOpen) {
+            if (heroSlot && sharedMenu && sharedMenu.parentNode !== heroSlot && !isOverlayOpen) {
                 heroSlot.appendChild(sharedMenu);
                 sharedMenu.classList.remove('catalog-menu--mobile', 'catalog-menu--overlay');
                 sharedMenu.classList.add('catalog-menu--hero');
-            } else if (!heroSlot && sharedMenu.parentNode !== overlaySlot && !isOverlayOpen) {
+            } else if (!heroSlot && sharedMenu && sharedMenu.parentNode !== overlaySlot && !isOverlayOpen) {
                 overlaySlot.appendChild(sharedMenu);
                 sharedMenu.classList.remove('catalog-menu--mobile', 'catalog-menu--hero');
                 sharedMenu.classList.add('catalog-menu--overlay');
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const offset = heroRect.top - navRect.bottom - 24;
         
         if (offset !== 0) {
-            window.scrollBy({ top: offset, behavior: 'instant' });
+            window.scrollBy({ top: offset, behavior: 'auto' });
         }
     }
 
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.width = '';
         document.body.style.paddingRight = '';
         
-        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+        window.scrollTo({ top: savedScrollY, behavior: 'auto' });
     }
 
     function activateItem(item) {
