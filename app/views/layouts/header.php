@@ -160,7 +160,7 @@
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
                     <li class="desktop-only-link"><a href="#">Thiết bị văn phòng</a></li>
                     <li><a href="#" class="text-hot">Khuyến mãi cực hot <span class="dot-hot"></span></a></li>
-                    <li><a href="#">Tin công nghệ</a></li>
+                    <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
                 </ul>
             </div>
         </nav>

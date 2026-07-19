@@ -34,9 +34,96 @@ class Post
             ];
         }
 
-        $stmt = $this->db->prepare('SELECT * FROM posts ORDER BY id DESC LIMIT :limit');
+        $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" ORDER BY id DESC LIMIT :limit');
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Lấy bài viết tiêu điểm (mới nhất) */
+    public function getFeatured(): ?array
+    {
+        if ($this->db === null) return null;
+        $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" ORDER BY id DESC LIMIT 1');
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    /** Lấy danh sách bài viết phổ biến (nhiều lượt xem nhất) */
+    public function getPopular(int $limit = 3): array
+    {
+        if ($this->db === null) return [];
+        $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" ORDER BY views DESC, id DESC LIMIT :limit');
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Đếm số lượng bài viết để phân trang */
+    public function countAll(string $tag = ''): int
+    {
+        if ($this->db === null) return 0;
+        
+        $sql = 'SELECT COUNT(*) FROM posts WHERE status = "published"';
+        if (!empty($tag)) {
+            $sql .= ' AND (title LIKE :tag OR summary LIKE :tag OR content LIKE :tag)';
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        if (!empty($tag)) {
+            $stmt->bindValue(':tag', '%' . $tag . '%', PDO::PARAM_STR);
+        }
+        
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    }
+
+    /** Lấy danh sách bài viết phân trang */
+    public function getAll(int $offset, int $limit, string $tag = '', ?int $excludeId = null): array
+    {
+        if ($this->db === null) return [];
+        
+        $sql = 'SELECT * FROM posts WHERE status = "published"';
+        if (!empty($tag)) {
+            $sql .= ' AND (title LIKE :tag OR summary LIKE :tag OR content LIKE :tag)';
+        }
+        if ($excludeId !== null) {
+            $sql .= ' AND id != :excludeId';
+        }
+        
+        $sql .= ' ORDER BY id DESC LIMIT :limit OFFSET :offset';
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        
+        if (!empty($tag)) {
+            $stmt->bindValue(':tag', '%' . $tag . '%', PDO::PARAM_STR);
+        }
+        if ($excludeId !== null) {
+            $stmt->bindValue(':excludeId', $excludeId, PDO::PARAM_INT);
+        }
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Lấy chi tiết bài viết theo slug */
+    public function getBySlug(string $slug): ?array
+    {
+        if ($this->db === null) return null;
+        $stmt = $this->db->prepare('SELECT * FROM posts WHERE slug = :slug AND status = "published" LIMIT 1');
+        $stmt->bindValue(':slug', $slug, PDO::PARAM_STR);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    /** Tăng lượt xem bài viết */
+    public function incrementViews(int $id): void
+    {
+        if ($this->db === null) return;
+        $stmt = $this->db->prepare('UPDATE posts SET views = views + 1 WHERE id = :id');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
     }
 }
