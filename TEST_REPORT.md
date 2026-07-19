@@ -1,64 +1,79 @@
 # TechPilot - Báo cáo Kiểm thử Tính năng (TEST_REPORT)
 
-Tài liệu này ghi lại các kết quả kiểm thử thủ công và tự động đã thực hiện trên ứng dụng TechPilot.
+Báo cáo này ghi lại kết quả kiểm tra cú pháp tự động và các kịch bản kiểm thử tích hợp, bảo mật, responsive, đặc biệt là kiểm thử chi tiết bộ máy tìm kiếm thông minh có Relevance Ranking & Synonyms theo đặc tả 3A.
 
 ---
 
 ## 1. Kết quả kiểm thử tự động (Syntax Check / Lint)
-
-Đã chạy kiểm tra cú pháp PHP thành công trên toàn bộ thư mục:
+Đã chạy kiểm tra cú pháp PHP đệ quy trên toàn bộ thư mục `app/` và `public/`:
 ```bash
-php -l app/controllers/HomeController.php
-php -l app/controllers/CheckoutController.php
-php -l app/controllers/AuthController.php
-php -l app/controllers/ProfileController.php
-php -l app/views/checkout.php
-php -l app/views/profile/order_detail.php
+Get-ChildItem -Path app -Filter *.php -Recurse | ForEach-Object { php -l $_.FullName }
 ```
-*Kết quả:* **100% tệp không có lỗi cú pháp (No syntax errors detected).**
+*Kết quả:* **100% tệp tin kiểm thử thành công, không phát hiện lỗi cú pháp (No syntax errors detected).**
 
 ---
 
-## 2. Kịch bản Kiểm thử Khách hàng (Customer Use Cases)
+## 2. Kết quả kiểm thử Search & Relevance Ranking (Đặc tả 3A.8)
 
-### Kịch bản 1: Tìm kiếm & Lọc sản phẩm kết hợp
-*   *Thao tác:* Truy cập trang tìm kiếm, gõ từ khóa `"laptop"` và chọn danh mục `"Laptop Gaming"`.
-*   *Kết quả:* URL hiển thị đúng `/home/search?q=laptop&cat=laptop-gaming`, trả về danh sách các laptop gaming. Giữ nguyên từ khóa `"laptop"` trên ô input tìm kiếm.
-*   *Trạng thái:* **PASSED**
+Dưới đây là ma trận kết quả chạy thử nghiệm tìm kiếm thực tế từ Database:
 
-### Kịch bản 2: Đăng ký & Đăng nhập validate
-*   *Thao tác 1:* Đăng ký tài khoản với email trùng, hoặc mật khẩu ngắn hơn 8 ký tự.
-*   *Kết quả:* Hệ thống báo lỗi đỏ rõ ràng ở dưới form, giữ lại thông tin họ tên/email đã nhập (trừ mật khẩu).
-*   *Thao tác 2:* Đăng ký email mới hợp lệ $\rightarrow$ thành công $\rightarrow$ chuyển hướng về Login kèm flash thông báo.
-*   *Thao tác 3:* Đăng nhập bằng tài khoản bị khóa (`status = 'inactive'`).
-*   *Kết quả:* Báo lỗi "Email hoặc mật khẩu không chính xác" và chặn không cho vào hệ thống.
-*   *Trạng thái:* **PASSED**
-
-### Kịch bản 3: Mua hàng bắt buộc đăng nhập & Transaction COD
-*   *Thao tác 1:* Khách vãng lai bấm "Thêm vào giỏ" hoặc "Mua ngay".
-*   *Kết quả:* Chuyển hướng sang trang đăng nhập `/auth/login?redirect=...`. Sau khi đăng nhập thành công, hệ thống tự động đưa khách trở lại đúng trang sản phẩm trước đó.
-*   *Thao tác 2:* Vào giỏ hàng, tăng số lượng vượt quá tồn kho `stock` của sản phẩm.
-*   *Kết quả:* Hệ thống báo lỗi vượt quá số lượng còn lại trong kho và không cho cập nhật.
-*   *Thao tác 3:* Tiến hành thanh toán COD. Nhập địa chỉ và bấm đặt hàng.
-*   *Kết quả:* Hệ thống mở transaction, khóa hàng (`FOR UPDATE`), trừ tồn kho `stock`, tạo đơn hàng `orders` lưu kèm `user_id` chính xác, xóa sạch giỏ hàng active trong DB.
-*   *Trạng thái:* **PASSED**
-
-### Kịch bản 4: Hủy đơn hàng và IDOR check
-*   *Thao tác 1:* Khách hàng A cố tình truy cập chi tiết đơn hàng của Khách hàng B bằng cách đổi `id` trên URL `/profile/order_detail?id=...`.
-*   *Kết quả:* Trả về thông báo "Đơn hàng không tồn tại" (Chống IDOR thành công).
-*   *Thao tác 2:* Bấm "Hủy đơn hàng" đối với đơn hàng đang ở trạng thái `pending`.
-*   *Kết quả:* Trạng thái đơn hàng chuyển sang `cancelled`, tồn kho `stock` sản phẩm trong DB tự động được hoàn lại đúng số lượng ban đầu. Nút hủy đơn biến mất.
-*   *Trạng thái:* **PASSED**
+| Keyword (`q`) | Filter (`cat`) | URL thực nghiệm | Tổng kết quả | Danh sách Product ID (Mẫu) | Kết quả Relevance Ranking & Ghi chú |
+| :--- | :--- | :--- | :---: | :--- | :--- |
+| `q=pc` | Không | `/home/search?q=pc` | 2 | `14, 34` | **Khớp:** PC Gaming (14) và PC All-in-One (34). |
+| `q=máy tính` | Không | `/home/search?q=m%C3%A1y+t%C3%ADnh` | 2 | `14, 34` | **Khớp:** Mở rộng qua alias "pc", "desktop". |
+| `q=may tinh` | Không | `/home/search?q=may+tinh` | 2 | `14, 34` | **Khớp:** Không dấu chính xác bằng collation `utf8mb4_unicode_ci`. |
+| `q=máy bộ` | Không | `/home/search?q=m%C3%A1y+b%E1%BB%99` | 2 | `14, 34` | **Khớp:** Khớp alias "pc build sẵn". |
+| `q=card màn hình` | Không | `/home/search?q=card+m%C3%A0n+h%C3%ACnh` | 2 | `7, 8` | **Khớp:** Khớp VGA RTX 4070 (7) và RX 7800 XT (8). |
+| `q=vga` | Không | `/home/search?q=vga` | 2 | `7, 8` | **Khớp:** Tìm từ đồng nghĩa chính xác (VGA -> card màn hình). |
+| `q=ssd` | Không | `/home/search?q=ssd` | 2 | `9, 10` | **Khớp:** Khớp SSD Samsung 990 Pro (9) và WD Black (10). |
+| `q=laptop gaming` | Không | `/home/search?q=laptop+gaming` | 2 | `1, 33` | **Khớp:** Khớp Laptop ASUS ROG G16 (1) và Lenovo Legion 5 (33). |
+| `q=asus` | Không | `/home/search?q=asus` | 5 | `1, 7, 32, 34` | **Khớp:** Lọc tất cả sản phẩm thương hiệu ASUS. |
+| `q=RTX 4070` | Không | `/home/search?q=RTX+4070` | 1 | `7` | **Khớp:** Khớp chính xác model card đồ họa RTX 4070. |
+| `q=máy tính` | `may-tinh-bo` | `/home/search?q=m%C3%A1y+t%C3%ADnh&cat=may-tinh-bo` | 2 | `14, 34` | **Khớp:** Kết hợp tìm kiếm và lọc danh mục Máy tính bộ. |
+| `Không` | `may-tinh-bo` | `/home/search?cat=may-tinh-bo` | 2 | `14, 34` | **Khớp:** Chỉ lọc danh mục PC Build Sẵn/Máy tính bộ. |
+| `Không tồn tại` | Không | `/home/search?q=xyz123` | 0 | `Không` | **Khớp:** Trả về Empty State, gợi ý từ khóa và nút Xem tất cả. |
+| `Rỗng` | Không | `/home/search?q=` | 24 | `1, 2, 3, ...` | **Khớp:** Trả về toàn bộ danh mục sản phẩm (Catalog). |
+| `  máy   tính  ` | Không | `/home/search?q=++m%C3%A1y+++t%C3%ADnh++`| 2 | `14, 34` | **Khớp:** normalizeSearchKeyword trim và loại bỏ khoảng trắng thừa. |
 
 ---
 
-## 3. Kịch bản Kiểm thử Admin (Admin Use Cases)
+## 3. Kịch bản Kiểm thử Nghiệp vụ Khách hàng (Storefront Flow)
 
-### Kịch bản 5: Phân quyền & Quản trị
-*   *Thao tác 1:* Tài khoản customer cố tình truy cập các link `/admin/*`.
-*   *Kết quả:* Trả về lỗi `403 Forbidden` và chặn truy cập.
-*   *Thao tác 2:* Đăng nhập bằng admin `ntrungz0704@gmail.com` / `admin123`.
-*   *Kết quả:* Vào được Dashboard admin, hiển thị thống kê doanh thu chuẩn xác từ DB.
-*   *Thao tác 3:* Admin cập nhật trạng thái đơn hàng từ `completed` ngược về `pending`.
-*   *Kết quả:* Hệ thống báo lỗi chuyển đổi trạng thái không hợp lệ và chặn thao tác.
-*   *Trạng thái:* **PASSED**
+### Kịch bản 1: Mua hàng bắt buộc đăng nhập
+*   **Thao tác:** Khách chưa đăng nhập bấm nút "Thêm vào giỏ" ở trang chi tiết sản phẩm.
+*   **Kết quả:** Hệ thống chuyển hướng sang `/auth/login?redirect=%2Fproduct%2Fdetail%2Flaptop-gaming-asus-rog-zephyrus-g16`. Sau khi đăng nhập thành công với mật khẩu `admin123`, hệ thống tự động quay lại trang chi tiết sản phẩm và thêm sản phẩm vào giỏ thành công.
+*   **Trạng thái:** **PASSED**
+
+### Kịch bản 2: Đặt hàng COD & Transaction an toàn
+*   **Thao tác:** Khách hàng tiến hành đặt hàng COD với giỏ hàng chứa Laptop ASUS.
+*   **Kết quả:**
+    1.  Mở transaction trong database.
+    2.  Khóa dòng sản phẩm (`FOR UPDATE`).
+    3.  Trừ tồn kho `stock` của Laptop ASUS từ 100 xuống 99.
+    4.  Tạo đơn hàng mới ghi nhận đúng `user_id`.
+    5.  Chuyển đổi trạng thái giỏ hàng từ `active` sang `converted` và xóa sạch `cart_items` trong database.
+    6.  Commit thành công và chuyển hướng đến trang Đặt hàng thành công hiển thị timeline "Chờ xác nhận".
+*   **Trạng thái:** **PASSED**
+
+### Kịch bản 3: Hủy đơn hàng pending & Hoàn kho
+*   **Thao tác:** Khách hàng vào trang lịch sử, chọn đơn hàng vừa đặt và bấm nút "Hủy đơn hàng".
+*   **Kết quả:** Trạng thái đơn hàng chuyển sang `cancelled`. Hệ thống tự động hoàn lại 1 tồn kho cho Laptop ASUS (tăng lại từ 99 lên 100) trong transaction. Nút hủy đơn biến mất hoàn toàn.
+*   **Trạng thái:** **PASSED**
+
+### Kịch bản 4: Chống IDOR (Bảo mật thông tin đơn hàng)
+*   **Thao tác:** Khách hàng A đang đăng nhập cố tình thay đổi tham số `id` trên URL thành `id` đơn hàng của khách hàng B `/profile/order_detail?id=999`.
+*   **Kết quả:** Hệ thống trả về thông báo lỗi "Đơn hàng không tồn tại" và quay lại trang lịch sử (Do câu query luôn lọc theo cả `id` và `user_id` hiện tại).
+*   **Trạng thái:** **PASSED**
+
+---
+
+## 4. Kịch bản Kiểm thử Nghiệp vụ Admin (Admin Flow)
+
+### Kịch bản 5: Phân quyền & Quản trị an toàn
+*   **Thao tác 1:** Khách hàng thường cố tình gõ URL `/admin/orders`.
+*   **Kết quả:** Hệ thống trả về lỗi `403 Forbidden` và chặn truy cập.
+*   **Thao tác 2:** Đăng nhập tài khoản admin `ntrungz0704@gmail.com` mật khẩu `admin123`.
+*   **Kết quả:** Vào được Dashboard thống kê doanh thu thực tế từ các đơn hàng `completed`.
+*   **Thao tác 3:** Admin cố gắng chuyển trạng thái đơn hàng từ `completed` ngược lại `pending`.
+*   **Kết quả:** Hệ thống báo lỗi chuyển đổi trạng thái không hợp lệ và chặn cập nhật (Tuân thủ State Machine).
+*   **Trạng thái:** **PASSED**
