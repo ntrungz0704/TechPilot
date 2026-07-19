@@ -9,9 +9,9 @@
                 <p>Trải nghiệm thực tế sản phẩm công nghệ cao cấp trên toàn quốc</p>
             </div>
             <div class="bottom-feature-item">
-                <i class="fa-solid fa-credit-card"></i>
-                <h5>Thanh toán linh hoạt</h5>
-                <p>Hỗ trợ thẻ tín dụng, chuyển khoản, ví điện tử, Trả góp 0%</p>
+                <i class="fa-solid fa-money-bill-wave"></i>
+                <h5>Thanh toán khi nhận hàng</h5>
+                <p>Hỗ trợ thanh toán COD (tiền mặt) khi nhận hàng trên toàn quốc</p>
             </div>
             <div class="bottom-feature-item">
                 <i class="fa-solid fa-user-shield"></i>
@@ -72,10 +72,9 @@
                     <button type="submit">Đăng ký</button>
                 </form>
                 <div class="payment-icons" style="margin-top: 24px;">
-                    <i class="fa-brands fa-cc-visa" title="Visa"></i>
-                    <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
-                    <i class="fa-brands fa-cc-jcb" title="JCB"></i>
-                    <i class="fa-solid fa-qrcode" title="QR Pay"></i>
+                    <i class="fa-solid fa-money-bill-wave" title="Tiền mặt COD"></i>
+                    <i class="fa-solid fa-truck-fast" title="Giao hàng tận nơi"></i>
+                    <i class="fa-solid fa-shield-check" title="Bảo đảm chất lượng"></i>
                 </div>
             </div>
         </div>
@@ -88,7 +87,88 @@
         </div>
     </footer>
 
+    <!-- Adaptive Bottom Nav / Fixed Buy Bar for Mobile (Display: None on Desktop) -->
+    <?php 
+    $isProductDetail = (strpos($_SERVER['REQUEST_URI'], '/product/detail/') !== false);
+    if ($isProductDetail && !empty($product)): 
+    ?>
+        <div class="mobile-fixed-buy-bar">
+            <div class="fixed-buy-bar__info">
+                <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="thumb">
+                <div class="fixed-buy-bar__txt">
+                    <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
+                    <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>
+                </div>
+            </div>
+            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
+        </div>
+    <?php else: ?>
+        <div class="mobile-bottom-nav">
+            <a href="<?= url('/') ?>" class="mobile-bottom-nav__item">
+                <i class="fa-solid fa-house"></i>
+                <span>Trang chủ</span>
+            </a>
+            <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavCats" style="background: none; border: none; cursor: pointer; color: inherit;">
+                <i class="fa-solid fa-list"></i>
+                <span>Danh mục</span>
+            </button>
+            <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavSearch" style="background: none; border: none; cursor: pointer; color: inherit;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>Tìm kiếm</span>
+            </button>
+            <a href="<?= url('wishlist') ?>" class="mobile-bottom-nav__item">
+                <i class="fa-solid fa-heart"></i>
+                <span>Yêu thích</span>
+            </a>
+            <a href="<?= url('cart') ?>" class="mobile-bottom-nav__item">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>Giỏ hàng</span>
+                <span class="cart-badge"><?= (int)cartCount() ?></span>
+            </a>
+        </div>
+    <?php endif; ?>
+
     <script src="<?= url('assets/js/main.js?v=7.0') ?>"></script>
+    <script>
+        // Xử lý menu hamburger và drawer menu trên Mobile
+        const mainNav = document.querySelector('.main-nav');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileDrawerClose = document.getElementById('mobileDrawerClose');
+        const bottomNavCats = document.getElementById('mobileBottomNavCats');
+
+        function openMenu() {
+            mainNav?.classList.add('is-active');
+        }
+
+        function closeMenu() {
+            mainNav?.classList.remove('is-active');
+        }
+
+        mobileMenuToggle?.addEventListener('click', openMenu);
+        mobileDrawerClose?.addEventListener('click', closeMenu);
+        bottomNavCats?.addEventListener('click', openMenu);
+
+        // Bấm "Tìm kiếm" ở bottom nav -> cuộn lên đầu & focus vào search bar di động
+        document.getElementById('mobileBottomNavSearch')?.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(function() {
+                const searchInput = document.querySelector('.mobile-search-bar input');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }, 300);
+        });
+
+        // Xử lý accordion của Footer trên Mobile
+        document.querySelectorAll('.site-footer .footer-col h4').forEach(function(header) {
+            header.addEventListener('click', function() {
+                if (window.innerWidth <= 575) {
+                    const parent = this.parentElement;
+                    parent.classList.toggle('is-active');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

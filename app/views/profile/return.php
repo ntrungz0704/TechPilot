@@ -26,7 +26,7 @@
             <?php endif; ?>
 
             <form method="post" action="<?= url('profile/submit_return') ?>" style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: 20px;">
-                <?= csrfField() ?>
+                <?= csrf_field() ?>
                 <input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>">
 
                 <div>

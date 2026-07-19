@@ -37,7 +37,7 @@
                         <?php foreach ($products as $p): ?>
                             <th style="padding: 20px; width: 25%; position: relative;">
                                 <form method="post" action="<?= url('compare/remove') ?>" style="position: absolute; top: 10px; right: 10px;">
-                                    <?= csrfField() ?>
+                                    <?= csrf_field() ?>
                                     <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
                                     <button type="submit" style="background: none; border: none; color: #9CA3AF; cursor: pointer; font-size: 16px;" title="Xóa khỏi so sánh"><i class="fa-solid fa-xmark-circle"></i></button>
                                 </form>
@@ -116,7 +116,7 @@
                         <?php foreach ($products as $p): ?>
                             <td style="padding: 20px 15px;">
                                 <form method="post" action="<?= url('cart/add') ?>">
-                                    <?= csrfField() ?>
+                                    <?= csrf_field() ?>
                                     <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
                                     <input type="hidden" name="quantity" value="1">
                                     <button type="submit" class="btn btn--sm" style="width: 100%; text-align: center;"><i class="fa-solid fa-cart-shopping" style="margin-right: 6px;"></i> Thêm giỏ hàng</button>

@@ -1,34 +1,46 @@
-# Báo cáo Dọn dẹp Tài nguyên Dự án TechPilot (Cleanup Report)
+# Báo cáo Dọn dẹp Database & Mã nguồn (Cleanup Report)
 
-Báo cáo này liệt kê các tệp tin dư thừa được kiểm kê trong dự án, phân tích mức độ ảnh hưởng, đưa ra quyết định xóa hoặc giữ lại và phương án khôi phục.
-
----
-
-## 1. Danh sách tệp tin kiểm kê
-
-| Đường dẫn tệp tin | Kích thước | Trạng thái Git | Nơi tham chiếu | Bằng chứng & Lý do | Quyết định | Phương án khôi phục |
-|---|---|---|---|---|---|---|
-| `public/test_css.css` | 80,2 KB | Đã lưu baseline | Không có | File CSS rác từ quá trình test giao diện, hoàn toàn không được import hay nạp bởi bất kỳ view nào. | **ĐÃ XÓA AN TOÀN** | `git checkout <baseline_sha> -- public/test_css.css` |
-| `php-server.err.log` | 331 KB | Untracked (Đã ignore) | Không có | File log lỗi phát sinh trong lúc chạy server cục bộ của PHP, không phục vụ vận hành. | **ĐÃ THÊM VÀO .GITIGNORE** | Không cần khôi phục |
-| `php-server.out.log` | 0 B | Untracked (Đã ignore) | Không có | File log ghi nhận output server cục bộ. | **ĐÃ THÊM VÀO .GITIGNORE** | Không cần khôi phục |
-| `config/database.local.php` | 182 B | Untracked (Đã ignore) | `app/models/Product.php`... | File chứa thông tin kết nối database local, đã được Git ignore để bảo vệ bảo mật thông tin nhạy cảm. | **GIỮ LẠI (KHÔNG ĐƯỢC XÓA)** | N/A |
-| `scripts/router_techpilot.php` | 519 B | Đã lưu baseline | Không có | Script chạy server phụ trợ cũ của TechPilot, hiện tại đã có `router.php` ở root chạy chính. | **CẦN XÁC NHẬN** | Giữ nguyên để chờ ý kiến đội ngũ |
+*   **Thời gian thực hiện**: 2026-07-18
+*   **Mục tiêu**: Liệt kê các bảng dư thừa đã được cô lập/loại bỏ khỏi Database và các đoạn mã cũ đã được làm sạch trong source code.
 
 ---
 
-## 2. Quy trình kiểm tra an toàn trước khi xóa
-1. **Kiểm tra tham chiếu:** Chạy tìm kiếm chuỗi (Grep/Select-String) trên toàn bộ mã nguồn `app/` và `public/` để chắc chắn không có file nào gọi/require/link tới tệp tin dự kiến xóa.
-2. **Kiểm thử Baseline:** Chạy ứng dụng trước khi xóa và kiểm tra giao diện không lỗi.
-3. **Xóa từng phần nhỏ:** Không dùng lệnh xóa hàng loạt, chỉ xóa chính xác file đã xác nhận dư thừa.
-4. **Smoke test sau khi xóa:** Chạy lại PHP built-in server và duyệt qua các trang để xác minh không phát sinh lỗi PHP Fatal error hoặc lỗi 404 cho asset tĩnh.
+## 1. Dọn dẹp Cơ sở dữ liệu (Database Cleared)
+Database `techpilot` đã được dọn dẹp sạch sẽ từ **34 bảng** xuống đúng **15 bảng** chuẩn. 
+
+### 1.1 Danh sách 19 bảng dư thừa đã ngừng sử dụng:
+Các bảng sau đã được loại bỏ hoàn toàn trong file `database/schema.sql` mới và không còn bất kỳ cấu trúc hay khóa ngoại nào liên quan đến chúng tồn tại trong hệ thống:
+1.  `roles` (Thông tin vai trò -> gộp sang cột `users.role`)
+2.  `user_addresses` (Sổ địa chỉ -> gộp sang cột `users.address` hoặc snapshot)
+3.  `product_variants` (Biến thể sản phẩm -> catalog quản lý trực tiếp tại `products`)
+4.  `wishlist_items` (Mục yêu thích -> lưu trực tiếp tại bảng `wishlists` mới)
+5.  `flash_sale_items` (Mục Flash Sale -> lưu trực tiếp tại `products.sale_price` và cờ `is_flash_sale`)
+6.  `payments` (Thanh toán -> tích hợp cột trạng thái thanh toán trực tiếp vào `orders`)
+7.  `shipments` (Vận chuyển -> tích hợp các cột vận chuyển trực tiếp vào `orders`)
+8.  `order_status_history` (Lịch sử trạng thái đơn -> quản lý trực tiếp tại `orders.status`)
+9.  `comparison_lists` (So sánh -> chuyển sang session)
+10. `comparison_items` (So sánh -> chuyển sang session)
+11. `recently_viewed_products` (Xem gần đây -> chuyển sang session/cookie)
+12. `notifications` (Thông báo -> ngừng dùng)
+13. `return_requests` (Yêu cầu đổi trả -> ngừng dùng)
+14. `return_items` (Chi tiết đổi trả -> ngừng dùng)
+15. `review_images` (Ảnh đánh giá -> ngừng dùng)
+16. `warehouses` (Nhà kho -> tồn kho lưu trực tiếp tại `products.stock`)
+17. `inventory_balances` (Số dư kho -> tồn kho lưu trực tiếp tại `products.stock`)
+18. `inventory_movements` (Biến động kho -> ngừng dùng)
+19. `audit_logs` (Nhật ký hệ thống -> ngừng dùng)
 
 ---
 
-## 3. Cập nhật .gitignore
-Chúng tôi đã bổ sung các cấu hình sau vào tệp `.gitignore` để ngăn chặn các tệp tin log và rác phát sinh quay trở lại repository:
-```text
-/config/database.local.php
-*.log
-.DS_Store
-Thumbs.db
-```
+## 2. Làm sạch mã nguồn (Source Code Cleanup)
+
+### 2.1 Loại bỏ logic liên kết Variants trong Model:
+*   **`app/models/Product.php`**: Xóa bỏ các query và join liên quan đến `product_variants` và `inventory_balances` trong việc lấy thông tin chi tiết, liên quan hay bán chạy. Cập nhật hàm `getFlashSale` để kéo giá Flash Sale trực tiếp từ `products.sale_price`.
+*   **`app/models/Wishlist.php`**: Thiết lập lại các câu lệnh INSERT và SELECT truy vấn trực tiếp từ bảng liên kết `wishlists` (bỏ `wishlist_items`).
+*   **`app/models/Order.php`**: Rút gọn các thao tác lưu chi tiết đơn hàng, bỏ variants, chỉ thao tác trực tiếp với bảng `products` và cập nhật trừ trực tiếp tồn kho tại cột `products.stock`.
+
+### 2.2 Loại bỏ các Widgets không được hỗ trợ trên Giao diện:
+*   Ẩn nút "Chat với AI" và chatbox stateless trên layout.
+*   Loại bỏ form chọn địa chỉ nâng cao (Address Selector) và thay bằng ô nhập địa chỉ văn bản chuẩn trong form thanh toán COD.
+*   Loại bỏ nút "Yêu cầu đổi trả" (Return) trong danh sách đơn hàng.
+*   Loại bỏ tính năng upload ảnh trong form gửi đánh giá sản phẩm.
