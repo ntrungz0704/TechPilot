@@ -1,0 +1,179 @@
+/* ===== GLOBAL OVERLAY FOR CATALOG MENU ===== */
+.catalog-overlay {
+    position: fixed;
+    top: var(--category-overlay-top, 130px);
+    left: 0;
+    width: 100%;
+    bottom: 0;
+    z-index: 90; /* Must be less than .site-header (100) */
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.catalog-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.catalog-overlay__backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+#overlayCategorySlot {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 1200px; /* match container */
+    padding: 0 15px;
+    height: 100%;
+}
+
+/* Modifiers for the component based on location */
+.catalog-menu--overlay {
+    width: 280px;
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    position: relative;
+    z-index: 92;
+}
+
+.catalog-menu--hero {
+    /* Styles are mostly inherited from .vertical-menu in style.css */
+    /* Ensure it behaves properly within hero grid */
+    position: relative;
+    width: 100%;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* --- HERO FOCUSED STATE --- */
+.home-page-wrapper { overflow: visible !important; }
+.hero-section { overflow: visible !important; }
+.hero-section__left { overflow: visible !important; }
+.vertical-menu { overflow: visible !important; }
+.vertical-menu__item { overflow: visible !important; }
+
+.hero-section__left.is-category-focused {
+    position: relative;
+    z-index: 95; /* Higher than catalog-overlay (90) but lower than header (100) */
+}
+
+.catalog-menu--hero-open {
+    /* Highlight styles when open in hero */
+    box-shadow: 0 0 0 2px var(--primary), 0 10px 25px rgba(0,0,0,0.2) !important;
+    border-radius: 8px;
+    background: #fff;
+}
+
+/* Hide mega menu by default and disable hover */
+.vertical-menu__item .mega-menu {
+    display: none !important;
+}
+
+/* Scrollable mega menu panel */
+.vertical-menu__item.is-active > .mega-menu {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: calc(100% + 24px);
+    overflow-y: auto;
+    max-height: calc(100vh - var(--category-overlay-top, 130px) - 24px); 
+    width: 890px; /* Fill the rest of the 1200px container */
+    max-width: calc(100vw - 320px); /* Fallback for smaller screens to prevent horizontal overflow */
+    z-index: 96; /* Under header */
+}
+
+/* Scrollbar styling for mega menu */
+.mega-menu::-webkit-scrollbar {
+    width: 6px;
+}
+.mega-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.mega-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* --- MOBILE SPECIFIC (< 768px) --- */
+@media (max-width: 767px) {
+    .catalog-menu--mobile {
+        width: 100%;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 0;
+        margin-top: 10px;
+        display: none; /* hidden by default, toggled via JS */
+    }
+    
+    .catalog-menu--mobile.is-mobile-expanded {
+        display: block;
+    }
+
+    /* Convert desktop vertical menu to accordion style for mobile */
+    .catalog-menu--mobile .vertical-menu__item {
+        margin-bottom: 8px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .catalog-menu--mobile .vertical-menu__link {
+        padding: 12px 16px;
+        background: #f8fafc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #1e293b;
+        font-weight: 500;
+    }
+
+    .catalog-menu--mobile .mega-menu {
+        display: none !important;
+        position: static !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 16px !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        animation: none !important;
+    }
+
+    /* On mobile, we might want hover or click to expand. Using CSS hover for now to keep it simple, 
+       or JS can toggle a class. But hover works decently on tap for most mobile browsers */
+    .catalog-menu--mobile .vertical-menu__item:hover .mega-menu,
+    .catalog-menu--mobile .vertical-menu__item:focus-within .mega-menu {
+        display: block !important;
+    }
+    
+    .catalog-menu--mobile .mega-menu__column {
+        width: 100% !important;
+        margin-bottom: 16px;
+    }
+}
+
+/* Button Reset for header trigger */
+button.main-nav__categories {
+    border: none;
+    font-family: inherit;
+    outline: none;
+}
+
+button.main-nav__categories:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}

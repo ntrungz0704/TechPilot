@@ -31,223 +31,113 @@ $reviews = $reviews ?? [];
 <!-- ===== 4. HERO SECTION ===== -->
 <div class="home-page-wrapper">
 <section class="container hero-section">
-    <!-- Left: Vertical Category Menu (GearVN style Mega Menu) -->
-    <div class="hero-section__left">
-        <nav class="vertical-menu">
-            <?php
-            $verticalCategories = [
-                [
-                    'name' => 'Laptop',
-                    'icon' => 'fa-solid fa-laptop',
-                    'slug' => 'laptop-van-phong',
-                    'columns' => [
-                        'Thương hiệu' => ['ASUS', 'ACER', 'MSI', 'LENOVO', 'LG - Gram'],
-                        'Giá bán' => ['Dưới 15 triệu', 'Từ 15 đến 20 triệu', 'Trên 20 triệu'],
-                        'CPU Intel - AMD' => ['Intel Core i3', 'Intel Core i5', 'Intel Core i7', 'AMD Ryzen'],
-                        'Nhu cầu sử dụng' => ['Đồ họa - Studio', 'Học sinh - Sinh viên', 'Mỏng nhẹ cao cấp'],
-                        'Linh phụ kiện Laptop' => ['Ram laptop', 'SSD laptop', 'Ổ cứng di động']
-                    ]
-                ],
-                [
-                    'name' => 'Laptop Gaming',
-                    'icon' => 'fa-solid fa-gamepad',
-                    'slug' => 'laptop-gaming',
-                    'columns' => [
-                        'Thương hiệu' => ['ASUS ROG / TUF', 'MSI Gaming', 'Acer Predator / Nitro', 'Lenovo Legion', 'HP Omen / Victus', 'Dell G-Series'],
-                        'Phân khúc giá' => ['Dưới 20 triệu', '20 - 30 triệu', '30 - 40 triệu', 'Trên 40 triệu'],
-                        'Cấu hình GPU' => ['GeForce RTX 4050', 'GeForce RTX 4060', 'GeForce RTX 4070', 'GeForce RTX 4080 / 4090']
-                    ]
-                ],
-                [
-                    'name' => 'PC GVN (PC TechPilot)',
-                    'icon' => 'fa-solid fa-desktop',
-                    'slug' => 'pc-build-san',
-                    'columns' => [
-                        'PC TechPilot' => ['PC Gaming giá rẻ', 'PC Streamer - Creator', 'PC Render - Đồ họa', 'PC Office văn phòng'],
-                        'PC Theo hãng' => ['PC Gaming Asus ROG', 'PC MSI Dragon Edition', 'PC Gigabyte Aorus', 'PC Corsair One']
-                    ]
-                ],
-                [
-                    'name' => 'Main, CPU, VGA',
-                    'icon' => 'fa-solid fa-microchip',
-                    'slug' => 'pc-linh-kien',
-                    'columns' => [
-                        'Bộ vi xử lý CPU' => ['Intel Core i5', 'Intel Core i7', 'Intel Core i9', 'AMD Ryzen 5', 'AMD Ryzen 7'],
-                        'Bo mạch chủ Main' => ['Mainboard ASUS', 'Mainboard MSI', 'Mainboard Gigabyte'],
-                        'Card màn hình VGA' => ['NVIDIA GeForce RTX', 'AMD Radeon RX']
-                    ]
-                ],
-                [
-                    'name' => 'Case, Nguồn, Tản',
-                    'icon' => 'fa-solid fa-box',
-                    'slug' => 'pc-linh-kien',
-                    'columns' => [
-                        'Bộ nguồn máy tính' => ['Nguồn dưới 650W', 'Nguồn 750W - 850W', 'Nguồn trên 1000W'],
-                        'Tản nhiệt CPU' => ['Tản nhiệt khí CPU', 'Tản nhiệt nước AIO', 'Quạt tản nhiệt Case'],
-                        'Vỏ Case PC' => ['Vỏ Case ATX / ITX', 'Vỏ Case Bể cá', 'Vỏ Case Gaming led RGB']
-                    ]
-                ],
-                [
-                    'name' => 'Ổ cứng, RAM, Thẻ nhớ',
-                    'icon' => 'fa-solid fa-database',
-                    'slug' => 'pc-linh-kien',
-                    'columns' => [
-                        'Bộ nhớ RAM' => ['RAM DDR4 8GB / 16GB', 'RAM DDR5 16GB / 32GB', 'RAM Laptop'],
-                        'Ổ cứng SSD / HDD' => ['SSD M.2 NVMe', 'SSD SATA III 2.5"', 'Ổ cứng di động']
-                    ]
-                ],
-                [
-                    'name' => 'Loa, Micro, Webcam',
-                    'icon' => 'fa-solid fa-volume-high',
-                    'slug' => 'office-gear',
-                    'columns' => [
-                        'Âm thanh' => ['Loa máy tính', 'Tai nghe chụp tai', 'Loa Bluetooth di động'],
-                        'Webcam & Ghi âm' => ['Webcam Full HD / 2K', 'Microphone livestream']
-                    ]
-                ],
-                [
-                    'name' => 'Màn hình',
-                    'icon' => 'fa-solid fa-tv',
-                    'slug' => 'man-hinh',
-                    'columns' => [
-                        'Hãng sản xuất' => ['Màn hình LG', 'Màn hình Samsung', 'Màn hình ASUS', 'Màn hình Dell', 'Màn hình MSI', 'Màn hình AOC'],
-                        'Thông số & Nhu cầu' => ['Màn hình Gaming 144Hz+', 'Màn hình Cong Ultrawide', 'Màn hình 4K Đồ họa', 'Màn hình Văn phòng']
-                    ]
-                ],
-                [
-                    'name' => 'Bàn phím',
-                    'icon' => 'fa-solid fa-keyboard',
-                    'slug' => 'gaming-gear',
-                    'columns' => [
-                        'Bàn phím' => ['Bàn phím cơ', 'Bàn phím văn phòng', 'Phím giả cơ giá rẻ']
-                    ]
-                ],
-                [
-                    'name' => 'Chuột + Lót chuột',
-                    'icon' => 'fa-solid fa-mouse',
-                    'slug' => 'gaming-gear',
-                    'columns' => [
-                        'Chuột & Lót' => ['Chuột không dây', 'Chuột gaming', 'Lót chuột cỡ lớn']
-                    ]
-                ],
-                [
-                    'name' => 'Tai Nghe',
-                    'icon' => 'fa-solid fa-headphones',
-                    'slug' => 'gaming-gear',
-                    'columns' => [
-                        'Tai nghe' => ['Tai nghe chụp tai', 'Tai nghe in-ear', 'Tai nghe không dây']
-                    ]
-                ],
-                [
-                    'name' => 'Ghế - Bàn',
-                    'icon' => 'fa-solid fa-chair',
-                    'slug' => 'office-gear',
-                    'columns' => [
-                        'Ghế - Bàn' => ['Ghế Gaming', 'Ghế công thái học', 'Bàn chữ Z']
-                    ]
-                ],
-                [
-                    'name' => 'Phần mềm, mạng',
-                    'icon' => 'fa-solid fa-network-wired',
-                    'slug' => 'networking',
-                    'columns' => [
-                        'Mạng & Phần mềm' => ['Router Wifi 6', 'Switch chia cổng', 'Windows bản quyền', 'Office 365']
-                    ]
-                ],
-                [
-                    'name' => 'Handheld, Console',
-                    'icon' => 'fa-solid fa-gamepad',
-                    'slug' => 'gaming-gear',
-                    'columns' => [
-                        'Máy chơi game' => ['Nintendo Switch', 'PlayStation 5', 'ASUS ROG Ally', 'Steam Deck']
-                    ]
-                ],
-                [
-                    'name' => 'Phụ kiện (Hub, sạc...)',
-                    'icon' => 'fa-solid fa-plug',
-                    'slug' => 'networking',
-                    'columns' => [
-                        'Phụ kiện' => ['Hub chuyển đổi', 'Cáp HDMI/DisplayPort', 'Pin dự phòng']
-                    ]
-                ],
-                [
-                    'name' => 'Dịch vụ & Thông tin khác',
-                    'icon' => 'fa-solid fa-circle-info',
-                    'slug' => 'networking',
-                    'columns' => [
-                        'Hỗ trợ' => ['Vệ sinh PC', 'Lắp đặt tại nhà', 'Bảo hành mở rộng']
-                    ]
-                ]
-            ];
-            ?>
-            <?php foreach ($verticalCategories as $item): ?>
-                <div class="vertical-menu__item">
-                    <a href="<?= url('home/search?q=' . urlencode($item['name'])) ?>" class="vertical-menu__link">
-                        <div>
-                            <i class="<?= e($item['icon']) ?>" style="width: 20px;"></i>
-                            <span><?= e($item['name']) ?></span>
-                        </div>
-                        <i class="fa-solid fa-chevron-right arrow-right"></i>
-                    </a>
-                    
-                    <?php if (!empty($item['columns'])): ?>
-                        <div class="mega-menu">
-                            <div class="mega-menu__inner">
-                                <?php foreach ($item['columns'] as $title => $subitems): ?>
-                                    <div class="mega-menu__column">
-                                        <h5><?= e($title) ?></h5>
-                                        <ul>
-                                            <?php foreach ($subitems as $subitem): ?>
-                                                <li><a href="<?= url('home/search?q=' . urlencode($subitem)) ?>"><?= e($subitem) ?></a></li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
-        </nav>
+    <!-- Left: Vertical Category Menu -->
+    <div class="hero-section__left" id="heroCategorySlot">
+        <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
     </div>
 
     <!-- Center: Large Hero Banner Carousel -->
     <div class="hero-section__center" id="heroCarousel">
-        <div class="carousel-slide is-active" style="background-image: linear-gradient(135deg, rgba(13, 27, 42, 0.95), rgba(13, 27, 42, 0.4)), url('<?= url('assets/images/rog-banner-bg.jpg') ?>');">
-            <span class="carousel-slide__tag">Sức mạnh vượt trội</span>
-            <h2>ROG ZEPHYRUS G16</h2>
-            <p>Hiệu năng đỉnh cao cho game thủ &amp; creator</p>
-            <ul class="carousel-slide__specs">
-                <li><i class="fa-solid fa-circle-check"></i> Intel® Core™ Ultra 9</li>
-                <li><i class="fa-solid fa-circle-check"></i> NVIDIA® GeForce RTX™ 4070</li>
-                <li><i class="fa-solid fa-circle-check"></i> Màn hình OLED 2.5K 240Hz</li>
-                <li><i class="fa-solid fa-circle-check"></i> RAM LPDDR5X 32GB</li>
-            </ul>
-            <div class="carousel-slide__price">
-                Chỉ từ <strong>39.990.000đ</strong>
+        <div class="carousel-slide is-active" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/rog-banner-bg.jpg') ?>');">
+            <div class="carousel-slide__content">
+                <span class="carousel-slide__tag">Sức mạnh vượt trội</span>
+                <h2>ROG ZEPHYRUS G16</h2>
+                <p>Hiệu năng đỉnh cao cho game thủ &amp; creator</p>
+                <ul class="carousel-slide__specs">
+                    <li><i class="fa-solid fa-circle-check"></i> Intel® Core™ Ultra 9</li>
+                    <li><i class="fa-solid fa-circle-check"></i> NVIDIA® GeForce RTX™ 4070</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Màn hình OLED 2.5K 240Hz</li>
+                    <li><i class="fa-solid fa-circle-check"></i> RAM LPDDR5X 32GB</li>
+                </ul>
+                <div class="carousel-slide__price">
+                    Chỉ từ <strong>39.990.000đ</strong>
+                </div>
+                <a href="<?= url('product/detail/asus-rog-zephyrus-g16') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
             </div>
-            <a href="<?= url('product/detail/asus-rog-zephyrus-g16') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
         </div>
         
-        <div class="carousel-slide" style="background-image: linear-gradient(135deg, rgba(29, 78, 216, 0.9), rgba(17, 24, 39, 0.6)), url('<?= url('assets/images/banner-rtx-bg.jpg') ?>');">
-            <span class="carousel-slide__tag">Sắp ra mắt</span>
-            <h2>NVIDIA RTX 50 SERIES</h2>
-            <p>Sẵn sàng cho kỷ nguyên đồ họa thế hệ mới</p>
-            <ul class="carousel-slide__specs">
-                <li><i class="fa-solid fa-circle-check"></i> Kiến trúc Blackwell 4nm</li>
-                <li><i class="fa-solid fa-circle-check"></i> Bộ nhớ GDDR7 siêu tốc</li>
-                <li><i class="fa-solid fa-circle-check"></i> Tăng tốc AI gấp 2 lần</li>
-                <li><i class="fa-solid fa-circle-check"></i> DLSS 4 tối ưu hóa hiệu năng</li>
-            </ul>
-            <div class="carousel-slide__price">
-                Nhận thông tin sớm nhất
+        <!-- Slide 2: MacBook Pro -->
+        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
+            <div class="carousel-slide__content">
+                <span class="carousel-slide__tag">Cực phẩm Apple</span>
+                <h2>MacBook Pro 16 M3 Max</h2>
+                <p>Quái vật hiệu năng dành cho dân chuyên nghiệp</p>
+                <ul class="carousel-slide__specs">
+                    <li><i class="fa-solid fa-circle-check"></i> Chip Apple M3 Max 14-core</li>
+                    <li><i class="fa-solid fa-circle-check"></i> GPU 30-core cực mạnh</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Màn hình Liquid Retina XDR</li>
+                    <li><i class="fa-solid fa-circle-check"></i> 36GB Unified Memory, 1TB SSD</li>
+                </ul>
+                <div class="carousel-slide__price">
+                    Chỉ từ <strong>89.990.000đ</strong>
+                </div>
+                <a href="<?= url('product/detail/macbook-pro-16-m3-max') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
             </div>
-            <a href="#" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
+        </div>
+
+        <!-- Slide 3: PC Gaming Ultra -->
+        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/banner-1.jpg') ?>');">
+            <div class="carousel-slide__content">
+                <span class="carousel-slide__tag">Chiến thần hiệu năng</span>
+                <h2>PC Gaming Ultra Max</h2>
+                <p>Cỗ máy hủy diệt mọi tựa game AAA ở thiết lập cao nhất</p>
+                <ul class="carousel-slide__specs">
+                    <li><i class="fa-solid fa-circle-check"></i> CPU Intel Core i9-14900K</li>
+                    <li><i class="fa-solid fa-circle-check"></i> VGA NVIDIA RTX 4090 24GB</li>
+                    <li><i class="fa-solid fa-circle-check"></i> RAM 64GB DDR5 6000MHz</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Tản nhiệt nước Custom</li>
+                </ul>
+                <div class="carousel-slide__price">
+                    Chỉ từ <strong>125.000.000đ</strong>
+                </div>
+                <a href="<?= url('product/detail/pc-gaming-ultra') ?>" class="btn btn--light">Build ngay <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+        </div>
+
+        <!-- Slide 4: Monitor Odyssey G9 -->
+        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/banner-3.jpg') ?>');">
+            <div class="carousel-slide__content">
+                <span class="carousel-slide__tag">Trải nghiệm vô cực</span>
+                <h2>Odyssey OLED G9</h2>
+                <p>Màn hình cong 49 inch chuẩn điện ảnh cho đắm chìm tuyệt đối</p>
+                <ul class="carousel-slide__specs">
+                    <li><i class="fa-solid fa-circle-check"></i> Tấm nền QD-OLED siêu nét</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Tần số quét 240Hz</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Tốc độ phản hồi 0.03ms</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Tỷ lệ siêu rộng 32:9</li>
+                </ul>
+                <div class="carousel-slide__price">
+                    Chỉ từ <strong>34.500.000đ</strong>
+                </div>
+                <a href="<?= url('product/detail/samsung-odyssey-oled-g9') ?>" class="btn btn--light">Khám phá <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+        </div>
+
+        <!-- Slide 5: RTX 50 SERIES (Coming soon) -->
+        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 45%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/banner-rtx-bg.jpg') ?>');">
+            <div class="carousel-slide__content">
+                <span class="carousel-slide__tag">Sắp ra mắt</span>
+                <h2>NVIDIA RTX 50 SERIES</h2>
+                <p>Sẵn sàng cho kỷ nguyên đồ họa thế hệ mới</p>
+                <ul class="carousel-slide__specs">
+                    <li><i class="fa-solid fa-circle-check"></i> Kiến trúc Blackwell 4nm</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Bộ nhớ GDDR7 siêu tốc</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Tăng tốc AI gấp 2 lần</li>
+                    <li><i class="fa-solid fa-circle-check"></i> DLSS 4 tối ưu hóa hiệu năng</li>
+                </ul>
+                <div class="carousel-slide__price">
+                    Nhận thông tin sớm nhất
+                </div>
+                <a href="#" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
+            </div>
         </div>
 
         <div class="carousel-controls">
             <div class="carousel-dot is-active" data-index="0"></div>
             <div class="carousel-dot" data-index="1"></div>
+            <div class="carousel-dot" data-index="2"></div>
+            <div class="carousel-dot" data-index="3"></div>
+            <div class="carousel-dot" data-index="4"></div>
         </div>
     </div>
 

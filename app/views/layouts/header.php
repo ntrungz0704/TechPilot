@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.5') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.0') ?>">
 </head>
 
 <body>
@@ -135,20 +136,9 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="container main-nav__inner">
-                <div class="main-nav__categories">
+                <button type="button" class="main-nav__categories" id="headerCategoryTrigger" aria-expanded="false">
                     <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
-                    <div class="main-nav__categories-panel">
-                        <?php 
-                        $categoriesList = $categories ?? $globalCategories ?? [];
-                        foreach ($categoriesList as $cat): 
-                        ?>
-                            <a href="<?= url('home/search?cat=' . $cat['slug']) ?>">
-                                <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>"></i>
-                                <?= e($cat['name']) ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
+                </button>
                 
                 <ul class="main-nav__links">
                     <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
@@ -165,5 +155,18 @@
             </div>
         </nav>
     </header>
+
+    <!-- Global Category Overlay -->
+    <div id="globalCategoryOverlay" class="catalog-overlay" aria-hidden="true">
+        <div class="catalog-overlay__backdrop" id="categoryBackdrop"></div>
+        <div id="overlayCategorySlot">
+            <?php 
+            // In case we are not on home page, load component here
+            if (empty($categoryMenuRendered)) {
+                require ROOT_PATH . '/app/views/components/category-menu.php'; 
+            }
+            ?>
+        </div>
+    </div>
 
     <main>
