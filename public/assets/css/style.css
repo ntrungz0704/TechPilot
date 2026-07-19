@@ -3447,8 +3447,8 @@ html, body {
         width: 100% !important;
         box-sizing: border-box !important;
     }
-    /* Ã¡ÂºÂ¨n sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m tÃ¡Â»Â« thÃ¡Â»Â© 5 trÃ¡Â»Å¸ Ã„â€˜i */
-    .product-grid > .product-card:nth-child(n+5) {
+    /* Chỉ ẩn sản phẩm từ thứ 5 trở đi trên trang chủ để tránh trang chủ quá dài */
+    .home-page-wrapper .product-grid > .product-card:nth-child(n+5) {
         display: none !important;
     }
     .product-card {

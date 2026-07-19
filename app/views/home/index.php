@@ -29,6 +29,7 @@ $reviews = $reviews ?? [];
 ?>
 
 <!-- ===== 4. HERO SECTION ===== -->
+<div class="home-page-wrapper">
 <section class="container hero-section">
     <!-- Left: Vertical Category Menu (GearVN style Mega Menu) -->
     <div class="hero-section__left">
@@ -724,3 +725,4 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+</div><!-- .home-page-wrapper -->
