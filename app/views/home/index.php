@@ -646,17 +646,17 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
-<!-- ===== APPLE ZONE ===== -->
+<!-- ===== MÁY TÍNH BỘ ===== -->
 <section class="container section section-apple-zone">
     <div class="section__head">
-        <h2>Apple Zone</h2>
-        <a href="<?= url('home/search?cat=apple') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+        <h2>Máy tính bộ</h2>
+        <a href="<?= url('home/search?cat=may-tinh-bo') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="product-grid product-grid--6">
-        <div class="apple-banner" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(0,0,0,0.4)), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
-            <h3>Apple Authorized Reseller</h3>
-            <p>Trải nghiệm sản phẩm Apple chính hãng (VNA) tại hệ thống ủy quyền TechPilot với mức giá tốt nhất.</p>
-            <a href="<?= url('home/search?cat=apple') ?>" class="btn btn--outline-light btn--sm">Khám phá ngay</a>
+        <div class="apple-banner" style="background-image: linear-gradient(135deg, rgba(15,91,255,0.95), rgba(7,26,51,0.6)), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
+            <h3>Máy tính bộ đồng bộ</h3>
+            <p>Trải nghiệm các bộ máy tính All-in-One, máy tính văn phòng và máy tính đồng bộ cấu hình cao tại TechPilot.</p>
+            <a href="<?= url('home/search?cat=may-tinh-bo') ?>" class="btn btn--outline-light btn--sm">Khám phá ngay</a>
         </div>
         <?php foreach (array_slice($apple, 0, 4) as $p): ?>
             <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>

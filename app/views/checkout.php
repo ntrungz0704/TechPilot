@@ -38,11 +38,10 @@ $total = $total ?? 0;
             </div>
             <div class="form-group">
                 <label>Phương thức thanh toán</label>
-                <select name="payment_method">
-                    <option value="COD">Thanh toán khi nhận hàng (COD)</option>
-                    <option value="BankTransfer">Chuyển khoản ngân hàng 24/7</option>
-                    <option value="QR">Quét mã QR Code</option>
-                </select>
+                <input type="hidden" name="payment_method" value="COD">
+                <div style="padding: 12px; background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; font-size: 14px; font-weight: 600; color: #2563EB; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-truck-fast"></i> Thanh toán khi nhận hàng (COD)
+                </div>
             </div>
             <div class="form-group">
                 <label>Ghi chú đơn hàng (Không bắt buộc)</label>
