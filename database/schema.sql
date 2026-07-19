@@ -394,7 +394,7 @@ INSERT INTO coupons (code, discount_value, type, max_discount, min_order_value, 
 -- Customer: email=customer@gmail.com / password=customer123
 INSERT INTO users (full_name, email, phone, password, role, status) VALUES
 ('Nguyễn Phạm Thành Trung', 'ntrungz0704@gmail.com', '0987654321', '$2y$12$MfxSPGH6pjMqRLNF/3H.FeZP6.ppxtRtqz/StiY0d0BaTUxX3xdB2', 'admin', 'active'),
-('Quản trị TechPilot', 'admin@techpilot.vn', '0999888777', '$2y$10$w8TkyX1Z8N3Xb0XG8pYy7.V38aP8tD7F9jXQzN3G6c8hH1FzZ2p1e', 'admin', 'active'),
+('Quản trị TechPilot', 'admin@techpilot.vn', '0999888777', '$2y$12$yfWn0GajpeB9G/Fg6FPB7u.fG/tFa.Sbhg3Vd.koMKY4QYi6io7wa', 'admin', 'active'),
 ('Khách hàng Demo', 'customer@gmail.com', '0123456789', '$2y$12$CYdt4fumZuJ8nc5menHuN.0mJ2zGA.Y5nTTjCnkfLWXfS6if/6WOS', 'customer', 'active');
 
 -- 10. Nạp một chiến dịch Flash Sale
