@@ -137,47 +137,45 @@ input, select, textarea, button {
     height: 36px;
 }
 
-.techpilot-topbar__marquee {
+.techpilot-topbar__viewport {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
-    position: relative;
 }
 
 .techpilot-topbar__track {
     display: flex;
-    width: 200%;
-    height: 100%;
-    animation: techpilot-topbar-scroll 22s linear infinite;
+    flex: none;
+    width: max-content;
+    animation: techpilot-topbar-scroll 20s linear infinite;
     will-change: transform;
 }
 
-.techpilot-topbar__marquee:hover .techpilot-topbar__track,
-.techpilot-topbar__marquee:focus-within .techpilot-topbar__track {
+.techpilot-topbar__viewport:hover .techpilot-topbar__track,
+.techpilot-topbar__viewport:focus-within .techpilot-topbar__track {
     animation-play-state: paused;
 }
 
 .techpilot-topbar__group {
     display: flex;
+    flex: none;
     align-items: center;
-    flex: 0 0 50%;
-    width: 50%;
-    min-width: 0;
+    width: max-content;
+    gap: 24px;
+    padding-right: 24px;
 }
 
 .techpilot-topbar__message {
-    flex: 1 1 0;
-    min-width: 0;
+    position: relative;
     display: flex;
+    flex: none;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 0 16px;
+    width: max-content;
+    gap: 4px;
+    white-space: nowrap;
     color: var(--techpilot-white);
     text-decoration: none;
     transition: color 0.2s ease;
-    white-space: nowrap;
-    position: relative;
 }
 
 .techpilot-topbar__message:hover,
@@ -189,34 +187,42 @@ input, select, textarea, button {
     color: var(--techpilot-cyan);
 }
 
-.techpilot-topbar__message:not(:last-child)::after {
-    content: "•";
+.techpilot-topbar__message::before {
+    content: "";
     position: absolute;
-    right: 0;
-    color: var(--techpilot-cyan);
-    font-size: 8px;
-    opacity: 0.5;
+    top: 50%;
+    left: -12px;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--techpilot-cyan);
+    transform: translateY(-50%);
+}
+
+.techpilot-topbar__message:first-child::before {
+    display: none;
 }
 
 @keyframes techpilot-topbar-scroll {
     from {
-        transform: translate3d(0, 0, 0);
+        transform: translate3d(-50%, 0, 0);
     }
     to {
-        transform: translate3d(-50%, 0, 0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 .techpilot-topbar__actions {
-    flex: 0 0 auto;
-    white-space: nowrap;
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
-    gap: 12px;
-    padding-left: 16px;
+    white-space: nowrap;
+    gap: 24px;
+    padding-left: 24px;
 }
 
 .techpilot-topbar__action {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -234,10 +240,19 @@ input, select, textarea, button {
     color: var(--techpilot-blue);
 }
 
-.techpilot-topbar__divider {
+.techpilot-topbar__action::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -12px;
     width: 1px;
     height: 12px;
     background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%);
+}
+
+.techpilot-topbar__action:first-child::before {
+    display: none;
 }
 
 /* Responsive: Tablet */
@@ -252,7 +267,10 @@ input, select, textarea, button {
         display: none;
     }
     .techpilot-topbar__actions {
-        gap: 8px;
+        gap: 16px;
+    }
+    .techpilot-topbar__action::before {
+        left: -8px;
     }
 }
 
@@ -270,13 +288,8 @@ input, select, textarea, button {
 /* Accessibility: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
     .techpilot-topbar__track {
-        width: 100%;
         animation: none;
         transform: none;
-    }
-    .techpilot-topbar__group {
-        flex: 0 0 100%;
-        width: 100%;
     }
     .techpilot-topbar__group[aria-hidden="true"] {
         display: none;
@@ -288,10 +301,7 @@ input, select, textarea, button {
     .techpilot-topbar__message:not(:first-child) {
         display: none;
     }
-    .techpilot-topbar__message {
-        padding: 0;
-    }
-    .techpilot-topbar__message::after {
+    .techpilot-topbar__message::before {
         display: none;
     }
 }
