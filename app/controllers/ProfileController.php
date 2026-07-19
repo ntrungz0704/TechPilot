@@ -3,18 +3,24 @@ require_once ROOT_PATH . '/app/core/helpers.php';
 require_once ROOT_PATH . '/app/models/Order.php';
 require_once ROOT_PATH . '/app/models/Notification.php';
 require_once ROOT_PATH . '/app/models/ReturnRequest.php';
+require_once ROOT_PATH . '/app/models/User.php';
+require_once ROOT_PATH . '/app/models/Wishlist.php';
 
 class ProfileController extends Controller
 {
     private Order $orderModel;
     private Notification $notifModel;
     private ReturnRequest $returnModel;
+    private User $userModel;
+    private Wishlist $wishlistModel;
 
     public function __construct()
     {
         $this->orderModel = new Order();
         $this->notifModel = new Notification();
         $this->returnModel = new ReturnRequest();
+        $this->userModel = new User();
+        $this->wishlistModel = new Wishlist();
     }
 
     private function requireLogin(): array
@@ -157,5 +163,120 @@ class ProfileController extends Controller
             flash('error', 'Đã xảy ra lỗi khi tạo yêu cầu đổi trả.');
             $this->redirect('profile/return?order_id=' . $orderId);
         }
+    }
+
+    /** Xem và cập nhật hồ sơ cá nhân: /profile hoặc /profile/index */
+    public function index(): void
+    {
+        $user = $this->requireLogin();
+        
+        if ($this->isPost()) {
+            if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+                flash('error', 'Phiên làm việc hết hạn. Thử lại.');
+                $this->redirect('profile');
+                return;
+            }
+
+            $fullName = trim((string)($_POST['full_name'] ?? ''));
+            $phone = trim((string)($_POST['phone'] ?? ''));
+
+            if ($fullName === '' || $phone === '') {
+                flash('error', 'Vui lòng điền đầy đủ Họ tên và Số điện thoại.');
+                $this->redirect('profile');
+                return;
+            }
+
+            $ok = $this->userModel->updateProfile((int)$user['id'], $fullName, $phone);
+            if ($ok) {
+                // Cập nhật lại thông tin user trong Session
+                $updatedUser = $this->userModel->getById((int)$user['id']);
+                if ($updatedUser) {
+                    unset($updatedUser['password']);
+                    $_SESSION['user'] = $updatedUser;
+                }
+                flash('success', 'Cập nhật thông tin hồ sơ thành công!');
+            } else {
+                flash('error', 'Đã xảy ra lỗi khi cập nhật hồ sơ.');
+            }
+            $this->redirect('profile');
+            return;
+        }
+
+        // Lấy thông tin user mới nhất từ DB
+        $userData = $this->userModel->getById((int)$user['id']);
+
+        $this->render('profile/index', [
+            'pageTitle' => 'Hồ sơ cá nhân',
+            'user' => $userData,
+            'flashes' => pullFlashes()
+        ]);
+    }
+
+    /** Đổi mật khẩu tài khoản: /profile/change_password */
+    public function change_password(): void
+    {
+        $user = $this->requireLogin();
+        
+        if (!$this->isPost()) {
+            $this->redirect('profile');
+            return;
+        }
+
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn. Thử lại.');
+            $this->redirect('profile');
+            return;
+        }
+
+        $oldPassword = (string)($_POST['old_password'] ?? '');
+        $newPassword = (string)($_POST['new_password'] ?? '');
+        $confirmPassword = (string)($_POST['confirm_password'] ?? '');
+
+        if ($oldPassword === '' || $newPassword === '' || $confirmPassword === '') {
+            flash('error', 'Vui lòng nhập đầy đủ thông tin mật khẩu.');
+            $this->redirect('profile');
+            return;
+        }
+
+        if ($newPassword !== $confirmPassword) {
+            flash('error', 'Mật khẩu mới và mật khẩu xác nhận không khớp.');
+            $this->redirect('profile');
+            return;
+        }
+
+        if (strlen($newPassword) < 6) {
+            flash('error', 'Mật khẩu mới phải có tối thiểu 6 ký tự.');
+            $this->redirect('profile');
+            return;
+        }
+
+        // Kiểm tra mật khẩu cũ
+        $dbUser = $this->userModel->getById((int)$user['id']);
+        if (!$dbUser || !password_verify($oldPassword, $dbUser['password'])) {
+            flash('error', 'Mật khẩu cũ không chính xác.');
+            $this->redirect('profile');
+            return;
+        }
+
+        $ok = $this->userModel->updatePassword((int)$user['id'], $newPassword);
+        if ($ok) {
+            flash('success', 'Đổi mật khẩu thành công!');
+        } else {
+            flash('error', 'Đã xảy ra lỗi khi đổi mật khẩu.');
+        }
+        $this->redirect('profile');
+    }
+
+    /** Danh sách sản phẩm yêu thích (Wishlist): /profile/wishlist */
+    public function wishlist(): void
+    {
+        $user = $this->requireLogin();
+        $items = $this->wishlistModel->getItems((int)$user['id']);
+
+        $this->render('profile/wishlist', [
+            'pageTitle' => 'Sản phẩm yêu thích',
+            'items' => $items,
+            'flashes' => pullFlashes()
+        ]);
     }
 }
