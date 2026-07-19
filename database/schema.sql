@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- TechPilot Database Schema (Teacher-approved ERD 15 Tables)
 -- Fresh-install schema for MySQL 8 / MariaDB 10.6+
 -- ============================================================================
@@ -399,3 +399,36 @@ INSERT INTO users (full_name, email, phone, password, role, status) VALUES
 -- 10. Náº¡p má»™t chiáº¿n dá»‹ch Flash Sale
 INSERT INTO flash_sales (id, title, slug, start_time, end_time, status) VALUES
 (1, 'Flash Sale CÃ´ng Nghá»‡', 'flash-sale-cong-nghe', NOW() - INTERVAL 1 HOUR, NOW() + INTERVAL 2 HOUR, 'active');
+
+-- 11. Báº£ng thÃ´ng bÃ¡o (notifications)
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    is_read TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 12. YÃªu cáº§u Ä‘á»•i tráº£ (return_requests)
+CREATE TABLE IF NOT EXISTS return_requests (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_code VARCHAR(50) NOT NULL UNIQUE,
+    order_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    description TEXT,
+    status ENUM('requested', 'approved', 'rejected', 'completed') DEFAULT 'requested',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 13. Chi tiáº¿t yÃªu cáº§u Ä‘á»•i tráº£ (return_items)
+CREATE TABLE IF NOT EXISTS return_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_request_id INT UNSIGNED NOT NULL,
+    order_item_id INT UNSIGNED NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    resolution ENUM('refund', 'replace', 'repair') DEFAULT 'refund',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
