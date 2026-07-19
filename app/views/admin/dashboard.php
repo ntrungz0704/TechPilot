@@ -280,7 +280,7 @@
                     <div class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: #FFFFFF; transition: var(--transition);">
                         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
                             <!-- Product Mini Image -->
-                            <img src="<?= url('assets/images/' . e($prod['image'])) ?>" alt="<?= e($prod['name']) ?>" style="width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: #FFFFFF; flex-shrink: 0;" onerror="this.src='https://placehold.co/100x100?text=SP'">
+                            <img src="<?= productImageUrl($prod['image'] ?? '') ?>" alt="<?= e($prod['name']) ?>" style="width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: #FFFFFF; flex-shrink: 0;" onerror="this.src='https://placehold.co/100x100?text=SP'">
                             <div style="min-width: 0;">
                                 <span class="product-title-cell" style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="<?= e($prod['name']) ?>"><?= e($prod['name']) ?></span>
                                 <small style="color: var(--text-secondary); font-size: 11px; font-weight: 500; display: block;">Giá: <?= formatPrice($prod['price']) ?></small>
