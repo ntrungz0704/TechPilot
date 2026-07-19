@@ -1,5 +1,3 @@
-<?php include ROOT_PATH . '/app/views/layouts/header.php'; ?>
-
 <!-- CSS riêng cho trang Build PC nhằm đảm bảo giao diện lung linh, premium -->
 <style>
     .pc-builder-container {
@@ -415,6 +413,16 @@
         font-size: 14px;
         font-style: italic;
     }
+    .pc-builder-compatibility-badge {
+        font-size: 11px;
+        background-color: #D1FAE5;
+        color: #065F46;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-weight: 700;
+        margin-top: 5px;
+        display: inline-block;
+    }
 </style>
 
 <div class="pc-builder-container">
@@ -491,6 +499,11 @@
             <button type="button" class="pc-modal-close" onclick="closeSelectModal()">&times;</button>
         </div>
         <div class="pc-modal-body">
+            <!-- Alert tương thích -->
+            <div id="compatibilityAlert" style="display:none; padding: 10px 14px; background-color: #EFF6FF; border-left: 4px solid #3B82F6; color: #1E3A8A; font-size: 12.5px; border-radius: 4px; font-weight: 600; margin-bottom: 5px;">
+                <i class="fa-solid fa-circle-info"></i> Tự động hiển thị linh kiện tương thích với thiết bị của bạn.
+            </div>
+            
             <!-- Search bar -->
             <div class="pc-search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -526,6 +539,25 @@
         activePartKey = partKey;
         document.getElementById('pcModalTitle').innerText = 'Chọn ' + partName;
         document.getElementById('pcModalSearchInput').value = '';
+        
+        // Hiện thông báo tự động tương thích đối với Mainboard/CPU/RAM
+        const alertBox = document.getElementById('compatibilityAlert');
+        if (partKey === 'mainboard' && pcConfig.cpu) {
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các Mainboard tương thích với Socket <strong>${pcConfig.cpu.name}</strong>.`;
+        } else if (partKey === 'cpu' && pcConfig.mainboard) {
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các CPU tương thích với Socket của <strong>${pcConfig.mainboard.name}</strong>.`;
+        } else if (partKey === 'ram' && pcConfig.mainboard) {
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các RAM khớp chuẩn hỗ trợ (DDR4/DDR5) của <strong>${pcConfig.mainboard.name}</strong>.`;
+        } else if (partKey === 'mainboard' && pcConfig.ram) {
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị Mainboard hỗ trợ chuẩn của <strong>${pcConfig.ram.name}</strong>.`;
+        } else {
+            alertBox.style.display = 'none';
+        }
+
         document.getElementById('pcSelectModalBackdrop').style.display = 'flex';
         loadProducts();
     }
@@ -547,23 +579,45 @@
         container.innerHTML = '<div class="pc-modal-loading"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải linh kiện...</div>';
 
         const searchVal = encodeURIComponent(document.getElementById('pcModalSearchInput').value.trim());
-        const url = '<?= url("pc-builder/products") ?>?part=' + activePartKey + '&search=' + searchVal;
+        
+        // Lấy ID linh kiện đã chọn gửi lên cho bộ lọc tương thích
+        const cpuId = pcConfig.cpu ? pcConfig.cpu.id : 0;
+        const mainboardId = pcConfig.mainboard ? pcConfig.mainboard.id : 0;
+        const ramId = pcConfig.ram ? pcConfig.ram.id : 0;
+
+        const url = '<?= url("pc-builder/products") ?>?part=' + activePartKey + 
+                    '&search=' + searchVal + 
+                    '&cpu_id=' + cpuId + 
+                    '&mainboard_id=' + mainboardId + 
+                    '&ram_id=' + ramId;
 
         fetch(url)
             .then(res => res.json())
             .then(data => {
                 if (!data || data.length === 0) {
-                    container.innerHTML = '<div class="pc-modal-empty">Không tìm thấy linh kiện nào phù hợp.</div>';
+                    container.innerHTML = '<div class="pc-modal-empty">Không tìm thấy linh kiện tương thích nào phù hợp.</div>';
                     return;
                 }
 
                 let html = '<div class="pc-modal-products-list">';
                 data.forEach(p => {
                     const isOutOfStock = parseInt(p.stock) <= 0;
+                    
+                    // Tạo badge tương thích xanh lục đẹp mắt
+                    let compatBadge = '';
+                    if ((activePartKey === 'mainboard' && cpuId > 0) || 
+                        (activePartKey === 'cpu' && mainboardId > 0) || 
+                        (activePartKey === 'ram' && mainboardId > 0)) {
+                        compatBadge = `<div class="pc-builder-compatibility-badge"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra tương thích</div>`;
+                    }
+
                     html += `
                         <div class="pc-modal-item">
                             <img class="pc-modal-item-img" src="${p.image_url}" alt="${p.name}">
-                            <div class="pc-modal-item-name">${p.name}</div>
+                            <div class="pc-modal-item-name">
+                                <div>${p.name}</div>
+                                ${compatBadge}
+                            </div>
                             <div class="pc-modal-item-price">${p.price_formatted}</div>
                             <div>
                                 ${isOutOfStock 
@@ -693,5 +747,3 @@
         return str.replace(/'/g, "\\'");
     }
 </script>
-
-<?php include ROOT_PATH . '/app/views/layouts/footer.php'; ?>
