@@ -83,6 +83,9 @@
                         <div class="dropdown__menu">
                             <a href="<?= url('profile') ?>"><i class="fa-solid fa-user"></i> Trang cá nhân</a>
                             <a href="<?= url('profile/orders') ?>"><i class="fa-solid fa-box-open"></i> Đơn hàng của tôi</a>
+                            <?php if (($u['role'] ?? '') === 'admin'): ?>
+                                <a href="<?= url('admin') ?>" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield"></i> Trang quản trị</a>
+                            <?php endif; ?>
                             <a href="<?= url('auth/logout') ?>"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
                         </div>
                     </div>
