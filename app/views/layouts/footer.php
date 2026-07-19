@@ -9,9 +9,9 @@
                 <p>Trải nghiệm thực tế sản phẩm công nghệ cao cấp trên toàn quốc</p>
             </div>
             <div class="bottom-feature-item">
-                <i class="fa-solid fa-credit-card"></i>
-                <h5>Thanh toán linh hoạt</h5>
-                <p>Hỗ trợ thẻ tín dụng, chuyển khoản, ví điện tử, Trả góp 0%</p>
+                <i class="fa-solid fa-money-bill-wave"></i>
+                <h5>Thanh toán khi nhận hàng</h5>
+                <p>Hỗ trợ thanh toán COD (tiền mặt) khi nhận hàng trên toàn quốc</p>
             </div>
             <div class="bottom-feature-item">
                 <i class="fa-solid fa-user-shield"></i>
@@ -72,10 +72,9 @@
                     <button type="submit">Đăng ký</button>
                 </form>
                 <div class="payment-icons" style="margin-top: 24px;">
-                    <i class="fa-brands fa-cc-visa" title="Visa"></i>
-                    <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
-                    <i class="fa-brands fa-cc-jcb" title="JCB"></i>
-                    <i class="fa-solid fa-qrcode" title="QR Pay"></i>
+                    <i class="fa-solid fa-money-bill-wave" title="Tiền mặt COD"></i>
+                    <i class="fa-solid fa-truck-fast" title="Giao hàng tận nơi"></i>
+                    <i class="fa-solid fa-shield-check" title="Bảo đảm chất lượng"></i>
                 </div>
             </div>
         </div>
@@ -101,7 +100,7 @@
                     <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>
                 </div>
             </div>
-            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm giỏ</button>
+            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
         </div>
     <?php else: ?>
         <div class="mobile-bottom-nav">

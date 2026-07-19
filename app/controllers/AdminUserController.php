@@ -8,7 +8,7 @@ class AdminUserController extends Controller
         $db = Database::getConnection();
 
         $search = trim($_GET['search'] ?? '');
-        $roleId = trim($_GET['role_id'] ?? '');
+        $roleFilter = trim($_GET['role'] ?? '');
 
         $users = [];
         $limit = 10;
@@ -27,10 +27,10 @@ class AdminUserController extends Controller
                 $params[':search'] = '%' . $search . '%';
             }
 
-            if ($roleId !== '') {
-                $sql .= ' AND role_id = :role_id';
-                $countSql .= ' AND role_id = :role_id';
-                $params[':role_id'] = (int)$roleId;
+            if ($roleFilter !== '') {
+                $sql .= ' AND role = :role';
+                $countSql .= ' AND role = :role';
+                $params[':role'] = $roleFilter;
             }
 
             $countStmt = $db->prepare($countSql);
@@ -45,7 +45,7 @@ class AdminUserController extends Controller
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->execute();
-            
+
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -56,7 +56,7 @@ class AdminUserController extends Controller
             'activeMenu' => 'users',
             'users'      => $users,
             'search'     => $search,
-            'roleId'     => $roleId,
+            'roleFilter' => $roleFilter,
             'page'       => $page,
             'totalPages' => $totalPages,
             'totalUsers' => $totalUsers
@@ -81,7 +81,6 @@ class AdminUserController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Lấy trạng thái hiện tại
             $stmt = $db->prepare('SELECT status FROM users WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $id]);
             $userStatus = $stmt->fetchColumn();
@@ -118,14 +117,18 @@ class AdminUserController extends Controller
             return;
         }
 
-        $newRoleId = (int)($_POST['role_id'] ?? 2);
+        // Nhận role dạng chuỗi (admin/customer), không dùng role_id
+        $newRole = trim($_POST['role'] ?? 'customer');
+        if (!in_array($newRole, ['admin', 'customer'])) {
+            $newRole = 'customer';
+        }
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
         if ($db) {
-            $stmt = $db->prepare('UPDATE users SET role_id = :role_id WHERE id = :id');
-            if ($stmt->execute([':role_id' => $newRoleId, ':id' => $id])) {
+            $stmt = $db->prepare('UPDATE users SET role = :role WHERE id = :id');
+            if ($stmt->execute([':role' => $newRole, ':id' => $id])) {
                 flash('success', 'Đã cập nhật phân quyền tài khoản thành công!');
             } else {
                 flash('error', 'Không thể thay đổi quyền.');

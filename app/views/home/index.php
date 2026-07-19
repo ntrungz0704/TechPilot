@@ -263,11 +263,11 @@ $reviews = $reviews ?? [];
         
         <div class="promo-card promo-card--blue">
             <div>
-                <h4>TRẢ GÓP LÃI SUẤT 0%</h4>
-                <p>Duyệt nhanh 3 phút - Không giữ giấy tờ</p>
+                <h4>MUA NGAY - TRẢ SAU</h4>
+                <p>Nhận hàng, kiểm tra rồi thanh toán (COD)</p>
             </div>
-            <span class="promo-card__number">0%</span>
-            <a href="#" class="btn btn--sm">Đăng ký</a>
+            <span class="promo-card__number"><i class="fa-solid fa-truck-fast"></i></span>
+            <a href="<?= url('home/search') ?>" class="btn btn--sm">Mua ngay</a>
         </div>
         
         <div class="promo-card">
@@ -296,8 +296,8 @@ $reviews = $reviews ?? [];
             <span>Đổi trả dễ dàng<br><small>Trong 7 ngày đầu</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-credit-card"></i>
-            <span>Trả góp lãi suất 0%<br><small>Qua thẻ tín dụng</small></span>
+            <i class="fa-solid fa-money-bill-wave"></i>
+            <span>Thanh toán COD<br><small>Tiền mặt khi nhận hàng</small></span>
         </div>
         <div class="feature-item">
             <i class="fa-solid fa-headset"></i>
@@ -458,10 +458,10 @@ $reviews = $reviews ?? [];
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-2.jpg') ?>');">
             <div class="promo-banner__content">
-                <h3>Trả góp 0% Lãi Suất</h3>
-                <p>Duyệt hồ sơ nhanh chóng qua Home Credit.</p>
+                <h3>BẢO HÀNH CHÍNH HÃNG</h3>
+                <p>Cam kết bảo hành chính hãng 12 tháng cho tất cả sản phẩm.</p>
             </div>
-            <a href="#" class="btn btn--sm">Xem Chi Tiết</a>
+            <a href="<?= url('home/search') ?>" class="btn btn--sm">Xem ngay</a>
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-3.jpg') ?>');">
             <div class="promo-banner__content">
@@ -570,14 +570,14 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
-<!-- ===== BANNER TRẢ GÓP ===== -->
+<!-- ===== BANNER GIAO HÀNG MIỄN PHÍ ===== -->
 <section class="container section desktop-only-section">
     <div class="promo-banner" style="background-image: url('<?= url('assets/images/installment-banner.jpg') ?>');">
         <div class="promo-banner__content">
-            <h3>TRẢ GÓP 0% LÃI SUẤT QUA THẺ TÍN DỤNG</h3>
-            <p>Hỗ trợ hơn 25 ngân hàng liên kết, kỳ hạn linh hoạt 3 - 6 - 9 - 12 tháng không phụ phí.</p>
+            <h3>GIAO HÀNG MIỄN PHÍ TOÀN QUỐC</h3>
+            <p>Giao hàng nhanh — kiểm tra trước, thanh toán sau (COD). Áp dụng cho đơn hàng từ 500.000đ.</p>
         </div>
-        <a href="#" class="btn btn--light">Tìm hiểu thêm <i class="fa-solid fa-circle-info"></i></a>
+        <a href="<?= url('home/search') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 </section>
 
@@ -668,12 +668,12 @@ $reviews = $reviews ?? [];
 <section class="container section">
     <div class="section__head">
         <h2>Tin Tức Công Nghệ</h2>
-        <a href="#" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
+        <a href="<?= url('post') ?>" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="news-grid">
         <?php foreach ($posts as $post): ?>
             <div class="news-card">
-                <a href="#" class="news-card__thumb">
+                <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
                     <img src="<?= url('assets/images/news/' . e($post['image'])) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
                 </a>
                 <div class="news-card__body">

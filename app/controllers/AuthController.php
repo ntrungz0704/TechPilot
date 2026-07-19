@@ -68,7 +68,17 @@ class AuthController extends Controller
             $password = $_POST['password'] ?? '';
             $confirm  = $_POST['confirm_password'] ?? '';
 
-            $old = ['full_name' => $fullName, 'email' => $email, 'phone' => $phone];
+            // Sanitize phone: chỉ giữ số, dấu +, khoảng trắng và gạch nối; reject nếu chứa @ hoặc dài quá 15 ký tự
+            if ($phone !== '') {
+                if (str_contains($phone, '@') || strlen($phone) > 15 || !preg_match('/^[\d\s\+\-\(\)]+$/', $phone)) {
+                    $phone = ''; // xóa giá trị sai, không báo lỗi (field không bắt buộc)
+                } else {
+                    // Chỉ giữ số và dấu + ở đầu
+                    $phone = preg_replace('/[^\d\+]/', '', $phone);
+                }
+            }
+
+            $old = ['full_name' => $fullName, 'email' => $email, 'phone' => ''];
 
             if ($fullName === '' || $email === '' || $password === '' || $confirm === '') {
                 $errors[] = 'Vui lòng điền đầy đủ các trường bắt buộc.';

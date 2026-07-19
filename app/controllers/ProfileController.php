@@ -1,5 +1,6 @@
 <?php
 require_once ROOT_PATH . '/app/core/helpers.php';
+require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/app/models/Order.php';
 require_once ROOT_PATH . '/app/models/Notification.php';
 require_once ROOT_PATH . '/app/models/ReturnRequest.php';
@@ -44,7 +45,7 @@ class ProfileController extends Controller
             'pageTitle' => 'Lịch sử đơn hàng',
             'orders' => $orders,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     /** Chi tiết đơn hàng */
@@ -63,7 +64,7 @@ class ProfileController extends Controller
             'pageTitle' => 'Chi tiết đơn hàng',
             'order' => $order,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     /** Hộp thư thông báo */
@@ -80,7 +81,7 @@ class ProfileController extends Controller
             'pageTitle' => 'Thông báo hệ thống',
             'notifications' => $notifications,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     /** Form đăng ký đổi trả sản phẩm */
@@ -99,7 +100,7 @@ class ProfileController extends Controller
             'pageTitle' => 'Yêu cầu đổi trả sản phẩm',
             'order' => $order,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     /** Nhận yêu cầu đổi trả gửi lên */
@@ -209,7 +210,7 @@ class ProfileController extends Controller
             'pageTitle' => 'Hồ sơ cá nhân',
             'user' => $userData,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     /** Đổi mật khẩu tài khoản: /profile/change_password */
@@ -277,7 +278,7 @@ class ProfileController extends Controller
             'pageTitle' => 'Sản phẩm yêu thích',
             'items' => $items,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     /** Khách hàng tự hủy đơn hàng: POST /profile/cancel_order */
