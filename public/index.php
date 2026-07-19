@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $router = new Router();
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
 $router->post('/product/review', 'ProductController@review');
+$router->post('/profile/cancel_order', 'ProfileController@cancel_order');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');

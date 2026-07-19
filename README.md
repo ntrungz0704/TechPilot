@@ -1,182 +1,68 @@
-# TechPilot – Website bán đồ công nghệ
+# TechPilot - Website Thương mại Điện tử Thiết bị Công nghệ
 
-Ứng dụng thương mại điện tử xây dựng bằng PHP MVC thuần, MySQL/MariaDB, HTML, CSS và JavaScript. Giao diện dùng bộ màu thương hiệu TechPilot, hỗ trợ responsive từ mobile đến desktop.
+TechPilot là website thương mại điện tử chuyên bán các sản phẩm máy tính, laptop Windows, PC lắp ráp, màn hình, linh kiện PC, thiết bị mạng, gaming gear và phụ kiện máy tính chính hãng. Dự án được triển khai bằng ngôn ngữ PHP thuần theo mô hình kiến trúc MVC (Model-View-Controller) kết hợp cơ sở dữ liệu MySQL/MariaDB.
 
-## Chức năng hiện có
+---
 
-- Trang chủ, danh mục, tìm kiếm, lọc và sắp xếp sản phẩm.
-- Trang chi tiết sản phẩm, sản phẩm liên quan và trạng thái tồn kho.
-- Đăng ký, đăng nhập, đăng xuất an toàn.
-- Giỏ hàng phía máy chủ, cập nhật số lượng và xóa sản phẩm.
-- Checkout COD, kiểm tra lại giá/tồn kho và tạo đơn trong transaction.
-- Chuẩn hóa 15 bảng cơ sở dữ liệu chính thức theo ERD của giảng viên, loại bỏ hoàn toàn các thực thể dư thừa như variants, warehouses, notifications, return requests.
-- Hỗ trợ tối ưu hóa Responsive toàn diện cho mọi thiết bị di động, đặc biệt là khung hiển thị di động chuẩn 440×956.
+## 1. Yêu cầu Hệ thống
+*   **PHP:** Phiên bản 8.0 trở lên.
+*   **MySQL / MariaDB:** Phiên bản 10.4 trở lên.
+*   **Web Server:** Apache (có bật mod_rewrite) hoặc PHP Built-in Web Server.
 
-## Cấu trúc chính
+---
 
-```text
-techpilot/
-├── app/
-│   ├── controllers/
-│   ├── models/
-│   ├── services/
-│   ├── views/
-│   └── core/
-├── config/
-├── database/
-│   ├── schema.sql
-│   └── README.md
-└── public/
-    ├── index.php
-    ├── router.php
-    └── assets/
+## 2. Hướng dẫn Cài đặt & Chạy ứng dụng
+
+### Bước 1: Khởi tạo Cơ sở Dữ liệu
+1. Mở MySQL client (phpMyAdmin, DBeaver, Heidisql hoặc dòng lệnh CLI).
+2. Tạo cơ sở dữ liệu mới và import file schema tại:
+   `database/schema.sql`
+   *(Lưu ý: Schema này đã được cập nhật sạch bóng 100% các sản phẩm Mac/iPhone theo đúng phạm vi kinh doanh của cửa hàng).*
+
+### Bước 2: Cấu hình Kết nối CSDL
+Mở file `config/database.php` và cập nhật thông số kết nối MySQL của bạn:
+```php
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'techpilot');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 ```
 
-## Cài đặt
-
-### 1. Khởi tạo database
-
-`database/schema.sql` là bộ cài mới có dữ liệu mẫu và sẽ xóa database `techpilot` cũ trước khi tạo lại. Không chạy trực tiếp trên database production đang có dữ liệu.
-
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-Quyết định thiết kế và chiến lược migrate an toàn được ghi tại `database/README.md`.
-
-### 2. Cấu hình kết nối
-
-Trên máy local, sao chép `config/database.local.example.php` thành
-`config/database.local.php`, sau đó điền tài khoản MySQL. File local này đã được
-Git bỏ qua nên không làm lộ mật khẩu.
-
-Ứng dụng cũng hỗ trợ các biến môi trường sau; biến môi trường có độ ưu tiên cao
-hơn file cấu hình local:
-
-```text
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=techpilot
-DB_USERNAME=root
-DB_PASSWORD=
-DB_CHARSET=utf8mb4
-```
-
-Không commit mật khẩu database vào repository.
-
-### 3. Chạy bằng Laragon
-
-Document root của virtual host phải trỏ thẳng vào thư mục `techpilot/public`.
-Không duy trì một bản sao riêng trong `D:\laragon\www`, vì bản sao sẽ nhanh chóng
-lệch với mã nguồn đang chỉnh sửa.
-
-Sau khi Laragon reload Apache, mở domain virtual host của dự án. File
-`public/.htaccess` sẽ chuyển các URL như `/home/search` và `/cart` vào router.
-
-### 4. Chạy bằng PHP built-in server
-
-Từ thư mục `public`:
-
+### Bước 3: Chạy ứng dụng cục bộ
+Sử dụng PHP Built-in Web Server từ thư mục gốc của dự án:
 ```bash
 php -S 127.0.0.1:8000 router.php
 ```
-
-Sau đó mở `http://127.0.0.1:8000`.
-
-Với Apache/Nginx, đặt document root vào thư mục `public` và bật rewrite URL.
-
-## Các route chính
-
-| Chức năng | URL |
-|---|---|
-| Trang chủ | `/` |
-| Tìm kiếm và lọc | `/home/search` |
-| Chi tiết sản phẩm | `/product/detail/{slug}` |
-| Giỏ hàng | `/cart` |
-| Thanh toán | `/checkout` |
-| Đăng nhập | `/auth/login` |
-| Đăng ký | `/auth/register` |
-
-## Nguyên tắc an toàn
-
-- PDO prepared statements cho truy vấn có dữ liệu người dùng.
-- Mật khẩu dùng `password_hash()` và `password_verify()`.
-- Mọi form POST dùng CSRF token.
-- Giá, tồn kho và tổng đơn được tính lại ở server khi checkout.
-- Tạo đơn, trừ tồn và ghi lịch sử diễn ra trong một transaction có khóa bản ghi.
-- Khi chưa kết nối được database, catalog chỉ hiển thị dữ liệu xem trước; hệ thống không tạo giỏ hàng hay đơn hàng giả.
-
-## Kiểm tra nhanh
-
-```bash
-php -l app/models/Product.php
-php -l app/models/Order.php
-```
-
-Trước khi bàn giao môi trường thật, cần kiểm thử lại toàn bộ luồng đăng ký → đăng nhập → thêm giỏ → checkout trên database đã import.
+Mở trình duyệt và truy cập: [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 ---
 
-## 👨‍💻 Hướng dẫn sử dụng Git & GitHub (Dành cho thành viên mới bắt đầu)
+## 3. Tài khoản Thử nghiệm (Development Credentials)
 
-Dưới đây là hướng dẫn từng bước cực kỳ đơn giản để 4 thành viên trong nhóm (**trung**, **dinh**, **kim**, **hieu**) làm việc chung mà không lo bị ghi đè, mất code hoặc lỗi Git.
+Dự án cung cấp sẵn hai tài khoản thử nghiệm đã được seed sẵn trong CSDL:
 
-### 1. Lần đầu tiên lấy code về máy (Clone)
-Mở Terminal/PowerShell tại thư mục bạn muốn lưu code (ví dụ `D:\`) và chạy:
-```bash
-git clone https://github.com/ntrungz0704/TechPilot.git
-cd TechPilot
-```
+### 💼 Tài khoản Quản trị (Admin)
+*   **Email:** `ntrungz0704@gmail.com` (hoặc `admin@techpilot.vn`)
+*   **Mật khẩu:** `admin123`
+*   **Vai trò:** Quản trị viên (Xem thống kê doanh thu, quản lý sản phẩm, đơn hàng và khách hàng).
 
-### 2. Luồng làm việc hàng ngày của mỗi thành viên (Quy trình 5 bước)
-
-#### Bước 2.1: Chuyển sang nhánh cá nhân của bạn
-Trước khi gõ bất kỳ dòng code nào, hãy chắc chắn bạn đang đứng ở nhánh của chính mình để không đè vào code người khác:
-* **Bạn Trung**: `git checkout trung`
-* **Bạn Dinh**: `git checkout dinh`
-* **Bạn Kim**: `git checkout kim`
-* **Bạn Hieu**: `git checkout hieu`
-
-*(Nếu muốn kiểm tra xem mình đang đứng ở nhánh nào, gõ lệnh: `git branch`)*
-
-#### Bước 2.2: Cập nhật code mới nhất từ nhóm về máy
-Mỗi ngày trước khi code, hãy lấy những phần code mới nhất mà các bạn khác đã gộp vào nhánh chung `develop` về máy mình:
-```bash
-git pull origin develop
-```
-
-#### Bước 2.3: Viết code và kiểm tra các file đã sửa
-Sau khi bạn code xong hoặc sửa lỗi xong, gõ lệnh này để xem danh sách các file bạn đã chỉnh sửa:
-```bash
-git status
-```
-
-#### Bước 2.4: Đóng gói code trên máy của bạn (Commit)
-Để lưu lại những gì bạn vừa làm vào lịch sử máy của bạn, chạy 2 lệnh sau:
-```bash
-# Đưa các file đã sửa vào trạng thái chờ đóng gói (Lưu ý dấu chấm .)
-git add .
-
-# Đóng gói và viết ghi chú ngắn gọn bạn đã làm gì
-git commit -m "Ghi chu ngan gon viec ban da lam (vi du: sua giao dien header)"
-```
-
-#### Bước 2.5: Đẩy code lên GitHub (Push)
-Để gửi gói code từ máy của bạn lên trên GitHub, hãy chạy lệnh tương ứng với tên của bạn:
-* **Bạn Trung**: `git push origin trung`
-* **Bạn Dinh**: `git push origin dinh`
-* **Bạn Kim**: `git push origin kim`
-* **Bạn Hieu**: `git push origin hieu`
+### 🛒 Tài khoản Khách hàng (Customer)
+*   **Email:** `customer@gmail.com`
+*   **Mật khẩu:** `admin123`
+*   **Vai trò:** Khách mua hàng.
 
 ---
 
-### 3. Cách gộp code của bạn vào nhánh chung (Tạo Pull Request - PR)
-Khi bạn đã hoàn thành một tính năng ở nhánh cá nhân và muốn gộp vào nhánh chung `develop`:
-1. Mở trang web GitHub của dự án: [GitHub TechPilot](https://github.com/ntrungz0704/TechPilot).
-2. Bạn sẽ thấy một nút màu vàng hiện lên có chữ **"Compare & pull request"**. Hãy nhấp vào đó.
-3. Chọn gộp code:
-   * Ô bên trái (base): Chọn `develop` (nhánh chung của nhóm).
-   * Ô bên phải (compare): Chọn nhánh của bạn (ví dụ: `dinh`, `kim`...).
-4. Nhập tiêu đề mô tả bạn đã làm gì rồi nhấn **"Create pull request"**.
-5. Nhờ trưởng nhóm (Trung) kiểm tra code và bấm nút **"Merge pull request"** để gộp code của bạn vào nhánh chung `develop` an toàn!
-
+## 4. Cấu trúc Thư mục chính
+```text
+TechPilot/
+├── app/
+│   ├── controllers/      # Bộ điều hướng (Controllers)
+│   ├── core/             # Nhân hệ thống (Router, Controller, Helpers)
+│   ├── models/           # Lớp dữ liệu (Models)
+│   └── views/            # Giao diện hiển thị (Views)
+├── config/               # Tệp cấu hình ứng dụng
+├── database/             # File schema.sql và dữ liệu mẫu
+├── public/               # Tài nguyên tĩnh (CSS, JS, Images) và index.php
+└── router.php            # File định tuyến cho server local
+```

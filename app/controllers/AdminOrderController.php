@@ -142,6 +142,21 @@ class AdminOrderController extends Controller
                 return;
             }
 
+            // Định nghĩa các chuyển đổi trạng thái hợp lệ
+            $validTransitions = [
+                'pending'   => ['confirmed', 'cancelled'],
+                'confirmed' => ['shipping', 'cancelled'],
+                'shipping'  => ['completed', 'cancelled'],
+                'completed' => [],
+                'cancelled' => []
+            ];
+
+            if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
+                flash('error', 'Chuyển đổi trạng thái không hợp lệ (Không thể chuyển từ ' . $currentStatus . ' sang ' . $newStatus . ').');
+                $this->redirect('admin/orders/detail/' . $id);
+                return;
+            }
+
             $db->beginTransaction();
 
             try {

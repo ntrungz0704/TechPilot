@@ -4742,4 +4742,31 @@ html, body {
         font-size: 14px !important;
         line-height: 1.6 !important;
     }
+
+    /* Profile & Wishlist Tab Strip on Mobile */
+    main.container.section[id="main-content"] > div[style*="display: flex"] {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+    main.container.section[id="main-content"] aside[style*="width: 250px"] {
+        width: 100% !important;
+        box-shadow: none !important;
+        padding: 12px !important;
+    }
+    main.container.section[id="main-content"] aside[style*="width: 250px"] h3 {
+        display: none !important;
+    }
+    main.container.section[id="main-content"] aside[style*="width: 250px"] ul {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        gap: 16px !important;
+        padding-bottom: 8px !important;
+    }
+    main.container.section[id="main-content"] aside[style*="width: 250px"] ul::-webkit-scrollbar {
+        display: none !important;
+    }
+    main.container.section[id="main-content"] aside[style*="width: 250px"] ul li {
+        flex-shrink: 0 !important;
+    }
 }

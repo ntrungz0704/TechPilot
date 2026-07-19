@@ -131,7 +131,20 @@ if (!function_exists('csrf_token')) {
 if (!function_exists('csrf_field')) {
     function csrf_field(): string
     {
-        return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
+        return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">' . 
+               '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('verifyCsrf')) {
+    function verifyCsrf(?string $token = null): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $token = $token ?? $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
+        $saved = $_SESSION['csrf_token'] ?? '';
+        return !empty($token) && hash_equals($saved, $token);
     }
 }
 
