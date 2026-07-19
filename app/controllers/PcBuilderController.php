@@ -3,6 +3,7 @@
  * Controller Xây dựng cấu hình PC ở Storefront
  */
 require_once ROOT_PATH . '/app/core/helpers.php';
+require_once ROOT_PATH . '/app/services/PcCompatibilityService.php';
 
 class PcBuilderController extends Controller
 {
@@ -11,42 +12,42 @@ class PcBuilderController extends Controller
         'cpu' => [
             'name' => 'Bộ vi xử lý (CPU)',
             'icon' => 'fa-solid fa-microchip',
-            'query' => "category_id = 4 AND (name LIKE '%CPU%' OR name LIKE '%Intel Core%' OR name LIKE '%Ryzen%')"
+            'query' => "category_id = 4 AND (name LIKE '%CPU%' OR name LIKE '%Intel Core%' OR name LIKE '%Ryzen%' OR name LIKE '%Ultra 5%' OR name LIKE '%Ultra 7%' OR name LIKE '%Ultra 9%')"
         ],
         'mainboard' => [
             'name' => 'Bo mạch chủ (Mainboard)',
             'icon' => 'fa-solid fa-clone', 
-            'query' => "category_id = 4 AND (name LIKE '%Mainboard%' OR name LIKE '%Main board%' OR name LIKE '%ASUS TUF%')"
+            'query' => "category_id = 4 AND (name LIKE '%Mainboard%' OR name LIKE '%Main board%' OR name LIKE '%ASUS TUF%' OR name LIKE '%ASUS Prime%' OR name LIKE '%MSI PRO%' OR name LIKE '%AORUS%')"
         ],
         'ram' => [
             'name' => 'Bộ nhớ trong (RAM)',
             'icon' => 'fa-solid fa-server',
-            'query' => "category_id = 4 AND (name LIKE '%RAM%' OR name LIKE '%Vengeance%' OR name LIKE '%Fury%')"
+            'query' => "category_id = 4 AND (name LIKE '%RAM%' OR name LIKE '%Vengeance%' OR name LIKE '%Fury%' OR name LIKE '%Ripjaws%' OR name LIKE '%Trident%')"
         ],
         'vga' => [
             'name' => 'Card màn hình (VGA)',
             'icon' => 'fa-solid fa-sd-card',
-            'query' => "(category_id = 4 OR category_id = 7) AND (name LIKE '%RTX%' OR name LIKE '%GTX%' OR name LIKE '%Radeon%' OR name LIKE '%VGA%')"
+            'query' => "(category_id = 4 OR category_id = 7) AND (name LIKE '%RTX%' OR name LIKE '%GTX%' OR name LIKE '%Radeon%' OR name LIKE '%VGA%' OR name LIKE '%Card%')"
         ],
         'storage' => [
             'name' => 'Ổ cứng (SSD/HDD)',
             'icon' => 'fa-solid fa-database',
-            'query' => "category_id = 4 AND (name LIKE '%SSD%' OR name LIKE '%Ổ cứng%' OR name LIKE '%NVMe%' OR name LIKE '%Kingston NV2%')"
+            'query' => "category_id = 4 AND (name LIKE '%SSD%' OR name LIKE '%Ổ cứng%' OR name LIKE '%NVMe%' OR name LIKE '%Kingston NV2%' OR name LIKE '%WD Blue%' OR name LIKE '%HDD%')"
         ],
         'psu' => [
             'name' => 'Nguồn máy tính (PSU)',
             'icon' => 'fa-solid fa-plug',
-            'query' => "category_id = 4 AND (name LIKE '%Nguồn%' OR name LIKE '%PSU%' OR name LIKE '%Corsair CV650%')"
+            'query' => "category_id = 4 AND (name LIKE '%Nguồn%' OR name LIKE '%PSU%' OR name LIKE '%Corsair CV%' OR name LIKE '%Deepcool PF%' OR name LIKE '%MSI MAG%' OR name LIKE '%Focus GX%')"
         ],
         'case' => [
             'name' => 'Vỏ máy tính (Case)',
             'icon' => 'fa-solid fa-box',
-            'query' => "category_id = 4 AND (name LIKE '%Case%' OR name LIKE '%Vỏ%')"
+            'query' => "category_id = 4 AND (name LIKE '%Case%' OR name LIKE '%Vỏ%' OR name LIKE '%Airflow%' OR name LIKE '%NZXT H%')"
         ],
         'cooler' => [
             'name' => 'Tản nhiệt PC',
             'icon' => 'fa-solid fa-fan',
-            'query' => "category_id = 4 AND (name LIKE '%Tản%' OR name LIKE '%Cooler%')"
+            'query' => "category_id = 4 AND (name LIKE '%Tản%' OR name LIKE '%Cooler%' OR name LIKE '%NH-D15%' OR name LIKE '%Kraken%' OR name LIKE '%Coreliquid%')"
         ],
         'monitor' => [
             'name' => 'Màn hình',
@@ -68,22 +69,14 @@ class PcBuilderController extends Controller
         ]);
     }
 
-    /** Helper lấy cấu hình chi tiết sản phẩm */
-    private function getProductSpecs(PDO $db, int $id): array
+    /** Helper lấy thông tin đầy đủ của một sản phẩm */
+    private function getProductById(PDO $db, int $id): ?array
     {
-        $stmt = $db->prepare('SELECT specs FROM products WHERE id = :id LIMIT 1');
+        if ($id <= 0) return null;
+        $stmt = $db->prepare('SELECT id, name, price, image, specs FROM products WHERE id = :id AND status = \'active\' LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ? (json_decode($row['specs'] ?? '', true) ?: []) : [];
-    }
-
-    /** Helper lấy tên sản phẩm */
-    private function getProductName(PDO $db, int $id): string
-    {
-        $stmt = $db->prepare('SELECT name FROM products WHERE id = :id LIMIT 1');
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ? (string)$row['name'] : '';
+        return $row ?: null;
     }
 
     /** API: Lấy danh sách linh kiện phù hợp và kiểm tra tương thích */
@@ -93,9 +86,15 @@ class PcBuilderController extends Controller
         $partKey = trim($_GET['part'] ?? '');
         $search = trim($_GET['search'] ?? '');
         
+        // Nhận toàn bộ cấu hình hiện tại đang chọn gửi lên
         $cpuId = (int)($_GET['cpu_id'] ?? 0);
         $mainboardId = (int)($_GET['mainboard_id'] ?? 0);
         $ramId = (int)($_GET['ram_id'] ?? 0);
+        $gpuId = (int)($_GET['gpu_id'] ?? 0);
+        $coolerId = (int)($_GET['cooler_id'] ?? 0);
+        $caseId = (int)($_GET['case_id'] ?? 0);
+        $psuId = (int)($_GET['psu_id'] ?? 0);
+        $storageId = (int)($_GET['storage_id'] ?? 0);
 
         if (!array_key_exists($partKey, $this->parts)) {
             echo json_encode([]);
@@ -109,6 +108,19 @@ class PcBuilderController extends Controller
             exit;
         }
 
+        // Tải các đối tượng sản phẩm hiện tại để so khớp tương thích
+        $build = [
+            'cpu' => $this->getProductById($db, $cpuId),
+            'mainboard' => $this->getProductById($db, $mainboardId),
+            'ram' => $this->getProductById($db, $ramId),
+            'gpu' => $this->getProductById($db, $gpuId),
+            'cooler' => $this->getProductById($db, $coolerId),
+            'case' => $this->getProductById($db, $caseId),
+            'psu' => $this->getProductById($db, $psuId),
+            'storage' => $this->getProductById($db, $storageId),
+        ];
+
+        // Lấy danh sách sản phẩm thuộc danh mục đang chọn
         $partInfo = $this->parts[$partKey];
         $sql = "SELECT id, name, price, image, stock, specs FROM products WHERE {$partInfo['query']} AND status = 'active'";
         
@@ -123,102 +135,86 @@ class PcBuilderController extends Controller
         $stmt->execute($params);
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Tiến hành lọc tương thích CPU, Mainboard, RAM ở tầng PHP (an toàn & chính xác)
-        $filteredProducts = [];
+        // Chạy qua kiểm tra tính tương thích
+        $results = [];
         foreach ($products as $p) {
-            $specs = json_decode($p['specs'] ?? '', true) ?: [];
-
-            // 1. Lọc tương thích Socket CPU <-> Mainboard
-            if ($partKey === 'mainboard' && $cpuId > 0) {
-                $cpuSpecs = $this->getProductSpecs($db, $cpuId);
-                $cpuSocket = $cpuSpecs['Socket'] ?? '';
-                $mainboardSocket = $specs['Socket'] ?? '';
-                if ($cpuSocket !== '' && $mainboardSocket !== '' && strcasecmp($cpuSocket, $mainboardSocket) !== 0) {
-                    continue; // Socket không khớp -> loại bỏ
-                }
-            }
-            if ($partKey === 'cpu' && $mainboardId > 0) {
-                $mbSpecs = $this->getProductSpecs($db, $mainboardId);
-                $mbSocket = $mbSpecs['Socket'] ?? '';
-                $cpuSocket = $specs['Socket'] ?? '';
-                if ($mbSocket !== '' && $cpuSocket !== '' && strcasecmp($mbSocket, $cpuSocket) !== 0) {
-                    continue; // Socket không khớp -> loại bỏ
-                }
-            }
-
-            // 2. Lọc tương thích RAM <-> Mainboard (DDR4 / DDR5)
-            if ($partKey === 'ram' && $mainboardId > 0) {
-                $mbSpecs = $this->getProductSpecs($db, $mainboardId);
-                
-                $mbRamSupport = '';
-                foreach ($mbSpecs as $k => $v) {
-                    if (strpos(strtoupper($k), 'RAM') !== false) {
-                        $mbRamSupport = $v;
-                        break;
-                    }
-                }
-                
-                $ramType = '';
-                foreach ($specs as $k => $v) {
-                    if (strpos(strtoupper($k), 'RAM') !== false) {
-                        $ramType = $v;
-                        break;
-                    }
-                }
-                if ($ramType === '' && strpos(strtoupper($p['name']), 'DDR5') !== false) $ramType = 'DDR5';
-                if ($ramType === '' && strpos(strtoupper($p['name']), 'DDR4') !== false) $ramType = 'DDR4';
-
-                if ($mbRamSupport !== '' && $ramType !== '') {
-                    $mbIsDdr5 = (strpos(strtoupper($mbRamSupport), 'DDR5') !== false);
-                    $mbIsDdr4 = (strpos(strtoupper($mbRamSupport), 'DDR4') !== false);
-                    $ramIsDdr5 = (strpos(strtoupper($ramType), 'DDR5') !== false);
-                    $ramIsDdr4 = (strpos(strtoupper($ramType), 'DDR4') !== false);
-
-                    if (($mbIsDdr5 && !$ramIsDdr5) || ($mbIsDdr4 && !$ramIsDdr4)) {
-                        continue; // Chuẩn RAM không khớp -> loại bỏ
-                    }
-                }
-            }
-            if ($partKey === 'mainboard' && $ramId > 0) {
-                $ramSpecs = $this->getProductSpecs($db, $ramId);
-                $ramType = '';
-                foreach ($ramSpecs as $k => $v) {
-                    if (strpos(strtoupper($k), 'RAM') !== false) {
-                        $ramType = $v;
-                        break;
-                    }
-                }
-                $ramName = $this->getProductName($db, $ramId);
-                if ($ramType === '' && strpos(strtoupper($ramName), 'DDR5') !== false) $ramType = 'DDR5';
-                if ($ramType === '' && strpos(strtoupper($ramName), 'DDR4') !== false) $ramType = 'DDR4';
-
-                $mbRamSupport = '';
-                foreach ($specs as $k => $v) {
-                    if (strpos(strtoupper($k), 'RAM') !== false) {
-                        $mbRamSupport = $v;
-                        break;
-                    }
-                }
-
-                if ($mbRamSupport !== '' && $ramType !== '') {
-                    $mbIsDdr5 = (strpos(strtoupper($mbRamSupport), 'DDR5') !== false);
-                    $mbIsDdr4 = (strpos(strtoupper($mbRamSupport), 'DDR4') !== false);
-                    $ramIsDdr5 = (strpos(strtoupper($ramType), 'DDR5') !== false);
-                    $ramIsDdr4 = (strpos(strtoupper($ramType), 'DDR4') !== false);
-
-                    if (($ramIsDdr5 && !$mbIsDdr5) || ($ramIsDdr4 && !$mbIsDdr4)) {
-                        continue; // Chuẩn RAM không khớp -> loại bỏ
-                    }
-                }
-            }
-
+            $compat = PcCompatibilityService::checkCompatibility($build, $p, $partKey);
+            
             $p['image_url'] = productImageUrl($p['image']);
             $p['price_formatted'] = formatPrice($p['price']);
-            unset($p['specs']); // Bảo mật & tối ưu payload JSON
-            $filteredProducts[] = $p;
+            $p['compatible'] = $compat['compatible'];
+            $p['blockers'] = $compat['blockers'];
+            $p['warnings'] = $compat['warnings'];
+            
+            unset($p['specs']); // Ẩn specs raw để tối ưu JSON
+            $results[] = $p;
         }
 
-        echo json_encode($filteredProducts);
+        echo json_encode($results);
+        exit;
+    }
+
+    /** API: Lấy phân tích cấu hình hiện tại & tính toán PSU */
+    public function getAnalysis(): void
+    {
+        header('Content-Type: application/json');
+        
+        $cpuId = (int)($_GET['cpu_id'] ?? 0);
+        $mainboardId = (int)($_GET['mainboard_id'] ?? 0);
+        $ramId = (int)($_GET['ram_id'] ?? 0);
+        $gpuId = (int)($_GET['gpu_id'] ?? 0);
+        $coolerId = (int)($_GET['cooler_id'] ?? 0);
+        $caseId = (int)($_GET['case_id'] ?? 0);
+        $psuId = (int)($_GET['psu_id'] ?? 0);
+        $storageId = (int)($_GET['storage_id'] ?? 0);
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối database']);
+            exit;
+        }
+
+        $build = [
+            'cpu' => $this->getProductById($db, $cpuId),
+            'mainboard' => $this->getProductById($db, $mainboardId),
+            'ram' => $this->getProductById($db, $ramId),
+            'gpu' => $this->getProductById($db, $gpuId),
+            'cooler' => $this->getProductById($db, $coolerId),
+            'case' => $this->getProductById($db, $caseId),
+            'psu' => $this->getProductById($db, $psuId),
+            'storage' => $this->getProductById($db, $storageId),
+        ];
+
+        // 1. Tính công suất nguồn
+        $power = PcCompatibilityService::calculatePowerRequirements($build);
+
+        // 2. Chạy kiểm tra chéo toàn bộ build xem có blockers/warnings gì không
+        $globalBlockers = [];
+        $globalWarnings = [];
+
+        foreach ($build as $key => $prod) {
+            if ($prod) {
+                $compat = PcCompatibilityService::checkCompatibility($build, $prod, $key);
+                if (!empty($compat['blockers'])) {
+                    $globalBlockers = array_merge($globalBlockers, $compat['blockers']);
+                }
+                if (!empty($compat['warnings'])) {
+                    $globalWarnings = array_merge($globalWarnings, $compat['warnings']);
+                }
+            }
+        }
+
+        // Loại bỏ trùng lặp lỗi
+        $globalBlockers = array_unique($globalBlockers);
+        $globalWarnings = array_unique($globalWarnings);
+
+        echo json_encode([
+            'success' => true,
+            'power' => $power,
+            'blockers' => array_values($globalBlockers),
+            'warnings' => array_values($globalWarnings),
+        ]);
         exit;
     }
 

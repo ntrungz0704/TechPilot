@@ -25,7 +25,7 @@
     }
     .pc-builder-layout {
         display: grid;
-        grid-template-columns: 1fr 340px;
+        grid-template-columns: 1fr 360px;
         gap: 30px;
         align-items: start;
     }
@@ -211,7 +211,7 @@
         display: flex;
         justify-content: space-between;
         margin-bottom: 12px;
-        font-size: 14.5px;
+        font-size: 14px;
         color: var(--text-secondary);
     }
     .pc-builder-total-price {
@@ -238,10 +238,16 @@
         transition: all 0.2s;
         box-shadow: 0 4px 12px rgba(11, 99, 229, 0.2);
     }
-    .btn-add-config-to-cart:hover {
+    .btn-add-config-to-cart:hover:not(:disabled) {
         opacity: 0.95;
         transform: translateY(-1px);
         box-shadow: 0 6px 16px rgba(11, 99, 229, 0.3);
+    }
+    .btn-add-config-to-cart:disabled {
+        background: #CBD5E1;
+        color: #94A3B8;
+        cursor: not-allowed;
+        box-shadow: none;
     }
     .btn-reset-config {
         width: 100%;
@@ -279,7 +285,7 @@
     .pc-modal {
         background: #FFFFFF;
         width: 100%;
-        max-width: 800px;
+        max-width: 850px;
         max-height: 85vh;
         border-radius: 16px;
         box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
@@ -355,9 +361,9 @@
     }
     .pc-modal-item {
         display: grid;
-        grid-template-columns: 60px 1fr 140px 100px;
+        grid-template-columns: 60px 1fr 140px 110px;
         align-items: center;
-        padding: 12px 16px;
+        padding: 14px 18px;
         border: 1px solid var(--border);
         border-radius: 10px;
         transition: all 0.2s;
@@ -423,6 +429,23 @@
         margin-top: 5px;
         display: inline-block;
     }
+    .pc-builder-blocker-badge {
+        font-size: 11px;
+        background-color: #FEE2E2;
+        color: #991B1B;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-weight: 700;
+        margin-top: 5px;
+        display: inline-block;
+    }
+    .pc-builder-reason-text {
+        font-size: 12px;
+        color: #EF4444;
+        margin-top: 4px;
+        font-weight: 500;
+        display: block;
+    }
 </style>
 
 <div class="pc-builder-container">
@@ -463,6 +486,26 @@
 
         <!-- Widget tổng hợp cấu hình bên phải -->
         <aside class="pc-builder-summary">
+            <!-- Phân tích nguồn PSU -->
+            <div class="pc-builder-summary-card" style="margin-bottom: 20px; border-color: #E2E8F0;">
+                <div class="pc-builder-summary-title" style="font-size:16px;">
+                    <span>Phân tích công suất nguồn</span>
+                    <i class="fa-solid fa-bolt" style="color: #F59E0B;"></i>
+                </div>
+                <div class="pc-builder-summary-row">
+                    <span>Công suất tải ước tính:</span>
+                    <span id="psu-estimated-w" style="font-weight: 700; color: var(--text-primary);">0W</span>
+                </div>
+                <div class="pc-builder-summary-row">
+                    <span>Nguồn tối thiểu khuyên dùng:</span>
+                    <span id="psu-recommended-w" style="font-weight: 700; color: #EF4444;">300W</span>
+                </div>
+                <div style="font-size:11.5px; color:#64748B; font-style:italic; line-height:1.4; margin-top:8px;">
+                    * Công suất đã cộng 30% Headroom an toàn và làm tròn lên 50W.
+                </div>
+            </div>
+
+            <!-- Tổng tiền & Danh sách lỗi -->
             <div class="pc-builder-summary-card">
                 <div class="pc-builder-summary-title">
                     <span>Tóm tắt cấu hình</span>
@@ -473,13 +516,19 @@
                     <span>Số linh kiện đã chọn:</span>
                     <span id="selected-count" style="font-weight: 700; color: var(--text-primary);">0</span>
                 </div>
+
+                <!-- Blockers & Warnings List -->
+                <div id="build-alerts-container" style="display:none; margin-top:15px; font-size:12.5px;">
+                    <div style="font-weight:700; margin-bottom:8px; color:var(--text-primary);">Kiểm tra tương thích:</div>
+                    <div id="build-alerts-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
                 
                 <div style="border-top: 1px solid var(--border); margin: 15px 0;"></div>
                 
                 <div style="font-size: 13.5px; color: var(--text-secondary); text-align: right;">Tổng giá tiền tạm tính:</div>
                 <div class="pc-builder-total-price" id="total-price-display">0đ</div>
                 
-                <button type="button" class="btn-add-config-to-cart" onclick="addConfigToCart()">
+                <button type="button" class="btn-add-config-to-cart" id="btnAddToCartSubmit" onclick="addConfigToCart()">
                     <i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ hàng
                 </button>
                 
@@ -530,6 +579,7 @@
         try {
             pcConfig = JSON.parse(localStorage.getItem('pc_config')) || {};
             updateUI();
+            analyzeBuild();
         } catch (e) {
             pcConfig = {};
         }
@@ -540,20 +590,21 @@
         document.getElementById('pcModalTitle').innerText = 'Chọn ' + partName;
         document.getElementById('pcModalSearchInput').value = '';
         
-        // Hiện thông báo tự động tương thích đối với Mainboard/CPU/RAM
+        // Hiện thông báo tự động tương thích đối với các linh kiện
         const alertBox = document.getElementById('compatibilityAlert');
         if (partKey === 'mainboard' && pcConfig.cpu) {
             alertBox.style.display = 'block';
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các Mainboard tương thích với Socket <strong>${pcConfig.cpu.name}</strong>.`;
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lọc Mainboard tương thích với Socket của CPU <strong>${pcConfig.cpu.name}</strong>.`;
         } else if (partKey === 'cpu' && pcConfig.mainboard) {
             alertBox.style.display = 'block';
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các CPU tương thích với Socket của <strong>${pcConfig.mainboard.name}</strong>.`;
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lọc CPU tương thích với Socket của Mainboard <strong>${pcConfig.mainboard.name}</strong>.`;
         } else if (partKey === 'ram' && pcConfig.mainboard) {
             alertBox.style.display = 'block';
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các RAM khớp chuẩn hỗ trợ (DDR4/DDR5) của <strong>${pcConfig.mainboard.name}</strong>.`;
-        } else if (partKey === 'mainboard' && pcConfig.ram) {
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lọc RAM tương thích với chuẩn hỗ trợ (DDR4/DDR5) của Mainboard <strong>${pcConfig.mainboard.name}</strong>.`;
+        } else if (partKey === 'psu') {
             alertBox.style.display = 'block';
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị Mainboard hỗ trợ chuẩn của <strong>${pcConfig.ram.name}</strong>.`;
+            const recW = document.getElementById('psu-recommended-w').innerText;
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các Nguồn (PSU) có công suất từ <strong>${recW}</strong> trở lên cho cấu hình hiện tại.`;
         } else {
             alertBox.style.display = 'none';
         }
@@ -580,16 +631,24 @@
 
         const searchVal = encodeURIComponent(document.getElementById('pcModalSearchInput').value.trim());
         
-        // Lấy ID linh kiện đã chọn gửi lên cho bộ lọc tương thích
+        // Gửi ID các linh kiện đã chọn để API backend chạy kiểm tra tương thích chéo
         const cpuId = pcConfig.cpu ? pcConfig.cpu.id : 0;
         const mainboardId = pcConfig.mainboard ? pcConfig.mainboard.id : 0;
         const ramId = pcConfig.ram ? pcConfig.ram.id : 0;
+        const gpuId = pcConfig.vga ? pcConfig.vga.id : 0;
+        const coolerId = pcConfig.cooler ? pcConfig.cooler.id : 0;
+        const caseId = pcConfig.case ? pcConfig.case.id : 0;
+        const storageId = pcConfig.storage ? pcConfig.storage.id : 0;
 
         const url = '<?= url("pc-builder/products") ?>?part=' + activePartKey + 
                     '&search=' + searchVal + 
                     '&cpu_id=' + cpuId + 
                     '&mainboard_id=' + mainboardId + 
-                    '&ram_id=' + ramId;
+                    '&ram_id=' + ramId +
+                    '&gpu_id=' + gpuId +
+                    '&cooler_id=' + coolerId +
+                    '&case_id=' + caseId +
+                    '&storage_id=' + storageId;
 
         fetch(url)
             .then(res => res.json())
@@ -602,28 +661,38 @@
                 let html = '<div class="pc-modal-products-list">';
                 data.forEach(p => {
                     const isOutOfStock = parseInt(p.stock) <= 0;
+                    const isCompatible = p.compatible !== false;
                     
-                    // Tạo badge tương thích xanh lục đẹp mắt
-                    let compatBadge = '';
-                    if ((activePartKey === 'mainboard' && cpuId > 0) || 
-                        (activePartKey === 'cpu' && mainboardId > 0) || 
-                        (activePartKey === 'ram' && mainboardId > 0)) {
-                        compatBadge = `<div class="pc-builder-compatibility-badge"><i class="fa-solid fa-circle-check"></i> Đã kiểm tra tương thích</div>`;
+                    let statusBadge = '';
+                    let actionButton = '';
+                    
+                    if (isOutOfStock) {
+                        statusBadge = `<span class="pc-builder-blocker-badge">Hết hàng</span>`;
+                        actionButton = `<button disabled class="btn-choose-item" style="background:#CBD5E1;color:#64748B;cursor:not-allowed;">Hết hàng</button>`;
+                    } else if (!isCompatible) {
+                        statusBadge = `<span class="pc-builder-blocker-badge"><i class="fa-solid fa-triangle-exclamation"></i> Không tương thích</span>`;
+                        // Tạo text hiển thị lý do lỗi
+                        let reasons = '';
+                        if (p.blockers && p.blockers.length > 0) {
+                            reasons = p.blockers.map(r => `<span class="pc-builder-reason-text">• ${r}</span>`).join('');
+                        }
+                        statusBadge += reasons;
+                        actionButton = `<button disabled class="btn-choose-item" style="background:#FEE2E2;color:#EF4444;border:1px solid #FCA5A5;cursor:not-allowed;">Không vừa</button>`;
+                    } else {
+                        statusBadge = `<span class="pc-builder-compatibility-badge"><i class="fa-solid fa-circle-check"></i> Tương thích tốt</span>`;
+                        actionButton = `<button class="btn-choose-item" onclick="selectProduct(${p.id}, '${escapeQuote(p.name)}', ${p.price}, '${p.image_url}')">Chọn mua</button>`;
                     }
 
                     html += `
-                        <div class="pc-modal-item">
+                        <div class="pc-modal-item" style="${!isCompatible ? 'background:#FFF8F8;opacity:0.85;' : ''}">
                             <img class="pc-modal-item-img" src="${p.image_url}" alt="${p.name}">
                             <div class="pc-modal-item-name">
-                                <div>${p.name}</div>
-                                ${compatBadge}
+                                <div style="font-weight:700;">${p.name}</div>
+                                ${statusBadge}
                             </div>
                             <div class="pc-modal-item-price">${p.price_formatted}</div>
                             <div>
-                                ${isOutOfStock 
-                                    ? '<button disabled class="btn-choose-item" style="background:#CBD5E1;color:#64748B;cursor:not-allowed;">Hết hàng</button>' 
-                                    : `<button class="btn-choose-item" onclick="selectProduct(${p.id}, '${escapeQuote(p.name)}', ${p.price}, '${p.image_url}')">Chọn mua</button>`
-                                }
+                                ${actionButton}
                             </div>
                         </div>
                     `;
@@ -640,6 +709,7 @@
         pcConfig[activePartKey] = { id, name, price, imageUrl };
         localStorage.setItem('pc_config', JSON.stringify(pcConfig));
         updateUI();
+        analyzeBuild();
         closeSelectModal();
     }
 
@@ -647,13 +717,13 @@
         delete pcConfig[partKey];
         localStorage.setItem('pc_config', JSON.stringify(pcConfig));
         updateUI();
+        analyzeBuild();
     }
 
     function updateUI() {
         let total = 0;
         let count = 0;
 
-        // Reset tất cả hàng về trạng thái placeholder ban đầu
         document.querySelectorAll('.pc-builder-row').forEach(row => {
             const partKey = row.getAttribute('data-part');
             const infoContainer = document.getElementById('selected-info-' + partKey);
@@ -688,9 +758,83 @@
             }
         });
 
-        // Cập nhật widget tóm tắt bên phải
         document.getElementById('selected-count').innerText = count;
         document.getElementById('total-price-display').innerText = formatMoney(total) + 'đ';
+    }
+
+    /** Gọi API phân tích tương thích chéo toàn cấu hình & tính toán công suất nguồn */
+    function analyzeBuild() {
+        const cpuId = pcConfig.cpu ? pcConfig.cpu.id : 0;
+        const mainboardId = pcConfig.mainboard ? pcConfig.mainboard.id : 0;
+        const ramId = pcConfig.ram ? pcConfig.ram.id : 0;
+        const gpuId = pcConfig.vga ? pcConfig.vga.id : 0;
+        const coolerId = pcConfig.cooler ? pcConfig.cooler.id : 0;
+        const caseId = pcConfig.case ? pcConfig.case.id : 0;
+        const psuId = pcConfig.psu ? pcConfig.psu.id : 0;
+        const storageId = pcConfig.storage ? pcConfig.storage.id : 0;
+
+        const url = '<?= url("pc-builder/analysis") ?>?cpu_id=' + cpuId + 
+                    '&mainboard_id=' + mainboardId + 
+                    '&ram_id=' + ramId +
+                    '&gpu_id=' + gpuId +
+                    '&cooler_id=' + coolerId +
+                    '&case_id=' + caseId +
+                    '&psu_id=' + psuId +
+                    '&storage_id=' + storageId;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const power = data.power;
+                    // Cập nhật công suất nguồn hiển thị
+                    document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
+                    document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+
+                    // Hiển thị danh sách cảnh báo & lỗi
+                    const alertsContainer = document.getElementById('build-alerts-container');
+                    const alertsList = document.getElementById('build-alerts-list');
+                    const btnAddToCart = document.getElementById('btnAddToCartSubmit');
+                    
+                    alertsList.innerHTML = '';
+                    let hasBlockers = false;
+
+                    // Duyệt các lỗi nghiêm trọng (Blockers)
+                    if (data.blockers && data.blockers.length > 0) {
+                        hasBlockers = true;
+                        data.blockers.forEach(msg => {
+                            alertsList.innerHTML += `
+                                <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
+                                    <i class="fa-solid fa-circle-xmark"></i> ${msg}
+                                </div>
+                            `;
+                        });
+                    }
+
+                    // Duyệt các cảnh báo (Warnings)
+                    if (data.warnings && data.warnings.length > 0) {
+                        data.warnings.forEach(msg => {
+                            alertsList.innerHTML += `
+                                <div style="color:#D97706; background:#FFFBEB; border: 1px solid #FCD34D; padding:8px 12px; border-radius:6px; font-weight:600;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> ${msg}
+                                </div>
+                            `;
+                        });
+                    }
+
+                    if (hasBlockers || (data.warnings && data.warnings.length > 0)) {
+                        alertsContainer.style.display = 'block';
+                    } else {
+                        alertsContainer.style.display = 'none';
+                    }
+
+                    // Vô hiệu hóa nút thêm vào giỏ hàng nếu cấu hình có Blockers
+                    btnAddToCart.disabled = hasBlockers;
+                }
+            })
+            .catch(err => {
+                console.error("Analysis error: ", err);
+            });
     }
 
     function resetConfig() {
@@ -698,6 +842,7 @@
             pcConfig = {};
             localStorage.removeItem('pc_config');
             updateUI();
+            analyzeBuild();
         }
     }
 
@@ -725,10 +870,8 @@
         .then(data => {
             if (data.success) {
                 alert(data.message);
-                // Clear cấu hình sau khi thêm giỏ hàng thành công
                 localStorage.removeItem('pc_config');
                 pcConfig = {};
-                // Chuyển hướng tới trang giỏ hàng
                 window.location.href = '<?= url("cart") ?>';
             } else {
                 alert('Thất bại: ' + data.message);
