@@ -1,11 +1,11 @@
 /* ===== GLOBAL OVERLAY FOR CATALOG MENU ===== */
 .catalog-overlay {
     position: fixed;
-    top: var(--category-overlay-top, 130px);
-    left: 0;
-    width: 100%;
+    top: var(--category-overlay-top, 50px);
+    right: 0;
     bottom: 0;
-    z-index: 90; /* Must be less than .site-header (100) */
+    left: 0;
+    z-index: 900;
     pointer-events: none;
     visibility: hidden;
     opacity: 0;
@@ -21,161 +21,5 @@
 .catalog-overlay__backdrop {
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-}
-
-#overlayCategorySlot {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 1200px; /* match container */
-    padding: 0 15px;
-    height: 100%;
-}
-
-/* Modifiers for the component based on location */
-.catalog-menu--overlay {
-    width: 280px;
-    background: #fff;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    position: relative;
-    z-index: 92;
-}
-
-.catalog-menu--hero {
-    /* Styles are mostly inherited from .vertical-menu in style.css */
-    /* Ensure it behaves properly within hero grid */
-    position: relative;
-    width: 100%;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* --- HERO FOCUSED STATE --- */
-.home-page-wrapper { overflow: visible !important; }
-.hero-section { overflow: visible !important; }
-.hero-section__left { overflow: visible !important; }
-.vertical-menu { overflow: visible !important; }
-.vertical-menu__item { overflow: visible !important; }
-
-.hero-section__left.is-category-focused {
-    position: relative;
-    z-index: 95; /* Higher than catalog-overlay (90) but lower than header (100) */
-}
-
-.catalog-menu--hero-open {
-    /* Highlight styles when open in hero */
-    box-shadow: 0 0 0 2px var(--primary), 0 10px 25px rgba(0,0,0,0.2) !important;
-    border-radius: 8px;
-    background: #fff;
-}
-
-/* Hide mega menu by default and disable hover */
-.vertical-menu__item .mega-menu {
-    display: none !important;
-}
-
-/* Scrollable mega menu panel */
-.catalog-menu--hero .vertical-menu__item.is-active > .mega-menu,
-.catalog-menu--hero-open .vertical-menu__item.is-active > .mega-menu,
-.catalog-menu--overlay .vertical-menu__item.is-active > .mega-menu {
-    display: block !important;
-    position: absolute;
-    top: 0;
-    left: calc(100% + 24px);
-    overflow-y: auto;
-    max-height: calc(100vh - var(--category-overlay-top, 130px) - 24px); 
-    width: 890px; /* Fill the rest of the 1200px container */
-    max-width: calc(100vw - 320px); /* Fallback for smaller screens to prevent horizontal overflow */
-    z-index: 96; /* Under header */
-}
-
-/* Scrollbar styling for mega menu */
-.mega-menu::-webkit-scrollbar {
-    width: 6px;
-}
-.mega-menu::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-.mega-menu::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-/* --- MOBILE SPECIFIC (<= 1024px) --- */
-@media (max-width: 1024px) {
-    .catalog-menu--mobile {
-        width: 100%;
-        background: transparent;
-        box-shadow: none;
-        border-radius: 0;
-        margin-top: 10px;
-        display: none; /* hidden by default, toggled via JS */
-    }
-    
-    .catalog-menu--mobile.is-mobile-expanded {
-        display: block;
-    }
-
-    /* Convert desktop vertical menu to accordion style for mobile */
-    .catalog-menu--mobile .vertical-menu__item {
-        margin-bottom: 8px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    
-    .catalog-menu--mobile .vertical-menu__link {
-        padding: 12px 16px;
-        background: #f8fafc;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: #1e293b;
-        font-weight: 500;
-    }
-
-    .catalog-menu--mobile .mega-menu {
-        display: none !important;
-        position: static !important;
-        width: 100% !important;
-        box-shadow: none !important;
-        border: none !important;
-        border-radius: 0 !important;
-        padding: 16px !important;
-        max-height: none !important;
-        overflow-y: visible !important;
-        animation: none !important;
-    }
-
-    /* On mobile, we might want hover or click to expand. Using CSS hover for now to keep it simple, 
-       or JS can toggle a class. But hover works decently on tap for most mobile browsers */
-    .catalog-menu--mobile .vertical-menu__item:hover .mega-menu,
-    .catalog-menu--mobile .vertical-menu__item:focus-within .mega-menu {
-        display: block !important;
-    }
-    
-    .catalog-menu--mobile .mega-menu__column {
-        width: 100% !important;
-        margin-bottom: 16px;
-    }
-}
-
-/* Button Reset for header trigger */
-button.main-nav__categories {
-    border: none;
-    font-family: inherit;
-    outline: none;
-}
-
-button.main-nav__categories:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
+    left: 0<(����ݥ�Ѡ������(����������������(���������ɽչ��������مȠ���ٕɱ�䵉����ɽ���ɝ��������������ؤ��(�����Ʌ�ͥѥ��聉����ɽչ������Ȁ���́��͔�)�((���5���������ɽ����ɭ�ȁ�����ɼ��������(���х�����ٕɱ��}}�����ɽ���̵��ѥٔ���ɼ��(���������ɽչ��������مȠ���ٕɱ�䵉����ɽ���ɝ��������������ܤ��)�((��ٕɱ���ѕ����M��Ё�(������ͥѥ��聅�ͽ��є�(����ѽ����(�������������(�����Ʌ�͙�ɴ��Ʌ�ͱ�ѕ`�������(����ݥ�Ѡ������(�������ݥ�Ѡ��������(����������������(���������������������������)�((���5�������́��ȁѡ����������Ё��͕���������ѥ�����(���х�������Դ��ٕɱ���(�����������聉�����(����ݥ�Ѡ������(����������聵�������ఁ��������٠���مȠ����ѕ���䵽ٕɱ��ѽ������ऀ�����त�(���������ɽչ��مȠ����ə����Ʌ�͕���(������ɑ�������ͽ����مȠ����ɑ�Ȥ�(������ɑ�ȵɅ����������(�������͡�����������������ɝ����а��䰀�Ȱ������(������ͥѥ���ɕ��ѥٔ�(����赥���������(������������ɥ���聍�����������������(�����ٕə��ܵ�聅�Ѽ�(�����ٕə��ܵ�聡������)�((���х�������Դ���ɼ��(������ͥѥ���ɕ��ѥٔ�(����ݥ�Ѡ������(���������ɽչ��مȠ����ə����Ʌ�͕���(������ɑ�ȵɅ���������(�������͡��������������������ɝ��������������Ĥ�)�((�������!I<�=UM�MQQ�������(���ɼ�͕�ѥ��}}���й�̵��ѕ���䵙���͕���(������ͥѥ���ɕ��ѥٔ�(����赥���������)�((���х�������Դ���ɼ�������(�������͡���������������مȠ���ɥ���䤰�������������ɝ�����������Ȥ�������х���(���ɑ�ȵɅ���������(���������ɽչ��مȠ����ə����Ʌ�͕���)�((���!������������ԁ�䁑���ձЁ������ͅ������ٕȀ��(�ٕ�ѥ��������}}�ѕ�����������ԁ�(�����������聹����������х���)�((���!�ɼ�������������������(���х�������Դ���ɼ�������ٕ�ѥ��������}}�ѕ���̵��ѥٔ������������ԁ�(�����������聉�����������х���(������ͥѥ��聅�ͽ��є�(����ѽ����(��������聍����������������(����ݥ�Ѡ聵�������ఁ���������܀��������������������त�(������ൡ�����聍�������٠���مȠ����ѕ���䵽ٕɱ��ѽ������ऀ�������(�����ٕə��ܵ�聅�Ѽ�(����赥���������(���������ɽչ��مȠ����ə����Ʌ�͕���(����������مȠ��ѕ�е�ɥ�����(������ɑ�ȵɅ���������(�������͡�����������������ɝ������������Ԥ�)�((���=ٕɱ�䁵�����������������(���х�������Դ��ٕɱ�䀹ٕ�ѥ��������}}�ѕ���̵��ѥٔ������������ԁ�(�����������聉�����������х���(������ͥѥ��聅�ͽ��є�(����ѽ����(����ɥ������(�������ѽ����(���������������(����ݥ�Ѡ聅�Ѽ�(�������ݥ�Ѡ聹����(������ൡ�����聹����(�����ٕə��ܵ�聅�Ѽ�(�����ٕ�͍ɽ�������٥��聍��х���(����������������������(���������ɽչ��مȠ����ə����Ʌ�͕���(����������مȠ��ѕ�е�ɥ�����(������ɑ�����(������ɑ�ȵ���������ͽ����مȠ����ɑ�Ȥ�(������ɑ�ȵɅ�������������������(�������͡����聹����(����赥���������)�((����ѥٔ��ѕ������Ʌ�Ѐ��(�ٕ�ѥ��������}}�ѕ���̵��ѥٔ�������������ѕ����ɽ܁�(����������مȠ���ɥ�����(���������ɽչ�聍���ȵ��ࡥ���ɝ���مȠ���ɥ���䤀�Ȕ��مȠ����ə����Ʌ�͕����)�((�ٕ�ѥ��������}}�ѕ���̵��ѥٔ��ٕ�ѥ��������}}������(����������مȠ���ɥ�����)�((���M�ɽ����ȁ��履�����ȁ��������Ԁ��(������������ݕ���е͍ɽ����ȁ�(����ݥ�Ѡ�����)�(������������ݕ���е͍ɽ����ȵѡյ���(���������ɽչ�耍���Ք��(������ɑ�ȵɅ���������)�(������������ݕ���е͍ɽ����ȵ�Ʌ����(���������ɽչ���Ʌ����ɕ���)�((���M�ɽ����������)�ѵ����ѕ����͍ɽ����������)���乍�ѕ����͍ɽ�����������(�����ٕə��ܵ�聡������(�����ٕ�͍ɽ�������٥��聹����)�()���乍�ѕ����͍ɽ�����������(������������ɥ����مȠ��͍ɽ����ȵݥ�Ѡ������)�((����������ѕ����ѽ������(�����������聹����(���������ɽչ�聹����(���ɑ��聹����(���������聥���ɥ��(�����������������(�������ͽ������ѕ��)�((�������5=	%1�MA%%���������ऀ������)����������ݥ�Ѡ������ँ�(�������х�������Դ���������(��������ݥ�Ѡ������(�������������ɽչ���Ʌ����ɕ���(�����������͡����聹����(����������ɑ�ȵɅ��������&v���F�����F�7������S��Т ��6F��r��V�R����&��R�2���&��R�W��FVB��F�7���&��6���Р��6F��r��V�R����&��R�fW'F�6���V�U���FV����&v���&�GF�Ӣ����&�&FW#��6�ƖBf"���&�&FW"���&�&FW"�&F�W3������fW&f��s���FFV㰢Т ����&��R�6FVv�'��&�r��F�7���f�W����W7F�g��6��FV�C�76R�&WGvVV㰢Ɩv�֗FV�3�6V�FW#��&6�w&�V�C�f"���7W&f6R��WFVB���6���#�f"���FW�B�&��'����Р��6F��r��V�R����&��R�fW'F�6���V�U��Ɩ���f�W����FF��s�'�g���F�7���f�W���Ɩv�֗FV�3�6V�FW#��f��B�vV�v�C�S��܎�[�\�]B����][��[Y[�KK[[ؚ[H��\�X�[[Y[�W��[���\����\�Y�\�^N��ۙNB���[ؚ[KX�]Y�ܞK]���H\�^N��^[YۋZ][\Έ�[�\��\�Y�KX�۝[���[�\�Y[�ΈL�M��[��][ێ��[�ٛܛH���X\�NB����\�X�[[Y[�W��][K�\�Y^[�Y�[ؚ[KX�]Y�ܞK]���H�[�ٛܛN���]JNY�NB����][��[Y[�KK[[ؚ[H�YY�K[Y[�H\�^N��ۙHZ[\ܝ[���][ێ��]X�Z[\ܝ[��Y�L	HZ[\ܝ[���\�Y�Έ�ۙHZ[\ܝ[��ܙ\���ۙHZ[\ܝ[��ܙ\�\�Y]\ΈZ[\ܝ[�Y[�ΈM�Z[\ܝ[�X^ZZY���ۙHZ[\ܝ[�ݙ\����^N��\�X�HZ[\ܝ[�[�[X][ێ��ۙHZ[\ܝ[��X��ܛ�[���\�K\�\��X�K\�Z\�Y
+NB����][��[Y[�KK[[ؚ[H��\�X�[[Y[�W��][K�\�Y^[�Y��YY�K[Y[�H\�^N�����Z[\ܝ[�B����][��[Y[�KK[[ؚ[H�YY�K[Y[�W����[[��Y�L	HZ[\ܝ[�X\��[�X���N�M�B�B

@@ -6,6 +6,7 @@ $verticalCategories = require ROOT_PATH . '/app/data/category-menu.php';
 <nav class="vertical-menu catalog-menu--hero" id="sharedCategoryMenu">
     <?php foreach ($verticalCategories as $index => $item): ?>
         <div class="vertical-menu__item" data-category-item="<?= $index ?>">
+        <div class="mobile-category-row">
             <a href="<?= url('home/search?q=' . urlencode($item['name'])) ?>" class="vertical-menu__link">
                 <div>
                     <i class="<?= e($item['icon']) ?>" style="width: 20px;"></i>
@@ -13,7 +14,12 @@ $verticalCategories = require ROOT_PATH . '/app/data/category-menu.php';
                 </div>
                 <i class="fa-solid fa-chevron-right arrow-right"></i>
             </a>
-            
+            <?php if (!empty($item['columns'])): ?>
+                <button type="button" class="mobile-category-toggle" aria-expanded="false" aria-label="Mở danh mục con">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            <?php endif; ?>
+        </div>
             <?php if (!empty($item['columns'])): ?>
                 <div class="mega-menu">
                     <div class="mega-menu__inner">

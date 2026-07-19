@@ -8,8 +8,15 @@
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.6') ?>">
-    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.4') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.7') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.5') ?>">
+    <script>
+        (() => {
+            const stored = localStorage.getItem('techpilot-theme');
+            const useDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark-mode', useDark);
+        })();
+    </script>
 </head>
 
 <body>
@@ -132,7 +139,7 @@
         </div>
     </header>
 
-    <div id="mainNavSentinel" style="width: 100%; height: 0;"></div>
+    <div id="mainNavSentinel" aria-hidden="true"></div>
 
     <!-- 3. Navigation Menu -->
     <nav class="main-nav">
