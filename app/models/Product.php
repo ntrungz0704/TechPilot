@@ -234,40 +234,105 @@ class Product
             return [];
         }
 
-        $query = 'SELECT p.*, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id';
+        // 1. Chuẩn hóa keyword bằng helper
+        $keyword = normalizeSearchKeyword($keyword);
 
-        if (!empty($categorySlug)) {
-            $query .= ' JOIN categories c ON p.category_id = c.id';
+        $searchAliases = [
+            'máy tính'       => ['pc', 'desktop', 'máy tính để bàn'],
+            'máy bộ'         => ['pc build sẵn', 'desktop'],
+            'máy chơi game'  => ['pc gaming', 'laptop gaming'],
+            'card màn hình'  => ['vga', 'gpu'],
+            'ổ cứng'         => ['ssd', 'hdd'],
+            'bộ nhớ'         => ['ram'],
+            'tai nghe game'  => ['gaming headset'],
+            'bo mạch chủ'    => ['mainboard', 'main'],
+            'nguồn máy tính' => ['psu', 'nguồn pc'],
+            'tản nhiệt'      => ['cooler', 'fan cpu'],
+        ];
+
+        // 2. Tìm từ đồng nghĩa
+        $aliasesFound = [];
+        if (!empty($keyword)) {
+            foreach ($searchAliases as $key => $values) {
+                if (str_contains($keyword, $key)) {
+                    $aliasesFound = array_merge($aliasesFound, $values);
+                }
+                foreach ($values as $val) {
+                    if (str_contains($keyword, $val)) {
+                        $aliasesFound[] = $key;
+                        $aliasesFound = array_merge($aliasesFound, array_diff($values, [$val]));
+                    }
+                }
+            }
+            $aliasesFound = array_unique($aliasesFound);
         }
 
-        $query .= ' WHERE 1=1';
+        // 3. Xây dựng SQL Relevance
+        $relevanceSql = '0';
+        $params = [];
 
         if (!empty($keyword)) {
-            $query .= ' AND (p.name LIKE :keyword1 OR p.short_desc LIKE :keyword2 OR p.description LIKE :keyword3)';
+            $relevanceSql = '
+                (CASE WHEN p.name = :exactName THEN 100 ELSE 0 END) +
+                (CASE WHEN p.name LIKE :startsName THEN 70 ELSE 0 END) +
+                (CASE WHEN p.name LIKE :containsName THEN 50 ELSE 0 END) +
+                (CASE WHEN c.name LIKE :containsCat THEN 30 ELSE 0 END) +
+                (CASE WHEN b.name LIKE :containsBrand THEN 20 ELSE 0 END) +
+                (CASE WHEN p.description LIKE :containsDesc THEN 5 ELSE 0 END)
+            ';
+
+            $params[':exactName']     = $keyword;
+            $params[':startsName']    = $keyword . '%';
+            $params[':containsName']  = '%' . $keyword . '%';
+            $params[':containsCat']   = '%' . $keyword . '%';
+            $params[':containsBrand'] = '%' . $keyword . '%';
+            $params[':containsDesc']  = '%' . $keyword . '%';
+
+            // Cộng thêm điểm cho các alias
+            $aliasIdx = 1;
+            foreach ($aliasesFound as $alias) {
+                $aliasParam = ':alias_' . $aliasIdx;
+                $relevanceSql .= " + (CASE WHEN p.name LIKE $aliasParam THEN 35 ELSE 0 END)";
+                $params[$aliasParam] = '%' . $alias . '%';
+                $aliasIdx++;
+            }
+        }
+
+        $query = "
+            SELECT p.*, b.name as brand_name, c.name as category_name, ($relevanceSql) as relevance
+            FROM products p
+            LEFT JOIN brands b ON p.brand_id = b.id
+            JOIN categories c ON p.category_id = c.id
+            WHERE p.status = 'active'
+        ";
+
+        if (!empty($keyword)) {
+            $query .= " AND (($relevanceSql) > 0 OR p.name LIKE :containsNameOr OR p.description LIKE :containsDescOr)";
+            $params[':containsNameOr'] = '%' . $keyword . '%';
+            $params[':containsDescOr'] = '%' . $keyword . '%';
         }
 
         if (!empty($categorySlug)) {
             $query .= ' AND c.slug = :category';
+            $params[':category'] = $categorySlug;
         }
-
-        $query .= ' ORDER BY p.id DESC LIMIT :limit';
-
-        $stmt = $this->db->prepare($query);
 
         if (!empty($keyword)) {
-            $kw = '%' . $keyword . '%';
-            $stmt->bindValue(':keyword1', $kw);
-            $stmt->bindValue(':keyword2', $kw);
-            $stmt->bindValue(':keyword3', $kw);
+            $query .= ' ORDER BY relevance DESC, p.created_at DESC';
+        } else {
+            $query .= ' ORDER BY p.id DESC';
         }
 
-        if (!empty($categorySlug)) {
-            $stmt->bindValue(':category', $categorySlug);
-        }
+        $query .= ' LIMIT :limit';
 
+        $stmt = $this->db->prepare($query);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /** Lấy sản phẩm theo danh mục không giới hạn */
