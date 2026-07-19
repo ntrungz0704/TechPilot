@@ -242,7 +242,7 @@ $reviews = $reviews ?? [];
             <div class="carousel-slide__price">
                 Nhận thông tin sớm nhất
             </div>
-            <a href="#" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
+            <a href="<?= url('auth/register') ?>" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
         </div>
 
         <div class="carousel-controls">
@@ -258,7 +258,7 @@ $reviews = $reviews ?? [];
                 <h4>BUILD PC THEO YÊU CẦU</h4>
                 <p>Tối ưu cấu hình - Cân mọi ngân sách</p>
             </div>
-            <a href="#" class="btn btn--outline-light btn--sm">Xem ngay</a>
+            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="btn btn--outline-light btn--sm">Xem ngay</a>
         </div>
         
         <div class="promo-card promo-card--blue">
@@ -275,7 +275,7 @@ $reviews = $reviews ?? [];
                 <h4>THU CŨ ĐỔI MỚI MÁY CŨ</h4>
                 <p>Trợ giá lên tới 6 triệu đồng</p>
             </div>
-            <a href="#" class="btn btn--sm">Xem chi tiết</a>
+            <a href="<?= url('post') ?>" class="btn btn--sm">Xem chi tiết</a>
         </div>
     </div>
 </section>
@@ -385,7 +385,7 @@ $reviews = $reviews ?? [];
             <h3>NVIDIA GeForce RTX 50 Series</h3>
             <p>Sức mạnh tối thượng từ kiến trúc Blackwell, dẫn đầu cuộc cách mạng đồ họa AI thế hệ mới.</p>
         </div>
-        <a href="#" class="btn btn--light">Đăng ký thông tin <i class="fa-solid fa-bell"></i></a>
+        <a href="<?= url('auth/register') ?>" class="btn btn--light">Đăng ký thông tin <i class="fa-solid fa-bell"></i></a>
     </div>
 </section>
 
@@ -454,7 +454,7 @@ $reviews = $reviews ?? [];
                 <h3>Build PC Cực Chất</h3>
                 <p>Tặng kèm tản nhiệt khí khí lắp PC nguyên bộ.</p>
             </div>
-            <a href="#" class="btn btn--sm">Build Ngay</a>
+            <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="btn btn--sm">Build Ngay</a>
         </div>
         <div class="promo-banner" style="background-image: url('<?= url('assets/images/promo-banner-2.jpg') ?>');">
             <div class="promo-banner__content">
@@ -468,7 +468,7 @@ $reviews = $reviews ?? [];
                 <h3>Thu Cũ Đổi Mới</h3>
                 <p>Nâng cấp máy mới trợ giá lên tới 15%.</p>
             </div>
-            <a href="#" class="btn btn--sm">Đổi Máy Ngay</a>
+            <a href="<?= url('post') ?>" class="btn btn--sm">Đổi Máy Ngay</a>
         </div>
     </div>
 </section>
