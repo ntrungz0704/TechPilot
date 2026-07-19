@@ -65,11 +65,11 @@ $reviews = $reviews ?? [];
             <?php endif; ?>
         </div>
 
-        <!-- Khung Ưu đãi dành riêng cho bạn -->
+        <!-- Ưu đãi COD -->
         <div class="product-detail__promo-box">
             <div class="promo-box__title"><i class="fa-solid fa-gift"></i> Ưu đãi dành riêng cho bạn</div>
             <div class="promo-box__content">
-                <span>Voucher giảm thêm đến 500k khi thanh toán qua VNPay. <a href="#">Xem chi tiết &gt;</a></span>
+                <span><i class="fa-solid fa-check" style="color: var(--success);"></i> Mua hàng tại TechPilot — Nhận hàng, kiểm tra rồi thanh toán (COD toàn quốc).</span>
             </div>
         </div>
 
@@ -92,7 +92,7 @@ $reviews = $reviews ?? [];
             <div><i class="fa-solid fa-truck-fast"></i> Miễn phí giao hàng toàn quốc</div>
             <div><i class="fa-solid fa-shield-heart"></i> Bảo hành chính hãng 12 tháng</div>
             <div><i class="fa-solid fa-rotate-left"></i> Đổi trả dễ dàng trong 7 ngày đầu</div>
-            <div><i class="fa-solid fa-credit-card"></i> Trả góp lãi suất 0% qua thẻ</div>
+            <div><i class="fa-solid fa-money-bill-wave"></i> Thanh toán khi nhận hàng (COD)</div>
         </div>
     </div>
 </section>
