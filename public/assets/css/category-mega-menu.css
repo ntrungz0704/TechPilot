@@ -109,8 +109,8 @@
     background: transparent;
 }
 
-/* --- MOBILE SPECIFIC (< 768px) --- */
-@media (max-width: 767px) {
+/* --- MOBILE SPECIFIC (<= 1024px) --- */
+@media (max-width: 1024px) {
     .catalog-menu--mobile {
         width: 100%;
         background: transparent;

@@ -131,7 +131,7 @@
 
 
     <script src="<?= url('assets/js/main.js?v=7.0') ?>"></script>
-    <script src="<?= url('assets/js/category-mega-menu.js?v=2.0') ?>"></script>
+    <script src="<?= url('assets/js/category-mega-menu.js?v=2.4') ?>"></script>
     <script>
         // Xử lý menu hamburger và drawer menu trên Mobile
         const mainNav = document.querySelector('.main-nav');
