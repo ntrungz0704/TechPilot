@@ -446,46 +446,46 @@
 <body>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="adminSidebar">
+    <aside class="sidebar" id="adminSidebar" style="background-color: #091830;">
         <a href="<?= url('admin') ?>" class="sidebar__logo">
-            <i class="fa-solid fa-rocket"></i> TechPilot
+            <i class="fa-solid fa-rocket" style="color: #0B63E5;"></i> TechPilot
         </a>
         <ul class="sidebar__menu">
             <li class="sidebar__menu-item <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
-                <a href="<?= url('admin') ?>"><i class="fa-solid fa-house-chimney"></i> Tổng quan</a>
+                <a href="<?= url('admin') ?>"><i class="fa-solid fa-chart-pie"></i> Tổng quan</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'products' ? 'active' : '' ?>">
                 <a href="<?= url('admin/products') ?>"><i class="fa-solid fa-box"></i> Sản phẩm</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'pc-builder' ? 'active' : '' ?>">
-                <a href="<?= url('admin') ?>"><i class="fa-solid fa-sliders"></i> Xây dựng cấu hình</a>
+                <a href="<?= url('admin') ?>"><i class="fa-solid fa-screwdriver-wrench"></i> Xây dựng cấu hình</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'orders' ? 'active' : '' ?>">
-                <a href="<?= url('admin/orders') ?>"><i class="fa-solid fa-receipt"></i> Đơn hàng</a>
+                <a href="<?= url('admin/orders') ?>"><i class="fa-solid fa-cart-shopping"></i> Đơn hàng</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'users' ? 'active' : '' ?>">
-                <a href="<?= url('admin/users') ?>"><i class="fa-solid fa-users"></i> Khách hàng</a>
+                <a href="<?= url('admin/users') ?>"><i class="fa-solid fa-users-gear"></i> Khách hàng</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'categories' ? 'active' : '' ?>">
-                <a href="<?= url('admin/categories') ?>"><i class="fa-solid fa-list-ul"></i> Danh mục</a>
+                <a href="<?= url('admin/categories') ?>"><i class="fa-solid fa-folder"></i> Danh mục</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'brands' ? 'active' : '' ?>">
-                <a href="<?= url('admin/brands') ?>"><i class="fa-solid fa-copyright"></i> Thương hiệu</a>
+                <a href="<?= url('admin/brands') ?>"><i class="fa-solid fa-award"></i> Thương hiệu</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'coupons' ? 'active' : '' ?>">
-                <a href="<?= url('admin/coupons') ?>"><i class="fa-solid fa-ticket-simple"></i> Mã giảm giá</a>
+                <a href="<?= url('admin/coupons') ?>"><i class="fa-solid fa-tags"></i> Mã giảm giá</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'flash-sales' ? 'active' : '' ?>">
-                <a href="<?= url('admin/flash-sales') ?>"><i class="fa-solid fa-bolt"></i> Flash Sale</a>
+                <a href="<?= url('admin/flash-sales') ?>"><i class="fa-solid fa-bolt-lightning"></i> Flash Sale</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'posts' ? 'active' : '' ?>">
-                <a href="<?= url('admin/posts') ?>"><i class="fa-solid fa-newspaper"></i> Bài viết</a>
+                <a href="<?= url('admin/posts') ?>"><i class="fa-solid fa-file-lines"></i> Bài viết</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'reviews' ? 'active' : '' ?>">
-                <a href="<?= url('admin/reviews') ?>"><i class="fa-solid fa-star-half-stroke"></i> Đánh giá</a>
+                <a href="<?= url('admin/reviews') ?>"><i class="fa-solid fa-star"></i> Đánh giá</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'banners' ? 'active' : '' ?>">
-                <a href="<?= url('admin/banners') ?>"><i class="fa-solid fa-images"></i> Banner</a>
+                <a href="<?= url('admin/banners') ?>"><i class="fa-solid fa-image"></i> Banner</a>
             </li>
         </ul>
         <div class="sidebar__footer">
