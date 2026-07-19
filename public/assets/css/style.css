@@ -413,8 +413,9 @@ body.dark-mode .logo-text span {
     display: flex;
     align-items: center;
     height: 100%;
-    margin-left: 24px;
-    gap: 24px;
+    margin-left: 16px;
+    gap: 16px;
+    flex-wrap: nowrap;
 }
 
 .main-nav__links a {
@@ -4768,5 +4769,14 @@ html, body {
     }
     main.container.section[id="main-content"] aside[style*="width: 250px"] ul li {
         flex-shrink: 0 !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .main-nav__links {
+        gap: 10px !important;
+    }
+    .main-nav__links a {
+        font-size: 13px !important;
     }
 }
