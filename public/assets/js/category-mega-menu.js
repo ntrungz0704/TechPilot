@@ -1,5 +1,9 @@
 const DESKTOP_MIN_WIDTH = 1025;
 
+function isDesktop() {
+    return window.innerWidth >= DESKTOP_MIN_WIDTH;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const trigger = document.getElementById('headerCategoryTrigger');
     const sharedMenu = document.getElementById('sharedCategoryMenu');
@@ -11,93 +15,69 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainNav = document.querySelector('.main-nav');
     const mainNavSentinel = document.getElementById('mainNavSentinel');
     
-    // Chỉ chọn trong phạm vi sharedMenu
-    const menuItems = sharedMenu ? sharedMenu.querySelectorAll('.vertical-menu__item') : [];
+    const menuItems = sharedMenu ? Array.from(sharedMenu.querySelectorAll('.vertical-menu__item')) : [];
 
     let isOverlayOpen = false;
-
-    function isMobile() {
-        return window.innerWidth < DESKTOP_MIN_WIDTH;
-    }
+    let activeMode = null; // null | 'hero' | 'overlay'
 
     // 1. IntersectionObserver for Sticky Nav
     if (mainNavSentinel && mainNav) {
-        const observer = new IntersectionObserver(
+        const stickyObserver = new IntersectionObserver(
             ([entry]) => {
-                // Khi sentinel trượt ra ngoài (lên trên) => main-nav bị stuck (dính)
-                if (entry.boundingClientRect.top < 0) {
-                    mainNav.classList.add('is-stuck');
-                } else {
-                    mainNav.classList.remove('is-stuck');
+                mainNav.classList.toggle('is-stuck', !entry.isIntersecting);
+                
+                if (isOverlayOpen && activeMode === 'overlay') {
+                    requestAnimationFrame(updateOverlayTop);
                 }
             },
-            { threshold: [1], rootMargin: "0px 0px 0px 0px" }
+            { threshold: 0 }
         );
-        observer.observe(mainNavSentinel);
+        stickyObserver.observe(mainNavSentinel);
     }
-
-    // 2. Component Position Initializer
+	    // 2. Component Position Initializer
     function initComponentPosition() {
-        if (isMobile()) {
-            // Mobile: Đưa vào drawer menu (mainNavInner) nếu chưa có
+        if (!isDesktop()) {
             if (sharedMenu && trigger && mainNavInner && sharedMenu.parentNode !== mainNavInner) {
                 trigger.parentNode.insertBefore(sharedMenu, trigger.nextSibling);
-                sharedMenu.classList.remove('catalog-menu--hero', 'catalog-menu--overlay');
+                sharedMenu.classList.remove('catalog-menu--hero', 'catalog-menu--hero-open', 'catalog-menu--overlay');
                 sharedMenu.classList.add('catalog-menu--mobile');
             }
         } else {
-            // Desktop: Xác định mode dựa trên hero banner
-            manageDesktopMode();
+            if (!isOverlayOpen && heroSlot && sharedMenu) {
+                if (sharedMenu.parentNode !== heroSlot) {
+                    heroSlot.appendChild(sharedMenu);
+                }
+                sharedMenu.classList.remove('catalog-menu--mobile', 'catalog-menu--overlay', 'catalog-menu--hero-open');
+                sharedMenu.classList.add('catalog-menu--hero');
+                activeMode = null;
+            }
         }
     }
 
-    function manageDesktopMode() {
-        if (!sharedMenu) return;
-        if (isMobile()) return;
+    function canUseHeroMode() {
+        if (!heroSlot || !mainNav || !isDesktop()) return false;
+        const heroRect = heroSlot.getBoundingClientRect();
+        const navRect = mainNav.getBoundingClientRect();
+        const visibleTop = Math.max(heroRect.top, navRect.bottom);
+        const visibleBottom = Math.min(heroRect.bottom, window.innerHeight);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
 
-        // Nếu ở trang chủ và chưa cuộn qua hết hero banner
-        if (heroSlot) {
-            const heroRect = heroSlot.getBoundingClientRect();
-            // Header mainNav cao 50px
-            // Nếu cạnh dưới của hero slot vẫn còn trên màn hình
-            if (heroRect.bottom > 50) {
-                // HERO MODE
-                if (sharedMenu.parentNode !== heroSlot && !isOverlayOpen) {
-                    heroSlot.appendChild(sharedMenu);
-                    sharedMenu.classList.remove('catalog-menu--mobile', 'catalog-menu--overlay');
-                    sharedMenu.classList.add('catalog-menu--hero');
-                }
-                return;
-            }
-        }
-        
-        // OVERLAY MODE (Cuộn qua hero hoặc không phải trang chủ)
-        if (sharedMenu.parentNode !== overlaySlot && !isOverlayOpen) {
-            overlaySlot.appendChild(sharedMenu);
-            sharedMenu.classList.remove('catalog-menu--mobile', 'catalog-menu--hero');
-            sharedMenu.classList.add('catalog-menu--overlay');
-        }
+        return heroRect.top >= navRect.bottom - 1 && visibleHeight >= 320;
     }
 
     initComponentPosition();
 
     window.addEventListener('resize', () => {
-        if (isOverlayOpen && isMobile()) {
+        if (isOverlayOpen && !isDesktop()) {
             closeOverlay();
         }
         initComponentPosition();
+        if (isOverlayOpen && isDesktop() && activeMode === 'overlay') {
+            requestAnimationFrame(updateOverlayTop);
+        }
     });
 
-    window.addEventListener('scroll', () => {
-        if (!isMobile() && !isOverlayOpen) {
-            manageDesktopMode();
-        }
-        if (isOverlayOpen && !isMobile()) {
-            updateOverlayTop();
-        }
-    }, { passive: true });
-
-    // 3. Scroll Lock bằng CSS Class
+    // 3. Scroll Lock
     function getScrollbarWidth() {
         return window.innerWidth - document.documentElement.clientWidth;
     }
@@ -121,55 +101,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initMegaPanelFocus() {
-        let hasActive = false;
-        menuItems.forEach(item => {
-            if (item.classList.contains('is-active')) {
-                hasActive = true;
-            }
-        });
-        if (!hasActive && menuItems.length > 0) {
+        if (!menuItems.some(i => i.classList.contains('is-active')) && menuItems.length > 0) {
             menuItems[0].classList.add('is-active');
         }
     }
 
     menuItems.forEach(item => {
-        item.addEventListener('mouseenter', () => activateItem(item));
-        item.addEventListener('focusin', () => activateItem(item));
+        item.addEventListener('mouseenter', () => {
+            if (isDesktop()) activateItem(item);
+        });
+        item.addEventListener('focusin', () => {
+            if (isDesktop()) activateItem(item);
+        });
     });
 
     function updateOverlayTop() {
-        if (mainNav) {
-            const navBottom = mainNav.getBoundingClientRect().bottom;
-            document.documentElement.style.setProperty('--category-overlay-top', `${navBottom}px`);
-        }
+        if (!mainNav) return;
+        const navBottom = mainNav.getBoundingClientRect().bottom;
+        document.documentElement.style.setProperty('--category-overlay-top', `${Math.max(0, navBottom)}px`);
     }
 
-    function openOverlay() {
-        if (!sharedMenu || !overlay) return;
-        if (isMobile()) return;
+    function openMenu() {
+        if (!sharedMenu || !isDesktop()) return;
 
-        // Cập nhật vị trí biến CSS cho overlay
-        requestAnimationFrame(() => {
-            updateOverlayTop();
-            
-            // Ép đưa menu vào overlay slot khi mở
-            if (sharedMenu.parentNode !== overlaySlot) {
-                overlaySlot.appendChild(sharedMenu);
-                sharedMenu.classList.remove('catalog-menu--hero', 'catalog-menu--mobile');
-                sharedMenu.classList.add('catalog-menu--overlay');
+        if (canUseHeroMode()) {
+            activeMode = 'hero';
+            if (sharedMenu.parentNode !== heroSlot) {
+                heroSlot.appendChild(sharedMenu);
             }
+            heroSlot.classList.add('is-category-focused');
+            sharedMenu.classList.remove('catalog-menu--overlay', 'catalog-menu--mobile');
+            sharedMenu.classList.add('catalog-menu--hero', 'catalog-menu--hero-open');
             
-            lockScroll();
-            showOverlay();
-        });
-    }
-
-    function showOverlay() {
-        overlay.classList.add('is-open');
-        overlay.setAttribute('aria-hidden', 'false');
-        trigger.setAttribute('aria-expanded', 'true');
-        initMegaPanelFocus();
-        isOverlayOpen = true;
+            overlay.classList.add('is-open'); 
+            overlay.setAttribute('aria-hidden', 'false');
+            trigger.setAttribute('aria-expanded', 'true');
+            initMegaPanelFocus();
+            isOverlayOpen = true;
+        } else {
+            activeMode = 'overlay';
+            if (overlaySlot) {
+                overlaySlot.appendChild(sharedMenu);
+            }
+            sharedMenu.classList.remove('catalog-menu--hero', 'catalog-menu--hero-open', 'catalog-menu--mobile');
+            sharedMenu.classList.add('catalog-menu--overlay');
+            
+            requestAnimationFrame(() => {
+                updateOverlayTop();
+                lockScroll();
+                overlay.classList.add('is-open');
+                overlay.setAttribute('aria-hidden', 'false');
+                trigger.setAttribute('aria-expanded', 'true');
+                initMegaPanelFocus();
+                isOverlayOpen = true;
+            });
+        }
     }
 
     function closeOverlay() {
@@ -179,22 +165,37 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.setAttribute('aria-hidden', 'true');
         trigger.setAttribute('aria-expanded', 'false');
         
-        unlockScroll();
-        isOverlayOpen = false;
+        if (heroSlot) {
+            heroSlot.classList.remove('is-category-focused');
+        }
+
+        if (activeMode === 'overlay') {
+            unlockScroll();
+        }
         
-        // Trả component về đúng chỗ
-        manageDesktopMode();
+        menuItems.forEach(item => item.classList.remove('is-active'));
+        
+        if (heroSlot) {
+            heroSlot.appendChild(sharedMenu);
+            sharedMenu.classList.remove('catalog-menu--overlay', 'catalog-menu--hero-open');
+            sharedMenu.classList.add('catalog-menu--hero');
+        } else {
+            sharedMenu.classList.remove('catalog-menu--hero-open');
+        }
+        
+        isOverlayOpen = false;
+        activeMode = null;
     }
 
     if (trigger) {
         trigger.addEventListener('click', (e) => {
-            if (isMobile()) {
+            if (!isDesktop()) {
                 sharedMenu.classList.toggle('is-mobile-expanded');
                 return;
             }
             e.preventDefault();
             if (isOverlayOpen) closeOverlay();
-            else openOverlay();
+            else openMenu();
         });
     }
 
@@ -208,4 +209,18 @@ document.addEventListener('DOMContentLoaded', () => {
             trigger.focus();
         }
     });
-});
+
+    const mobileToggles = document.querySelectorAll('.mobile-category-toggle');
+    mobileToggles.forAX�
+���HO����K�Y]�[�\�[�\�	��X���
+JHO�K��]�[�Y�][
+
+N�ۜ�\�[�][HH���K����\�
+	˝�\�X�[[Y[�W��][I�NY�
+\\�[�][JH�]\����ۜ�\�^[�YH\�[�][K��\��\���۝Z[��	�\�Y^[�Y	�N�Y[�R][\˙�ܑXX�
+][HO�][K��\��\���[[ݙJ	�\�Y^[�Y	�N�ۜ�H][K�]Y\�T�[X�܊	˛[ؚ[KX�]Y�ܞK]���I�NY�
+
+H��]]�X�]J	�\�XKY^[�Y	�	٘[�I�NJN�Y�
+Z\�^[�Y
+H\�[�][K��\��\��Y
+	�\�Y^[�Y	�N���K��]]�X�]J	�\�XKY^[�Y	�	��YI�NB�JNJNJN�
