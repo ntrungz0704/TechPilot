@@ -268,6 +268,8 @@ class Product
         }
 
         // 3. Xây dựng SQL Relevance
+        // NOTE: $relevanceSql chỉ nhúng MỘT LẦN vào SELECT (alias 'relevance').
+        // Không nhúng lại vào WHERE để tránh lỗi HY093 (duplicate named placeholders).
         $relevanceSql = '0';
         $params = [];
 
@@ -298,6 +300,7 @@ class Product
             }
         }
 
+        // $relevanceSql chỉ xuất hiện MỘT LẦN trong SELECT để tạo alias 'relevance'
         $query = "
             SELECT p.*, b.name as brand_name, c.name as category_name, ($relevanceSql) as relevance
             FROM products p
@@ -307,9 +310,10 @@ class Product
         ";
 
         if (!empty($keyword)) {
-            $query .= " AND (($relevanceSql) > 0 OR p.name LIKE :containsNameOr OR p.description LIKE :containsDescOr)";
-            $params[':containsNameOr'] = '%' . $keyword . '%';
-            $params[':containsDescOr'] = '%' . $keyword . '%';
+            // Dùng param TÊN MỚI :filterName / :filterDesc để tránh trùng với params trong $relevanceSql
+            $query .= ' AND (p.name LIKE :filterName OR p.description LIKE :filterDesc)';
+            $params[':filterName'] = '%' . $keyword . '%';
+            $params[':filterDesc'] = '%' . $keyword . '%';
         }
 
         if (!empty($categorySlug)) {
@@ -318,6 +322,7 @@ class Product
         }
 
         if (!empty($keyword)) {
+            // Dùng alias 'relevance' từ SELECT — KHÔNG nhúng lại $relevanceSql
             $query .= ' ORDER BY relevance DESC, p.created_at DESC';
         } else {
             $query .= ' ORDER BY p.id DESC';
