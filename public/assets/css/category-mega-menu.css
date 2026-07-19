@@ -1,4 +1,4 @@
-/* ===== GLOBAL OVERLAY FOR CATALOG MENU ===== */
+/* ===== 1. GLOBAL CATALOG OVERLAY ===== */
 .catalog-overlay {
     position: fixed;
     top: var(--category-overlay-top, 50px);
@@ -9,17 +9,239 @@
     pointer-events: none;
     visibility: hidden;
     opacity: 0;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 180ms ease, visibility 180ms ease;
 }
 
 .catalog-overlay.is-open {
-    opacity: 1;
-    visibility: visible;
     pointer-events: auto;
+    visibility: visible;
+    opacity: 1;
 }
 
+/* ===== 2. OVERLAY BACKDROP ===== */
 .catalog-overlay__backdrop {
     position: absolute;
+    inset: 0;
+    background: var(--overlay-backdrop);
+}
+
+/* ===== 3. OVERLAY CONTAINER ===== */
+#overlayCategorySlot {
+    position: absolute;
     top: 0;
-    left: 0<(����ݥ�Ѡ������(����������������(���������ɽչ��������مȠ���ٕɱ�䵉����ɽ���ɝ��������������ؤ��(�����Ʌ�ͥѥ��聉����ɽչ������Ȁ���́��͔�)�((���5���������ɽ����ɭ�ȁ�����ɼ��������(���х�����ٕɱ��}}�����ɽ���̵��ѥٔ���ɼ��(���������ɽչ��������مȠ���ٕɱ�䵉����ɽ���ɝ��������������ܤ��)�((��ٕɱ���ѕ����M��Ё�(������ͥѥ��聅�ͽ��є�(����ѽ����(�������������(�����Ʌ�͙�ɴ��Ʌ�ͱ�ѕ`�������(����ݥ�Ѡ������(�������ݥ�Ѡ��������(����������������(���������������������������)�((���5�������́��ȁѡ����������Ё��͕���������ѥ�����(���х�������Դ��ٕɱ���(�����������聉�����(����ݥ�Ѡ������(����������聵�������ఁ��������٠���مȠ����ѕ���䵽ٕɱ��ѽ������ऀ�����त�(���������ɽչ��مȠ����ə����Ʌ�͕���(������ɑ�������ͽ����مȠ����ɑ�Ȥ�(������ɑ�ȵɅ����������(�������͡�����������������ɝ����а��䰀�Ȱ������(������ͥѥ���ɕ��ѥٔ�(����赥���������(������������ɥ���聍�����������������(�����ٕə��ܵ�聅�Ѽ�(�����ٕə��ܵ�聡������)�((���х�������Դ���ɼ��(������ͥѥ���ɕ��ѥٔ�(����ݥ�Ѡ������(���������ɽչ��مȠ����ə����Ʌ�͕���(������ɑ�ȵɅ���������(�������͡��������������������ɝ��������������Ĥ�)�((�������!I<�=UM�MQQ�������(���ɼ�͕�ѥ��}}���й�̵��ѕ���䵙���͕���(������ͥѥ���ɕ��ѥٔ�(����赥���������)�((���х�������Դ���ɼ�������(�������͡���������������مȠ���ɥ���䤰�������������ɝ�����������Ȥ�������х���(���ɑ�ȵɅ���������(���������ɽչ��مȠ����ə����Ʌ�͕���)�((���!������������ԁ�䁑���ձЁ������ͅ������ٕȀ��(�ٕ�ѥ��������}}�ѕ�����������ԁ�(�����������聹����������х���)�((���!�ɼ�������������������(���х�������Դ���ɼ�������ٕ�ѥ��������}}�ѕ���̵��ѥٔ������������ԁ�(�����������聉�����������х���(������ͥѥ��聅�ͽ��є�(����ѽ����(��������聍����������������(����ݥ�Ѡ聵�������ఁ���������܀��������������������त�(������ൡ�����聍�������٠���مȠ����ѕ���䵽ٕɱ��ѽ������ऀ�������(�����ٕə��ܵ�聅�Ѽ�(����赥���������(���������ɽչ��مȠ����ə����Ʌ�͕���(����������مȠ��ѕ�е�ɥ�����(������ɑ�ȵɅ���������(�������͡�����������������ɝ������������Ԥ�)�((���=ٕɱ�䁵�����������������(���х�������Դ��ٕɱ�䀹ٕ�ѥ��������}}�ѕ���̵��ѥٔ������������ԁ�(�����������聉�����������х���(������ͥѥ��聅�ͽ��є�(����ѽ����(����ɥ������(�������ѽ����(���������������(����ݥ�Ѡ聅�Ѽ�(�������ݥ�Ѡ聹����(������ൡ�����聹����(�����ٕə��ܵ�聅�Ѽ�(�����ٕ�͍ɽ�������٥��聍��х���(����������������������(���������ɽչ��مȠ����ə����Ʌ�͕���(����������مȠ��ѕ�е�ɥ�����(������ɑ�����(������ɑ�ȵ���������ͽ����مȠ����ɑ�Ȥ�(������ɑ�ȵɅ�������������������(�������͡����聹����(����赥���������)�((����ѥٔ��ѕ������Ʌ�Ѐ��(�ٕ�ѥ��������}}�ѕ���̵��ѥٔ�������������ѕ����ɽ܁�(����������مȠ���ɥ�����(���������ɽչ�聍���ȵ��ࡥ���ɝ���مȠ���ɥ���䤀�Ȕ��مȠ����ə����Ʌ�͕����)�((�ٕ�ѥ��������}}�ѕ���̵��ѥٔ��ٕ�ѥ��������}}������(����������مȠ���ɥ�����)�((���M�ɽ����ȁ��履�����ȁ��������Ԁ��(������������ݕ���е͍ɽ����ȁ�(����ݥ�Ѡ�����)�(������������ݕ���е͍ɽ����ȵѡյ���(���������ɽչ�耍���Ք��(������ɑ�ȵɅ���������)�(������������ݕ���е͍ɽ����ȵ�Ʌ����(���������ɽչ���Ʌ����ɕ���)�((���M�ɽ����������)�ѵ����ѕ����͍ɽ����������)���乍�ѕ����͍ɽ�����������(�����ٕə��ܵ�聡������(�����ٕ�͍ɽ�������٥��聹����)�()���乍�ѕ����͍ɽ�����������(������������ɥ����مȠ��͍ɽ����ȵݥ�Ѡ������)�((����������ѕ����ѽ������(�����������聹����(���������ɽչ�聹����(���ɑ��聹����(���������聥���ɥ��(�����������������(�������ͽ������ѕ��)�((�������5=	%1�MA%%���������ऀ������)����������ݥ�Ѡ������ँ�(�������х�������Դ���������(��������ݥ�Ѡ������(�������������ɽչ���Ʌ����ɕ���(�����������͡����聹����(����������ɑ�ȵɅ��������&v���F�����F�7������S��Т ��6F��r��V�R����&��R�2���&��R�W��FVB��F�7���&��6���Р��6F��r��V�R����&��R�fW'F�6���V�U���FV����&v���&�GF�Ӣ����&�&FW#��6�ƖBf"���&�&FW"���&�&FW"�&F�W3������fW&f��s���FFV㰢Т ����&��R�6FVv�'��&�r��F�7���f�W����W7F�g��6��FV�C�76R�&WGvVV㰢Ɩv�֗FV�3�6V�FW#��&6�w&�V�C�f"���7W&f6R��WFVB���6���#�f"���FW�B�&��'����Р��6F��r��V�R����&��R�fW'F�6���V�U��Ɩ���f�W����FF��s�'�g���F�7���f�W���Ɩv�֗FV�3�6V�FW#��f��B�vV�v�C�S��܎�[�\�]B����][��[Y[�KK[[ؚ[H��\�X�[[Y[�W��[���\����\�Y�\�^N��ۙNB���[ؚ[KX�]Y�ܞK]���H\�^N��^[YۋZ][\Έ�[�\��\�Y�KX�۝[���[�\�Y[�ΈL�M��[��][ێ��[�ٛܛH���X\�NB����\�X�[[Y[�W��][K�\�Y^[�Y�[ؚ[KX�]Y�ܞK]���H�[�ٛܛN���]JNY�NB����][��[Y[�KK[[ؚ[H�YY�K[Y[�H\�^N��ۙHZ[\ܝ[���][ێ��]X�Z[\ܝ[��Y�L	HZ[\ܝ[���\�Y�Έ�ۙHZ[\ܝ[��ܙ\���ۙHZ[\ܝ[��ܙ\�\�Y]\ΈZ[\ܝ[�Y[�ΈM�Z[\ܝ[�X^ZZY���ۙHZ[\ܝ[�ݙ\����^N��\�X�HZ[\ܝ[�[�[X][ێ��ۙHZ[\ܝ[��X��ܛ�[���\�K\�\��X�K\�Z\�Y
-NB����][��[Y[�KK[[ؚ[H��\�X�[[Y[�W��][K�\�Y^[�Y��YY�K[Y[�H\�^N�����Z[\ܝ[�B����][��[Y[�KK[[ؚ[H�YY�K[Y[�W����[[��Y�L	HZ[\ܝ[�X\��[�X���N�M�B�B
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 1440px;
+    height: 100%;
+    padding: 16px 40px 24px;
+}
+
+/* ===== 4. HERO CATEGORY MODE ===== */
+.hero-section {
+    position: relative;
+    overflow: visible;
+}
+
+.hero-section__left {
+    position: relative;
+    overflow: visible;
+}
+
+.hero-section__left.is-category-focused {
+    z-index: 930;
+    background: var(--surface-raised);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(10, 91, 255, 0.45), 0 20px 50px rgba(0, 0, 0, 0.22);
+}
+
+.catalog-menu--hero-open {
+    position: relative;
+    z-index: 931;
+}
+
+.catalog-menu--hero {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+/* ===== 5. DESKTOP OVERLAY MODE ===== */
+.catalog-menu--overlay {
+    position: relative;
+    width: 100%;
+    height: min(620px, calc(100vh - var(--category-overlay-top, 50px) - 32px));
+    display: block;
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(14, 19, 32, 0.28);
+    overflow: hidden;
+}
+
+.catalog-menu--overlay .vertical-menu__item {
+    position: static;
+}
+
+.catalog-menu--overlay .mobile-category-row {
+    width: 280px;
+}
+
+.catalog-menu--overlay .vertical-menu__link {
+    width: 280px;
+    border-right: 1px solid var(--border);
+}
+
+/* Panel Phải cho Overlay Mode */
+.catalog-menu--overlay .vertical-menu__item > .mega-menu {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 280px;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    padding: 24px 28px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 0;
+    border-radius: 0 16px 16px 0;
+    box-shadow: none;
+    z-index: 940;
+}
+
+/* Panel Phải cho Hero Mode */
+.catalog-menu--hero-open .vertical-menu__item > .mega-menu {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 24px);
+    width: min(920px, calc(100vw - 280px - 24px - 80px));
+    max-height: calc(100vh - var(--category-overlay-top, 50px) - 24px);
+    overflow-y: auto;
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+    z-index: 940;
+}
+
+/* ===== 6. MEGA PANEL LIFECYCLE ===== */
+.vertical-menu__item > .mega-menu {
+    display: none;
+}
+
+.catalog-menu--hero-open .vertical-menu__item.is-active > .mega-menu {
+    display: block;
+}
+
+.catalog-overlay.is-open .catalog-menu--overlay .vertical-menu__item.is-active > .mega-menu {
+    display: block;
+}
+
+.catalog-menu--mobile .vertical-menu__item.is-expanded > .mega-menu {
+    display: block;
+}
+
+/* ===== 7. ACTIVE ITEM STATE ===== */
+.vertical-menu__item.is-active > .mobile-category-row .vertical-menu__link {
+    background: rgba(10, 91, 255, 0.12);
+    color: var(--primary);
+}
+
+/* ===== 8. SCROLLBAR ===== */
+.mega-menu::-webkit-scrollbar {
+    width: 6px;
+}
+.mega-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+.mega-menu::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+/* ===== 9. DARK MODE (SEMANTIC TOKENS) ===== */
+html.dark-mode .catalog-menu--hero,
+html.dark-mode .catalog-menu--hero-open,
+html.dark-mode .catalog-menu--overlay,
+html.dark-mode .mega-menu,
+html.dark-mode .vertical-menu__link,
+html.dark-mode .mobile-category-row,
+html.dark-mode .mobile-category-toggle {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+html.dark-mode .catalog-menu--overlay,
+html.dark-mode .catalog-menu--hero-open .vertical-menu__item > .mega-menu,
+html.dark-mode .catalog-menu--overlay .vertical-menu__item > .mega-menu {
+    background: var(--surface-raised);
+}
+
+/* ===== 10. MOBILE ACCORDION ===== */
+.mobile-category-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+/* ===== 11. RESPONSIVE <=1024px ===== */
+@media (max-width: 1024px) {
+    .mobile-category-toggle {
+        display: flex;
+        width: 44px;
+        height: 44px;
+    }
+    
+    .mobile-category-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .vertical-menu__link {
+        flex: 1;
+    }
+
+    .catalog-menu--mobile .vertical-menu__item > .mega-menu {
+        position: static;
+        width: 100%;
+        max-height: none;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 12px 16px;
+        background: var(--surface-muted);
+    }
+    
+    html.dark-mode .catalog-menu--mobile .vertical-menu__item > .mega-menu {
+        background: var(--surface-muted);
+    }
+    
+    /* Rotate icon when expanded */
+    .vertical-menu__item.is-expanded .mobile-category-toggle i {
+        transform: rotate(90deg);
+        transition: transform 0.2s ease;
+    }
+    .mobile-category-toggle i {
+        transition: transform 0.2s ease;
+    }
+}
+
+/* ===== 12. FOCUS-VISIBLE/ACCESSIBILITY ===== */
+.vertical-menu__link:focus-visible,
+.mobile-category-toggle:focus-visible,
+#headerCategoryTrigger:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
