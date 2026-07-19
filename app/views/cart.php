@@ -36,12 +36,14 @@ $total = $total ?? 0;
                         </div>
                         <div class="cart-item__controls">
                             <form method="post" action="<?= url('cart/update') ?>" class="qty-form">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
                                 <button type="submit" name="quantity" value="<?= max(1, (int)$item['quantity'] - 1) ?>" class="qty-btn">-</button>
                                 <span><?= (int)$item['quantity'] ?></span>
                                 <button type="submit" name="quantity" value="<?= (int)$item['quantity'] + 1 ?>" class="qty-btn">+</button>
                             </form>
                             <form method="post" action="<?= url('cart/remove') ?>">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
                                 <button type="submit" class="btn btn--outline btn--sm" style="box-shadow: none;">Xóa</button>
                             </form>

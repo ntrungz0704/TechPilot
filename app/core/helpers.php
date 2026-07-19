@@ -92,3 +92,94 @@ if (!function_exists('cartSubtotal')) {
         return $subtotal;
     }
 }
+
+if (!function_exists('flash')) {
+    function flash(string $type, string $message): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['flashes'])) {
+            $_SESSION['flashes'] = [];
+        }
+        $_SESSION['flashes'][] = [
+            'type' => $type,
+            'message' => $message
+        ];
+    }
+}
+
+if (!function_exists('pullFlashes')) {
+    function pullFlashes(): array
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $flashes = $_SESSION['flashes'] ?? [];
+        unset($_SESSION['flashes']);
+        return $flashes;
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    function csrf_token(): string
+    {
+        return $_SESSION['csrf_token'] ?? '';
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">' . 
+               '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('verifyCsrf')) {
+    function verifyCsrf(?string $token = null): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $token = $token ?? $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
+        $saved = $_SESSION['csrf_token'] ?? '';
+        return !empty($token) && hash_equals($saved, $token);
+    }
+}
+
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        return strncmp($haystack, $needle, strlen($needle)) === 0;
+    }
+}
+
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool
+    {
+        return $needle === '' || substr($haystack, -strlen($needle)) === $needle;
+    }
+}
+
+if (!function_exists('normalizeSearchKeyword')) {
+    function normalizeSearchKeyword(string $keyword): string
+    {
+        // Dùng mb_strtolower nếu có mbstring, fallback về strtolower
+        if (function_exists('mb_strtolower')) {
+            $keyword = mb_strtolower(trim($keyword), 'UTF-8');
+        } else {
+            $keyword = strtolower(trim($keyword));
+        }
+        $keyword = preg_replace('/\s+/u', ' ', $keyword);
+        return $keyword !== null ? $keyword : '';
+    }
+}
+

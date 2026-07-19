@@ -22,7 +22,7 @@ class HomeController extends Controller
             'pcLinhKien'             => $productModel->getByCategorySlug('pc-linh-kien', 6),
             'gamingGear'             => $productModel->getByCategorySlug('gaming-gear', 6),
             'monHinh'                => $productModel->getByCategorySlug('man-hinh', 6),
-            'apple'                  => $productModel->getByCategorySlug('apple', 6),
+            'apple'                  => $productModel->getByCategorySlug('may-tinh-bo', 6),
 
             // Dữ liệu cho Best Seller Tabs
             'bestSellersLaptop'      => $productModel->getBestSellersByTab('laptop', 6),
@@ -53,23 +53,26 @@ class HomeController extends Controller
         $categorySlug = trim($_GET['cat'] ?? '');
 
         $productModel = $this->model('Product');
-        $products = [];
-        $pageTitle = 'Kết quả tìm kiếm';
+        $products = $productModel->search($keyword, $categorySlug, 24);
 
-        if (!empty($keyword) || !empty($categorySlug)) {
-            if (!empty($categorySlug)) {
-                $products = $productModel->getByCategory($categorySlug, 24);
-                // Lấy tên danh mục
-                $categories = $productModel->getCategories();
-                foreach ($categories as $cat) {
-                    if ($cat['slug'] === $categorySlug) {
-                        $pageTitle = $cat['name'];
-                        break;
-                    }
+        $pageTitle = 'Kết quả tìm kiếm';
+        if (!empty($keyword) && !empty($categorySlug)) {
+            $categoryName = '';
+            foreach ($productModel->getCategories() as $cat) {
+                if ($cat['slug'] === $categorySlug) {
+                    $categoryName = $cat['name'];
+                    break;
                 }
-            } else {
-                $products = $productModel->search($keyword, '', 24);
-                $pageTitle = 'Tìm kiếm: ' . $keyword;
+            }
+            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . $categoryName;
+        } elseif (!empty($keyword)) {
+            $pageTitle = 'Tìm kiếm: ' . $keyword;
+        } elseif (!empty($categorySlug)) {
+            foreach ($productModel->getCategories() as $cat) {
+                if ($cat['slug'] === $categorySlug) {
+                    $pageTitle = $cat['name'];
+                    break;
+                }
             }
         }
 

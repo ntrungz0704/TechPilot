@@ -35,7 +35,7 @@
                 <?php
                 $sold = (int)($p['fs_sold'] ?? 0);
                 $stock = (int)($p['fs_stock'] ?? 10);
-                $percent = $stock > 0 ? min(100, round(($sold / $stock) * 100)) : 0;
+                $percent = $stock > 0 ? max(0, min(100, round(($sold / $stock) * 100))) : 0;
                 ?>
                 <div class="sold-bar">
                     <div class="sold-bar__track">
@@ -50,6 +50,7 @@
         
         <!-- Nút thêm nhanh vào giỏ hàng xuất hiện khi hover -->
         <form method="post" action="<?= url('cart/add') ?>">
+            <?= csrf_field() ?>
             <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
             <input type="hidden" name="quantity" value="1">
             <button type="submit" class="product-card__add">
