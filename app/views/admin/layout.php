@@ -457,9 +457,6 @@
             <li class="sidebar__menu-item <?= $activeMenu === 'products' ? 'active' : '' ?>">
                 <a href="<?= url('admin/products') ?>"><i class="fa-solid fa-box"></i> Sản phẩm</a>
             </li>
-            <li class="sidebar__menu-item <?= $activeMenu === 'pc-builder' ? 'active' : '' ?>">
-                <a href="<?= url('admin') ?>"><i class="fa-solid fa-screwdriver-wrench"></i> Xây dựng cấu hình</a>
-            </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'orders' ? 'active' : '' ?>">
                 <a href="<?= url('admin/orders') ?>"><i class="fa-solid fa-cart-shopping"></i> Đơn hàng</a>
             </li>
