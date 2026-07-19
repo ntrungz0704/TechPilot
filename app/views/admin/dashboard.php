@@ -23,7 +23,7 @@
                 <span class="stat-label">Doanh thu COD <i class="fa-solid fa-circle-info" title="Tổng doanh thu từ đơn hàng hoàn thành" style="font-size: 11px; cursor: help;"></i></span>
                 <strong class="stat-value"><?= formatPrice($stats['total_revenue']) ?></strong>
                 <div class="stat-trend">
-                    <span class="trend-badge"><i class="fa-solid fa-arrow-trend-up"></i> 18.6%</span>
+                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 18,6%</span>
                     <span class="trend-text">so với 7 ngày trước</span>
                 </div>
             </div>
@@ -40,7 +40,7 @@
                 <span class="stat-label">Đơn hàng <i class="fa-solid fa-circle-info" title="Tổng số lượng đơn hàng" style="font-size: 11px; cursor: help;"></i></span>
                 <strong class="stat-value"><?= number_format($stats['total_orders']) ?></strong>
                 <div class="stat-trend">
-                    <span class="trend-badge"><i class="fa-solid fa-arrow-trend-up"></i> 12.3%</span>
+                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 12,3%</span>
                     <span class="trend-text">so với 7 ngày trước</span>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                 <span class="stat-label">Khách hàng <i class="fa-solid fa-circle-info" title="Tổng số tài khoản đã đăng ký" style="font-size: 11px; cursor: help;"></i></span>
                 <strong class="stat-value"><?= number_format($stats['total_users']) ?></strong>
                 <div class="stat-trend">
-                    <span class="trend-badge"><i class="fa-solid fa-arrow-trend-up"></i> 9.7%</span>
+                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 9,7%</span>
                     <span class="trend-text">so với 7 ngày trước</span>
                 </div>
             </div>
@@ -74,7 +74,7 @@
                 <span class="stat-label">Sản phẩm <i class="fa-solid fa-circle-info" title="Tổng số mặt hàng trong danh mục" style="font-size: 11px; cursor: help;"></i></span>
                 <strong class="stat-value"><?= number_format($stats['total_products']) ?></strong>
                 <div class="stat-trend">
-                    <span class="trend-badge"><i class="fa-solid fa-arrow-trend-up"></i> 5.4%</span>
+                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 5,4%</span>
                     <span class="trend-text">so với 7 ngày trước</span>
                 </div>
             </div>
