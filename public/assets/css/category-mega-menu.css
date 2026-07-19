@@ -83,7 +83,9 @@
 }
 
 /* Scrollable mega menu panel */
-.vertical-menu__item.is-active > .mega-menu {
+.catalog-menu--hero .vertical-menu__item.is-active > .mega-menu,
+.catalog-menu--hero-open .vertical-menu__item.is-active > .mega-menu,
+.catalog-menu--overlay .vertical-menu__item.is-active > .mega-menu {
     display: block !important;
     position: absolute;
     top: 0;

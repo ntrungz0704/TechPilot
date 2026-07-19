@@ -32,9 +32,7 @@ $reviews = $reviews ?? [];
 <div class="home-page-wrapper">
 <section class="container hero-section">
     <!-- Left: Vertical Category Menu -->
-    <div class="hero-section__left" id="heroCategorySlot">
-        <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
-    </div>
+    <div class="hero-section__left" id="heroCategorySlot"></div>
 
     <!-- Center: Large Hero Banner Carousel -->
     <div class="hero-section__center" id="heroCarousel">

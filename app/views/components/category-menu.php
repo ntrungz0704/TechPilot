@@ -1,7 +1,4 @@
 <?php
-// Đánh dấu đã render component này
-$categoryMenuRendered = true;
-
 // Nạp dữ liệu
 $verticalCategories = require ROOT_PATH . '/app/data/category-menu.php';
 ?>
