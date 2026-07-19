@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const backdrop = document.getElementById('categoryBackdrop');
     const mainNav = document.querySelector('.main-nav');
     const mainNavInner = document.querySelector('.main-nav__inner');
-    const mainNavSentinel = document.getElementById('mainNavSentinel');
+    const commerceHeaderSentinel = document.getElementById('commerceHeaderSentinel');
+    const commerceHeaderStack = document.getElementById('commerceHeaderStack');
 
     const menuItems = sharedMenu
         ? Array.from(sharedMenu.querySelectorAll('.vertical-menu__item'))
@@ -23,10 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeMode = null; // null | 'hero' | 'overlay' | 'mobile'
 
     // STICKY NAVIGATION OBSERVER
-    if (mainNavSentinel && mainNav && 'IntersectionObserver' in window) {
+    if (commerceHeaderSentinel && commerceHeaderStack && 'IntersectionObserver' in window) {
         const stickyObserver = new IntersectionObserver(
             ([entry]) => {
-                mainNav.classList.toggle('is-stuck', !entry.isIntersecting);
+                commerceHeaderStack.classList.toggle('is-stuck', !entry.isIntersecting);
 
                 if (isMenuOpen) {
                     requestAnimationFrame(updateOverlayTop);
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         );
 
-        stickyObserver.observe(mainNavSentinel);
+        stickyObserver.observe(commerceHeaderSentinel);
     }
 
     // INITIAL POSITION & RESIZE
@@ -128,19 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // OVERLAY TOP LOGIC
     function updateOverlayTop() {
-        if (!mainNav) {
+        if (!commerceHeaderStack) {
             return;
         }
 
-        const navRect = mainNav.getBoundingClientRect();
-        const navBottom = Math.max(
+        const stackRect = commerceHeaderStack.getBoundingClientRect();
+        const stackBottom = Math.max(
             0,
-            Math.min(window.innerHeight, navRect.bottom)
+            Math.min(window.innerHeight, stackRect.bottom)
         );
 
         document.documentElement.style.setProperty(
             '--category-overlay-top',
-            `${Math.round(navBottom)}px`
+            `${Math.round(stackBottom)}px`
         );
     }
 
@@ -189,19 +190,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // HERO MODE CHECK
     function canUseHeroMode() {
-        if (!heroSlot || !mainNav || !isDesktop()) {
+        if (!heroSlot || !commerceHeaderStack || !isDesktop()) {
             return false;
         }
 
         const heroRect = heroSlot.getBoundingClientRect();
-        const navRect = mainNav.getBoundingClientRect();
+        const stackRect = commerceHeaderStack.getBoundingClientRect();
 
-        const visibleTop = Math.max(heroRect.top, navRect.bottom);
+        const visibleTop = Math.max(heroRect.top, stackRect.bottom);
         const visibleBottom = Math.min(heroRect.bottom, window.innerHeight);
         const visibleHeight = Math.max(0, visibleBottom - visibleTop);
 
         return (
-            heroRect.top >= navRect.bottom - 1 &&
+            heroRect.top >= stackRect.bottom - 1 &&
             visibleHeight >= 320
         );
     }

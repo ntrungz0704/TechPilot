@@ -1,7 +1,7 @@
 /* ===== 1. GLOBAL CATALOG OVERLAY ===== */
 .catalog-overlay {
     position: fixed;
-    top: var(--category-overlay-top, 50px);
+    top: var(--category-overlay-top, 130px);
     right: 0;
     bottom: 0;
     left: 0;
@@ -34,7 +34,7 @@
     width: 100%;
     max-width: 1440px;
     height: 100%;
-    padding: 16px 40px 24px;
+    padding: 0 40px 24px;
 }
 
 /* ===== 4. HERO CATEGORY MODE ===== */
@@ -70,12 +70,13 @@
 .catalog-menu--overlay {
     position: relative;
     width: 100%;
-    height: min(620px, calc(100vh - var(--category-overlay-top, 50px) - 32px));
+    height: min(620px, calc(100vh - var(--category-overlay-top, 130px) - 24px));
     display: block;
     background: var(--surface-raised);
     color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-top: 0;
+    border-radius: 0 0 16px 16px;
     box-shadow: 0 24px 70px rgba(14, 19, 32, 0.28);
     overflow: hidden;
 }
@@ -103,15 +104,12 @@
     width: auto;
     max-width: none;
     max-height: none;
-    padding: 24px 28px;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    padding: 24px 28px;
     background: var(--surface-raised);
-    color: var(--text-primary);
     border: 0;
-    border-radius: 0 16px 16px 0;
+    border-radius: 0 0 16px 0;
     box-shadow: none;
-    z-index: 940;
 }
 
 /* Panel Phải cho Hero Mode */
@@ -120,7 +118,7 @@
     top: 0;
     left: calc(100% + 24px);
     width: min(920px, calc(100vw - 280px - 24px - 80px));
-    max-height: calc(100vh - var(--category-overlay-top, 50px) - 24px);
+    max-height: calc(100vh - var(--category-overlay-top, 130px) - 24px);
     overflow-y: auto;
     background: var(--surface-raised);
     color: var(--text-primary);

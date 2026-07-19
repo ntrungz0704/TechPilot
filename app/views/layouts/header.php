@@ -8,8 +8,8 @@
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.8') ?>">
-    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.6') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=18.9') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=1.7') ?>">
     <script>
         (() => {
             const stored = localStorage.getItem('techpilot-theme');
@@ -33,8 +33,11 @@
         </div>
     </div>
 
-    <!-- 2. Main Header -->
-    <header class="site-header">
+    <div id="commerceHeaderSentinel" aria-hidden="true"></div>
+
+    <div class="commerce-header-stack" id="commerceHeaderStack">
+        <!-- 2. Main Header -->
+        <header class="site-header">
         <div class="container site-header__inner">
             <!-- Hamburger menu toggle for mobile -->
             <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Menu Toggle">
@@ -139,8 +142,6 @@
         </div>
     </header>
 
-    <div id="mainNavSentinel" aria-hidden="true"></div>
-
     <!-- 3. Navigation Menu -->
     <nav class="main-nav">
         <!-- Nút đóng Drawer trên Mobile -->
@@ -166,6 +167,7 @@
             </ul>
         </div>
     </nav>
+    </div> <!-- Close commerce-header-stack -->
 
     <!-- Global Category Overlay -->
     <div id="globalCategoryOverlay" class="catalog-overlay" aria-hidden="true">
