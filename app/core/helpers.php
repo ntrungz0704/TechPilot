@@ -148,3 +148,12 @@ if (!function_exists('verifyCsrf')) {
     }
 }
 
+if (!function_exists('normalizeSearchKeyword')) {
+    function normalizeSearchKeyword(string $keyword): string
+    {
+        $keyword = mb_strtolower(trim($keyword), 'UTF-8');
+        $keyword = preg_replace('/\s+/u', ' ', $keyword);
+        return $keyword ?? '';
+    }
+}
+
