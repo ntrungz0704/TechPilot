@@ -66,7 +66,7 @@
                     <i class="fa-solid fa-location-dot"></i>
                     <span>Cửa hàng</span>
                 </a>
-                <a href="#" class="header-actions__item header-actions__wishlist">
+                <a href="<?= url('profile/wishlist') ?>" class="header-actions__item header-actions__wishlist">
                     <i class="fa-regular fa-heart"></i>
                     <span>Yêu thích</span>
                 </a>
@@ -81,6 +81,8 @@
                         <i class="fa-solid fa-circle-user"></i>
                         <span><?= e($u['full_name']) ?></span>
                         <div class="dropdown__menu">
+                            <a href="<?= url('profile') ?>"><i class="fa-solid fa-user"></i> Trang cá nhân</a>
+                            <a href="<?= url('profile/orders') ?>"><i class="fa-solid fa-box-open"></i> Đơn hàng của tôi</a>
                             <a href="<?= url('auth/logout') ?>"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
                         </div>
                     </div>
