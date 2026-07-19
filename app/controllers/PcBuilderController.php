@@ -12,42 +12,42 @@ class PcBuilderController extends Controller
         'cpu' => [
             'name' => 'Bộ vi xử lý (CPU)',
             'icon' => 'fa-solid fa-microchip',
-            'query' => "category_id = 4 AND (name LIKE '%CPU%' OR name LIKE '%Intel Core%' OR name LIKE '%Ryzen%' OR name LIKE '%Ultra 5%' OR name LIKE '%Ultra 7%' OR name LIKE '%Ultra 9%')"
+            'query' => "category_id = 4 AND JSON_EXTRACT(specs, '$.component_type') = '\"cpu\"'"
         ],
         'mainboard' => [
             'name' => 'Bo mạch chủ (Mainboard)',
             'icon' => 'fa-solid fa-clone', 
-            'query' => "category_id = 4 AND (name LIKE '%Mainboard%' OR name LIKE '%Main board%' OR name LIKE '%ASUS TUF%' OR name LIKE '%ASUS Prime%' OR name LIKE '%MSI PRO%' OR name LIKE '%AORUS%')"
+            'query' => "category_id = 4 AND JSON_EXTRACT(specs, '$.component_type') = '\"motherboard\"'"
         ],
         'ram' => [
             'name' => 'Bộ nhớ trong (RAM)',
             'icon' => 'fa-solid fa-server',
-            'query' => "category_id = 4 AND (name LIKE '%RAM%' OR name LIKE '%Vengeance%' OR name LIKE '%Fury%' OR name LIKE '%Ripjaws%' OR name LIKE '%Trident%')"
+            'query' => "category_id = 4 AND JSON_EXTRACT(specs, '$.component_type') = '\"ram\"'"
         ],
         'vga' => [
             'name' => 'Card màn hình (VGA)',
             'icon' => 'fa-solid fa-sd-card',
-            'query' => "(category_id = 4 OR category_id = 7) AND (name LIKE '%RTX%' OR name LIKE '%GTX%' OR name LIKE '%Radeon%' OR name LIKE '%VGA%' OR name LIKE '%Card%')"
+            'query' => "JSON_EXTRACT(specs, '$.component_type') = '\"gpu\"'"
         ],
         'storage' => [
             'name' => 'Ổ cứng (SSD/HDD)',
             'icon' => 'fa-solid fa-database',
-            'query' => "category_id = 4 AND (name LIKE '%SSD%' OR name LIKE '%Ổ cứng%' OR name LIKE '%NVMe%' OR name LIKE '%Kingston NV2%' OR name LIKE '%WD Blue%' OR name LIKE '%HDD%')"
+            'query' => "category_id = 4 AND (JSON_EXTRACT(specs, '$.component_type') = '\"ssd\"' OR JSON_EXTRACT(specs, '$.component_type') = '\"hdd\"')"
         ],
         'psu' => [
             'name' => 'Nguồn máy tính (PSU)',
             'icon' => 'fa-solid fa-plug',
-            'query' => "category_id = 4 AND (name LIKE '%Nguồn%' OR name LIKE '%PSU%' OR name LIKE '%Corsair CV%' OR name LIKE '%Deepcool PF%' OR name LIKE '%MSI MAG%' OR name LIKE '%Focus GX%')"
+            'query' => "category_id = 4 AND JSON_EXTRACT(specs, '$.component_type') = '\"psu\"'"
         ],
         'case' => [
             'name' => 'Vỏ máy tính (Case)',
             'icon' => 'fa-solid fa-box',
-            'query' => "category_id = 4 AND (name LIKE '%Case%' OR name LIKE '%Vỏ%' OR name LIKE '%Airflow%' OR name LIKE '%NZXT H%')"
+            'query' => "category_id = 4 AND JSON_EXTRACT(specs, '$.component_type') = '\"case\"'"
         ],
         'cooler' => [
             'name' => 'Tản nhiệt PC',
             'icon' => 'fa-solid fa-fan',
-            'query' => "category_id = 4 AND (name LIKE '%Tản%' OR name LIKE '%Cooler%' OR name LIKE '%NH-D15%' OR name LIKE '%Kraken%' OR name LIKE '%Coreliquid%')"
+            'query' => "category_id = 4 AND JSON_EXTRACT(specs, '$.component_type') = '\"cpu_cooler\"'"
         ],
         'monitor' => [
             'name' => 'Màn hình',
@@ -149,6 +149,16 @@ class PcBuilderController extends Controller
             unset($p['specs']); // Ẩn specs raw để tối ưu JSON
             $results[] = $p;
         }
+
+        // Sắp xếp: Tương thích lên đầu, không tương thích xuống dưới. Sau đó xếp theo giá tăng dần
+        usort($results, function($a, $b) {
+            $aCompat = $a['compatible'] ? 1 : 0;
+            $bCompat = $b['compatible'] ? 1 : 0;
+            if ($aCompat !== $bCompat) {
+                return $bCompat - $aCompat; // 1 (tương thích) lên trước 0 (không tương thích)
+            }
+            return $a['price'] <=> $b['price'];
+        });
 
         echo json_encode($results);
         exit;
