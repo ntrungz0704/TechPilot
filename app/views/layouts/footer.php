@@ -128,8 +128,8 @@
         </div>
     <?php endif; ?>
 
-    <script src="<?= url('assets/js/main.js?v=7.1') ?>"></script>
-    <script src="<?= url('assets/js/category-mega-menu.js?v=2.5') ?>"></script>
+    <script src="<?= url('assets/js/main.js?v=7.2') ?>"></script>
+    <script src="<?= url('assets/js/category-mega-menu.js?v=2.6') ?>"></script>
     <script>
         // Xử lý menu hamburger và drawer menu trên Mobile
         const mainNav = document.querySelector('.main-nav');
