@@ -11,10 +11,11 @@ class HomeController extends Controller
         $reviewModel  = $this->model('Review');
 
         $data = [
+            'isHome'                 => true,
             'pageTitle'              => 'Trang chủ - TechPilot',
             'categories'             => $productModel->getCategories(),
             'flashSale'              => $productModel->getFlashSale(6),
-            
+
             // Các danh mục sản phẩm lớn ở trang chủ
             'laptopGaming'           => $productModel->getByCategorySlug('laptop-gaming', 6),
             'laptopVanPhong'         => $productModel->getByCategorySlug('laptop-van-phong', 6),
@@ -124,11 +125,37 @@ class HomeController extends Controller
         ]);
     }
 
-    public function trade_in(): void
+    /** Tìm kiếm AJAX realtime */
+    public function ajaxSearch(): void
     {
-        $this->render('home/trade_in', [
-            'pageTitle' => 'Thu cũ đổi mới máy cũ - TechPilot'
-        ]);
+        $keyword      = trim($_GET['q'] ?? '');
+        $categorySlug = trim($_GET['cat'] ?? '');
+
+        header('Content-Type: application/json; charset=utf-8');
+
+        // Require at least 2 characters (mirrors client-side guard)
+        if (mb_strlen($keyword) < 2) {
+            echo json_encode([]);
+            return;
+        }
+
+        $productModel = $this->model('Product');
+        // Chỉ lấy 6 sản phẩm để hiển thị dropdown
+        $all = $productModel->search($keyword, $categorySlug, 6);
+
+        // Chỉ trả về các trường cần thiết cho giao diện gợi ý
+        $products = array_map(function ($p) {
+            return [
+                'id'            => $p['id'],
+                'name'          => $p['name'],
+                'slug'          => $p['slug'],
+                'image'         => $p['image'] ?? '',
+                'price'         => $p['price'],
+                'category_name' => $p['category_name'] ?? '',
+            ];
+        }, $all);
+
+        echo json_encode($products);
     }
 
     public function notFound(): void

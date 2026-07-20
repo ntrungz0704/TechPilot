@@ -25,7 +25,7 @@
                             <td><?= (int)$pst['id'] ?></td>
                             <td>
                                 <?php if (!empty($pst['image'])): ?>
-                                    <img src="<?= url('assets/images/' . e($pst['image'])) ?>" alt="<?= e($pst['title']) ?>" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px;">
+                                    <img src="<?= url('assets/images/news/' . e($pst['image'])) ?>" alt="<?= e($pst['title']) ?>" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px;">
                                 <?php else: ?>
                                     <div style="width: 100px; height: 50px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #9CA3AF;">No image</div>
                                 <?php endif; ?>
@@ -42,7 +42,7 @@
                                 ?>
                                 <span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                             </td>
-                            <td><?= date('d/m/Y H:i', strtotime($pst['published_at'])) ?></td>
+                            <td><?= !empty($pst['published_at']) ? date('d/m/Y H:i', strtotime((string)$pst['published_at'])) : 'Chưa xuất bản' ?></td>
                             <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; height: 65px;">
                                 <a href="<?= url('admin/posts/edit/' . $pst['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                                 
