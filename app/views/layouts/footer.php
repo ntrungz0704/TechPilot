@@ -94,7 +94,7 @@
     ?>
         <div class="mobile-fixed-buy-bar">
             <div class="fixed-buy-bar__info">
-                <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="thumb">
+                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="thumb">
                 <div class="fixed-buy-bar__txt">
                     <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
                     <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>
@@ -169,6 +169,48 @@
                 if (window.innerWidth <= 575) {
                     const parent = this.parentElement;
                     parent.classList.toggle('is-active');
+                }
+            });
+        });
+    </script>
+
+    <script>
+        /**
+         * Xóa các parameter rỗng trước khi submit form search
+         * URL sẽ clean: ?q=lap thay vì ?q=lap&cat=&brand=
+         */
+        function cleanSearchParams(form) {
+            const emptyParams = ['q', 'cat', 'brand', 'min_price', 'max_price', 'stock', 'sort', 'page'];
+            // Build URL từ action của form
+            const url = new URL(form.action);
+            const params = new URLSearchParams();
+
+            // Duyệt qua từng field trong form
+            for (const el of form.elements) {
+                if (!el.name) continue;
+                const val = el.value.trim();
+                // Chỉ thêm vào URL nếu có giá trị
+                if (val !== '' && val !== '0') {
+                    params.set(el.name, val);
+                }
+            }
+
+            // Reset page về 1 khi search mới
+            params.delete('page');
+
+            url.search = params.toString();
+            window.location.href = url.toString();
+            return false; // ngăn form submit mặc định
+        }
+
+        // Tự động áp dụng cleanSearchParams cho tất cả form search
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form[action*="home/search"]').forEach(function(form) {
+                if (!form.hasAttribute('onsubmit')) {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        cleanSearchParams(this);
+                    });
                 }
             });
         });
