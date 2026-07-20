@@ -1217,17 +1217,39 @@ class Product
     }
 
     /**
-     * Chuẩn hóa keyword tìm kiếm: lowercase, trim, collapse whitespace.
-     * Không tách token (i3, RTX 4060, B650M giữ nguyên).
+     * Loại bỏ dấu tiếng Việt để đối chiếu alias
+     */
+    private function removeVietnameseAccents(string $str): string
+    {
+        $unicode = [
+            'a' => 'á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ',
+            'd' => 'đ',
+            'e' => 'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+            'i' => 'í|ì|ỉ|ĩ|ị',
+            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+            'u' => 'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+            'y' => 'ý|ỳ|ỷ|ỹ|ỵ',
+        ];
+        foreach ($unicode as $nonUnicode => $uni) {
+            $str = preg_replace("/($uni)/iu", $nonUnicode, $str);
+        }
+        return $str;
+    }
+
+    /**
+     * Chuẩn hóa từ khóa tìm kiếm
      */
     private function normalizeSearchKeyword(string $keyword): string
     {
-        $keyword = trim($keyword);
-        $keyword = mb_strtolower($keyword, 'UTF-8');
+        $keyword = mb_strtolower(trim($keyword), 'UTF-8');
         $keyword = preg_replace('/\s+/u', ' ', $keyword);
-        return mb_substr($keyword ?? '', 0, 100, 'UTF-8');
+        return $keyword;
     }
 
+    /**
+     * Xây dựng điều kiện WHERE và các tham số bindings.
+     * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
+     */
     private function buildSearchQueryConditions(
         string $keyword = '',
         string $categorySlug = '',
@@ -1239,20 +1261,97 @@ class Product
         $conditions = ["p.status = 'active'"];
         $params = [];
 
-        // 1. Filter Category — là filter riêng, không phải phạm vi keyword
-        if (!empty($categorySlug)) {
-            $conditions[] = '(c.slug = :catSlug1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :catSlug2 AND status = "active"))';
-            $params[':catSlug1'] = $categorySlug;
-            $params[':catSlug2'] = $categorySlug;
+        // 1. Phân loại từ khóa theo bí danh danh mục (Category Aliases)
+        $normalized = $this->normalizeSearchKeyword($keyword);
+        $normalizedNoAccent = $this->removeVietnameseAccents($normalized);
+
+        $matchedCategorySlugs = [];
+        $aliases = [
+            'laptop gaming'     => ['laptop-gaming'],
+            'laptop van phong'  => ['laptop-van-phong'],
+            'laptop văn phòng'  => ['laptop-van-phong'],
+            'máy tính xách tay' => ['laptop-gaming', 'laptop-van-phong'],
+            'may tinh xach tay' => ['laptop-gaming', 'laptop-van-phong'],
+            'máy tính để bàn'   => ['pc-build-san'],
+            'may tinh de ban'   => ['pc-build-san'],
+            'gaming gear'       => ['gaming-gear'],
+            'linh kiện'         => ['linh-kien-pc'],
+            'linh kien'         => ['linh-kien-pc'],
+            'màn hình'          => ['man-hinh'],
+            'man hinh'          => ['man-hinh'],
+            'laptop'            => ['laptop-gaming', 'laptop-van-phong'],
+            'máy bộ'            => ['pc-build-san'],
+            'may bo'            => ['pc-build-san'],
+            'lap'               => ['laptop-gaming', 'laptop-van-phong'],
+            'pc'                => ['pc-build-san'],
+        ];
+
+        // Sắp xếp alias dài hơn lên trước
+        uksort($aliases, function($a, $b) {
+            return strlen($b) <=> strlen($a);
+        });
+
+        $remainingKeyword = $normalized;
+        $remainingKeywordNoAccent = $normalizedNoAccent;
+
+        foreach ($aliases as $alias => $slugs) {
+            $pattern = '/(?<=^|\s)' . preg_quote($alias, '/') . '(?=$|\s)/u';
+            $matched = false;
+            if (preg_match($pattern, $remainingKeyword)) {
+                $matchedCategorySlugs = array_merge($matchedCategorySlugs, $slugs);
+                $remainingKeyword = preg_replace($pattern, '', $remainingKeyword);
+                $matched = true;
+            }
+
+            $aliasNoAccent = $this->removeVietnameseAccents($alias);
+            $patternNoAccent = '/(?<=^|\s)' . preg_quote($aliasNoAccent, '/') . '(?=$|\s)/u';
+            if (preg_match($patternNoAccent, $remainingKeywordNoAccent)) {
+                if (!$matched) {
+                    $matchedCategorySlugs = array_merge($matchedCategorySlugs, $slugs);
+                }
+                $remainingKeywordNoAccent = preg_replace($patternNoAccent, '', $remainingKeywordNoAccent);
+            }
         }
 
-        // 2. Filter Brand — filter riêng
+        $remainingKeyword = trim(preg_replace('/\s+/u', ' ', $remainingKeyword));
+        $matchedCategorySlugs = array_unique($matchedCategorySlugs);
+
+        // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL
+        $urlSlugs = !empty($categorySlug) ? [$categorySlug] : [];
+        $hasCategoryConstraint = !empty($categorySlug) || !empty($matchedCategorySlugs);
+
+        if ($hasCategoryConstraint) {
+            if (!empty($urlSlugs) && !empty($matchedCategorySlugs)) {
+                $targetSlugs = array_values(array_intersect($matchedCategorySlugs, $urlSlugs));
+            } elseif (!empty($urlSlugs)) {
+                $targetSlugs = $urlSlugs;
+            } else {
+                $targetSlugs = $matchedCategorySlugs;
+            }
+
+            if (empty($targetSlugs)) {
+                // Giao rỗng -> 0 kết quả
+                $conditions[] = '1 = 0';
+            } else {
+                $catConditions = [];
+                foreach ($targetSlugs as $i => $slug) {
+                    $pName = ':catSlug_' . $i;
+                    $params[$pName] = $slug;
+                    $pNameParent = ':catSlugParent_' . $i;
+                    $params[$pNameParent] = $slug;
+                    $catConditions[] = "(c.slug = $pName OR c.parent_id IN (SELECT id FROM categories WHERE slug = $pNameParent AND status = 'active'))";
+                }
+                $conditions[] = '(' . implode(' OR ', $catConditions) . ')';
+            }
+        }
+
+        // 3. Filter Brand
         if (!empty($brandSlug)) {
             $conditions[] = 'b.slug = :brandSlug';
             $params[':brandSlug'] = $brandSlug;
         }
 
-        // 3. Filter Price
+        // 4. Filter Price
         if ($minPrice > 0) {
             $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) >= :minPrice';
             $params[':minPrice'] = $minPrice;
@@ -1262,28 +1361,23 @@ class Product
             $params[':maxPrice'] = $maxPrice;
         }
 
-        // 4. Filter Stock
+        // 5. Filter Stock
         if ($inStockOnly) {
             $conditions[] = 'p.stock > 0';
         }
 
-        // 5. Keyword search: CHỈ TÌM TRONG products.name
-        // Không tìm description, short_desc, specs, category name, brand name
-        $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
-        $rawKeyword = $normalizedKeyword;
-
-        if (!empty($normalizedKeyword)) {
-            $conditions[] = 'LOWER(p.name) LIKE :search_name';
-            $params[':search_name'] = '%' . $normalizedKeyword . '%';
+        // 6. Tìm kiếm tên/thương hiệu cho phần keyword còn lại
+        if (!empty($remainingKeyword)) {
+            $conditions[] = '(LOWER(p.name) LIKE :search_name OR LOWER(b.name) LIKE :search_brand)';
+            $params[':search_name'] = '%' . $remainingKeyword . '%';
+            $params[':search_brand'] = '%' . $remainingKeyword . '%';
         }
 
-        return [$conditions, $params, $normalizedKeyword, $rawKeyword];
+        return [$conditions, $params, $remainingKeyword];
     }
 
     /**
-     * Tìm kiếm sản phẩm.
-     * NGUYÊN TẮC: keyword CHỈ khớp với products.name.
-     * Category/brand/giá/stock là các filter riêng kết hợp bằng AND.
+     * Tìm kiếm sản phẩm nâng cao kết hợp điểm số
      */
     public function search(
         string $keyword = '',
@@ -1301,39 +1395,46 @@ class Product
         }
 
         try {
-            [$conditions, $params, $normalizedKeyword] = $this->buildSearchQueryConditions(
+            [$conditions, $params, $remainingKeyword] = $this->buildSearchQueryConditions(
                 $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
             );
 
             $whereClause = implode(' AND ', $conditions);
 
-            // Sort: khi có keyword thì ưu tiên tên bắt đầu bằng keyword trước
-            if (!empty($normalizedKeyword)) {
-                if ($sort === 'price_asc') {
-                    $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.name ASC';
-                } elseif ($sort === 'price_desc') {
-                    $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.name ASC';
-                } elseif ($sort === 'newest') {
-                    $sortClause = 'p.created_at DESC, p.name ASC';
-                } elseif ($sort === 'name_asc') {
-                    $sortClause = 'p.name ASC';
-                } else {
-                    // relevance: tên bắt đầu bằng keyword xếp trên, rồi đến chứa keyword
-                    $params[':sort_starts'] = $normalizedKeyword . '%';
-                    $sortClause = 'CASE WHEN LOWER(p.name) LIKE :sort_starts THEN 1 ELSE 2 END ASC, p.name ASC';
-                }
+            // Xây dựng câu lệnh điểm số tương đồng nếu có keyword tên/thương hiệu
+            $scoreSql = '0 AS search_score';
+            if (!empty($remainingKeyword)) {
+                $scoreSql = "(CASE
+                    WHEN LOWER(p.name) = :exact_name THEN 100
+                    WHEN LOWER(p.name) LIKE :starts_name THEN 80
+                    WHEN LOWER(p.name) LIKE :contains_name THEN 60
+                    WHEN LOWER(b.name) = :exact_brand THEN 40
+                    WHEN LOWER(b.name) LIKE :contains_brand THEN 30
+                    ELSE 0
+                END) AS search_score";
+
+                $params[':exact_name'] = $remainingKeyword;
+                $params[':starts_name'] = $remainingKeyword . '%';
+                $params[':contains_name'] = '%' . $remainingKeyword . '%';
+                $params[':exact_brand'] = $remainingKeyword;
+                $params[':contains_brand'] = '%' . $remainingKeyword . '%';
+            }
+
+            // Sắp xếp
+            if ($sort === 'price_asc' || $sort === 'price-low') {
+                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.id DESC';
+            } elseif ($sort === 'price_desc' || $sort === 'price-high') {
+                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';
+            } elseif ($sort === 'newest') {
+                $sortClause = 'p.created_at DESC, p.id DESC';
+            } elseif ($sort === 'name_asc') {
+                $sortClause = 'p.name ASC';
+            } elseif ($sort === 'rating') {
+                $sortClause = 'p.rating DESC, p.id DESC';
+            } elseif (!empty($remainingKeyword)) {
+                $sortClause = 'search_score DESC, p.name ASC';
             } else {
-                if ($sort === 'price_asc') {
-                    $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.id DESC';
-                } elseif ($sort === 'price_desc') {
-                    $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';
-                } elseif ($sort === 'newest') {
-                    $sortClause = 'p.created_at DESC, p.id DESC';
-                } elseif ($sort === 'name_asc') {
-                    $sortClause = 'p.name ASC';
-                } else {
-                    $sortClause = 'p.created_at DESC, p.id DESC';
-                }
+                $sortClause = 'p.created_at DESC, p.id DESC';
             }
 
             $query = "
@@ -1341,7 +1442,8 @@ class Product
                     p.*,
                     b.name as brand_name,
                     c.name as category_name,
-                    c.slug as category_slug
+                    c.slug as category_slug,
+                    $scoreSql
                 FROM products p
                 LEFT JOIN brands b ON p.brand_id = b.id
                 LEFT JOIN categories c ON p.category_id = c.id
@@ -1364,7 +1466,9 @@ class Product
         }
     }
 
-    /** Đếm tổng số kết quả tìm kiếm — dùng cùng WHERE với search() */
+    /**
+     * Đếm tổng số kết quả khớp điều kiện tìm kiếm
+     */
     public function countSearch(
         string $keyword = '',
         string $categorySlug = '',
@@ -1378,36 +1482,9 @@ class Product
         }
 
         try {
-            // Dùng placeholder riêng để tránh conflict với search()
-            $conditions = ["p.status = 'active'"];
-            $params = [];
-
-            if (!empty($categorySlug)) {
-                $conditions[] = '(c.slug = :cnt_catSlug1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :cnt_catSlug2 AND status = "active"))';
-                $params[':cnt_catSlug1'] = $categorySlug;
-                $params[':cnt_catSlug2'] = $categorySlug;
-            }
-            if (!empty($brandSlug)) {
-                $conditions[] = 'b.slug = :cnt_brandSlug';
-                $params[':cnt_brandSlug'] = $brandSlug;
-            }
-            if ($minPrice > 0) {
-                $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) >= :cnt_minPrice';
-                $params[':cnt_minPrice'] = $minPrice;
-            }
-            if ($maxPrice > 0) {
-                $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) <= :cnt_maxPrice';
-                $params[':cnt_maxPrice'] = $maxPrice;
-            }
-            if ($inStockOnly) {
-                $conditions[] = 'p.stock > 0';
-            }
-
-            $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
-            if (!empty($normalizedKeyword)) {
-                $conditions[] = 'LOWER(p.name) LIKE :cnt_search_name';
-                $params[':cnt_search_name'] = '%' . $normalizedKeyword . '%';
-            }
+            [$conditions, $params] = $this->buildSearchQueryConditions(
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
+            );
 
             $whereClause = implode(' AND ', $conditions);
 
@@ -1430,6 +1507,7 @@ class Product
             return 0;
         }
     }
+
 
     /** Lấy sản phẩm theo danh mục không giới hạn */
     public function getByCategory(string $slug, int $limit = 24): array
