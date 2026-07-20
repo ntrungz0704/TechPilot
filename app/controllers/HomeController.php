@@ -56,6 +56,7 @@ class HomeController extends Controller
         $minPrice = filter_input(INPUT_GET, 'min_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
         $maxPrice = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
         $inStockOnly = ($_GET['stock'] ?? '') === '1';
+        $promoOnly = ($_GET['promo'] ?? '') === '1';
         $sort = $_GET['sort'] ?? ($keyword !== '' ? 'relevance' : 'newest');
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 24;
@@ -64,14 +65,16 @@ class HomeController extends Controller
         $productModel = $this->model('Product');
 
         $products = $productModel->search(
-            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly
+            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
         );
         $totalResults = $productModel->countSearch(
-            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
+            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
         );
 
         $pageTitle = 'Kết quả tìm kiếm';
-        if (!empty($keyword) && !empty($categorySlug)) {
+        if ($promoOnly) {
+            $pageTitle = 'Sản phẩm đang Khuyến mãi';
+        } elseif (!empty($keyword) && !empty($categorySlug)) {
             $categoryName = '';
             foreach ($productModel->getCategories() as $cat) {
                 if ($cat['slug'] === $categorySlug) {
@@ -99,6 +102,7 @@ class HomeController extends Controller
             'minPrice'     => $minPrice,
             'maxPrice'     => $maxPrice,
             'inStockOnly'  => $inStockOnly,
+            'promoOnly'    => $promoOnly,
             'sort'         => $sort,
             'page'         => $page,
             'limit'        => $limit,
@@ -107,6 +111,7 @@ class HomeController extends Controller
             'totalResults' => $totalResults,
         ]);
     }
+
 
     /** Trang danh mục */
     public function category(string $slug = ''): void
