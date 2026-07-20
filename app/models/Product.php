@@ -1217,12 +1217,10 @@ class Product
             $rawKeyword = trim($keyword);
 
             // 1. Normalize Keyword (max 100 chars, collapse whitespace)
-            if (mb_strlen($rawKeyword, 'UTF-8') > 100) {
-                $rawKeyword = mb_substr($rawKeyword, 0, 100, 'UTF-8');
+            if (safe_strlen($rawKeyword) > 100) {
+                $rawKeyword = safe_substr($rawKeyword, 0, 100);
             }
-            $normalizedKeyword = function_exists('mb_strtolower') 
-                ? mb_strtolower(preg_replace('/\s+/u', ' ', $rawKeyword), 'UTF-8') 
-                : strtolower(preg_replace('/\s+/', ' ', $rawKeyword));
+            $normalizedKeyword = safe_strtolower(preg_replace('/\s+/u', ' ', $rawKeyword));
 
             $params = [];
             $whereConditions = ["p.status = 'active'"];
@@ -1347,10 +1345,10 @@ class Product
 
             // Compute debug metadata for each item (matched_field & matched_value)
             foreach ($results as &$item) {
-                $nameLower = mb_strtolower($item['name'] ?? '', 'UTF-8');
-                $specsLower = mb_strtolower($item['specs'] ?? '', 'UTF-8');
-                $catLower = mb_strtolower($item['category_name'] ?? '', 'UTF-8');
-                $brandLower = mb_strtolower($item['brand_name'] ?? '', 'UTF-8');
+                $nameLower = safe_strtolower($item['name'] ?? '');
+                $specsLower = safe_strtolower($item['specs'] ?? '');
+                $catLower = safe_strtolower($item['category_name'] ?? '');
+                $brandLower = safe_strtolower($item['brand_name'] ?? '');
 
                 if (!empty($normalizedKeyword)) {
                     if (str_contains($nameLower, $normalizedKeyword)) {
