@@ -612,6 +612,10 @@ html.dark-mode .logo-text span {
     margin: 0;
     padding: 0;
     width: 100%;
+    height: 100%;
+    margin-left: 16px;
+    gap: 16px;
+    flex-wrap: nowrap;
 }
 
 .main-nav__links a {
@@ -4971,5 +4975,14 @@ body {
     }
     main.container.section[id="main-content"] aside[style*="width: 250px"] ul li {
         flex-shrink: 0 !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .main-nav__links {
+        gap: 10px !important;
+    }
+    .main-nav__links a {
+        font-size: 13px !important;
     }
 }
