@@ -38,17 +38,20 @@
                 <?php
                 $sold = (int)($p['fs_sold'] ?? 0);
                 $stock = (int)($p['fs_stock'] ?? $p['stock'] ?? 10);
-                $percent = $stock > 0 ? max(0, min(100, round(($sold / $stock) * 100))) : 0;
+                // Tính tổng stock gốc = stock còn lại + đã bán
+                $totalStock = $stock + $sold;
+                $percent = $totalStock > 0 ? max(0, min(100, round(($sold / $totalStock) * 100))) : 0;
                 ?>
                 <div class="sold-bar">
                     <div class="sold-bar__track">
                         <div class="sold-bar__fill" style="width: <?= $percent ?>%"></div>
                         <div class="sold-bar__text <?= $percent < 40 ? 'sold-bar__text-dark' : '' ?>">
-                            Đã bán <?= $sold ?>/<?= $stock ?>
+                            Đã bán <?= $sold ?>/<?= $totalStock ?>
                         </div>
                     </div>
                 </div>
             <?php endif; ?>
+
         </div>
         
         <!-- Nút thêm nhanh vào giỏ hàng xuất hiện khi hover -->

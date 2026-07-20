@@ -933,10 +933,19 @@ class Product
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, COALESCE(p.sale_price, p.price * 0.85) as discount_price, p.stock as fs_stock, 
-                            0 as fs_sold, COALESCE(fs.end_time, DATE_ADD(NOW(), INTERVAL 1 DAY)) as end_time 
+                    'SELECT p.*, 
+                            COALESCE(p.sale_price, p.price * 0.85) as discount_price, 
+                            p.stock as fs_stock, 
+                            COALESCE(sold_data.total_sold, 0) as fs_sold,
+                            COALESCE(fs.end_time, DATE_ADD(NOW(), INTERVAL 1 DAY)) as end_time 
                      FROM products p
                      LEFT JOIN flash_sales fs ON fs.status = \'active\' AND fs.start_time <= NOW() AND fs.end_time >= NOW()
+                     LEFT JOIN (
+                         SELECT oi.product_id, SUM(oi.quantity) as total_sold
+                         FROM order_items oi
+                         INNER JOIN orders o ON oi.order_id = o.id
+                         GROUP BY oi.product_id
+                     ) sold_data ON sold_data.product_id = p.id
                      WHERE (p.is_flash_sale = 1 OR p.sale_price IS NOT NULL)
                      ORDER BY p.id DESC LIMIT :limit'
                 );
@@ -952,6 +961,7 @@ class Product
         $samples = array_filter(self::getSampleProducts(), fn($p) => !empty($p['is_flash_sale']));
         return array_slice(array_values($samples), 0, $limit);
     }
+
 
     /** Lấy sản phẩm theo slug danh mục (hỗ trợ cả danh mục con) */
     public function getByCategorySlug(string $slug, int $limit = 6): array
