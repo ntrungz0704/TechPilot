@@ -3,6 +3,8 @@ $pageTitle = $pageTitle ?? 'Kết quả tìm kiếm';
 $keyword = $keyword ?? '';
 $categories = $categories ?? [];
 $categorySlug = $categorySlug ?? '';
+$sort = $sort ?? 'newest';
+$maxPrice = $maxPrice ?? 0;
 $totalResults = $totalResults ?? 0;
 $products = $products ?? [];
 ?>
@@ -18,6 +20,9 @@ $products = $products ?? [];
         <div class="search-widget">
             <h3>Bộ lọc tìm kiếm</h3>
             <form method="get" action="<?= url('home/search') ?>" class="search-widget__form">
+                <?php if (!empty($categorySlug)): ?>
+                    <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
+                <?php endif; ?>
                 <input type="text" name="q" placeholder="Nhập từ khóa tìm kiếm..." value="<?= e($keyword) ?>">
                 <button type="submit" class="btn btn--block"><i class="fa-solid fa-magnifying-glass"></i> Lọc kết quả</button>
             </form>
@@ -26,9 +31,9 @@ $products = $products ?? [];
         <div class="search-widget">
             <h3>Danh mục sản phẩm</h3>
             <div class="category-list">
-                <a href="<?= url('home/search') ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
+                <a href="<?= url('home/search' . (!empty($keyword) ? '?q=' . urlencode($keyword) : '')) ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
                 <?php foreach ($categories as $cat): ?>
-                    <a href="<?= url('home/search?cat=' . $cat['slug']) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
+                    <a href="<?= url('home/search?cat=' . $cat['slug'] . (!empty($keyword) ? '&q=' . urlencode($keyword) : '')) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
                         <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>" style="margin-right: 8px;"></i>
                         <?= e($cat['name']) ?>
                     </a>
@@ -39,10 +44,10 @@ $products = $products ?? [];
         <div class="search-widget">
             <h3>Khoảng giá bán</h3>
             <div class="price-range">
-                <input type="range" min="0" max="50000000" step="1000000" value="50000000" class="price-slider" oninput="updatePriceSlider(this.value)">
+                <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
                 <div class="price-display">
                     <span>0đ</span>
-                    <span id="priceMaxDisplay">50 triệu đ</span>
+                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? formatPrice($maxPrice) : '50 triệu đ' ?></span>
                 </div>
             </div>
         </div>
@@ -55,11 +60,11 @@ $products = $products ?? [];
             <p class="results-count">Tìm thấy <strong><?= $totalResults ?></strong> sản phẩm phù hợp</p>
             <div class="sort-options">
                 <label for="sortBy">Sắp xếp:</label>
-                <select id="sortBy" class="sort-select">
-                    <option value="newest">Mới nhất</option>
-                    <option value="price-low">Giá từ thấp đến cao</option>
-                    <option value="price-high">Giá từ cao đến thấp</option>
-                    <option value="rating">Đánh giá cao nhất</option>
+                <select id="sortBy" class="sort-select" onchange="applySort(this.value)">
+                    <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Mới nhất</option>
+                    <option value="price-low" <?= $sort === 'price-low' ? 'selected' : '' ?>>Giá từ thấp đến cao</option>
+                    <option value="price-high" <?= $sort === 'price-high' ? 'selected' : '' ?>>Giá từ cao đến thấp</option>
+                    <option value="rating" <?= $sort === 'rating' ? 'selected' : '' ?>>Đánh giá cao nhất</option>
                 </select>
             </div>
         </div>
@@ -86,6 +91,18 @@ $products = $products ?? [];
         let display = document.getElementById('priceMaxDisplay');
         let mil = parseFloat(val) / 1000000;
         display.innerHTML = mil.toFixed(0) + ' triệu đ';
+    }
+
+    function applySort(val) {
+        const u = new URL(window.location.href);
+        u.searchParams.set('sort', val);
+        window.location.href = u.toString();
+    }
+
+    function applyPriceFilter(val) {
+        const u = new URL(window.location.href);
+        u.searchParams.set('max_price', val);
+        window.location.href = u.toString();
     }
 </script>
 

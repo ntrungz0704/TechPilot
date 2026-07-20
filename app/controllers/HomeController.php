@@ -52,9 +52,25 @@ class HomeController extends Controller
     {
         $keyword = trim($_GET['q'] ?? '');
         $categorySlug = trim($_GET['cat'] ?? '');
+        $sort = trim($_GET['sort'] ?? 'newest');
+        $maxPrice = (int)($_GET['max_price'] ?? 0);
 
         $productModel = $this->model('Product');
-        $products = $productModel->search($keyword, $categorySlug, 24);
+        $products = $productModel->search($keyword, $categorySlug, 48);
+
+        // Filter by max_price if set
+        if ($maxPrice > 0) {
+            $products = array_filter($products, fn($p) => (float)$p['price'] <= $maxPrice);
+        }
+
+        // Apply Sorting
+        if ($sort === 'price-low') {
+            usort($products, fn($a, $b) => (float)$a['price'] <=> (float)$b['price']);
+        } elseif ($sort === 'price-high') {
+            usort($products, fn($a, $b) => (float)$b['price'] <=> (float)$a['price']);
+        } elseif ($sort === 'rating') {
+            usort($products, fn($a, $b) => ((float)($b['rating'] ?? 0)) <=> ((float)($a['rating'] ?? 0)));
+        }
 
         $pageTitle = 'Kết quả tìm kiếm';
         if (!empty($keyword) && !empty($categorySlug)) {
@@ -65,7 +81,7 @@ class HomeController extends Controller
                     break;
                 }
             }
-            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . $categoryName;
+            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . ($categoryName ?: $categorySlug);
         } elseif (!empty($keyword)) {
             $pageTitle = 'Tìm kiếm: ' . $keyword;
         } elseif (!empty($categorySlug)) {
@@ -81,7 +97,9 @@ class HomeController extends Controller
             'pageTitle'    => $pageTitle,
             'keyword'      => $keyword,
             'categorySlug' => $categorySlug,
-            'products'     => $products,
+            'sort'         => $sort,
+            'maxPrice'     => $maxPrice,
+            'products'     => array_values($products),
             'categories'   => $productModel->getCategories(),
             'totalResults' => count($products),
         ]);
