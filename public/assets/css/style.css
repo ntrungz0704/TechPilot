@@ -2561,7 +2561,7 @@ html.dark-mode .countdown-separator {
 
 /* Card */
 .auth-card {
-    background-color: #fff;
+    background-color: var(--surface-card);
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
@@ -2696,7 +2696,7 @@ html.dark-mode .countdown-separator {
     border-radius: 10px;
     font-size: 14px;
     color: var(--text-primary);
-    background-color: #fff;
+    background-color: var(--surface-card);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
@@ -2855,7 +2855,7 @@ html.dark-mode .countdown-separator {
 }
 
 .auth-divider-line span {
-    background-color: #fff;
+    background-color: var(--surface-card);
     padding: 0 12px;
     position: relative;
     z-index: 1;
@@ -2865,8 +2865,8 @@ html.dark-mode .countdown-separator {
 .auth-btn-google {
     width: 100%;
     height: 48px;
-    background-color: #fff;
-    color: #374151;
+    background-color: var(--surface-card);
+    color: var(--text-primary);
     border: 1.5px solid var(--border);
     border-radius: 10px;
     font-size: 14px;
@@ -2989,7 +2989,7 @@ html.dark-mode .countdown-separator {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    background-color: #fff;
+    background-color: var(--surface-card);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px;
