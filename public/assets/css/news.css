@@ -883,20 +883,156 @@ html.dark-mode .news-topic-pill.is-active {
 }
 .news-detail-content {
     font-size: clamp(15px, 1.3vw, 17px);
-    line-height: 1.75;
+    line-height: 1.8;
     color: var(--news-text-main);
-    text-align: left; /* Không dùng justify */
-    max-width: 760px; /* Reading width */
+    text-align: left;
+    max-width: 760px;
+}
+.news-detail-content h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 36px 0 16px 0;
+    color: var(--news-text-main);
+    scroll-margin-top: 80px;
+}
+.news-detail-content h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 28px 0 12px 0;
+    color: var(--news-text-main);
+    scroll-margin-top: 80px;
 }
 .news-detail-content p {
-    margin-bottom: 1.5em;
+    margin-bottom: 20px;
+}
+.news-detail-content p:last-child {
+    margin-bottom: 0;
+}
+.news-detail-content a {
+    color: var(--news-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+.news-detail-content a:hover {
+    text-decoration: underline;
+}
+.news-detail-content ul, 
+.news-detail-content ol {
+    margin-bottom: 24px;
+    padding-left: 24px;
+}
+.news-detail-content li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+.news-detail-content blockquote {
+    margin: 30px 0;
+    padding: 16px 24px;
+    background-color: var(--news-muted-bg);
+    border-left: 4px solid var(--news-primary);
+    border-radius: 4px;
+    color: var(--news-text-main);
+    font-style: italic;
+}
+.news-detail-content blockquote p:last-child {
+    margin-bottom: 0;
 }
 .news-detail-content img {
     max-width: 100%;
     height: auto;
     border-radius: 8px;
-    margin: 20px 0;
+    margin: 28px auto;
     display: block;
+}
+.news-detail-content figure {
+    margin: 30px 0;
+    text-align: center;
+}
+.news-detail-content figure img {
+    margin: 0 auto 10px auto;
+}
+.news-detail-content figcaption {
+    font-size: 14px;
+    color: var(--news-text-light);
+    font-style: italic;
+}
+.news-detail-content .table-responsive {
+    overflow-x: auto;
+    margin: 30px 0;
+    border-radius: 6px;
+}
+.news-detail-content table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px;
+}
+.news-detail-content table th, 
+.news-detail-content table td {
+    padding: 14px 18px;
+    border: 1px solid var(--news-border);
+    text-align: left;
+    line-height: 1.5;
+}
+.news-detail-content table th {
+    background-color: var(--news-muted-bg);
+    font-weight: 700;
+}
+.news-detail-content .callout {
+    margin: 30px 0;
+    padding: 20px 24px;
+    border-radius: 8px;
+    background-color: rgba(20, 110, 245, 0.05);
+    border: 1px solid rgba(20, 110, 245, 0.15);
+}
+html.dark-mode .news-detail-content .callout {
+    background-color: rgba(0, 200, 255, 0.05);
+    border-color: rgba(0, 200, 255, 0.15);
+}
+.news-detail-content .callout-info {
+    border-left: 4px solid var(--news-cyan);
+}
+.news-toc {
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 10px 0 40px 0;
+    display: inline-block;
+    min-width: 320px;
+    max-width: 100%;
+}
+.news-toc-header {
+    font-size: 16px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.news-toc-list {
+    list-style: none !important;
+    padding-left: 0 !important;
+    margin: 0 !important;
+}
+.news-toc-item {
+    margin-bottom: 10px !important;
+    line-height: 1.4 !important;
+}
+.news-toc-item:last-child {
+    margin-bottom: 0 !important;
+}
+.news-toc-item a {
+    color: var(--news-text-main);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+    font-size: 15px;
+}
+.news-toc-item a:hover {
+    color: var(--news-primary);
+    text-decoration: none;
+}
+.news-toc-level-3 {
+    padding-left: 24px;
+    font-size: 14px;
 }
 .news-detail-footer {
     margin-top: 40px;
@@ -1034,5 +1170,113 @@ html.dark-mode .toast-message {
 @media (max-width: 374px) {
     .news-horizontal-card__body {
         padding: 12px;
+    }
+}
+
+/* ── 16. Contextual Commerce CTA Box ──────────────────────────────────── */
+.article-cta-box {
+    margin: 36px 0;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(20, 110, 245, 0.04) 0%, rgba(91, 91, 255, 0.08) 100%);
+    border: 1px solid rgba(20, 110, 245, 0.2);
+    border-radius: var(--news-radius);
+    position: relative;
+    overflow: hidden;
+}
+html.dark-mode .article-cta-box {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%);
+    border-color: var(--news-border);
+}
+.article-cta-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--news-primary);
+}
+.article-cta-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.article-cta-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--news-text-main);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.article-cta-title i {
+    color: var(--news-primary);
+    font-size: 18px;
+}
+.article-cta-desc {
+    font-size: 14px;
+    color: var(--news-text-light);
+    margin: 0;
+    line-height: 1.6;
+}
+.article-cta-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.article-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.article-cta-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--news-text-main);
+    background: transparent;
+    border: 1px solid var(--news-border);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.article-cta-btn-secondary:hover {
+    background: var(--news-muted-bg);
+    border-color: var(--news-primary);
+    color: var(--news-primary);
+}
+.article-cta-btn-secondary:focus-visible {
+    outline: 2px solid var(--news-primary);
+    outline-offset: 2px;
+}
+
+@media (max-width: 575px) {
+    .article-cta-box {
+        padding: 18px;
+    }
+    .article-cta-title {
+        font-size: 16px;
+    }
+    .article-cta-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .article-cta-btn,
+    .article-cta-btn-secondary {
+        justify-content: center;
+        width: 100%;
+        min-height: 44px;
     }
 }

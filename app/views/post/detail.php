@@ -59,9 +59,7 @@ if (!$post) return;
             <?php endif; ?>
 
             <!-- Nội dung bài viết -->
-            <div class="news-detail-content">
-                <?= $safeContent ?>
-            </div>
+            <?php require __DIR__ . '/partials/_article_content.php'; ?>
 
             <!-- Footer: Chia sẻ + Quay lại -->
             <div class="news-detail-footer">
@@ -93,7 +91,7 @@ if (!$post) return;
             <?php endif; ?>
 
             <!-- Box 2: Mua theo nhu cầu -->
-            <?php require_once __DIR__ . '/partials/_buying_needs.php'; ?>
+            <?php require __DIR__ . '/partials/_buying_needs.php'; ?>
 
         </aside>
     </div>

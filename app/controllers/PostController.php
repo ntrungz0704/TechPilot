@@ -1,6 +1,7 @@
 <?php
 require_once ROOT_PATH . '/app/core/Controller.php';
 require_once ROOT_PATH . '/app/models/Post.php';
+require_once ROOT_PATH . '/app/core/MarkdownRenderer.php';
 
 class PostController extends Controller
 {
@@ -52,6 +53,17 @@ class PostController extends Controller
             if (count($filteredPopular) == 4) break; // chỉ lấy 4 bài popular sidebar
         }
 
+        require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
+        $commerceService = new NewsCommerceService();
+        $genericCommerce = $commerceService->getConfig($category ?: 'default', $type);
+
+        $commerceContext = [
+            'category'  => $category,
+            'post_type' => $type,
+            'placement' => 'news-index-sidebar',
+            'config'    => $genericCommerce['sidebar'] ?? null,
+        ];
+
         $this->render('post/index', [
             'pageTitle'       => 'Tin tức công nghệ',
             'title'           => 'Tin tức công nghệ',
@@ -64,7 +76,8 @@ class PostController extends Controller
             'currentType'     => $type,
             'currentCategory' => $category,
             'currentTag'      => $tag,
-            'pageStyles'      => ['assets/css/news.css?v=1.1'],
+            'commerceContext' => $commerceContext,
+            'pageStyles'      => ['assets/css/news.css?v=1.2'],
         ]);
     }
 
@@ -90,23 +103,37 @@ class PostController extends Controller
             4
         );
 
-        // Xử lý content an toàn: tách theo dòng trắng thành các đoạn văn
-        $paragraphs = preg_split('/\n+/', trim($post['content'] ?? ''));
-        $safeContent = '';
-        foreach ($paragraphs as $p) {
-            if (trim($p) !== '') {
-                $safeContent .= '<p>' . nl2br(htmlspecialchars(trim($p), ENT_QUOTES, 'UTF-8')) . '</p>';
-            }
-        }
+        require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
+        $commerceService = new NewsCommerceService();
+        $commerceConfig  = $commerceService->getConfig(
+            $post['category_slug'] ?? '',
+            $post['post_type'] ?? ''
+        );
+
+        $commerceContext = [
+            'category'  => $post['category_slug'] ?? '',
+            'post_type' => $post['post_type'] ?? '',
+            'placement' => 'article-sidebar',
+            'config'    => $commerceConfig['sidebar'] ?? null,
+        ];
+
+        // Xử lý Markdown content
+        $renderer = new MarkdownRenderer();
+        $parsed   = $renderer->render($post['content'] ?? '');
 
         $this->render('post/detail', [
-            'pageTitle'   => $post['title'],
-            'title'       => $post['title'] . ' - TechPilot News',
-            'post'        => $post,
-            'related'     => $related,
-            'safeContent' => $safeContent,
-            'pageStyles'  => ['assets/css/news.css?v=1.1'],
-            'pageScripts' => ['assets/js/news.js?v=1.1'],
+            'pageTitle'       => $post['title'],
+            'title'           => $post['title'] . ' - TechPilot News',
+            'post'            => $post,
+            'related'         => $related,
+            'safeContent'     => $parsed['html'],
+            'headings'        => $parsed['headings'] ?? [],
+            'blocks'          => $parsed['blocks'] ?? [],
+            'midCtaConfig'    => $commerceConfig['mid_cta'] ?? null,
+            'endCtaConfig'    => $commerceConfig['end_cta'] ?? null,
+            'commerceContext' => $commerceContext,
+            'pageStyles'      => ['assets/css/news.css?v=1.2'],
+            'pageScripts'     => ['assets/js/news.js?v=1.1'],
         ]);
     }
 }
