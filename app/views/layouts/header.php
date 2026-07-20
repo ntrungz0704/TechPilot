@@ -126,6 +126,32 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     </a>
                     
                     <?php if ($u = currentUser()): ?>
+                        <?php
+                        // Fetch unread notifications count dynamically
+                        $unreadNotificationsCount = 0;
+                        try {
+                            require_once ROOT_PATH . '/config/database.php';
+                            $db = Database::getConnection();
+                            if ($db) {
+                                $stmt = $db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :user_id AND is_read = 0");
+                                $stmt->execute([':user_id' => $u['id']]);
+                                $unreadNotificationsCount = (int)$stmt->fetchColumn();
+                            }
+                        } catch (Exception $e) {
+                            // Fail silently
+                        }
+                        ?>
+                        <a href="<?= url('profile/notifications') ?>" class="header-actions__item header-actions__notifications" style="position: relative; text-decoration: none; color: inherit;">
+                            <i class="fa-solid fa-bell"></i>
+                            <div class="header-actions__text">
+                                <span>Thông</span>
+                                <strong>Báo</strong>
+                            </div>
+                            <?php if ($unreadNotificationsCount > 0): ?>
+                                <span class="notification-badge" style="position: absolute; top: 0; right: 0; background-color: #EF4444; color: #FFFFFF; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-card); padding: 0 3px; transform: translate(30%, -30%);"><?= $unreadNotificationsCount ?></span>
+                            <?php endif; ?>
+                        </a>
+
                         <div class="header-actions__item dropdown header-actions__account">
                             <i class="fa-solid fa-circle-user"></i>
                             <span><?= e($u['full_name']) ?></span>
