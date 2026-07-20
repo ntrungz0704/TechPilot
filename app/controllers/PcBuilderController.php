@@ -52,14 +52,353 @@ class PcBuilderController extends Controller
         'monitor' => [
             'name' => 'Màn hình',
             'icon' => 'fa-solid fa-tv',
-            'query' => "category_id = 5"
+            'query' => "category_id = 5 OR (JSON_EXTRACT(specs, '$.component_type') = '\"monitor\"')"
         ],
         'gear' => [
             'name' => 'Gaming Gear (Phím/Chuột/Tai nghe)',
             'icon' => 'fa-solid fa-keyboard',
-            'query' => "category_id = 7"
+            'query' => "category_id = 7 OR (JSON_EXTRACT(specs, '$.component_type') = '\"gear\"')"
         ]
     ];
+
+    /** Danh sách linh kiện PC mẫu khi DB chưa có đủ dữ liệu */
+    private function getSamplePcComponents(string $partKey): array
+    {
+        $samples = [
+            'cpu' => [
+                [
+                    'id' => 101,
+                    'name' => 'Bộ vi xử lý Intel Core i5-13400F (Up To 4.6GHz, 10 Nhân 16 Luồng, 20MB Cache, LGA 1700)',
+                    'price' => 4890000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 20,
+                    'specs' => json_encode([
+                        'component_type' => 'cpu',
+                        'socket' => 'LGA1700',
+                        'generation' => 13,
+                        'brand_platform' => 'intel',
+                        'max_turbo_power_w' => 148,
+                        'tdp_w' => 65
+                    ])
+                ],
+                [
+                    'id' => 102,
+                    'name' => 'Bộ vi xử lý Intel Core i7-14700K (Up To 5.6GHz, 20 Nhân 28 Luồng, 33MB Cache, LGA 1700)',
+                    'price' => 10490000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 15,
+                    'specs' => json_encode([
+                        'component_type' => 'cpu',
+                        'socket' => 'LGA1700',
+                        'generation' => 14,
+                        'brand_platform' => 'intel',
+                        'max_turbo_power_w' => 253,
+                        'tdp_w' => 125
+                    ])
+                ],
+                [
+                    'id' => 103,
+                    'name' => 'Bộ vi xử lý AMD Ryzen 7 7800X3D (4.2GHz Turbo 5.0GHz, 8 Nhân 16 Luồng, 96MB Cache, Socket AM5)',
+                    'price' => 10990000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 12,
+                    'specs' => json_encode([
+                        'component_type' => 'cpu',
+                        'socket' => 'AM5',
+                        'generation' => 7,
+                        'brand_platform' => 'amd',
+                        'ppt_w' => 162,
+                        'tdp_w' => 120
+                    ])
+                ],
+                [
+                    'id' => 104,
+                    'name' => 'Bộ vi xử lý AMD Ryzen 5 7600X (4.7GHz Turbo 5.3GHz, 6 Nhân 12 Luồng, 32MB Cache, Socket AM5)',
+                    'price' => 5990000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 18,
+                    'specs' => json_encode([
+                        'component_type' => 'cpu',
+                        'socket' => 'AM5',
+                        'generation' => 7,
+                        'brand_platform' => 'amd',
+                        'ppt_w' => 142,
+                        'tdp_w' => 105
+                    ])
+                ]
+            ],
+            'mainboard' => [
+                [
+                    'id' => 201,
+                    'name' => 'Bo mạch chủ ASUS TUF GAMING B760M-PLUS WIFI DDR5 (LGA 1700, mATX)',
+                    'price' => 4490000,
+                    'image' => 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 15,
+                    'specs' => json_encode([
+                        'component_type' => 'motherboard',
+                        'socket' => 'LGA1700',
+                        'chipset' => 'B760',
+                        'memory_type' => 'DDR5',
+                        'form_factor' => 'mATX',
+                        'ram_slots' => 4,
+                        'max_memory_gb' => 192,
+                        'supported_cpu_generations' => [12, 13, 14]
+                    ])
+                ],
+                [
+                    'id' => 202,
+                    'name' => 'Bo mạch chủ MSI MAG Z790 TOMAHAWK WIFI DDR5 (LGA 1700, ATX)',
+                    'price' => 7490000,
+                    'image' => 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 10,
+                    'specs' => json_encode([
+                        'component_type' => 'motherboard',
+                        'socket' => 'LGA1700',
+                        'chipset' => 'Z790',
+                        'memory_type' => 'DDR5',
+                        'form_factor' => 'ATX',
+                        'ram_slots' => 4,
+                        'max_memory_gb' => 192,
+                        'supported_cpu_generations' => [12, 13, 14]
+                    ])
+                ],
+                [
+                    'id' => 203,
+                    'name' => 'Bo mạch chủ GIGABYTE B650M AORUS ELITE AX AM5 (Socket AM5, mATX, DDR5)',
+                    'price' => 5290000,
+                    'image' => 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 12,
+                    'specs' => json_encode([
+                        'component_type' => 'motherboard',
+                        'socket' => 'AM5',
+                        'chipset' => 'B650',
+                        'memory_type' => 'DDR5',
+                        'form_factor' => 'mATX',
+                        'ram_slots' => 4,
+                        'max_memory_gb' => 192,
+                        'supported_cpu_generations' => [7, 8, 9]
+                    ])
+                ]
+            ],
+            'ram' => [
+                [
+                    'id' => 301,
+                    'name' => 'Bộ nhớ RAM Corsair Vengeance RGB 32GB (2x16GB) DDR5 6000MHz Black',
+                    'price' => 3290000,
+                    'image' => 'https://images.unsplash.com/photo-1562976540-1502c2145186?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 30,
+                    'specs' => json_encode([
+                        'component_type' => 'ram',
+                        'memory_type' => 'DDR5',
+                        'capacity_gb' => 32,
+                        'modules' => 2,
+                        'power_w_per_module' => 4
+                    ])
+                ],
+                [
+                    'id' => 302,
+                    'name' => 'Bộ nhớ RAM G.SKILL Trident Z5 RGB 32GB (2x16GB) DDR5 6400MHz',
+                    'price' => 3890000,
+                    'image' => 'https://images.unsplash.com/photo-1562976540-1502c2145186?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 25,
+                    'specs' => json_encode([
+                        'component_type' => 'ram',
+                        'memory_type' => 'DDR5',
+                        'capacity_gb' => 32,
+                        'modules' => 2,
+                        'power_w_per_module' => 4.5
+                    ])
+                ]
+            ],
+            'vga' => [
+                [
+                    'id' => 401,
+                    'name' => 'Card màn hình GIGABYTE GeForce RTX 4060 EAGLE OC 8G',
+                    'price' => 8490000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 14,
+                    'specs' => json_encode([
+                        'component_type' => 'gpu',
+                        'power_w' => 115,
+                        'recommended_psu_w' => 450,
+                        'length_mm' => 272
+                    ])
+                ],
+                [
+                    'id' => 402,
+                    'name' => 'Card màn hình MSI GeForce RTX 4070 SUPER 12G VENTUS 2X OC',
+                    'price' => 16990000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 10,
+                    'specs' => json_encode([
+                        'component_type' => 'gpu',
+                        'power_w' => 220,
+                        'recommended_psu_w' => 650,
+                        'length_mm' => 242
+                    ])
+                ],
+                [
+                    'id' => 403,
+                    'name' => 'Card màn hình ASUS ROG Strix GeForce RTX 4070 Ti SUPER 16GB OC Edition',
+                    'price' => 26990000,
+                    'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 8,
+                    'specs' => json_encode([
+                        'component_type' => 'gpu',
+                        'power_w' => 285,
+                        'recommended_psu_w' => 750,
+                        'length_mm' => 336
+                    ])
+                ]
+            ],
+            'storage' => [
+                [
+                    'id' => 501,
+                    'name' => 'Ổ cứng SSD Samsung 990 PRO 1TB PCIe NVMe Gen 4.0 M.2 2280',
+                    'price' => 2890000,
+                    'image' => 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 40,
+                    'specs' => json_encode([
+                        'component_type' => 'ssd',
+                        'power_w' => 6
+                    ])
+                ],
+                [
+                    'id' => 502,
+                    'name' => 'Ổ cứng SSD Kingston NV2 500GB PCIe 4.0 NVMe M.2 2280',
+                    'price' => 1090000,
+                    'image' => 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 50,
+                    'specs' => json_encode([
+                        'component_type' => 'ssd',
+                        'power_w' => 4
+                    ])
+                ]
+            ],
+            'psu' => [
+                [
+                    'id' => 601,
+                    'name' => 'Nguồn máy tính Corsair RM750e 750W 80 Plus Gold Full Modular (ATX 3.0)',
+                    'price' => 2790000,
+                    'image' => 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 20,
+                    'specs' => json_encode([
+                        'component_type' => 'psu',
+                        'wattage_w' => 750
+                    ])
+                ],
+                [
+                    'id' => 602,
+                    'name' => 'Nguồn máy tính MSI MAG A850GL PCIE5 850W 80 Plus Gold Full Modular',
+                    'price' => 3290000,
+                    'image' => 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 15,
+                    'specs' => json_encode([
+                        'component_type' => 'psu',
+                        'wattage_w' => 850
+                    ])
+                ]
+            ],
+            'case' => [
+                [
+                    'id' => 701,
+                    'name' => 'Vỏ Case NZXT H5 Flow Black (Mid Tower)',
+                    'price' => 2190000,
+                    'image' => 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 12,
+                    'specs' => json_encode([
+                        'component_type' => 'case',
+                        'supported_motherboard_form_factors' => ['ATX', 'mATX', 'ITX'],
+                        'max_gpu_length_mm' => 365,
+                        'max_cpu_cooler_height_mm' => 165
+                    ])
+                ],
+                [
+                    'id' => 702,
+                    'name' => 'Vỏ Case Corsair 4000D AIRFLOW Tempered Glass Black',
+                    'price' => 2390000,
+                    'image' => 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 18,
+                    'specs' => json_encode([
+                        'component_type' => 'case',
+                        'supported_motherboard_form_factors' => ['ATX', 'mATX', 'ITX'],
+                        'max_gpu_length_mm' => 360,
+                        'max_cpu_cooler_height_mm' => 170
+                    ])
+                ]
+            ],
+            'cooler' => [
+                [
+                    'id' => 801,
+                    'name' => 'Tản nhiệt nước AIO Thermalright Aqua Elite 240 ARGB Black',
+                    'price' => 1490000,
+                    'image' => 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 20,
+                    'specs' => json_encode([
+                        'component_type' => 'cpu_cooler',
+                        'cooler_type' => 'liquid',
+                        'fan_count' => 2,
+                        'fan_power_w' => 3,
+                        'pump_power_w' => 4,
+                        'supported_sockets' => ['LGA1700', 'LGA1200', 'AM4', 'AM5']
+                    ])
+                ],
+                [
+                    'id' => 802,
+                    'name' => 'Tản nhiệt khí Deepcool AK620 Digital Màn hình hiển thị nhiệt độ',
+                    'price' => 1690000,
+                    'image' => 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 15,
+                    'specs' => json_encode([
+                        'component_type' => 'cpu_cooler',
+                        'cooler_type' => 'air',
+                        'height_mm' => 162,
+                        'fan_count' => 2,
+                        'fan_power_w' => 3,
+                        'supported_sockets' => ['LGA1700', 'LGA1200', 'AM4', 'AM5']
+                    ])
+                ]
+            ],
+            'monitor' => [
+                [
+                    'id' => 901,
+                    'name' => 'Màn hình ASUS TUF Gaming VG279Q3A 27 inch IPS 180Hz 1ms Full HD',
+                    'price' => 4490000,
+                    'image' => 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 15,
+                    'specs' => json_encode(['component_type' => 'monitor'])
+                ],
+                [
+                    'id' => 902,
+                    'name' => 'Màn hình LG UltraGear 27GR75Q-B 27 inch 2K IPS 165Hz 1ms HDR10',
+                    'price' => 6290000,
+                    'image' => 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 10,
+                    'specs' => json_encode(['component_type' => 'monitor'])
+                ]
+            ],
+            'gear' => [
+                [
+                    'id' => 1001,
+                    'name' => 'Chuột Gaming không dây Logitech G Pro X Superlight 2 Wireless Black 60g',
+                    'price' => 3490000,
+                    'image' => 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 25,
+                    'specs' => json_encode(['component_type' => 'gear'])
+                ],
+                [
+                    'id' => 1002,
+                    'name' => 'Bàn phím cơ không dây Logitech G Pro X TKL LIGHTSPEED Tactile RGB',
+                    'price' => 3890000,
+                    'image' => 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=60',
+                    'stock' => 20,
+                    'specs' => json_encode(['component_type' => 'gear'])
+                ]
+            ]
+        ];
+
+        return $samples[$partKey] ?? [];
+    }
 
     public function index(): void
     {
@@ -70,13 +409,31 @@ class PcBuilderController extends Controller
     }
 
     /** Helper lấy thông tin đầy đủ của một sản phẩm */
-    private function getProductById(PDO $db, int $id): ?array
+    private function getProductById(?PDO $db, int $id): ?array
     {
         if ($id <= 0) return null;
-        $stmt = $db->prepare('SELECT id, name, price, image, specs FROM products WHERE id = :id AND status = \'active\' LIMIT 1');
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+
+        if ($db !== null) {
+            try {
+                $stmt = $db->prepare('SELECT id, name, price, image, specs FROM products WHERE id = :id AND status = \'active\' LIMIT 1');
+                $stmt->execute([':id' => $id]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    return $row;
+                }
+            } catch (Exception $e) {}
+        }
+
+        // Tìm trong dữ liệu mẫu
+        foreach ($this->parts as $key => $info) {
+            foreach ($this->getSamplePcComponents($key) as $item) {
+                if ($item['id'] === $id) {
+                    return $item;
+                }
+            }
+        }
+
+        return null;
     }
 
     /** API: Lấy danh sách linh kiện phù hợp và kiểm tra tương thích */
@@ -103,10 +460,6 @@ class PcBuilderController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
-        if (!$db) {
-            echo json_encode([]);
-            exit;
-        }
 
         // Tải các đối tượng sản phẩm hiện tại để so khớp tương thích
         $build = [
@@ -121,19 +474,33 @@ class PcBuilderController extends Controller
         ];
 
         // Lấy danh sách sản phẩm thuộc danh mục đang chọn
-        $partInfo = $this->parts[$partKey];
-        $sql = "SELECT id, name, price, image, stock, specs FROM products WHERE {$partInfo['query']} AND status = 'active'";
-        
-        $params = [];
-        if ($search !== '') {
-            $sql .= " AND name LIKE :search";
-            $params[':search'] = '%' . $search . '%';
+        $products = [];
+        if ($db !== null) {
+            try {
+                $partInfo = $this->parts[$partKey];
+                $sql = "SELECT id, name, price, image, stock, specs FROM products WHERE ({$partInfo['query']}) AND status = 'active'";
+                
+                $params = [];
+                if ($search !== '') {
+                    $sql .= " AND name LIKE :search";
+                    $params[':search'] = '%' . $search . '%';
+                }
+
+                $sql .= " ORDER BY price ASC";
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+                $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {}
         }
 
-        $sql .= " ORDER BY price ASC";
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Fallback sang dữ liệu mẫu nếu DB chưa có linh kiện phù hợp
+        if (empty($products)) {
+            $products = $this->getSamplePcComponents($partKey);
+            if ($search !== '') {
+                $kw = mb_strtolower($search);
+                $products = array_values(array_filter($products, fn($p) => str_contains(mb_strtolower($p['name']), $kw)));
+            }
+        }
 
         // Chạy qua kiểm tra tính tương thích
         $results = [];
@@ -180,10 +547,6 @@ class PcBuilderController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
-        if (!$db) {
-            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối database']);
-            exit;
-        }
 
         $build = [
             'cpu' => $this->getProductById($db, $cpuId),
@@ -245,10 +608,6 @@ class PcBuilderController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
-        if (!$db) {
-            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối cơ sở dữ liệu.']);
-            exit;
-        }
 
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -263,9 +622,7 @@ class PcBuilderController extends Controller
             $pid = (int)$pid;
             if ($pid <= 0) continue;
 
-            $stmt = $db->prepare('SELECT id, name, price, image, stock FROM products WHERE id = :id AND status = \'active\' LIMIT 1');
-            $stmt->execute([':id' => $pid]);
-            $p = $stmt->fetch(PDO::FETCH_ASSOC);
+            $p = $this->getProductById($db, $pid);
 
             if ($p) {
                 // Kiểm tra trùng lặp trong giỏ hàng

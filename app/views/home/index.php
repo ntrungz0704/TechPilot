@@ -32,7 +32,9 @@ $reviews = $reviews ?? [];
 <div class="home-page-wrapper">
 <section class="container hero-section">
     <!-- Left: Vertical Category Menu -->
-    <div class="hero-section__left" id="heroCategorySlot"></div>
+    <div class="hero-section__left" id="heroCategorySlot">
+        <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
+    </div>
 
     <!-- Center: Large Hero Banner Carousel -->
     <div class="hero-section__center" id="heroCarousel">
@@ -198,7 +200,7 @@ $reviews = $reviews ?? [];
 <section class="container section section-flash-sale">
     <div class="section__head section__head--flash">
         <h2><i class="fa-solid fa-bolt"></i> FLASH SALE</h2>
-        <div class="countdown" id="flashCountdown" data-end-time="<?= !empty($flashSale) ? e($flashSale[0]['end_time']) : '' ?>">
+        <div class="countdown" id="flashCountdown" data-end-time="<?= (!empty($flashSale) && isset($flashSale[0]['end_time'])) ? e($flashSale[0]['end_time']) : '' ?>">
             <div class="countdown-box">
                 <span class="countdown-box__num" id="cd-h">02</span>
                 <span class="countdown-box__label">Giờ</span>
@@ -584,9 +586,15 @@ $reviews = $reviews ?? [];
             <?php 
             // Nhân đôi danh sách thương hiệu để hiệu ứng chạy marquee cuộn mượt không bị đứt đoạn
             $duplicatedBrands = array_merge($brands, $brands);
-            foreach ($duplicatedBrands as $brand): ?>
+            foreach ($duplicatedBrands as $brand): 
+                $slug = $brand['slug'] ?? '';
+                $logoFile = !empty($slug) ? $slug . '.svg' : str_replace(['-logo.svg', '.png'], ['.svg', '.svg'], $brand['logo'] ?? '');
+                if (!str_contains($logoFile, '.')) {
+                    $logoFile .= '.svg';
+                }
+            ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . str_replace('.png', '.svg', e($brand['logo']))) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
+                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
                 </div>
             <?php endforeach; ?>
         </div>

@@ -81,8 +81,7 @@ class PcCompatibilityService
             $fanPower += (float)($fnSpecs['power_w'] ?? 3);
         }
         if (empty($fans) && $case) {
-            // Tự động cộng thêm 3 quạt case mặc định (3 x 3W = 9W)
-            $fanPower = 9;
+            $fanPower = 9; // 3 fans default
         }
 
         // 8. USB / RGB dự phòng
@@ -141,7 +140,10 @@ class PcCompatibilityService
             $cpuSpecs = $candidateSpecs;
             $cpuSocket = $cpuSpecs['socket'] ?? '';
             $cpuGen = (int)($cpuSpecs['generation'] ?? 0);
-            $cpuBrand = strtolower($cpuSpecs['brand_platform'] ?? '');
+
+            if (isset($cpuSpecs['integrated_gpu']) && $cpuSpecs['integrated_gpu'] === false && !$gpu) {
+                $warnings[] = "CPU này không tích hợp nhân đồ họa iGPU. Bạn nên trang bị thêm Card màn hình rời (VGA).";
+            }
 
             // So khớp với Mainboard đã chọn
             if ($mainboard) {
@@ -262,7 +264,6 @@ class PcCompatibilityService
             $psuSpecs = $candidateSpecs;
             $psuWattage = (float)($psuSpecs['wattage_w'] ?? 0);
 
-            // Tính toán công suất đề xuất của cấu hình hiện tại
             $powerReq = self::calculatePowerRequirements($build);
             $recommendedWattage = $powerReq['recommended_psu_w'];
 
@@ -278,7 +279,6 @@ class PcCompatibilityService
             $caseMaxGpu = (float)($caseSpecs['max_gpu_length_mm'] ?? 0);
             $caseMaxCooler = (float)($caseSpecs['max_cpu_cooler_height_mm'] ?? 0);
 
-            // So khớp với Mainboard đã chọn
             if ($mainboard) {
                 $mbSpecs = json_decode($mainboard['specs'] ?? '', true) ?: [];
                 $mbForm = $mbSpecs['form_factor'] ?? '';
@@ -288,7 +288,6 @@ class PcCompatibilityService
                 }
             }
 
-            // So khớp với GPU đã chọn
             if ($gpu) {
                 $gpuSpecs = json_decode($gpu['specs'] ?? '', true) ?: [];
                 $gpuLength = (float)($gpuSpecs['length_mm'] ?? 0);
@@ -298,7 +297,6 @@ class PcCompatibilityService
                 }
             }
 
-            // So khớp với Cooler đã chọn
             if ($cooler) {
                 $coolerSpecs = json_decode($cooler['specs'] ?? '', true) ?: [];
                 $coolerHeight = (float)($coolerSpecs['height_mm'] ?? 0);
@@ -317,7 +315,6 @@ class PcCompatibilityService
             $coolerSockets = $coolerSpecs['supported_sockets'] ?? [];
             $coolerType = $coolerSpecs['cooler_type'] ?? '';
 
-            // So khớp với CPU đã chọn (Socket)
             if ($cpu) {
                 $cpuSpecs = json_decode($cpu['specs'] ?? '', true) ?: [];
                 $cpuSocket = $cpuSpecs['socket'] ?? '';
@@ -327,7 +324,6 @@ class PcCompatibilityService
                 }
             }
 
-            // So khớp với Case đã chọn (Chiều cao tản khí)
             if ($case && $coolerType === 'air') {
                 $caseSpecs = json_decode($case['specs'] ?? '', true) ?: [];
                 $caseMaxCooler = (float)($caseSpecs['max_cpu_cooler_height_mm'] ?? 0);
