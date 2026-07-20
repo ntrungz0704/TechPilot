@@ -585,7 +585,7 @@ html.dark-mode .logo-text span {
 .commerce-header-stack {
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 1002;
     width: 100%;
     background: var(--surface-card);
 }
@@ -763,50 +763,14 @@ html.dark-mode .logo-text span {
     gap: 24px;
     margin-top: 24px;
     margin-bottom: 30px;
-    height: 530px; /* CÃ¡Â»â€˜ Ã„â€˜Ã¡Â»â€¹nh chiÃ¡Â»Âu cao tÃ¡Â»â€¢ng thÃ¡Â»Æ’ Ã„â€˜Ã¡Â»Æ’ xÃ¡ÂºÂ¿p vÃ¡Â»Â«a 16 danh mÃ¡Â»Â¥c */
 }
 
 .hero-section__left {
-    background-color: var(--bg-white);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
-    padding: 16px 0;
-    box-shadow: var(--shadow-card);
+    position: relative;
     height: 100%;
-    overflow: visible;
+    z-index: 1001; /* Ensure it stays above the category overlay (z-index 1000) */
 }
 
-.vertical-menu {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.vertical-menu a {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.vertical-menu a div {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.vertical-menu a i.fa-chevron-right {
-    font-size: 10px;
-    color: var(--text-secondary);
-}
-
-.vertical-menu a:hover {
-    background-color: var(--secondary);
-    color: var(--primary);
-}
 
 /* Carousel Banner */
 .hero-section__center {
