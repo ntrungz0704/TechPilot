@@ -63,9 +63,12 @@ if (!class_exists('Database')) {
                         if (!empty($port)) {
                             $serverDsn .= ';port=' . $port;
                         }
+                        $multiStmtAttr = defined('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+                            ? constant('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+                            : (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS') ? constant('PDO::MYSQL_ATTR_MULTI_STATEMENTS') : 1003);
                         $serverPdo = new PDO($serverDsn, $user, $pass, [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                            PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+                            $multiStmtAttr => true,
                         ]);
 
                         $sqlFile = dirname(__DIR__) . '/database/techpilot.sql';
