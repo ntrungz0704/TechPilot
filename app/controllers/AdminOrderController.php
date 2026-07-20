@@ -126,16 +126,18 @@ class AdminOrderController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Lấy trạng thái hiện tại của đơn hàng
-            $stmt = $db->prepare('SELECT status FROM orders WHERE id = :id LIMIT 1');
+            // Lấy thông tin hiện tại của đơn hàng
+            $stmt = $db->prepare('SELECT status, user_id, order_code FROM orders WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $id]);
-            $currentStatus = $stmt->fetchColumn();
+            $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$currentStatus) {
+            if (!$orderData) {
                 flash('error', 'Đơn hàng không tồn tại.');
                 $this->redirect('admin/orders');
                 return;
             }
+
+            $currentStatus = $orderData['status'];
 
             if ($currentStatus === $newStatus) {
                 $this->redirect('admin/orders/detail/' . $id);
@@ -213,6 +215,28 @@ class AdminOrderController extends Controller
                     ':status' => $newStatus,
                     ':id'     => $id
                 ]);
+
+                // Tạo thông báo cho khách hàng
+                if (!empty($orderData['user_id'])) {
+                    $title = 'Cập nhật đơn hàng #' . $orderData['order_code'];
+                    $statusLabel = [
+                        'pending'    => 'Chờ xử lý (Pending)',
+                        'confirmed'  => 'Đã xác nhận (Confirmed)',
+                        'processing' => 'Đang xử lý (Processing)',
+                        'shipping'   => 'Đang giao hàng (Shipping)',
+                        'completed'  => 'Hoàn thành (Completed)',
+                        'cancelled'  => 'Đã huỷ (Cancelled)',
+                    ][$newStatus] ?? $newStatus;
+                    
+                    $content = "Đơn hàng #{$orderData['order_code']} của bạn đã được chuyển sang trạng thái: {$statusLabel}.";
+                    
+                    $notifStmt = $db->prepare('INSERT INTO notifications (user_id, title, content, is_read) VALUES (:user_id, :title, :content, 0)');
+                    $notifStmt->execute([
+                        ':user_id' => (int)$orderData['user_id'],
+                        ':title'   => $title,
+                        ':content' => $content
+                    ]);
+                }
 
                 $db->commit();
                 flash('success', 'Đã cập nhật trạng thái đơn hàng thành công!');
