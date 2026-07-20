@@ -185,27 +185,7 @@
         </nav>
     </header>
 
-    <!-- 3. Navigation Menu -->
-    <nav class="main-nav">
-        <!-- Nút đóng Drawer trên Mobile -->
-        <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Đóng Menu">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="container main-nav__inner">
-            <ul class="main-nav__links">
-                <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
-                <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
-                <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
-                <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
-                <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
-                <li><a href="<?= url('home/search?cat=thiet-bi-mang') ?>" class="desktop-only-link">Thiết bị mạng</a></li>
-                <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
-                <li class="desktop-only-link"><a href="<?= url('home/search?cat=thiet-bi-van-phong') ?>">Thiết bị văn phòng</a></li>
-                <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
-                <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
-            </ul>
-        </div>
-    </nav>
+
     </div> <!-- Close commerce-header-stack -->
 
     <!-- Global Category Overlay -->
