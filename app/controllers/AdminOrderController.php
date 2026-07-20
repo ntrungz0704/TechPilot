@@ -144,11 +144,12 @@ class AdminOrderController extends Controller
 
             // Định nghĩa các chuyển đổi trạng thái hợp lệ
             $validTransitions = [
-                'pending'   => ['confirmed', 'cancelled'],
-                'confirmed' => ['shipping', 'cancelled'],
-                'shipping'  => ['completed', 'cancelled'],
-                'completed' => [],
-                'cancelled' => []
+                'pending'    => ['confirmed', 'processing', 'cancelled'],
+                'confirmed'  => ['processing', 'shipping', 'cancelled'],
+                'processing' => ['shipping', 'completed', 'cancelled'],
+                'shipping'   => ['completed', 'cancelled'],
+                'completed'  => [],
+                'cancelled'  => []
             ];
 
             if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
