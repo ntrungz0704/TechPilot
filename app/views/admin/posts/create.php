@@ -26,8 +26,9 @@
         </div>
 
         <div class="form-group">
-            <label for="content">Nội dung chi tiết bài viết</label>
-            <textarea name="content" id="content" class="form-control" rows="12" placeholder="Nhập nội dung bài viết bằng HTML hoặc văn bản thường..."></textarea>
+            <label for="content">Nội dung chi tiết bài viết (Hỗ trợ Markdown)</label>
+            <textarea name="content" id="content" class="form-control" rows="14" placeholder="Nhập nội dung bài viết bằng Markdown...&#10;Ví dụ:&#10;## 1. Tổng quan sản phẩm&#10;Nội dung mô tả...&#10;&#10;:::info&#10;Thông tin lưu ý quan trọng&#10;:::"></textarea>
+            <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Hỗ trợ: ## Heading 2, ### Heading 3, - Danh sách, > Blockquote, | Table |, :::info Callout :::</small>
         </div>
 
             <div class="form-group mb-3">
@@ -38,6 +39,8 @@
                     <option value="pc-linh-kien">PC & Linh kiện</option>
                     <option value="man-hinh">Màn hình</option>
                     <option value="gaming-gear">Gaming Gear</option>
+                    <option value="office-gear">Thiết Bị Văn Phòng</option>
+                    <option value="networking">Thiết Bị Mạng</option>
                     <option value="ai-cong-nghe-moi">AI & Công nghệ mới</option>
                     <option value="cong-nghe">Công nghệ chung</option>
                 </select>
@@ -64,11 +67,6 @@
                     <input type="checkbox" name="is_featured" value="1" class="form-check-input" id="is_featured">
                     <label class="form-check-label" for="is_featured">Bài viết nổi bật</label>
                 </div>
-            </div>
-
-            <div class="form-group mb-3">
-                <label>Ảnh đại diện</label>
-                <input type="file" name="image" class="form-control" accept="image/*">
             </div>
 
         <div class="form-group">

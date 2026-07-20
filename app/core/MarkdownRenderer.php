@@ -36,8 +36,8 @@ class MarkdownRenderer
 
     private function renderBlock(string $block): string
     {
-        // 1. Headings (##, ###)
-        if (preg_match('/^(#{2,3})\s+(.+)$/s', $block, $matches)) {
+        // 1. Headings (##, ### - Single line only)
+        if (preg_match('/^(#{2,3})[ \t]+([^\n]+)$/', $block, $matches)) {
             $html = $this->renderHeading($matches);
             $this->blocks[] = [
                 'type'  => 'heading',
@@ -47,12 +47,9 @@ class MarkdownRenderer
             return $html;
         }
 
-        // 2. Callout (:::info)
-        if (str_starts_with($block, ':::info')) {
-            $content = trim(substr($block, 7));
-            if (str_ends_with($content, ':::')) {
-                $content = trim(substr($content, 0, -3));
-            }
+        // 2. Callout (:::info ... :::)
+        if (preg_match('/^:::info[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
+            $content = trim($matches[1]);
             $html = '<div class="callout callout-info">' . $this->renderInline($content) . '</div>';
             $this->blocks[] = [
                 'type' => 'callout',

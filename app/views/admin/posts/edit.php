@@ -30,8 +30,9 @@
         </div>
 
         <div class="form-group">
-            <label for="content">Nội dung chi tiết bài viết</label>
-            <textarea name="content" id="content" class="form-control" rows="12"><?= e($post['content']) ?></textarea>
+            <label for="content">Nội dung chi tiết bài viết (Hỗ trợ Markdown)</label>
+            <textarea name="content" id="content" class="form-control" rows="14"><?= e($post['content']) ?></textarea>
+            <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Hỗ trợ: ## Heading 2, ### Heading 3, - Danh sách, > Blockquote, | Table |, :::info Callout :::</small>
         </div>
 
         <div class="form-group mb-3">
@@ -42,6 +43,8 @@
                 <option value="pc-linh-kien" <?= ($post['category_slug'] ?? '') == 'pc-linh-kien' ? 'selected' : '' ?>>PC & Linh kiện</option>
                 <option value="man-hinh" <?= ($post['category_slug'] ?? '') == 'man-hinh' ? 'selected' : '' ?>>Màn hình</option>
                 <option value="gaming-gear" <?= ($post['category_slug'] ?? '') == 'gaming-gear' ? 'selected' : '' ?>>Gaming Gear</option>
+                <option value="office-gear" <?= ($post['category_slug'] ?? '') == 'office-gear' ? 'selected' : '' ?>>Thiết Bị Văn Phòng</option>
+                <option value="networking" <?= ($post['category_slug'] ?? '') == 'networking' ? 'selected' : '' ?>>Thiết Bị Mạng</option>
                 <option value="ai-cong-nghe-moi" <?= in_array($post['category_slug'] ?? '', ['ai-cong-nghe-moi', 'ai']) ? 'selected' : '' ?>>AI & Công nghệ mới</option>
                 <option value="cong-nghe" <?= ($post['category_slug'] ?? '') == 'cong-nghe' ? 'selected' : '' ?>>Công nghệ chung</option>
             </select>

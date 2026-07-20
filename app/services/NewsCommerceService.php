@@ -25,14 +25,18 @@ final class NewsCommerceService
         // Standardize category key
         if (str_contains($cat, 'laptop')) {
             $catKey = 'laptop';
-        } elseif (str_contains($cat, 'pc-gaming') || str_contains($cat, 'gaming')) {
+        } elseif (str_contains($cat, 'pc-gaming')) {
             $catKey = 'pc-gaming';
         } elseif (str_contains($cat, 'linh-kien') || str_contains($cat, 'pc-linh-kien')) {
             $catKey = 'pc-linh-kien';
         } elseif (str_contains($cat, 'man-hinh')) {
             $catKey = 'man-hinh';
-        } elseif (str_contains($cat, 'gear') || str_contains($cat, 'gaming-gear')) {
+        } elseif (str_contains($cat, 'gaming-gear')) {
             $catKey = 'gaming-gear';
+        } elseif (str_contains($cat, 'office-gear') || str_contains($cat, 'office')) {
+            $catKey = 'office-gear';
+        } elseif (str_contains($cat, 'networking') || str_contains($cat, 'mang')) {
+            $catKey = 'networking';
         } elseif (str_contains($cat, 'ai')) {
             $catKey = 'ai';
         } else {
@@ -125,7 +129,7 @@ final class NewsCommerceService
 
             case 'gaming-gear':
                 return [
-                    'title' => 'Gaming Gear & Phụ kiện',
+                    'title' => 'Gaming Gear chính hãng',
                     'items' => [
                         [
                             'label'  => 'Chuột & Bàn phím Gaming',
@@ -134,10 +138,48 @@ final class NewsCommerceService
                             'icon'   => 'fa-keyboard',
                         ],
                         [
-                            'label'  => 'Thiết Bị Văn Phòng',
+                            'label'  => 'Tai nghe Gaming cao cấp',
+                            'path'   => 'home/search',
+                            'params' => ['cat' => 'gaming-gear', 'q' => 'tai nghe'],
+                            'icon'   => 'fa-headset',
+                        ],
+                    ],
+                ];
+
+            case 'office-gear':
+                return [
+                    'title' => 'Thiết bị văn phòng',
+                    'items' => [
+                        [
+                            'label'  => 'Máy in & Phụ kiện văn phòng',
                             'path'   => 'home/search',
                             'params' => ['cat' => 'office-gear'],
-                            'icon'   => 'fa-headset',
+                            'icon'   => 'fa-print',
+                        ],
+                        [
+                            'label'  => 'Laptop Văn Phòng mỏng nhẹ',
+                            'path'   => 'home/search',
+                            'params' => ['cat' => 'laptop-van-phong'],
+                            'icon'   => 'fa-briefcase',
+                        ],
+                    ],
+                ];
+
+            case 'networking':
+                return [
+                    'title' => 'Thiết bị mạng & Wifi',
+                    'items' => [
+                        [
+                            'label'  => 'Router & Bộ phát Wifi',
+                            'path'   => 'home/search',
+                            'params' => ['cat' => 'networking'],
+                            'icon'   => 'fa-wifi',
+                        ],
+                        [
+                            'label'  => 'Phụ kiện mạng cao cấp',
+                            'path'   => 'home/search',
+                            'params' => ['cat' => 'networking', 'q' => 'phụ kiện'],
+                            'icon'   => 'fa-network-wired',
                         ],
                     ],
                 ];
@@ -249,6 +291,32 @@ final class NewsCommerceService
                     'cta_id'        => 'mid-gear-' . $type,
                 ];
 
+            case 'office-gear':
+                return [
+                    'title'         => 'Trang bị thiết bị văn phòng chuyên nghiệp',
+                    'desc'          => 'Khám phá máy in, thiết bị trình chiếu và phụ kiện văn phòng chính hãng bảo hành uy tín.',
+                    'primary_btn'   => [
+                        'label'  => 'Xem Thiết Bị Văn Phòng',
+                        'path'   => 'home/search',
+                        'params' => ['cat' => 'office-gear'],
+                    ],
+                    'secondary_btn' => null,
+                    'cta_id'        => 'mid-office-' . $type,
+                ];
+
+            case 'networking':
+                return [
+                    'title'         => 'Nâng cấp hệ thống mạng & Wifi tốc độ cao',
+                    'desc'          => 'Đảm bảo kết nối internet mượt mà, ổn định cho công việc và giải trí gia đình.',
+                    'primary_btn'   => [
+                        'label'  => 'Xem Thiết Bị Mạng',
+                        'path'   => 'home/search',
+                        'params' => ['cat' => 'networking'],
+                    ],
+                    'secondary_btn' => null,
+                    'cta_id'        => 'mid-network-' . $type,
+                ];
+
             default:
                 return [
                     'title'         => 'Tìm kiếm thiết bị công nghệ chính hãng',
@@ -300,6 +368,32 @@ final class NewsCommerceService
                         'params' => [],
                     ],
                     'cta_id'      => 'end-pc-' . $type,
+                ];
+
+            case 'office-gear':
+                return [
+                    'title'       => 'Giải pháp thiết bị cho doanh nghiệp & văn phòng',
+                    'desc'        => 'Tham khảo các dòng máy in, bộ phát wifi và phụ kiện chính hãng giá ưu đãi.',
+                    'primary_btn' => [
+                        'label'  => 'Khám Phá Thiết Bị Văn Phòng',
+                        'path'   => 'home/search',
+                        'params' => ['cat' => 'office-gear'],
+                    ],
+                    'secondary_btn' => null,
+                    'cta_id'      => 'end-office-' . $type,
+                ];
+
+            case 'networking':
+                return [
+                    'title'       => 'Tối ưu trải nghiệm kết nối không dây',
+                    'desc'        => 'Xem ngay các giải pháp Router Wifi 6 và bộ mở rộng sóng mạng tốt nhất.',
+                    'primary_btn' => [
+                        'label'  => 'Xem Thiết Bị Mạng',
+                        'path'   => 'home/search',
+                        'params' => ['cat' => 'networking'],
+                    ],
+                    'secondary_btn' => null,
+                    'cta_id'      => 'end-network-' . $type,
                 ];
 
             default:
