@@ -81,8 +81,13 @@
 
 .vertical-menu__link:hover,
 .vertical-menu__item.is-active > .mobile-category-row .vertical-menu__link {
-    background: rgba(10, 91, 255, 0.08);
-    color: var(--primary, #0A5BFF);
+    background: var(--primary, #0A5BFF);
+    color: #ffffff;
+}
+
+.vertical-menu__link:hover i,
+.vertical-menu__item.is-active > .mobile-category-row .vertical-menu__link i {
+    color: #ffffff;
 }
 
 .vertical-menu__item > .mega-menu {
@@ -118,10 +123,7 @@
     font-size: 14px;
     font-weight: 700;
     color: var(--primary, #0A5BFF);
-    text-transform: uppercase;
     margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 2px solid #e2e8f0;
 }
 
 .mega-menu__column ul {

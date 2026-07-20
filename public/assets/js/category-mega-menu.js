@@ -61,13 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleCategoryMenu();
     });
 
-    // === HOVER TO OPEN: hover on "Danh muc" button opens menu ===
-    categoryMenuButton.addEventListener('mouseenter', () => {
-        if (window.innerWidth > 575) {
-            openCategoryMenu();
-        }
-    });
-
     // Keep menu open while hovering inside the mega menu panel
     categoryMegaMenu.addEventListener('mouseenter', () => {
         clearTimeout(hoverCloseTimer);
