@@ -359,4 +359,34 @@ class ProfileController extends Controller
 
         $this->redirect('profile/order_detail?id=' . $orderId);
     }
+
+    /** API: Lấy thông báo chưa đọc phục vụ Realtime Polling */
+    public function apiUnreadNotifications(): void
+    {
+        header('Content-Type: application/json');
+        $user = currentUser();
+        if (!$user) {
+            echo json_encode(['success' => false, 'count' => 0, 'notifications' => []]);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        $notifications = [];
+        $unreadCount = 0;
+        
+        if ($db) {
+            $stmt = $db->prepare("SELECT id, title, content, created_at FROM notifications WHERE user_id = :user_id AND is_read = 0 ORDER BY id DESC");
+            $stmt->execute([':user_id' => $user['id']]);
+            $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $unreadCount = count($notifications);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'count' => $unreadCount,
+            'notifications' => $notifications
+        ]);
+        exit;
+    }
 }

@@ -105,4 +105,7 @@ $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
 $router->get('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
 $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 
+// API Notifications Route
+$router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
+
 $router->dispatch($url);
