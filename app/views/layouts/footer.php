@@ -94,7 +94,7 @@
     ?>
         <div class="mobile-fixed-buy-bar">
             <div class="fixed-buy-bar__info">
-                <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="thumb">
+                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="thumb">
                 <div class="fixed-buy-bar__txt">
                     <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
                     <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>

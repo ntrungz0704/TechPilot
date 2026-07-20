@@ -41,19 +41,108 @@ if (!function_exists('url')) {
 }
 
 if (!function_exists('productImageUrl')) {
-    function productImageUrl(?string $image = ''): string
+    function productImageUrl(?string $image = '', ?string $productType = ''): string
     {
         $image = trim((string)$image);
-        $fallback = 'assets/images/laptop.png';
-
+        
+        // 1. Check if image file exists in the public directory
         if ($image !== '') {
-            $publicAssetPath = ROOT_PATH . '/public/assets/images/' . basename($image);
+            $publicAssetPath = ROOT_PATH . '/public/' . ltrim($image, '/');
             if (file_exists($publicAssetPath) && !is_dir($publicAssetPath)) {
+                return url($image);
+            }
+            
+            // Also support compatibility check with only basename
+            $legacyPath = ROOT_PATH . '/public/assets/images/' . basename($image);
+            if (file_exists($legacyPath) && !is_dir($legacyPath)) {
                 return url('assets/images/' . basename($image));
             }
+            
+            $legacyPathProducts = ROOT_PATH . '/public/assets/images/products/' . basename($image);
+            if (file_exists($legacyPathProducts) && !is_dir($legacyPathProducts)) {
+                return url('assets/images/products/' . basename($image));
+            }
+        }
+        
+        // 2. Select placeholder based on productType
+        $productType = strtolower(trim((string)$productType));
+        $phName = 'placeholder-component.webp';
+        
+        $type = 'component';
+        if (str_contains($productType, 'laptop') || str_contains($productType, 'zephyrus') || str_contains($productType, 'pavilion') || str_contains($productType, 'gram') || str_contains($productType, 'ideapad') || str_contains($productType, 'g16') || str_contains($productType, 'zenbook')) {
+            $type = 'laptop';
+        } elseif (str_contains($productType, 'pc-build') || str_contains($productType, 'pc gaming') || str_contains($productType, 'pc office') || str_contains($productType, 'workstation') || str_contains($productType, 'desktop_pc') || str_contains($productType, 'gaming_pc') || str_contains($productType, 'office_pc') || str_contains($productType, 'build-san') || str_contains($productType, 'techpilot extreme') || str_contains($productType, 'techpilot advanced') || str_contains($productType, 'techpilot basic')) {
+            $type = 'pc';
+        } elseif (str_contains($productType, 'printer') || str_contains($productType, 'máy in') || str_contains($productType, 'laserjet')) {
+            $type = 'printer';
+        } elseif (str_contains($productType, 'projector') || str_contains($productType, 'máy chiếu') || str_contains($productType, 'cc200')) {
+            $type = 'projector';
+        } elseif (str_contains($productType, 'cpu') || str_contains($productType, 'intel core') || str_contains($productType, 'ryzen') || str_contains($productType, 'ultra 5') || str_contains($productType, 'ultra 7') || str_contains($productType, 'ultra 9') || str_contains($productType, 'processor')) {
+            $type = 'cpu';
+        } elseif (str_contains($productType, 'motherboard') || str_contains($productType, 'mainboard') || str_contains($productType, 'main-board') || str_contains($productType, 'b760') || str_contains($productType, 'b660') || str_contains($productType, 'z790') || str_contains($productType, 'b650') || str_contains($productType, 'h610') || str_contains($productType, 'z690') || str_contains($productType, 'z890') || str_contains($productType, 'b450') || str_contains($productType, 'b550') || str_contains($productType, 'x670')) {
+            $type = 'motherboard';
+        } elseif (str_contains($productType, 'gpu') || str_contains($productType, 'card màn hình') || str_contains($productType, 'rtx') || str_contains($productType, 'rx 6600') || str_contains($productType, 'rx 7800') || str_contains($productType, 'gtx') || str_contains($productType, 'rx 7900') || str_contains($productType, 'radeon')) {
+            $type = 'gpu';
+        } elseif (str_contains($productType, 'ssd') || str_contains($productType, 'hdd') || str_contains($productType, 'ổ cứng') || str_contains($productType, 'samsung 990') || str_contains($productType, 'wd blue') || str_contains($productType, 'nv2') || str_contains($productType, 'samsung 980') || str_contains($productType, 'crucial p3') || str_contains($productType, 'wd-blue')) {
+            $type = 'ssd';
+        } elseif (str_contains($productType, 'ram') || str_contains($productType, 'ddr4') || str_contains($productType, 'ddr5') || str_contains($productType, 'corsair vengeance') || str_contains($productType, 'kingston fury') || str_contains($productType, 'ripjaws') || str_contains($productType, 'crucial classic') || str_contains($productType, 'trident z5')) {
+            $type = 'ram';
+        } elseif (str_contains($productType, 'psu') || str_contains($productType, 'nguồn') || str_contains($productType, 'power supply') || str_contains($productType, 'cv450') || str_contains($productType, 'rm750') || str_contains($productType, 'pf550') || str_contains($productType, 'a650bn') || str_contains($productType, 'cv650') || str_contains($productType, 'pk750d') || str_contains($productType, 'a750gl') || str_contains($productType, 'focus-gx') || str_contains($productType, 'rm850x')) {
+            $type = 'psu';
+        } elseif (str_contains($productType, 'monitor') || str_contains($productType, 'màn hình') || str_contains($productType, 'odyssey') || str_contains($productType, 'ultragear') || str_contains($productType, 'vg279') || str_contains($productType, '24gq50f')) {
+            $type = 'monitor';
+        } elseif (str_contains($productType, 'router') || str_contains($productType, 'wifi') || str_contains($productType, 'mạng') || str_contains($productType, 'networking') || str_contains($productType, 'rt-ax53u') || str_contains($productType, 'bộ phát')) {
+            $type = 'network';
+        } elseif (str_contains($productType, 'keyboard') || str_contains($productType, 'mouse') || str_contains($productType, 'headset') || str_contains($productType, 'webcam') || str_contains($productType, 'speaker') || str_contains($productType, 'bàn phím') || str_contains($productType, 'chuột') || str_contains($productType, 'tai nghe') || str_contains($productType, 'gaming-gear') || str_contains($productType, 'office-gear') || str_contains($productType, 'accessory') || str_contains($productType, 'logitech g213') || str_contains($productType, 'deathadder') || str_contains($productType, 'k70 pro')) {
+            $type = 'accessory';
         }
 
-        return url($fallback);
+        switch ($type) {
+            case 'laptop':
+                $phName = 'placeholder-laptop.webp';
+                break;
+            case 'pc':
+                $phName = 'placeholder-desktop-pc.webp';
+                break;
+            case 'printer':
+                $phName = 'placeholder-printer.webp';
+                break;
+            case 'projector':
+                $phName = 'placeholder-projector.webp';
+                break;
+            case 'cpu':
+                $phName = 'placeholder-cpu.webp';
+                break;
+            case 'motherboard':
+                $phName = 'placeholder-motherboard.webp';
+                break;
+            case 'gpu':
+                $phName = 'placeholder-gpu.webp';
+                break;
+            case 'ssd':
+                $phName = 'placeholder-ssd.webp';
+                break;
+            case 'ram':
+                $phName = 'placeholder-ram.webp';
+                break;
+            case 'psu':
+                $phName = 'placeholder-psu.webp';
+                break;
+            case 'monitor':
+                $phName = 'placeholder-monitor.webp';
+                break;
+            case 'network':
+                $phName = 'placeholder-network.webp';
+                break;
+            case 'accessory':
+                $phName = 'placeholder-accessory.webp';
+                break;
+            default:
+                $phName = 'placeholder-component.webp';
+                break;
+        }
+        
+        return url('assets/images/products/' . $phName);
     }
 }
 
