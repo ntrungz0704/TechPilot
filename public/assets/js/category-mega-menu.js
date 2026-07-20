@@ -1,150 +1,156 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const categoryMenuButton = document.getElementById('categoryMenuButton');
-    const categoryMegaMenu   = document.getElementById('categoryMegaMenu');
-    const categoryBackdrop   = document.getElementById('categoryBackdrop');
-    const sharedCategoryMenu = document.getElementById('sharedCategoryMenu');
+    const toggleBtn = document.getElementById('categoryMenuToggle');
+    const dropdown = document.getElementById('categoryMegaDropdown') || document.getElementById('categoryStaticMenu');
+    const overlay = document.getElementById('categoryMenuOverlay');
+    
+    if (!toggleBtn || !dropdown) return;
 
-    if (!categoryMenuButton || !categoryMegaMenu || !categoryBackdrop) {
-        return;
-    }
+    let isOpen = false;
+    let hoverTimeout = null;
+    let activeRow = null;
+    let activePanelId = null;
 
-    const menuItems = sharedCategoryMenu
-        ? Array.from(sharedCategoryMenu.querySelectorAll('.vertical-menu__item'))
-        : [];
+    const sidebarItems = dropdown.querySelectorAll('.category-sidebar__item');
+    const megaPanels = dropdown.querySelectorAll('.category-mega__panel');
 
-    // 1. STATE MACHINE (Single Source of Truth)
-    function openCategoryMenu() {
-        categoryMegaMenu.hidden = false;
-        categoryBackdrop.hidden = false;
-        categoryMegaMenu.classList.add('is-open');
-        categoryBackdrop.classList.add('is-open');
-        categoryMenuButton.setAttribute('aria-expanded', 'true');
-        document.body.classList.add('category-scroll-locked');
-    }
-
-    function closeCategoryMenu() {
-        categoryMegaMenu.hidden = true;
-        categoryBackdrop.hidden = true;
-        categoryMegaMenu.classList.remove('is-open');
-        categoryBackdrop.classList.remove('is-open');
-        categoryMenuButton.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('category-scroll-locked');
-        clearActiveItems();
-    }
-
-    function toggleCategoryMenu() {
-        if (!categoryMegaMenu.hidden) {
-            closeCategoryMenu();
+    // 1. OPEN / CLOSE MENU
+    function openMenu() {
+        isOpen = true;
+        
+        // Cập nhật ARIA
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        toggleBtn.classList.add('is-active');
+        
+        if (overlay) overlay.hidden = false;
+        
+        if (!dropdown.classList.contains('is-static')) {
+            dropdown.hidden = false;
+            document.body.classList.add('category-scroll-locked');
         } else {
-            openCategoryMenu();
+            dropdown.classList.add('is-highlighted');
+        }
+
+        // Reset trạng thái hover khi mở
+        if (sidebarItems.length > 0) {
+            activatePanel(sidebarItems[0]);
         }
     }
 
-    function activateItem(item) {
-        menuItems.forEach(i => i.classList.toggle('is-active', i === item));
+    function closeMenu() {
+        isOpen = false;
+        
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.classList.remove('is-active');
+        
+        if (overlay) overlay.hidden = true;
+        
+        if (!dropdown.classList.contains('is-static')) {
+            dropdown.hidden = true;
+            document.body.classList.remove('category-scroll-locked');
+        } else {
+            dropdown.classList.remove('is-highlighted');
+        }
+        
+        deactivateAll();
     }
 
-    function clearActiveItems() {
-        menuItems.forEach(i => i.classList.remove('is-active'));
+    function toggleMenu() {
+        if (isOpen) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
     }
 
-    // Expose API for external handlers
-    window.openCategoryMenu   = openCategoryMenu;
-    window.closeCategoryMenu  = closeCategoryMenu;
-    window.toggleCategoryMenu = toggleCategoryMenu;
-
-    // 2. EVENT LISTENERS
-    // Button click -> toggle
-    categoryMenuButton.addEventListener('click', (e) => {
+    // Toggle click
+    toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggleCategoryMenu();
+        toggleMenu();
     });
 
-    // Keep menu open while hovering inside the mega menu panel
-    categoryMegaMenu.addEventListener('mouseenter', () => {
-        clearTimeout(hoverCloseTimer);
-    });
+    // Đóng khi click ra ngoài hoặc click overlay
+    overlay.addEventListener('click', closeMenu);
 
-    // Schedule close with a delay to allow mouse to travel between button and menu
-    function scheduleClose() {
-        hoverCloseTimer = setTimeout(() => {
-            closeCategoryMenu();
-        }, 220);
-    }
-
-    categoryMenuButton.addEventListener('mouseleave', scheduleClose);
-    categoryMegaMenu.addEventListener('mouseleave', scheduleClose);
-
-    // Backdrop click -> close
-    categoryBackdrop.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        closeCategoryMenu();
-    });
-
-    // Click outside -> close
     document.addEventListener('click', (e) => {
-        if (categoryMegaMenu.hidden) return;
-        const isClickInsideMenu = categoryMegaMenu.contains(e.target);
-        const isClickInsideButton = categoryMenuButton.contains(e.target);
-        if (!isClickInsideMenu && !isClickInsideButton) {
-            closeCategoryMenu();
+        if (isOpen && !dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
+            closeMenu();
         }
     });
 
-    // Stop propagation inside mega menu except navigation links
-    categoryMegaMenu.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (link) {
-            // Clicked a navigation link -> close menu and let browser navigate
-            closeCategoryMenu();
-        } else {
-            e.stopPropagation();
-        }
-    });
-
-    // Keyboard Escape -> close and return focus to button
+    // Đóng khi ấn Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !categoryMegaMenu.hidden) {
-            closeCategoryMenu();
-            categoryMenuButton.focus();
+        if (e.key === 'Escape' && isOpen) {
+            closeMenu();
+            toggleBtn.focus();
         }
     });
 
-    // Mouse hover over category items on desktop
-    menuItems.forEach(item => {
+    // 2. STATE MACHINE CHO MOUSE HOVER TRONG SIDEBAR
+    function activatePanel(itemEl) {
+        if (!itemEl) return;
+        const targetId = itemEl.getAttribute('data-panel-id');
+        if (targetId === activePanelId) return;
+
+        // Xóa class active cũ
+        if (activeRow) {
+            activeRow.classList.remove('is-active');
+        }
+        megaPanels.forEach(p => p.classList.remove('is-active'));
+
+        // Set class active mới
+        activeRow = itemEl;
+        activePanelId = targetId;
+        activeRow.classList.add('is-active');
+        
+        const targetPanel = document.getElementById(targetId);
+        if (targetPanel) {
+            targetPanel.classList.add('is-active');
+        }
+        
+        // Cập nhật state cho container (để static mode biết có mở panel)
+        dropdown.classList.add('has-active-panel');
+    }
+
+    function deactivateAll() {
+        if (activeRow) {
+            activeRow.classList.remove('is-active');
+        }
+        megaPanels.forEach(p => p.classList.remove('is-active'));
+        activeRow = null;
+        activePanelId = null;
+        dropdown.classList.remove('has-active-panel');
+    }
+
+    // Trên desktop static mode, khi chuột rời khỏi toàn bộ component thì đóng panel
+    dropdown.addEventListener('mouseleave', () => {
+        if (dropdown.classList.contains('is-static')) {
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+            deactivateAll();
+        }
+    });
+
+    sidebarItems.forEach(item => {
         item.addEventListener('mouseenter', () => {
-            if (!categoryMegaMenu.hidden) {
-                activateItem(item);
-            }
+            // Dùng timeout nhỏ để chống flicker khi lướt chéo
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+            hoverTimeout = setTimeout(() => {
+                activatePanel(item);
+            }, 100); 
         });
 
-        // Mobile accordion toggle
-        const toggleBtn = item.querySelector('.mobile-category-toggle');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const isExpanded = item.classList.contains('is-expanded');
-                item.classList.toggle('is-expanded', !isExpanded);
-                toggleBtn.setAttribute('aria-expanded', !isExpanded ? 'true' : 'false');
-            });
-        }
+        item.addEventListener('mouseleave', () => {
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+        });
+
+        // Bật bằng keyboard
+        item.addEventListener('focus', () => {
+            activatePanel(item);
+        });
     });
 
-    // Resize window -> close menu if switching to mobile or screen changes
-    window.addEventListener('resize', () => {
-        if (!categoryMegaMenu.hidden && window.innerWidth <= 575) {
-            closeCategoryMenu();
-        }
+    // Ngăn chặn sự cố khi con trỏ di chuyển vào panel
+    dropdown.querySelector('.category-dropdown__mega')?.addEventListener('mouseenter', () => {
+        if (hoverTimeout) clearTimeout(hoverTimeout);
     });
-
-    // Close menu on page load / bfcache restore
-    window.addEventListener('pageshow', () => {
-        closeCategoryMenu();
-    });
-
-    // Initial State: Hidden by default
-    closeCategoryMenu();
 });

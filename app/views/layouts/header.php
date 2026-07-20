@@ -80,9 +80,10 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                 </a>
 
                 <!-- Nút Danh mục sản phẩm -->
-                <button type="button" class="header-category-btn desktop-only-link" id="categoryMenuButton" aria-expanded="false" aria-controls="categoryMegaMenu">
+                <button type="button" class="category-toggle desktop-only-link" id="categoryMenuToggle" aria-expanded="false" aria-controls="categoryMegaDropdown">
                     <i class="fa-solid fa-bars"></i>
                     <span class="desktop-only-link">Danh mục</span>
+                    <i class="category-toggle__chevron fa-solid fa-chevron-down"></i>
                 </button>
 
                 <!-- Search Bar với Category Dropdown -->
@@ -235,16 +236,11 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
             </nav>
 
 
-            <!-- Category Mega Menu Container (Separate Element) -->
-            <div id="categoryMegaMenu" class="category-mega-menu" hidden>
-                <div class="category-mega-menu__container">
-                    <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
-                </div>
-            </div>
+            <!-- 4. Category Mega Menu Dropdown -->
+            <?php if ($activeMenu !== 'home'): ?>
+                <?php require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; ?>
+            <?php endif; ?>
         </header>
     </div> <!-- Close commerce-header-stack -->
-
-    <!-- Category Backdrop (Separate Root Element) -->
-    <div id="categoryBackdrop" class="category-backdrop" hidden></div>
 
     <main>

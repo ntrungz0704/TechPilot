@@ -492,16 +492,27 @@
                     <span>Phân tích công suất nguồn</span>
                     <i class="fa-solid fa-bolt" style="color: #F59E0B;"></i>
                 </div>
-                <div class="pc-builder-summary-row">
-                    <span>Công suất tải ước tính:</span>
-                    <span id="psu-estimated-w" style="font-weight: 700; color: var(--text-primary);">0W</span>
+                
+                <div id="psu-analysis-placeholder" style="font-size:13px; color:#64748B; font-style:italic; padding: 10px 0; text-align: center;">
+                    Chọn CPU để nhận đề xuất nguồn.
                 </div>
-                <div class="pc-builder-summary-row">
-                    <span>Nguồn tối thiểu khuyên dùng:</span>
-                    <span id="psu-recommended-w" style="font-weight: 700; color: #EF4444;">300W</span>
-                </div>
-                <div style="font-size:11.5px; color:#64748B; font-style:italic; line-height:1.4; margin-top:8px;">
-                    * Công suất đã cộng 30% Headroom an toàn và làm tròn lên 50W.
+
+                <div id="psu-analysis-content" style="display: none;">
+                    <div class="pc-builder-summary-row" style="font-size:13px;">
+                        <span>Công suất tải đỉnh:</span>
+                        <span id="psu-estimated-w" style="font-weight: 600; color: var(--text-primary);">0W</span>
+                    </div>
+                    <div class="pc-builder-summary-row" style="font-size:13px; margin-top:4px;">
+                        <span>Yêu cầu tối thiểu từ GPU:</span>
+                        <span id="psu-gpu-minimum-w" style="font-weight: 600; color: var(--text-secondary);">0W</span>
+                    </div>
+                    <div class="pc-builder-summary-row" style="margin-top:8px; border-top: 1px dashed #E2E8F0; padding-top:8px;">
+                        <span style="font-weight:600;">Nguồn khuyến nghị:</span>
+                        <span id="psu-recommended-w" style="font-weight: 700; color: #EF4444; font-size:16px;">300W</span>
+                    </div>
+                    <div style="font-size:11px; color:#94A3B8; font-style:italic; line-height:1.4; margin-top:8px; text-align:right;">
+                        * Đã tính 30% dự phòng an toàn.
+                    </div>
                 </div>
             </div>
 
@@ -787,9 +798,21 @@
             .then(data => {
                 if (data.success) {
                     const power = data.power;
-                    // Cập nhật công suất nguồn hiển thị
-                    document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
-                    document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+                    
+                    const psuPlaceholder = document.getElementById('psu-analysis-placeholder');
+                    const psuContent = document.getElementById('psu-analysis-content');
+                    
+                    if (cpuId === 0) {
+                        psuPlaceholder.style.display = 'block';
+                        psuContent.style.display = 'none';
+                    } else {
+                        psuPlaceholder.style.display = 'none';
+                        psuContent.style.display = 'block';
+                        
+                        document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
+                        document.getElementById('psu-gpu-minimum-w').innerText = (power.gpu_minimum_psu_w > 0 ? power.gpu_minimum_psu_w : 0) + 'W';
+                        document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+                    }
 
                     // Hiển thị danh sách cảnh báo & lỗi
                     const alertsContainer = document.getElementById('build-alerts-container');
@@ -798,6 +821,14 @@
                     
                     alertsList.innerHTML = '';
                     let hasBlockers = false;
+                    let missingCores = [];
+
+                    // Yêu cầu linh kiện cốt lõi để mua hàng
+                    if (cpuId === 0) missingCores.push('CPU');
+                    if (mainboardId === 0) missingCores.push('Bo mạch chủ');
+                    if (ramId === 0) missingCores.push('RAM');
+                    if (storageId === 0) missingCores.push('Ổ cứng');
+                    if (psuId === 0) missingCores.push('Nguồn (PSU)');
 
                     // Duyệt các lỗi nghiêm trọng (Blockers)
                     if (data.blockers && data.blockers.length > 0) {
@@ -809,6 +840,15 @@
                                 </div>
                             `;
                         });
+                    }
+
+                    if (missingCores.length > 0) {
+                        hasBlockers = true; // Not technically a "blocker" array element from backend, but it blocks purchase
+                        alertsList.innerHTML += `
+                            <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
+                                <i class="fa-solid fa-circle-xmark"></i> Thiếu linh kiện cốt lõi: ${missingCores.join(', ')}
+                            </div>
+                        `;
                     }
 
                     // Duyệt các cảnh báo (Warnings)
@@ -829,7 +869,15 @@
                     }
 
                     // Vô hiệu hóa nút thêm vào giỏ hàng nếu cấu hình có Blockers
-                    btnAddToCart.disabled = hasBlockers;
+                    if (hasBlockers) {
+                        btnAddToCart.disabled = true;
+                        btnAddToCart.style.opacity = '0.5';
+                        btnAddToCart.style.cursor = 'not-allowed';
+                    } else {
+                        btnAddToCart.disabled = false;
+                        btnAddToCart.style.opacity = '1';
+                        btnAddToCart.style.cursor = 'pointer';
+                    }
                 }
             })
             .catch(err => {
