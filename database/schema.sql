@@ -228,6 +228,19 @@ CREATE TABLE IF NOT EXISTS flash_sales (
     INDEX idx_flash_sales_window (status, start_time, end_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS flash_sale_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    flash_sale_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    discount_price DECIMAL(15, 2) NOT NULL,
+    allocation_quantity INT NOT NULL DEFAULT 0,
+    sold_quantity INT NOT NULL DEFAULT 0,
+    limit_per_user INT NOT NULL DEFAULT 1,
+    CONSTRAINT fk_flash_sale_items_campaign FOREIGN KEY (flash_sale_id) REFERENCES flash_sales (id) ON DELETE CASCADE,
+    CONSTRAINT fk_flash_sale_items_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+    UNIQUE KEY uq_campaign_product (flash_sale_id, product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 14. banners (Quảng cáo)
 CREATE TABLE IF NOT EXISTS banners (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -340,18 +353,18 @@ INSERT INTO products (id, category_id, brand_id, name, slug, short_desc, descrip
 
 -- Màn Hình
 (29, 5, 1, 'Màn hình ASUS TUF Gaming VG279Q1A', 'man-hinh-asus-tuf-vg279q1a', '27" IPS FHD 165Hz chuyên game bắn súng', 'Tần số quét cao 165Hz, thời gian phản hồi 1ms MPRT cùng góc nhìn rộng 178 độ.', 3290000, 3990000, NULL, 17, 'monitor-asus.jpg', 4.7, 185, 20, '{"Kích thước": "27 inch", "Độ phân giải": "1920x1080 (FHD)", "Tần số quét": "165Hz", "Tấm nền": "IPS"}', 0, 0, 1, 0),
-(30, 5, 16, 'Màn hình LG UltraGear 24GQ50F-B', 'man-hinh-lg-ultragear-24gq50f', '24" VA 165Hz giá sinh viên chiến game ngon', 'Tần số quét 165Hz, hỗ trợ AMD FreeSync Premium chiến game Esport mượt mà.', 2490000, 2990000, NULL, 16, 'monitor-lg.jpg', 4.5, 230, 30, '{"Kích thước": "23.8 inch", "Độ phân giải": "1920x1080 (FHD)", "Tần số quét": "165Hz", "Tấm nền": "VA"}', 0, 0, 0, 0),
-(31, 5, 11, 'Màn hình Samsung Odyssey G6 27"', 'man-hinh-samsung-odyssey-g6', 'Màn hình cong gaming 2K 240Hz thông minh', 'Tần số quét siêu khủng 240Hz, tấm nền cong QLED, tích hợp kho ứng dụng Smart TV tiện ích.', 11990000, 13990000, NULL, 14, 'monitor-samsung-g6.jpg', 4.8, 322, 12, '{"Kích thước": "27 inch", "Độ cong": "1000R", "Độ phân giải": "2560x1440", "Tần số quét": "240Hz", "Tấm nền": "VA"}', 0, 1, 0, 0),
+(30, 5, 16, 'Màn hình LG UltraGear 24GQ50F-B', 'man-hinh-lg-ultragear-24gq50f', '24" VA 165Hz giá sinh viên chiến game ngon', 'Tần số quét 165Hz, hỗ trợ AMD FreeSync Premium chiến game Esport mượt mà.', 2490000, 2990000, NULL, 16, 'monitor-lg-27.jpg', 4.5, 230, 30, '{"Kích thước": "23.8 inch", "Độ phân giải": "1920x1080 (FHD)", "Tần số quét": "165Hz", "Tấm nền": "VA"}', 0, 0, 0, 0),
+(31, 5, 11, 'Màn hình Samsung Odyssey G6 27"', 'man-hinh-samsung-odyssey-g6', 'Màn hình cong gaming 2K 240Hz thông minh', 'Tần số quét siêu khủng 240Hz, tấm nền cong QLED, tích hợp kho ứng dụng Smart TV tiện ích.', 11990000, 13990000, NULL, 14, 'samsung-odyssey.jpg', 4.8, 322, 12, '{"Kích thước": "27 inch", "Độ cong": "1000R", "Độ phân giải": "2560x1440", "Tần số quét": "240Hz", "Tấm nền": "VA"}', 0, 1, 0, 0),
 
 -- Apple Zone
-(32, 2, 1, 'Laptop ASUS Vivobook S 14', 'laptop-asus-vivobook-s-14', 'Laptop văn phòng cao cấp, mỏng nhẹ tinh tế', 'Thiết kế mỏng nhẹ sang trọng, thời lượng pin ấn tượng và màn hình OLED sắc nét đáp ứng tối đa nhu cầu làm việc công sở.', 24990000, 26990000, NULL, 7, 'laptop-asus.jpg', 4.8, 342, 18, '{"CPU": "Intel Core i5-13500H", "RAM": "16GB DDR5", "SSD": "512GB NVMe", "Màn hình": "14 inch OLED 2.8K"}', 0, 1, 0, 0),
-(33, 1, 6, 'Laptop Gaming Lenovo Legion Pro 5', 'laptop-gaming-lenovo-legion-pro-5', 'Laptop gaming hiệu năng đỉnh cao, tản nhiệt tối ưu', 'Lenovo Legion Pro 5 trang bị Core i7 thế hệ mới cùng card đồ họa RTX 4060, đáp ứng xuất sắc nhu cầu chơi game nặng và đồ họa chuyên nghiệp.', 48990000, 52990000, NULL, 7, 'laptop-gaming.jpg', 4.9, 120, 10, '{"CPU": "Intel Core i7-14700HX", "RAM": "32GB DDR5", "SSD": "1TB NVMe", "VGA": "RTX 4060 8GB", "Màn hình": "16 inch QHD+ 165Hz"}', 0, 0, 1, 1),
-(34, 3, 1, 'PC All-in-One ASUS A3402', 'pc-all-in-one-asus-a3402', 'Máy tính All-in-One mỏng nhẹ gọn gàng cho văn phòng', 'ASUS A3402 tích hợp toàn bộ linh kiện vào sau màn hình 24 inch sắc nét, đi kèm bàn phím và chuột không dây đồng bộ.', 32990000, 35990000, NULL, 8, 'pc-build.jpg', 4.8, 62, 7, '{"CPU": "Intel Core i5-1235U", "RAM": "16GB DDR4", "SSD": "512GB NVMe", "Màn hình": "23.8 inch FHD IPS"}', 0, 0, 0, 0),
+(32, 2, 1, 'Laptop ASUS Vivobook S 14', 'laptop-asus-vivobook-s-14', 'Laptop văn phòng cao cấp, mỏng nhẹ tinh tế', 'Thiết kế mỏng nhẹ sang trọng, thời lượng pin ấn tượng và màn hình OLED sắc nét đáp ứng tối đa nhu cầu làm việc công sở.', 24990000, 26990000, NULL, 7, 'asus-vivobook.jpg', 4.8, 342, 18, '{"CPU": "Intel Core i5-13500H", "RAM": "16GB DDR5", "SSD": "512GB NVMe", "Màn hình": "14 inch OLED 2.8K"}', 0, 1, 0, 0),
+(33, 1, 6, 'Laptop Gaming Lenovo Legion Pro 5', 'laptop-gaming-lenovo-legion-pro-5', 'Laptop gaming hiệu năng đỉnh cao, tản nhiệt tối ưu', 'Lenovo Legion Pro 5 trang bị Core i7 thế hệ mới cùng card đồ họa RTX 4060, đáp ứng xuất sắc nhu cầu chơi game nặng và đồ họa chuyên nghiệp.', 48990000, 52990000, NULL, 7, 'lenovo-legion.jpg', 4.9, 120, 10, '{"CPU": "Intel Core i7-14700HX", "RAM": "32GB DDR5", "SSD": "1TB NVMe", "VGA": "RTX 4060 8GB", "Màn hình": "16 inch QHD+ 165Hz"}', 0, 0, 1, 1),
+(34, 3, 1, 'PC All-in-One ASUS A3402', 'pc-all-in-one-asus-a3402', 'Máy tính All-in-One mỏng nhẹ gọn gàng cho văn phòng', 'ASUS A3402 tích hợp toàn bộ linh kiện vào sau màn hình 24 inch sắc nét, đi kèm bàn phím và chuột không dây đồng bộ.', 32990000, 35990000, NULL, 8, 'pc1.png', 4.8, 62, 7, '{"CPU": "Intel Core i5-1235U", "RAM": "16GB DDR4", "SSD": "512GB NVMe", "Màn hình": "23.8 inch FHD IPS"}', 0, 0, 0, 0),
 
 -- Gaming Gear
-(35, 7, 13, 'Bàn phím cơ Logitech G213 Prodigy', 'ban-phim-logitech-g213', 'Bàn phím giả cơ chống tràn nước, đèn RGB', 'Phím nhấn nhạy bén gấp 4 lần phím thường, chỗ nghỉ tay thoải mái khi gõ văn bản lâu.', 890000, 1190000, NULL, 25, 'keyboard-logitech.jpg', 4.4, 215, 30, '{"Kiểu kết nối": "Có dây USB", "Loại phím": "Giả cơ (Membrane)", "Đèn nền": "RGB 5 vùng", "Chống nước": "Có"}', 0, 0, 0, 0),
-(36, 7, 7, 'Chuột Razer DeathAdder V3 Pro', 'chuot-razer-deathadder-v3-pro', 'Chuột gaming siêu nhẹ 63g chuẩn eSports', 'Thiết kế công thái học đỉnh cao, mắt đọc Focus Pro 30K Optical Sensor chính xác nhất thế giới.', 3190000, 3690000, NULL, 13, 'mouse-razer.jpg', 4.9, 155, 20, '{"Kết nối": "Không dây Razer HyperSpeed 2.4GHz", "Mắt đọc": "Focus Pro 30K", "Trọng lượng": "63g", "Thời lượng pin": "Lên tới 90 giờ"}', 0, 0, 0, 1),
-(37, 7, 8, 'Bàn phím cơ Corsair K70 PRO RGB', 'ban-phim-corsair-k70-pro-rgb', 'Bàn phím cơ hiện đại khung nhôm cao cấp', 'Trang bị switch Cherry MX cơ học, công nghệ xử lý siêu nhanh AXON độc quyền từ Corsair.', 3890000, 4290000, NULL, 9, 'keyboard-corsair.jpg', 4.8, 142, 15, '{"Loại Switch": "Cherry MX Red / Blue / Brown", "Khung": "Nhôm Anodized cao cấp", "Tần số gửi tín hiệu": "8000Hz (AXON)", "Kết nối": "Có dây USB-C tháo rời"}', 0, 1, 0, 0);
+(35, 7, 13, 'Bàn phím cơ Logitech G213 Prodigy', 'ban-phim-logitech-g213', 'Bàn phím giả cơ chống tràn nước, đèn RGB', 'Phím nhấn nhạy bén gấp 4 lần phím thường, chỗ nghỉ tay thoải mái khi gõ văn bản lâu.', 890000, 1190000, NULL, 25, 'logitech-g213.jpg', 4.4, 215, 30, '{"Kiểu kết nối": "Có dây USB", "Loại phím": "Giả cơ (Membrane)", "Đèn nền": "RGB 5 vùng", "Chống nước": "Có"}', 0, 0, 0, 0),
+(36, 7, 7, 'Chuột Razer DeathAdder V3 Pro', 'chuot-razer-deathadder-v3-pro', 'Chuột gaming siêu nhẹ 63g chuẩn eSports', 'Thiết kế công thái học đỉnh cao, mắt đọc Focus Pro 30K Optical Sensor chính xác nhất thế giới.', 3190000, 3690000, NULL, 13, 'razer-deathadder-v3.jpg', 4.9, 155, 20, '{"Kết nối": "Không dây Razer HyperSpeed 2.4GHz", "Mắt đọc": "Focus Pro 30K", "Trọng lượng": "63g", "Thời lượng pin": "Lên tới 90 giờ"}', 0, 0, 0, 1),
+(37, 7, 8, 'Bàn phím cơ Corsair K70 PRO RGB', 'ban-phim-corsair-k70-pro-rgb', 'Bàn phím cơ hiện đại khung nhôm cao cấp', 'Trang bị switch Cherry MX cơ học, công nghệ xử lý siêu nhanh AXON độc quyền từ Corsair.', 3890000, 4290000, NULL, 9, 'corsair-k70.jpg', 4.8, 142, 15, '{"Loại Switch": "Cherry MX Red / Blue / Brown", "Khung": "Nhôm Anodized cao cấp", "Tần số gửi tín hiệu": "8000Hz (AXON)", "Kết nối": "Có dây USB-C tháo rời"}', 0, 1, 0, 0);
 
 -- 4. Nạp bộ sưu tập hình ảnh sản phẩm (product_images)
 INSERT INTO product_images (product_id, image_url) VALUES 
@@ -361,12 +374,12 @@ INSERT INTO product_images (product_id, image_url) VALUES
 
 -- 5. Nạp quản lý banner quảng cáo (banners)
 INSERT INTO banners (title, image, link, type, position) VALUES 
-('ROG Zephyrus G16 - Sức mạnh vượt trội', 'hero-rog-zephyrus.jpg', 'product/detail/asus-rog-zephyrus-g16', 'hero', 1),
-('Build PC theo yêu cầu - Tối ưu cấu hình', '#', '#', 'hero_sidebar', 1),
-('Trả góp 0% - Duyệt nhanh 3 phút', '#', '#', 'hero_sidebar', 2),
-('Thu cũ đổi mới - Trợ giá lên tới 6 triệu', '#', '#', 'hero_sidebar', 3),
-('RTX 50 Series - Sắp ra mắt', 'banner-rtx-50.jpg', '#', 'mid_banner', 1),
-('Trả góp 0% lãi suất - Thủ tục nhanh gọn', 'banner-tra-gop.jpg', '#', 'long_banner', 1);
+('ROG Zephyrus G16 - Sức mạnh vượt trội', 'rog-banner-bg.jpg', 'product/detail/asus-rog-zephyrus-g16', 'hero', 1),
+('Build PC theo yêu cầu - Tối ưu cấu hình', 'banner-2.jpg', '#', 'hero_sidebar', 1),
+('Trả góp 0% - Duyệt nhanh 3 phút', 'banner-3.jpg', '#', 'hero_sidebar', 2),
+('Thu cũ đổi mới - Trợ giá lên tới 6 triệu', 'installment-banner.jpg', '#', 'hero_sidebar', 3),
+('RTX 50 Series - Sắp ra mắt', 'banner-rtx-bg.jpg', '#', 'mid_banner', 1),
+('Trả góp 0% lãi suất - Thủ tục nhanh gọn', 'promo-banner-2.jpg', '#', 'long_banner', 1);
 
 -- 6. Nạp bài viết tin tức công nghệ (posts)
 INSERT INTO posts (title, slug, summary, content, image, created_at) VALUES 
@@ -394,6 +407,7 @@ INSERT INTO coupons (code, discount_value, type, max_discount, min_order_value, 
 -- Customer: email=customer@gmail.com / password=customer123
 INSERT INTO users (full_name, email, phone, password, role, status) VALUES
 ('Nguyễn Phạm Thành Trung', 'ntrungz0704@gmail.com', '0987654321', '$2y$12$MfxSPGH6pjMqRLNF/3H.FeZP6.ppxtRtqz/StiY0d0BaTUxX3xdB2', 'admin', 'active'),
+('Quản trị TechPilot', 'admin@techpilot.vn', '0999888777', '$2y$12$yfWn0GajpeB9G/Fg6FPB7u.fG/tFa.Sbhg3Vd.koMKY4QYi6io7wa', 'admin', 'active'),
 ('Khách hàng Demo', 'customer@gmail.com', '0123456789', '$2y$12$CYdt4fumZuJ8nc5menHuN.0mJ2zGA.Y5nTTjCnkfLWXfS6if/6WOS', 'customer', 'active');
 
 -- 10. Nạp một chiến dịch Flash Sale

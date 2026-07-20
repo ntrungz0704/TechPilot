@@ -32,7 +32,7 @@ class AdminController extends Controller
             $stats['total_revenue'] = (float)$db->query('SELECT SUM(total_amount) FROM orders WHERE status = \'completed\'')->fetchColumn();
 
             // Sản phẩm tồn kho thấp (< 10)
-            $stmt = $db->prepare('SELECT id, name, price, stock FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5');
+            $stmt = $db->prepare('SELECT id, name, price, stock, image FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5');
             $stmt->execute();
             $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

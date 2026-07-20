@@ -33,7 +33,7 @@
                             <td><?= (int)$b['id'] ?></td>
                             <td>
                                 <?php if (!empty($b['logo'])): ?>
-                                    <img src="<?= url('assets/images/' . e($b['logo'])) ?>" alt="<?= e($b['name']) ?>" style="height: 36px; max-width: 100px; object-fit: contain; display: block;">
+                                    <img src="<?= url('assets/images/brands/' . e($b['logo'])) ?>" alt="<?= e($b['name']) ?>" style="height: 36px; max-width: 100px; object-fit: contain; display: block;">
                                 <?php else: ?>
                                     <span style="color: #9CA3AF; font-size: 12px; font-style: italic;">Không có logo</span>
                                 <?php endif; ?>
