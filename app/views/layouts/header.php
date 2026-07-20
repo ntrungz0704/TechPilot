@@ -154,21 +154,6 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="container main-nav__inner">
-                <div class="main-nav__categories">
-                    <i class="fa-solid fa-bars"></i> Danh mục sản phẩm
-                    <div class="main-nav__categories-panel">
-                        <?php 
-                        $categoriesList = $categories ?? $globalCategories ?? [];
-                        foreach ($categoriesList as $cat): 
-                        ?>
-                            <a href="<?= url('home/search?cat=' . $cat['slug']) ?>">
-                                <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>"></i>
-                                <?= e($cat['name']) ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                
                 <ul class="main-nav__links">
                     <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
@@ -182,6 +167,7 @@
                     <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
                 </ul>
             </div>
+        </nav>
     </header>
     </div> <!-- Close commerce-header-stack -->
 
