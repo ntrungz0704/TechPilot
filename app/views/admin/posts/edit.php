@@ -35,22 +35,26 @@
         </div>
 
         <div class="form-group mb-3">
-            <label>Chuyên mục</label>
+            <label>Chuyên mục (Thiết bị)</label>
             <select name="category_slug" class="form-control">
-                <option value="cong-nghe" <?= ($post['category_slug'] ?? '') == 'cong-nghe' ? 'selected' : '' ?>>Công nghệ</option>
                 <option value="laptop" <?= ($post['category_slug'] ?? '') == 'laptop' ? 'selected' : '' ?>>Laptop</option>
-                <option value="gaming" <?= ($post['category_slug'] ?? '') == 'gaming' ? 'selected' : '' ?>>PC Gaming</option>
-                <option value="pc-linh-kien" <?= ($post['category_slug'] ?? '') == 'pc-linh-kien' ? 'selected' : '' ?>>Linh kiện PC</option>
+                <option value="pc-gaming" <?= in_array($post['category_slug'] ?? '', ['pc-gaming', 'gaming']) ? 'selected' : '' ?>>PC Gaming</option>
+                <option value="pc-linh-kien" <?= ($post['category_slug'] ?? '') == 'pc-linh-kien' ? 'selected' : '' ?>>PC & Linh kiện</option>
+                <option value="man-hinh" <?= ($post['category_slug'] ?? '') == 'man-hinh' ? 'selected' : '' ?>>Màn hình</option>
+                <option value="gaming-gear" <?= ($post['category_slug'] ?? '') == 'gaming-gear' ? 'selected' : '' ?>>Gaming Gear</option>
+                <option value="ai-cong-nghe-moi" <?= in_array($post['category_slug'] ?? '', ['ai-cong-nghe-moi', 'ai']) ? 'selected' : '' ?>>AI & Công nghệ mới</option>
+                <option value="cong-nghe" <?= ($post['category_slug'] ?? '') == 'cong-nghe' ? 'selected' : '' ?>>Công nghệ chung</option>
             </select>
         </div>
 
         <div class="form-group mb-3">
-            <label>Loại bài viết</label>
+            <label>Loại nội dung</label>
             <select name="post_type" class="form-control">
-                <option value="news" <?= ($post['post_type'] ?? '') == 'news' ? 'selected' : '' ?>>Tin tức</option>
-                <option value="review" <?= ($post['post_type'] ?? '') == 'review' ? 'selected' : '' ?>>Đánh giá</option>
-                <option value="guide" <?= ($post['post_type'] ?? '') == 'guide' ? 'selected' : '' ?>>Thủ thuật / Tư vấn</option>
-                <option value="comparison" <?= ($post['post_type'] ?? '') == 'comparison' ? 'selected' : '' ?>>So sánh</option>
+                <option value="news" <?= ($post['post_type'] ?? '') == 'news' ? 'selected' : '' ?>>Ra mắt & Xu hướng</option>
+                <option value="review" <?= ($post['post_type'] ?? '') == 'review' ? 'selected' : '' ?>>Đánh giá & Review</option>
+                <option value="guide" <?= ($post['post_type'] ?? '') == 'guide' ? 'selected' : '' ?>>Tư vấn chọn mua</option>
+                <option value="howto" <?= ($post['post_type'] ?? '') == 'howto' ? 'selected' : '' ?>>Mẹo hay & Thủ thuật</option>
+                <option value="comparison" <?= ($post['post_type'] ?? '') == 'comparison' ? 'selected' : '' ?>>So sánh sản phẩm</option>
             </select>
         </div>
 

@@ -31,22 +31,26 @@
         </div>
 
             <div class="form-group mb-3">
-                <label>Chuyên mục</label>
+                <label>Chuyên mục (Thiết bị)</label>
                 <select name="category_slug" class="form-control">
-                    <option value="cong-nghe">Công nghệ</option>
                     <option value="laptop">Laptop</option>
-                    <option value="gaming">PC Gaming</option>
-                    <option value="pc-linh-kien">Linh kiện PC</option>
+                    <option value="pc-gaming">PC Gaming</option>
+                    <option value="pc-linh-kien">PC & Linh kiện</option>
+                    <option value="man-hinh">Màn hình</option>
+                    <option value="gaming-gear">Gaming Gear</option>
+                    <option value="ai-cong-nghe-moi">AI & Công nghệ mới</option>
+                    <option value="cong-nghe">Công nghệ chung</option>
                 </select>
             </div>
 
             <div class="form-group mb-3">
-                <label>Loại bài viết</label>
+                <label>Loại nội dung</label>
                 <select name="post_type" class="form-control">
-                    <option value="news">Tin tức</option>
-                    <option value="review">Đánh giá</option>
-                    <option value="guide">Thủ thuật / Tư vấn</option>
-                    <option value="comparison">So sánh</option>
+                    <option value="news">Ra mắt & Xu hướng</option>
+                    <option value="review">Đánh giá & Review</option>
+                    <option value="guide">Tư vấn chọn mua</option>
+                    <option value="howto">Mẹo hay & Thủ thuật</option>
+                    <option value="comparison">So sánh sản phẩm</option>
                 </select>
             </div>
 

@@ -7,6 +7,7 @@
 /* ── 1. Variables (scoped to .news-page) ─────────────────────────────────── */
 .news-page {
     --news-primary:    var(--primary, #146EF5);
+    --news-cyan:       #00C8FF;
     --news-ai-accent:  var(--techpilot-violet, #5B5BFF);
     --news-text-main:  var(--text-primary, #111827);
     --news-text-light: var(--text-secondary, #6B7280);
@@ -14,9 +15,9 @@
     --news-page-bg:    var(--surface-page, #F3F4F6);
     --news-card-bg:    var(--surface-card, #FFFFFF);
     --news-muted-bg:   var(--surface-muted, #F9FAFB);
-    --news-radius:     4px; /* Cellphones style: ít bo tròn */
+    --news-radius:     8px;
     --news-shadow:     var(--shadow-card, 0 4px 6px -1px rgba(0,0,0,.10), 0 2px 4px -1px rgba(0,0,0,.06));
-    --news-accent:     #d70018; /* Màu đỏ Cellphones */
+    --news-accent:     var(--news-primary);
 
     font-family: inherit;
     color: var(--news-text-main);
@@ -43,42 +44,251 @@
     gap: 30px;
 }
 
-/* ── 3. Tag/Category Navigation ─────────────────────────────────────────── */
-.news-tags {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    margin-bottom: 25px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    flex-wrap: nowrap; /* Không cho wrap thành nhiều dòng */
+/* ── 3. Content Category UI (Phase 3) ───────────────────────────────────── */
+.news-category-section {
+    margin-bottom: 35px;
 }
-.news-tags::-webkit-scrollbar {
-    display: none;
+
+/* Header Intro */
+.news-intro-header {
+    margin-bottom: 24px;
 }
-.news-tag-pill {
-    white-space: nowrap;
-    padding: 7px 16px;
+.news-intro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(20, 110, 245, 0.08);
+    color: var(--news-primary);
+    font-size: 12px;
+    font-weight: 700;
     border-radius: 20px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+html.dark-mode .news-intro-badge {
+    background: rgba(0, 200, 255, 0.15);
+    color: #00C8FF;
+}
+.news-intro-title {
+    font-size: clamp(24px, 3.5vw, 32px);
+    font-weight: 900;
+    color: var(--news-text-main);
+    line-height: 1.25;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+}
+.news-intro-desc {
+    font-size: 15px;
+    color: var(--news-text-light);
+    margin: 0;
+    max-width: 720px;
+    line-height: 1.6;
+}
+
+/* Tier 1 Content Category Cards Container */
+.news-content-categories {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 4px 2px 14px 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--news-border) transparent;
+    -webkit-overflow-scrolling: touch;
+}
+.news-content-categories::-webkit-scrollbar {
+    height: 4px;
+}
+.news-content-categories::-webkit-scrollbar-thumb {
+    background: var(--news-border);
+    border-radius: 4px;
+}
+
+/* Content Category Card */
+.news-category-card {
+    flex: 0 0 auto;
+    min-width: 210px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
     background-color: var(--news-card-bg);
     border: 1px solid var(--news-border);
+    border-radius: var(--news-radius);
+    text-decoration: none;
     color: var(--news-text-main);
-    font-weight: 500;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--news-shadow);
+    outline-offset: 3px;
+    position: relative;
+    user-select: none;
+}
+
+/* Card Icon Box */
+.news-category-card__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background: var(--news-muted-bg);
+    color: var(--news-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+}
+
+/* Card Info */
+.news-category-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.news-category-card__title {
     font-size: 14px;
-    transition: background-color .2s, color .2s, border-color .2s;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.news-category-card__sub {
+    font-size: 12px;
+    color: var(--news-text-light);
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+
+/* Card Hover State */
+.news-category-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--news-primary);
+    box-shadow: 0 10px 25px -5px rgba(20, 110, 245, 0.18);
+}
+.news-category-card:hover .news-category-card__icon {
+    background: var(--news-primary);
+    color: #FFFFFF;
+}
+
+/* Card Active State */
+.news-category-card.is-active {
+    background: linear-gradient(135deg, #146EF5 0%, #5B5BFF 100%);
+    border-color: transparent;
+    color: #FFFFFF;
+    box-shadow: 0 10px 25px -4px rgba(20, 110, 245, 0.35);
+}
+.news-category-card.is-active .news-category-card__icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: #FFFFFF;
+}
+.news-category-card.is-active .news-category-card__sub {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Focus State */
+.news-category-card:focus-visible {
+    outline: 2px solid #00C8FF;
+}
+
+/* Grid on Large Desktop */
+@media (min-width: 1200px) {
+    .news-content-categories {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        overflow-x: visible;
+        padding-bottom: 4px;
+    }
+    .news-category-card {
+        min-width: 0;
+    }
+}
+
+/* ── Tier 2: Topic Filter Bar (Chủ đề thiết bị) ────────────────────────── */
+.news-topic-bar {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    background: var(--news-card-bg);
+    border: 1px solid var(--news-border);
+    border-radius: var(--news-radius);
+    box-shadow: var(--news-shadow);
+    overflow: hidden;
+}
+.news-topic-bar__label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--news-text-light);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.news-topic-bar__label i {
+    color: var(--news-primary);
+}
+.news-topic-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding: 2px 0;
+    width: 100%;
+}
+.news-topic-pills::-webkit-scrollbar {
+    display: none;
+}
+.news-topic-pill {
+    white-space: nowrap;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background-color: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    color: var(--news-text-main);
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease;
     text-decoration: none;
     outline-offset: 2px;
+    user-select: none;
 }
-.news-tag-pill:hover,
-.news-tag-pill.is-active {
-    background-color: var(--news-primary);
-    color: #fff;
+.news-topic-pill:hover {
+    background-color: var(--news-page-bg);
     border-color: var(--news-primary);
+    color: var(--news-primary);
 }
-.news-tag-pill:focus-visible {
-    outline: 2px solid var(--news-primary);
+.news-topic-pill.is-active {
+    background-color: var(--news-primary);
+    color: #FFFFFF;
+    border-color: var(--news-primary);
+    box-shadow: 0 4px 12px rgba(20, 110, 245, 0.25);
 }
+html.dark-mode .news-topic-pill.is-active {
+    background-color: #00C8FF;
+    color: #0B0F19;
+    border-color: #00C8FF;
+    box-shadow: 0 4px 12px rgba(0, 200, 255, 0.3);
+}
+.news-topic-pill:focus-visible {
+    outline: 2px solid var(--news-cyan);
+}
+
+@media (max-width: 768px) {
+    .news-topic-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px;
+    }
+}
+
+
 
 /* ── 4. Hero Grid (Featured + Popular) ──────────────────────────────────── */
 .news-hero-grid {

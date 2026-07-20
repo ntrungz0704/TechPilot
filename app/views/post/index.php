@@ -1,15 +1,24 @@
 <?php
 /**
  * Trang danh sách bài viết - /post
- * Variables: $featured, $posts, $popular, $heroPopular, $currentPage, $totalPages, $currentTag
+ * Variables: $featured, $posts, $popular, $heroPopular, $currentPage, $totalPages, $currentType, $currentCategory, $currentTag
  */
-$featured    = $featured    ?? null;
-$posts       = $posts       ?? [];
-$popular     = $popular     ?? [];
-$heroPopular = $heroPopular ?? [];
-$currentPage = $currentPage ?? 1;
-$totalPages  = $totalPages  ?? 1;
-$currentTag  = $currentTag  ?? '';
+$featured        = $featured        ?? null;
+$posts           = $posts           ?? [];
+$popular         = $popular         ?? [];
+$heroPopular     = $heroPopular     ?? [];
+$currentPage     = $currentPage     ?? 1;
+$totalPages      = $totalPages      ?? 1;
+$currentType     = $currentType     ?? '';
+$currentCategory = $currentCategory ?? '';
+$currentTag      = $currentTag      ?? '';
+
+$pageQueryParams = [];
+if (!empty($currentType))     $pageQueryParams['type']     = $currentType;
+if (!empty($currentCategory)) $pageQueryParams['category'] = $currentCategory;
+if (!empty($currentTag))      $pageQueryParams['tag']      = $currentTag;
+
+$hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($currentTag);
 ?>
 
 <section class="container breadcrumb" aria-label="Đường dẫn">
@@ -24,15 +33,29 @@ $currentTag  = $currentTag  ?? '';
     <?php require_once __DIR__ . '/partials/_category_nav.php'; ?>
 
     <!-- 2. Bài viết nổi bật (Featured Post) - Chỉ hiển thị ở trang 1 không filter -->
-    <?php if ($featured !== null && empty($currentTag)): ?>
+    <?php if ($featured !== null && !$hasActiveFilter): ?>
         <?php require_once __DIR__ . '/partials/_featured.php'; ?>
     <?php endif; ?>
+
+<?php
+// Tính toán Tiêu đề danh sách bài viết động theo bộ lọc
+$sectionTitle = 'Bài viết mới nhất';
+if (!empty($currentType) && !empty($currentCategory)) {
+    $sectionTitle = postTypeLabel($currentType) . ' — ' . postCategoryLabel($currentCategory);
+} elseif (!empty($currentType)) {
+    $sectionTitle = postTypeLabel($currentType);
+} elseif (!empty($currentCategory)) {
+    $sectionTitle = 'Bài viết ' . postCategoryLabel($currentCategory);
+} elseif (!empty($currentTag)) {
+    $sectionTitle = 'Bài viết tag: ' . e($currentTag);
+}
+?>
 
     <!-- 3. Bố cục 2 cột (Main & Sidebar) -->
     <div class="news-layout">
         <!-- Cột trái: Danh sách bài viết -->
         <div class="news-main">
-            <h3 class="news-section-title">Bài viết mới nhất</h3>
+            <h3 class="news-section-title"><?= e($sectionTitle) ?></h3>
 
             <?php if (!empty($posts)): ?>
                 <div class="news-list">
@@ -45,21 +68,24 @@ $currentTag  = $currentTag  ?? '';
                 <?php if ($totalPages > 1): ?>
                     <nav class="news-pagination" aria-label="Phân trang">
                         <?php if ($currentPage > 1): ?>
-                            <a href="<?= url('post?page=' . ($currentPage - 1) . (!empty($currentTag) ? '&tag=' . e($currentTag) : '')) ?>" class="page-btn" aria-label="Trang trước">
+                            <?php $prevParams = array_merge($pageQueryParams, ['page' => $currentPage - 1]); ?>
+                            <a href="<?= url('post?' . http_build_query($prevParams)) ?>" class="page-btn" aria-label="Trang trước">
                                 <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
                             </a>
                         <?php endif; ?>
 
                         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <?php $iParams = array_merge($pageQueryParams, ['page' => $i]); ?>
                             <a
-                                href="<?= url('post?page=' . $i . (!empty($currentTag) ? '&tag=' . e($currentTag) : '')) ?>"
+                                href="<?= url('post?' . http_build_query($iParams)) ?>"
                                 class="page-btn <?= $currentPage === $i ? 'is-active' : '' ?>"
                                 <?= $currentPage === $i ? 'aria-current="page"' : '' ?>
                             ><?= $i ?></a>
                         <?php endfor; ?>
 
                         <?php if ($currentPage < $totalPages): ?>
-                            <a href="<?= url('post?page=' . ($currentPage + 1) . (!empty($currentTag) ? '&tag=' . e($currentTag) : '')) ?>" class="page-btn" aria-label="Trang sau">
+                            <?php $nextParams = array_merge($pageQueryParams, ['page' => $currentPage + 1]); ?>
+                            <a href="<?= url('post?' . http_build_query($nextParams)) ?>" class="page-btn" aria-label="Trang sau">
                                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                             </a>
                         <?php endif; ?>
@@ -68,14 +94,24 @@ $currentTag  = $currentTag  ?? '';
 
             <?php else: ?>
                 <div class="news-empty">
-                    <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+                    <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
                     <h4>Chưa có bài viết nào phù hợp</h4>
-                    <p>Hãy chọn bộ lọc hoặc chuyên mục khác.</p>
+                    <p>
+                        <?php if (!empty($currentType) || !empty($currentCategory)): ?>
+                            Không tìm thấy bài viết thuộc
+                            <strong><?= !empty($currentType) ? postTypeLabel($currentType) : '' ?></strong>
+                            <?= (!empty($currentType) && !empty($currentCategory)) ? ' dành cho ' : '' ?>
+                            <strong><?= !empty($currentCategory) ? postCategoryLabel($currentCategory) : '' ?></strong>.
+                        <?php else: ?>
+                            Hãy chọn bộ lọc hoặc chuyên mục khác.
+                        <?php endif; ?>
+                    </p>
                     <a href="<?= url('post') ?>" class="btn btn--primary btn--sm" style="margin-top: 16px; display: inline-block;">
-                        <i class="fa-solid fa-newspaper" aria-hidden="true"></i> Xem tất cả bài viết
+                        <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Xem tất cả bài viết
                     </a>
                 </div>
             <?php endif; ?>
+
         </div>
 
         <!-- Cột phải: Sidebar -->
