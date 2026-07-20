@@ -1250,13 +1250,18 @@ class Product
      * Xây dựng điều kiện WHERE và các tham số bindings.
      * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
      */
+    /**
+     * Xây dựng điều kiện WHERE và các tham số bindings.
+     * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
+     */
     private function buildSearchQueryConditions(
         string $keyword = '',
         string $categorySlug = '',
         string $brandSlug = '',
         float $minPrice = 0,
         float $maxPrice = 0,
-        bool $inStockOnly = false
+        bool $inStockOnly = false,
+        bool $promoOnly = false
     ): array {
         $conditions = ["p.status = 'active'"];
         $params = [];
@@ -1366,6 +1371,11 @@ class Product
             $conditions[] = 'p.stock > 0';
         }
 
+        // 5.5. Promotion Only (Khuyến mãi)
+        if ($promoOnly) {
+            $conditions[] = '(COALESCE(NULLIF(p.sale_price, 0), p.price) < p.price OR (p.old_price IS NOT NULL AND p.old_price > p.price) OR p.is_flash_sale = 1)';
+        }
+
         // 6. Tìm kiếm tên/thương hiệu cho phần keyword còn lại
         if (!empty($remainingKeyword)) {
             $conditions[] = '(LOWER(p.name) LIKE :search_name OR LOWER(b.name) LIKE :search_brand)';
@@ -1388,7 +1398,8 @@ class Product
         float $minPrice = 0,
         float $maxPrice = 0,
         string $sort = 'relevance',
-        bool $inStockOnly = false
+        bool $inStockOnly = false,
+        bool $promoOnly = false
     ): array {
         if ($this->db === null) {
             return [];
@@ -1396,7 +1407,7 @@ class Product
 
         try {
             [$conditions, $params, $remainingKeyword] = $this->buildSearchQueryConditions(
-                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
             );
 
             $whereClause = implode(' AND ', $conditions);
@@ -1475,7 +1486,8 @@ class Product
         string $brandSlug = '',
         float $minPrice = 0,
         float $maxPrice = 0,
-        bool $inStockOnly = false
+        bool $inStockOnly = false,
+        bool $promoOnly = false
     ): int {
         if ($this->db === null) {
             return 0;
@@ -1483,7 +1495,7 @@ class Product
 
         try {
             [$conditions, $params] = $this->buildSearchQueryConditions(
-                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
             );
 
             $whereClause = implode(' AND ', $conditions);
@@ -1507,6 +1519,7 @@ class Product
             return 0;
         }
     }
+
 
 
     /** Lấy sản phẩm theo danh mục không giới hạn */

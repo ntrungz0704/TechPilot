@@ -1,5 +1,43 @@
+<?php
+$currentUri = $_SERVER['REQUEST_URI'] ?? '';
+$currentPath = parse_url($currentUri, PHP_URL_PATH);
+if (defined('BASE_URL') && BASE_URL !== '' && strpos($currentPath, BASE_URL) === 0) {
+    $currentPath = substr($currentPath, strlen(BASE_URL));
+}
+$currentPath = trim($currentPath, '/');
+
+$qParam = $_GET['q'] ?? '';
+$catParam = $_GET['cat'] ?? '';
+$promoParam = $_GET['promo'] ?? '';
+
+$activeMenu = '';
+if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/index') {
+    $activeMenu = 'home';
+} elseif (strpos($currentPath, 'build-pc') !== false) {
+    $activeMenu = 'build-pc';
+} elseif (strpos($currentPath, 'post') !== false) {
+    $activeMenu = 'post';
+} elseif ($currentPath === 'home/search') {
+    if ($promoParam === '1') {
+        $activeMenu = 'promo';
+    } elseif ($catParam === 'laptop-gaming') {
+        $activeMenu = 'laptop-gaming';
+    } elseif ($catParam === 'laptop-van-phong') {
+        $activeMenu = 'laptop-van-phong';
+    } elseif ($catParam === 'pc-linh-kien') {
+        $activeMenu = 'pc-linh-kien';
+    } elseif ($catParam === 'man-hinh') {
+        $activeMenu = 'man-hinh';
+    } elseif ($catParam === 'gaming-gear') {
+        $activeMenu = 'gaming-gear';
+    } elseif ($catParam === 'office-gear') {
+        $activeMenu = 'office-gear';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="vi">
+
 
 <head>
     <meta charset="UTF-8">
@@ -141,7 +179,7 @@
                     <i class="fa-solid fa-gamepad"></i>
                     <span>Gaming Gear</span>
                 </a>
-                <a href="<?= url('home/search') ?>" class="quick-cat-item text-hot">
+                <a href="<?= url('home/search?promo=1') ?>" class="quick-cat-item text-hot">
                     <i class="fa-solid fa-fire"></i>
                     <span>Khuyến mãi</span>
                 </a>
@@ -154,19 +192,20 @@
                 </button>
                 <div class="container main-nav__inner">
                     <ul class="main-nav__links">
-                        <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>">Laptop</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện PC</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>">Màn hình</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('build-pc') ?>" style="color: #FACC15; font-weight: 700;"><i class="fa-solid fa-screwdriver-wrench" style="margin-right: 4px;"></i> Xây dựng cấu hình</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=office-gear') ?>">Thiết bị văn phòng</a></li>
-                        <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
-                        <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
+                        <li><a href="<?= url('/') ?>" class="<?= $activeMenu === 'home' ? 'is-active' : '' ?>">Trang chủ</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>" class="<?= $activeMenu === 'laptop-gaming' ? 'is-active' : '' ?>">PC Gaming</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="<?= $activeMenu === 'laptop-van-phong' ? 'is-active' : '' ?>">Laptop</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="<?= $activeMenu === 'pc-linh-kien' ? 'is-active' : '' ?>">Linh kiện PC</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>" class="<?= $activeMenu === 'man-hinh' ? 'is-active' : '' ?>">Màn hình</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('build-pc') ?>" class="<?= $activeMenu === 'build-pc' ? 'is-active' : '' ?>" style="color: #FACC15; font-weight: 700;"><i class="fa-solid fa-screwdriver-wrench" style="margin-right: 4px;"></i> Xây dựng cấu hình</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>" class="<?= $activeMenu === 'gaming-gear' ? 'is-active' : '' ?>">Gaming Gear</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=office-gear') ?>" class="<?= $activeMenu === 'office-gear' ? 'is-active' : '' ?>">Thiết bị văn phòng</a></li>
+                        <li><a href="<?= url('home/search?promo=1') ?>" class="text-hot <?= $activeMenu === 'promo' ? 'is-active' : '' ?>">Khuyến mãi <span class="dot-hot"></span></a></li>
+                        <li><a href="<?= url('post') ?>" class="<?= $activeMenu === 'post' ? 'is-active' : '' ?>">Tin công nghệ</a></li>
                     </ul>
                 </div>
             </nav>
+
 
             <!-- Category Mega Menu Container (Separate Element) -->
             <div id="categoryMegaMenu" class="category-mega-menu" hidden>
