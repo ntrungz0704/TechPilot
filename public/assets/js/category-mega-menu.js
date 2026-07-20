@@ -20,11 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryBackdrop.classList.add('is-open');
         categoryMenuButton.setAttribute('aria-expanded', 'true');
         document.body.classList.add('category-scroll-locked');
-
-        // Activate first category item if none active
-        if (menuItems.length > 0 && !menuItems.some(item => item.classList.contains('is-active'))) {
-            activateItem(menuItems[0]);
-        }
     }
 
     function closeCategoryMenu() {
@@ -65,6 +60,28 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         toggleCategoryMenu();
     });
+
+    // === HOVER TO OPEN: hover on "Danh muc" button opens menu ===
+    categoryMenuButton.addEventListener('mouseenter', () => {
+        if (window.innerWidth > 575) {
+            openCategoryMenu();
+        }
+    });
+
+    // Keep menu open while hovering inside the mega menu panel
+    categoryMegaMenu.addEventListener('mouseenter', () => {
+        clearTimeout(hoverCloseTimer);
+    });
+
+    // Schedule close with a delay to allow mouse to travel between button and menu
+    function scheduleClose() {
+        hoverCloseTimer = setTimeout(() => {
+            closeCategoryMenu();
+        }, 220);
+    }
+
+    categoryMenuButton.addEventListener('mouseleave', scheduleClose);
+    categoryMegaMenu.addEventListener('mouseleave', scheduleClose);
 
     // Backdrop click -> close
     categoryBackdrop.addEventListener('click', (e) => {
