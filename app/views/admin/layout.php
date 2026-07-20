@@ -105,6 +105,21 @@
             overflow-y: auto;
         }
 
+        /* Custom scrollbar for sidebar menu */
+        .sidebar__menu::-webkit-scrollbar {
+            width: 5px;
+        }
+        .sidebar__menu::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar__menu::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 99px;
+        }
+        .sidebar__menu::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
         .sidebar__menu-item a {
             display: flex;
             align-items: center;
