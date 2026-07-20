@@ -584,9 +584,15 @@ $reviews = $reviews ?? [];
             <?php 
             // Nhân đôi danh sách thương hiệu để hiệu ứng chạy marquee cuộn mượt không bị đứt đoạn
             $duplicatedBrands = array_merge($brands, $brands);
-            foreach ($duplicatedBrands as $brand): ?>
+            foreach ($duplicatedBrands as $brand): 
+                $slug = $brand['slug'] ?? '';
+                $logoFile = !empty($slug) ? $slug . '.svg' : str_replace(['-logo.svg', '.png'], ['.svg', '.svg'], $brand['logo'] ?? '');
+                if (!str_contains($logoFile, '.')) {
+                    $logoFile .= '.svg';
+                }
+            ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . str_replace('.png', '.svg', e($brand['logo']))) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
+                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
                 </div>
             <?php endforeach; ?>
         </div>
