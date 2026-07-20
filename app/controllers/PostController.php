@@ -37,9 +37,8 @@ class PostController extends Controller
             }
         }
 
-        $total = $this->postModel->countAll($tag);
-        
-        // Trừ đi featured khỏi danh sách chính nếu trùng
+        // countAll và getAll dùng cùng bộ excludeId để tránh lặp bài giữa trang 1 và trang 2
+        $total = $this->postModel->countAll($tag, $excludeFeaturedId);
         $posts = $this->postModel->getAll($offset, $limit, $tag, $excludeFeaturedId);
 
         $popular = $this->postModel->getPopular(5);
@@ -51,15 +50,16 @@ class PostController extends Controller
         }
 
         $this->render('post/index', [
-            'title' => 'Tin tức công nghệ',
-            'posts' => $posts,
-            'featured' => $featured,
+            'pageTitle'   => 'Tin tức công nghệ',
+            'title'       => 'Tin tức công nghệ',
+            'posts'       => $posts,
+            'featured'    => $featured,
             'heroPopular' => $heroPopular,
-            'popular' => $filteredPopular,
+            'popular'     => $filteredPopular,
             'currentPage' => $page,
-            'totalPages' => ceil($total / $limit),
-            'currentTag' => $tag,
-            'pageStyles' => ['news.css']
+            'totalPages'  => (int)ceil($total / $limit),
+            'currentTag'  => $tag,
+            'pageStyles'  => ['assets/css/news.css?v=1.1'],
         ]);
     }
 
@@ -68,16 +68,24 @@ class PostController extends Controller
         $post = $this->postModel->getBySlug($slug);
 
         if (!$post) {
-            $this->render('home/404', ['title' => 'Không tìm thấy bài viết']);
+            $this->render('home/404', [
+                'pageTitle' => 'Không tìm thấy bài viết',
+                'title'     => 'Không tìm thấy bài viết',
+            ]);
             return;
         }
 
         $this->postModel->incrementViews($post['id']);
 
-        $related = $this->postModel->getRelatedPosts($post['id'], $post['category_slug'] ?? '', $post['post_type'] ?? '', 4);
+        $related = $this->postModel->getRelatedPosts(
+            $post['id'],
+            $post['category_slug'] ?? '',
+            $post['post_type'] ?? '',
+            4
+        );
 
-        // Xử lý content an toàn
-        $paragraphs = preg_split('/\n+/', trim($post['content']));
+        // Xử lý content an toàn: tách theo dòng trắng thành các đoạn văn
+        $paragraphs = preg_split('/\n+/', trim($post['content'] ?? ''));
         $safeContent = '';
         foreach ($paragraphs as $p) {
             if (trim($p) !== '') {
@@ -86,11 +94,13 @@ class PostController extends Controller
         }
 
         $this->render('post/detail', [
-            'title' => $post['title'] . ' - TechPilot News',
-            'post' => $post,
-            'related' => $related,
+            'pageTitle'   => $post['title'],
+            'title'       => $post['title'] . ' - TechPilot News',
+            'post'        => $post,
+            'related'     => $related,
             'safeContent' => $safeContent,
-            'pageStyles' => ['news.css']
+            'pageStyles'  => ['assets/css/news.css?v=1.1'],
+            'pageScripts' => ['assets/js/news.js?v=1.1'],
         ]);
     }
 }

@@ -27,19 +27,19 @@ class Post
     public function getFeatured(): ?array
     {
         if ($this->db === null) return null;
-        
+
         // Cố gắng tìm bài featured
         $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" AND is_featured = 1 ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 1');
         $stmt->execute();
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         // Nếu không có, lấy bài mới nhất published
         if (!$post) {
             $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 1');
             $stmt->execute();
             $post = $stmt->fetch(PDO::FETCH_ASSOC);
         }
-        
+
         return $post ?: null;
     }
 
@@ -57,7 +57,7 @@ class Post
     private function buildFilterWhere(string $tag, array &$params): string
     {
         if (empty($tag)) return '';
-        
+
         $sql = '';
         if (in_array($tag, ['laptop', 'gaming', 'pc-linh-kien'])) {
             $sql .= ' AND category_slug = :tag';
@@ -82,20 +82,29 @@ class Post
         return $sql;
     }
 
-    /** Đếm số lượng bài viết để phân trang */
-    public function countAll(string $tag = ''): int
+    /** Đếm số lượng bài viết để phân trang (hỗ trợ excludeId để đồng bộ với getAll) */
+    public function countAll(string $tag = '', ?int $excludeId = null): int
     {
         if ($this->db === null) return 0;
-        
+
         $sql = 'SELECT COUNT(*) FROM posts WHERE status = "published"';
         $params = [];
         $sql .= $this->buildFilterWhere($tag, $params);
-        
+
+        if ($excludeId !== null) {
+            $sql .= ' AND id != :excludeId';
+            $params[':excludeId'] = $excludeId;
+        }
+
         $stmt = $this->db->prepare($sql);
         foreach ($params as $key => $val) {
-            $stmt->bindValue($key, $val, PDO::PARAM_STR);
+            if ($key === ':excludeId') {
+                $stmt->bindValue($key, $val, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($key, $val, PDO::PARAM_STR);
+            }
         }
-        
+
         $stmt->execute();
         return (int)$stmt->fetchColumn();
     }
@@ -104,23 +113,23 @@ class Post
     public function getAll(int $offset, int $limit, string $tag = '', ?int $excludeId = null): array
     {
         if ($this->db === null) return [];
-        
+
         $sql = 'SELECT * FROM posts WHERE status = "published"';
         $params = [];
-        
+
         $sql .= $this->buildFilterWhere($tag, $params);
-        
+
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
             $params[':excludeId'] = $excludeId;
         }
-        
+
         $sql .= ' ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT :limit OFFSET :offset';
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        
+
         foreach ($params as $key => $val) {
             if ($key === ':excludeId') {
                 $stmt->bindValue($key, $val, PDO::PARAM_INT);
@@ -128,7 +137,7 @@ class Post
                 $stmt->bindValue($key, $val, PDO::PARAM_STR);
             }
         }
-        
+
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -139,12 +148,12 @@ class Post
         if ($this->db === null) return [];
 
         $sql = '
-            SELECT *, 
+            SELECT *,
             (CASE WHEN category_slug = :cat1 AND post_type = :type1 THEN 3
                   WHEN category_slug = :cat2 THEN 2
                   WHEN post_type = :type2 THEN 1
                   ELSE 0 END) as relevance_score
-            FROM posts 
+            FROM posts
             WHERE status = "published" AND id != :postId
             HAVING relevance_score > 0
             ORDER BY relevance_score DESC, COALESCE(published_at, created_at) DESC
@@ -167,23 +176,25 @@ class Post
     {
         if ($this->db === null) return null;
         $stmt = $this->db->prepare('
-            SELECT p.*, u.full_name as author_name 
-            FROM posts p 
-            LEFT JOIN users u ON p.author_id = u.id 
-            WHERE p.slug = :slug AND p.status = "published" 
+            SELECT p.*, u.full_name as author_name
+            FROM posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            WHERE p.slug = :slug AND p.status = "published"
             LIMIT 1
         ');
         $stmt->bindValue(':slug', $slug, PDO::PARAM_STR);
         $stmt->execute();
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($post) {
             if (empty($post['author_name'])) {
                 $post['author_name'] = 'Đội ngũ TechPilot';
             }
             if (empty($post['reading_minutes']) || $post['reading_minutes'] == 0) {
-                $wordCount = str_word_count(strip_tags($post['content'] ?? ''));
-                $post['reading_minutes'] = max(1, (int)ceil($wordCount / 200));
+                // Dùng regex UTF-8 để đếm từ tiếng Việt chính xác
+                $text = strip_tags($post['content'] ?? '');
+                preg_match_all('/[\p{L}\p{N}]+/u', $text, $m);
+                $post['reading_minutes'] = max(1, (int)ceil(count($m[0]) / 200));
             }
         }
         return $post ?: null;
@@ -216,7 +227,7 @@ class Post
         $text = strtolower($text);
         $text = preg_replace('/[^a-z0-9]+/i', '-', $text);
         $text = trim($text, '-');
-        
+
         if (empty($text)) {
             $text = 'bai-viet-' . time();
         }
@@ -227,15 +238,15 @@ class Post
     public function isSlugExists(string $slug, ?int $excludeId = null): bool
     {
         if ($this->db === null) return false;
-        
+
         $sql = 'SELECT id FROM posts WHERE slug = :slug';
         $params = [':slug' => $slug];
-        
+
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
             $params[':excludeId'] = $excludeId;
         }
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return (bool)$stmt->fetchColumn();
