@@ -1343,8 +1343,9 @@ html.dark-mode .logo-text span {
 }
 
 .sold-bar__text-dark {
-    color: var(--text-secondary);
+    color: #B91C1C;
     text-shadow: none;
+    font-weight: 700;
 }
 
 /* Quick Add to Cart button overlay on hover */
@@ -1996,7 +1997,7 @@ html.dark-mode .logo-text span {
 
 /* ===== BREADCRUMB ===== */
 .breadcrumb {
-    padding: 16px 12px;
+    padding: 14px 0;
     font-size: 13.5px;
     color: var(--text-secondary);
 }

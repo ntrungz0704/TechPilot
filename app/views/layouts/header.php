@@ -34,7 +34,7 @@
                 </button>
 
                 <!-- Logo Thương hiệu -->
-                <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 4px; text-decoration: none;">
+                <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 1px; text-decoration: none;">
                     <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
                     <div class="logo-brand-info">
                         <span class="logo-brand-title">Tech<span>Pilot</span></span>
