@@ -72,10 +72,11 @@ class ProfileController extends Controller
     {
         $user = $this->requireLogin();
         
-        // Đánh dấu tất cả đã đọc trước
-        $this->notifModel->markAllAsRead((int)$user['id']);
-
+        // Lấy danh sách thông báo trước (để giữ trạng thái chưa đọc khi hiển thị lần đầu)
         $notifications = $this->notifModel->getByUserId((int)$user['id']);
+
+        // Đánh dấu tất cả đã đọc sau đó trong DB để lần load tiếp theo hoặc icon chuông reset về 0
+        $this->notifModel->markAllAsRead((int)$user['id']);
 
         $this->render('profile/notifications', [
             'pageTitle' => 'Thông báo hệ thống',
