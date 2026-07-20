@@ -956,6 +956,7 @@ html.dark-mode .news-topic-pill.is-active {
     color: var(--news-text-light);
     font-style: italic;
 }
+.news-detail-content .article-table-wrap,
 .news-detail-content .table-responsive {
     overflow-x: auto;
     margin: 30px 0;
