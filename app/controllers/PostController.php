@@ -103,16 +103,16 @@ class PostController extends Controller
             4
         );
 
+        $postType     = strtolower(trim((string)($post['post_type'] ?? '')));
+        $categorySlug = strtolower(trim((string)($post['category_slug'] ?? '')));
+
         require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
         $commerceService = new NewsCommerceService();
-        $commerceConfig  = $commerceService->getConfig(
-            $post['category_slug'] ?? '',
-            $post['post_type'] ?? ''
-        );
+        $commerceConfig  = $commerceService->getConfig($categorySlug, $postType);
 
         $commerceContext = [
-            'category'  => $post['category_slug'] ?? '',
-            'post_type' => $post['post_type'] ?? '',
+            'category'  => $categorySlug,
+            'post_type' => $postType,
             'placement' => 'article-sidebar',
             'config'    => $commerceConfig['sidebar'] ?? null,
         ];
@@ -121,19 +121,47 @@ class PostController extends Controller
         $renderer = new MarkdownRenderer();
         $parsed   = $renderer->render($post['content'] ?? '');
 
+        $renderedContent = (string)($parsed['html'] ?? '');
+        $articleHeadings = is_array($parsed['headings'] ?? null) ? $parsed['headings'] : [];
+        $articleBlocks   = is_array($parsed['blocks'] ?? null) ? $parsed['blocks'] : [];
+
+        $plainArticleText = trim(
+            html_entity_decode(
+                strip_tags($renderedContent),
+                ENT_QUOTES,
+                'UTF-8'
+            )
+        );
+
+        preg_match_all(
+            '/[\p{L}\p{N}]+/u',
+            $plainArticleText,
+            $wordMatches
+        );
+        $articleWordCount = count($wordMatches[0]);
+
+        $articleH2Count = count(array_filter(
+            $articleHeadings,
+            static fn (array $heading): bool => (int)($heading['level'] ?? 0) === 2
+        ));
+
         $this->render('post/detail', [
-            'pageTitle'       => $post['title'],
-            'title'           => $post['title'] . ' - TechPilot News',
-            'post'            => $post,
-            'related'         => $related,
-            'safeContent'     => $parsed['html'],
-            'headings'        => $parsed['headings'] ?? [],
-            'blocks'          => $parsed['blocks'] ?? [],
-            'midCtaConfig'    => $commerceConfig['mid_cta'] ?? null,
-            'endCtaConfig'    => $commerceConfig['end_cta'] ?? null,
-            'commerceContext' => $commerceContext,
-            'pageStyles'      => ['assets/css/news.css?v=1.2'],
-            'pageScripts'     => ['assets/js/news.js?v=1.1'],
+            'pageTitle'        => $post['title'],
+            'title'            => $post['title'] . ' - TechPilot News',
+            'post'             => $post,
+            'related'          => $related,
+            'renderedContent'  => $renderedContent,
+            'articleHeadings'  => $articleHeadings,
+            'articleBlocks'    => $articleBlocks,
+            'articleWordCount' => $articleWordCount,
+            'articleH2Count'   => $articleH2Count,
+            'postType'         => $postType,
+            'categorySlug'     => $categorySlug,
+            'midCtaConfig'     => $commerceConfig['mid_cta'] ?? null,
+            'endCtaConfig'     => $commerceConfig['end_cta'] ?? null,
+            'commerceContext'  => $commerceContext,
+            'pageStyles'       => ['assets/css/news.css?v=1.2'],
+            'pageScripts'      => ['assets/js/news.js?v=1.1'],
         ]);
     }
 }

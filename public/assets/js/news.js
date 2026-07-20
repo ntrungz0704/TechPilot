@@ -1,14 +1,32 @@
 /**
- * TechPilot News Module – news.js v1.1
+ * TechPilot News Module – news.js v1.2
  * Chỉ chạy khi có .news-page trong DOM.
  * Không dùng alert(), không làm nhảy layout.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.documentElement.classList.add('js');
+
     const newsPage = document.querySelector('.news-page');
     if (!newsPage) return; // Guard clause
 
     initCopyLink();
+    initArticleToc();
+
+    /* ── Article Table of Contents Mobile Toggle ───────────────────────── */
+    function initArticleToc() {
+        const toc = document.querySelector('.news-toc');
+        if (!toc) return;
+
+        const toggle = toc.querySelector('.news-toc-toggle');
+        const list   = toc.querySelector('.news-toc-list');
+        if (!toggle || !list) return;
+
+        toggle.addEventListener('click', () => {
+            const isOpen = toc.classList.toggle('is-open');
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    }
 
     /* ── Copy Link ─────────────────────────────────────────────────────── */
     function initCopyLink() {
@@ -45,10 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         function showToast(message) {
-            // Dùng toast element đã có trong DOM (thêm bởi detail.php)
             let toast = document.getElementById('newsToast');
             if (!toast) {
-                // Fallback: tạo toast nếu chưa có
                 toast = document.createElement('div');
                 toast.id = 'newsToast';
                 toast.className = 'toast-message';

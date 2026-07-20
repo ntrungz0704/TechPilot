@@ -13,11 +13,6 @@
             <label for="image">Hình ảnh đại diện bài viết</label>
             <input type="file" name="image" id="image" class="form-control" style="border: none; padding: 5px 0;">
             <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Chọn ảnh JPG, PNG hoặc WebP. Dung lượng tối đa 5MB.</small>
-            
-            <div style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px;">
-                <label for="image_text">Hoặc nhập thủ công đường dẫn ảnh (Nếu không tải tệp)</label>
-                <input type="text" name="image_text" id="image_text" class="form-control" placeholder="Ví dụ: posts/post_cover_1.png">
-            </div>
         </div>
 
         <div class="form-group">

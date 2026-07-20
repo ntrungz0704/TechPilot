@@ -996,7 +996,7 @@ html.dark-mode .news-detail-content .callout {
     background: var(--news-muted-bg);
     border: 1px solid var(--news-border);
     border-radius: 8px;
-    padding: 24px;
+    padding: 20px 24px;
     margin: 10px 0 40px 0;
     display: inline-block;
     min-width: 320px;
@@ -1008,10 +1008,14 @@ html.dark-mode .news-detail-content .callout {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+.news-toc-toggle {
+    display: none;
+}
 .news-toc-list {
     list-style: none !important;
     padding-left: 0 !important;
     margin: 0 !important;
+    display: block;
 }
 .news-toc-item {
     margin-bottom: 10px !important;
@@ -1034,6 +1038,50 @@ html.dark-mode .news-detail-content .callout {
 .news-toc-level-3 {
     padding-left: 24px;
     font-size: 14px;
+}
+
+@media (max-width: 767px) {
+    .news-toc {
+        width: 100%;
+        min-width: 0;
+    }
+    .news-toc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0;
+    }
+    .news-toc-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0 10px;
+        background: transparent;
+        border: none;
+        color: var(--news-text-main);
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .news-toc-toggle i {
+        transition: transform 0.25s ease;
+    }
+    .news-toc-toggle:focus-visible {
+        outline: 2px solid var(--news-primary);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+    html.js .news-toc-list {
+        display: none;
+        margin-top: 14px !important;
+    }
+    html.js .news-toc.is-open .news-toc-list {
+        display: block;
+    }
+    .news-toc.is-open .news-toc-toggle i {
+        transform: rotate(180deg);
+    }
 }
 .news-detail-footer {
     margin-top: 40px;

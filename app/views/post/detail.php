@@ -1,12 +1,17 @@
 <?php
 /**
  * Trang chi tiết bài viết - /post/detail/{slug}
- * Variables: $post, $related, $safeContent
- * Dùng postImageUrl() và postTypeLabel() từ helpers.php
+ * Contract: $post, $related, $renderedContent, $articleHeadings, $articleBlocks, $articleWordCount, $articleH2Count, $postType, $categorySlug, $midCtaConfig, $endCtaConfig, $commerceContext
  */
-$post       = $post       ?? null;
-$related    = $related    ?? [];
-$safeContent = $safeContent ?? '';
+$post             = $post             ?? null;
+$related          = $related          ?? [];
+$renderedContent  = $renderedContent  ?? '';
+$articleHeadings  = is_array($articleHeadings ?? null) ? $articleHeadings : [];
+$articleBlocks    = is_array($articleBlocks ?? null) ? $articleBlocks : [];
+$articleWordCount = max(0, (int)($articleWordCount ?? 0));
+$articleH2Count   = max(0, (int)($articleH2Count ?? 0));
+$postType         = strtolower(trim((string)($postType ?? '')));
+$categorySlug     = strtolower(trim((string)($categorySlug ?? '')));
 
 if (!$post) return;
 ?>
