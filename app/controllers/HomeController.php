@@ -144,7 +144,7 @@ class HomeController extends Controller
         header('Content-Type: application/json; charset=utf-8');
 
         // Require at least 2 characters (mirrors client-side guard)
-        if (mb_strlen($keyword) < 2) {
+        if (safe_strlen($keyword) < 2) {
             echo json_encode([]);
             return;
         }

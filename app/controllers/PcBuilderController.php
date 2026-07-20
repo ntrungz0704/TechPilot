@@ -497,8 +497,8 @@ class PcBuilderController extends Controller
         if (empty($products)) {
             $products = $this->getSamplePcComponents($partKey);
             if ($search !== '') {
-                $kw = mb_strtolower($search);
-                $products = array_values(array_filter($products, fn($p) => str_contains(mb_strtolower($p['name']), $kw)));
+                $kw = safe_strtolower($search);
+                $products = array_values(array_filter($products, fn($p) => str_contains(safe_strtolower($p['name']), $kw)));
             }
         }
 

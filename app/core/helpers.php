@@ -169,15 +169,34 @@ if (!function_exists('str_ends_with')) {
     }
 }
 
+if (!function_exists('safe_strlen')) {
+    function safe_strlen(string $str): int
+    {
+        return function_exists('mb_strlen') ? mb_strlen($str, 'UTF-8') : strlen($str);
+    }
+}
+
+if (!function_exists('safe_strtolower')) {
+    function safe_strtolower(string $str): string
+    {
+        return function_exists('mb_strtolower') ? mb_strtolower($str, 'UTF-8') : strtolower($str);
+    }
+}
+
+if (!function_exists('safe_substr')) {
+    function safe_substr(string $str, int $start, ?int $length = null): string
+    {
+        if (function_exists('mb_substr')) {
+            return mb_substr($str, $start, $length, 'UTF-8');
+        }
+        return $length !== null ? substr($str, $start, $length) : substr($str, $start);
+    }
+}
+
 if (!function_exists('normalizeSearchKeyword')) {
     function normalizeSearchKeyword(string $keyword): string
     {
-        // Dùng mb_strtolower nếu có mbstring, fallback về strtolower
-        if (function_exists('mb_strtolower')) {
-            $keyword = mb_strtolower(trim($keyword), 'UTF-8');
-        } else {
-            $keyword = strtolower(trim($keyword));
-        }
+        $keyword = safe_strtolower(trim($keyword));
         $keyword = preg_replace('/\s+/u', ' ', $keyword);
         return $keyword !== null ? $keyword : '';
     }
