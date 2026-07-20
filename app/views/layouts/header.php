@@ -48,7 +48,7 @@
                 </button>
 
                 <!-- Search Bar với Category Dropdown -->
-                <form class="search-bar" action="<?= url('home/search') ?>" method="get">
+                <form class="search-bar" action="<?= url('home/search') ?>" method="get" id="headerSearchForm" onsubmit="return cleanSearchParams(this)">
                     <input type="text" name="q" placeholder="Bạn muốn mua gì hôm nay? Đang giảm giá 50%..." required>
                     <select name="cat" class="search-bar__select">
                         <option value="">Tất cả danh mục</option>
