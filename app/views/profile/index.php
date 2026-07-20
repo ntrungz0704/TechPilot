@@ -10,6 +10,9 @@
                 <li><a href="<?= url('profile/orders') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-box-open" style="width: 20px;"></i> Đơn hàng của tôi</a></li>
                 <li><a href="<?= url('profile/wishlist') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-heart" style="width: 20px;"></i> Sản phẩm yêu thích</a></li>
                 <li><a href="<?= url('profile/notifications') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-bell" style="width: 20px;"></i> Thông báo hệ thống</a></li>
+                <?php if (($user['role'] ?? '') === 'admin'): ?>
+                    <li><a href="<?= url('admin') ?>" style="text-decoration: none; color: #0B63E5; font-weight: 700;"><i class="fa-solid fa-user-shield" style="width: 20px;"></i> Trang quản lý Admin</a></li>
+                <?php endif; ?>
                 <li><a href="<?= url('auth/logout') ?>" style="text-decoration: none; color: #EF4444;" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất?');"><i class="fa-solid fa-right-from-bracket" style="width: 20px;"></i> Đăng xuất</a></li>
             </ul>
         </aside>

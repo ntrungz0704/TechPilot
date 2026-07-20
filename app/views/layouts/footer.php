@@ -39,29 +39,29 @@
                 </a>
                 <p>TechPilot - Chuỗi siêu thị máy tính, laptop và gaming gear hàng đầu Việt Nam. Cam kết chất lượng, bảo hành vượt trội, giá tốt nhất.</p>
                 <div class="footer-social">
-                    <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="#"><i class="fa-brands fa-tiktok"></i></a>
-                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://facebook.com" target="_blank" rel="noopener"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://youtube.com" target="_blank" rel="noopener"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://tiktok.com" target="_blank" rel="noopener"><i class="fa-brands fa-tiktok"></i></a>
+                    <a href="https://instagram.com" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
             
             <div class="footer-col">
                 <h4>Về chúng tôi</h4>
-                <a href="#">Giới thiệu TechPilot</a>
-                <a href="#">Tuyển dụng nhân viên</a>
-                <a href="#">Liên hệ hợp tác</a>
-                <a href="#">Hệ thống cửa hàng</a>
-                <a href="#">Chính sách bảo mật</a>
+                <a href="<?= url('post') ?>">Giới thiệu TechPilot</a>
+                <a href="<?= url('post') ?>">Tuyển dụng nhân viên</a>
+                <a href="<?= url('post') ?>">Liên hệ hợp tác</a>
+                <a href="<?= url('post') ?>">Hệ thống cửa hàng</a>
+                <a href="<?= url('post') ?>">Chính sách bảo mật</a>
             </div>
             
             <div class="footer-col">
                 <h4>Hỗ trợ khách hàng</h4>
-                <a href="#">Hướng dẫn mua hàng online</a>
-                <a href="#">Chính sách đổi trả sản phẩm</a>
-                <a href="#">Chính sách bảo hành sửa chữa</a>
-                <a href="#">Tra cứu hóa đơn điện tử</a>
-                <a href="#">Gửi yêu cầu hỗ trợ kỹ thuật</a>
+                <a href="<?= url('post') ?>">Hướng dẫn mua hàng online</a>
+                <a href="<?= url('profile') ?>">Chính sách đổi trả sản phẩm</a>
+                <a href="<?= url('post') ?>">Chính sách bảo hành sửa chữa</a>
+                <a href="<?= url('profile/orders') ?>">Tra cứu hóa đơn điện tử</a>
+                <a href="<?= url('post') ?>">Gửi yêu cầu hỗ trợ kỹ thuật</a>
             </div>
             
             <div class="footer-col">
@@ -128,7 +128,8 @@
         </div>
     <?php endif; ?>
 
-    <script src="<?= url('assets/js/main.js?v=7.0') ?>"></script>
+    <script src="<?= url('assets/js/main.js?v=7.2') ?>"></script>
+    <script src="<?= url('assets/js/category-mega-menu.js?v=2.7') ?>"></script>
     <script>
         // Xử lý menu hamburger và drawer menu trên Mobile
         const mainNav = document.querySelector('.main-nav');

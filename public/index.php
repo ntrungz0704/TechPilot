@@ -101,5 +101,10 @@ $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
 
 // Static frontend page: Thu cũ đổi mới máy cũ
 $router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
+// PC Builder Routes
+$router->get('/build-pc', 'PcBuilderController@index');
+$router->get('/pc-builder/products', 'PcBuilderController@getProducts');
+$router->get('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
+$router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 
 $router->dispatch($url);
