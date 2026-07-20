@@ -48,7 +48,7 @@ $total = $total ?? 0;
                                 <button type="submit" class="btn btn--outline btn--sm" style="box-shadow: none;">Xóa</button>
                             </form>
                         </div>
-                        <strong style="font-size: 16px; color: var(--primary);"><?= formatPrice($item['line_total']) ?></strong>
+                        <strong style="font-size: 16px; color: var(--primary);"><?= formatPrice((float)$item['price'] * (int)$item['quantity']) ?></strong>
                     </div>
                 <?php endforeach; ?>
             </div>
