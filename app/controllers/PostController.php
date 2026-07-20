@@ -13,16 +13,19 @@ class PostController extends Controller
 
     public function index()
     {
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $tag = isset($_GET['tag']) ? trim($_GET['tag']) : '';
-        $limit = 6;
-        $offset = ($page - 1) * $limit;
+        $page     = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $type     = isset($_GET['type']) ? trim($_GET['type']) : '';
+        $category = isset($_GET['category']) ? trim($_GET['category']) : '';
+        $tag      = isset($_GET['tag']) ? trim($_GET['tag']) : '';
+        $limit    = 6;
+        $offset   = ($page - 1) * $limit;
 
         $featured = null;
         $heroPopular = [];
         $excludeFeaturedId = null;
 
-        if ($page === 1 && empty($tag)) {
+        // Chỉ hiển thị Featured / Hero Grid khi ở trang 1 và không có bộ lọc nào
+        if ($page === 1 && empty($type) && empty($category) && empty($tag)) {
             $featured = $this->postModel->getFeatured();
             if ($featured) {
                 $excludeFeaturedId = $featured['id'];
@@ -37,9 +40,9 @@ class PostController extends Controller
             }
         }
 
-        // countAll và getAll dùng cùng bộ excludeId để tránh lặp bài giữa trang 1 và trang 2
-        $total = $this->postModel->countAll($tag, $excludeFeaturedId);
-        $posts = $this->postModel->getAll($offset, $limit, $tag, $excludeFeaturedId);
+        // countAll và getAll dùng cùng bộ điều kiện và excludeId
+        $total = $this->postModel->countAll($type, $category, $tag, $excludeFeaturedId);
+        $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $excludeFeaturedId);
 
         $popular = $this->postModel->getPopular(5);
         $filteredPopular = [];
@@ -50,18 +53,21 @@ class PostController extends Controller
         }
 
         $this->render('post/index', [
-            'pageTitle'   => 'Tin tức công nghệ',
-            'title'       => 'Tin tức công nghệ',
-            'posts'       => $posts,
-            'featured'    => $featured,
-            'heroPopular' => $heroPopular,
-            'popular'     => $filteredPopular,
-            'currentPage' => $page,
-            'totalPages'  => (int)ceil($total / $limit),
-            'currentTag'  => $tag,
-            'pageStyles'  => ['assets/css/news.css?v=1.1'],
+            'pageTitle'       => 'Tin tức công nghệ',
+            'title'           => 'Tin tức công nghệ',
+            'posts'           => $posts,
+            'featured'        => $featured,
+            'heroPopular'     => $heroPopular,
+            'popular'         => $filteredPopular,
+            'currentPage'     => $page,
+            'totalPages'      => (int)ceil($total / $limit),
+            'currentType'     => $type,
+            'currentCategory' => $category,
+            'currentTag'      => $tag,
+            'pageStyles'      => ['assets/css/news.css?v=1.1'],
         ]);
     }
+
 
     public function detail($slug)
     {

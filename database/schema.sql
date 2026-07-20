@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS posts (
     content TEXT DEFAULT NULL,
     image VARCHAR(255) DEFAULT NULL,
     category_slug VARCHAR(60) NOT NULL DEFAULT 'cong-nghe',
-    post_type ENUM('news', 'review', 'guide', 'comparison') NOT NULL DEFAULT 'news',
+    post_type ENUM('news', 'review', 'guide', 'comparison', 'howto') NOT NULL DEFAULT 'news',
     is_featured TINYINT(1) NOT NULL DEFAULT 0,
     reading_minutes SMALLINT UNSIGNED DEFAULT NULL,
     views INT UNSIGNED NOT NULL DEFAULT 0,

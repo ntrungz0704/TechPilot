@@ -341,10 +341,11 @@ if (!function_exists('postTypeLabel')) {
     function postTypeLabel(string $postType): string
     {
         $labels = [
-            'news'       => 'Tin mới',
-            'review'     => 'Review',
-            'guide'      => 'Tư vấn',
-            'comparison' => 'So sánh',
+            'news'       => 'Ra mắt & Xu hướng',
+            'review'     => 'Đánh giá & Review',
+            'guide'      => 'Tư vấn chọn mua',
+            'howto'      => 'Mẹo hay & Thủ thuật',
+            'comparison' => 'So sánh sản phẩm',
         ];
         return e($labels[$postType] ?? 'Tin tức');
     }
@@ -357,14 +358,16 @@ if (!function_exists('postCategoryLabel')) {
     function postCategoryLabel(string $slug): string
     {
         $labels = [
-            'cong-nghe'    => 'Công nghệ',
-            'laptop'       => 'Laptop',
-            'pc-linh-kien' => 'PC & Linh kiện',
-            'gaming'       => 'Gaming',
-            'man-hinh'     => 'Màn hình',
-            'gaming-gear'  => 'Gaming Gear',
-            'thu-thuat'    => 'Thủ thuật',
-            'ai'           => 'AI & Công nghệ mới',
+            'cong-nghe'         => 'Công nghệ',
+            'laptop'            => 'Laptop',
+            'pc-gaming'         => 'PC Gaming',
+            'gaming'            => 'PC Gaming',
+            'pc-linh-kien'      => 'PC & Linh kiện',
+            'man-hinh'          => 'Màn hình',
+            'gaming-gear'       => 'Gaming Gear',
+            'ai-cong-nghe-moi'  => 'AI & Công nghệ mới',
+            'ai'                => 'AI & Công nghệ mới',
+            'thu-thuat'         => 'Thủ thuật',
         ];
         return e($labels[$slug] ?? 'Công nghệ');
     }

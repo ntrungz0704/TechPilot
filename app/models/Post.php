@@ -53,43 +53,57 @@ class Post
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Build where clause cho filter tag (map category hoặc type) */
-    private function buildFilterWhere(string $tag, array &$params): string
+    /** Build where clause cho filter type, category và legacy tag */
+    private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', array &$params = []): string
     {
-        if (empty($tag)) return '';
-
         $sql = '';
-        if (in_array($tag, ['laptop', 'gaming', 'pc-linh-kien'])) {
-            $sql .= ' AND category_slug = :tag';
-            $params[':tag'] = $tag;
-        } elseif ($tag === 'danh-gia') {
-            $sql .= ' AND post_type = :type';
-            $params[':type'] = 'review';
-        } elseif ($tag === 'thu-thuat') {
-            $sql .= ' AND post_type = :type';
-            $params[':type'] = 'guide';
-        } elseif ($tag === 'tin-moi') {
-            $sql .= ' AND post_type = :type';
-            $params[':type'] = 'news';
-        } elseif ($tag === 'so-sanh') {
-            $sql .= ' AND post_type = :type';
-            $params[':type'] = 'comparison';
-        } else {
-            // Fallback (chỉ fallback mờ nhạt nếu tag không map cứng)
-            $sql .= ' AND category_slug = :tag';
-            $params[':tag'] = $tag;
+
+        // Nếu dùng tag cũ mà chưa có type/category thì map từ tag
+        if (!empty($tag) && empty($type) && empty($category)) {
+            $tagMap = [
+                'danh-gia'     => ['type' => 'review'],
+                'thu-thuat'    => ['type' => 'guide'],
+                'tin-moi'      => ['type' => 'news'],
+                'so-sanh'      => ['type' => 'comparison'],
+                'laptop'       => ['category' => 'laptop'],
+                'gaming'       => ['category' => 'pc-gaming'],
+                'pc-linh-kien' => ['category' => 'pc-linh-kien'],
+            ];
+            if (isset($tagMap[$tag])) {
+                $type = $tagMap[$tag]['type'] ?? '';
+                $category = $tagMap[$tag]['category'] ?? '';
+            } else {
+                $category = $tag;
+            }
         }
+
+        if (!empty($type)) {
+            $sql .= ' AND post_type = :type';
+            $params[':type'] = $type;
+        }
+
+        if (!empty($category)) {
+            if ($category === 'pc-gaming') {
+                $sql .= ' AND category_slug IN ("pc-gaming", "gaming")';
+            } elseif ($category === 'ai-cong-nghe-moi') {
+                $sql .= ' AND category_slug IN ("ai-cong-nghe-moi", "ai")';
+            } else {
+                $sql .= ' AND category_slug = :category';
+                $params[':category'] = $category;
+            }
+        }
+
         return $sql;
     }
 
     /** Đếm số lượng bài viết để phân trang (hỗ trợ excludeId để đồng bộ với getAll) */
-    public function countAll(string $tag = '', ?int $excludeId = null): int
+    public function countAll(string $type = '', string $category = '', string $tag = '', ?int $excludeId = null): int
     {
         if ($this->db === null) return 0;
 
         $sql = 'SELECT COUNT(*) FROM posts WHERE status = "published"';
         $params = [];
-        $sql .= $this->buildFilterWhere($tag, $params);
+        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $params);
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
@@ -110,14 +124,14 @@ class Post
     }
 
     /** Lấy danh sách bài viết phân trang */
-    public function getAll(int $offset, int $limit, string $tag = '', ?int $excludeId = null): array
+    public function getAll(int $offset, int $limit, string $type = '', string $category = '', string $tag = '', ?int $excludeId = null): array
     {
         if ($this->db === null) return [];
 
         $sql = 'SELECT * FROM posts WHERE status = "published"';
         $params = [];
 
-        $sql .= $this->buildFilterWhere($tag, $params);
+        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $params);
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
@@ -141,6 +155,7 @@ class Post
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
 
     /** Lấy bài viết liên quan dựa trên độ tương đồng */
     public function getRelatedPosts(int $postId, string $categorySlug, string $postType, int $limit = 3): array
