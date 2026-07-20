@@ -74,7 +74,7 @@ class AdminOrderController extends Controller
         if ($db) {
             // Lấy thông tin đơn hàng và mã coupon nếu có
             $stmt = $db->prepare(
-                'SELECT o.*, c.code as coupon_code, c.discount_value, c.discount_type
+                'SELECT o.*, c.code as coupon_code, c.discount_value, c.type as discount_type
                  FROM orders o
                  LEFT JOIN coupons c ON o.coupon_id = c.id
                  WHERE o.id = :id LIMIT 1'
