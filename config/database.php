@@ -1,14 +1,8 @@
 <?php
 
-if (file_exists(__DIR__ . '/database.local.php')) {
-    require_once __DIR__ . '/database.local.php';
-    return;
-}
-
 /**
  * Cấu hình kết nối cơ sở dữ liệu (PDO - MySQL)
- * Chỉnh sửa 4 thông số bên dưới cho phù hợp với môi trường của bạn.
- * HOẶC tạo file database.local.php (copy từ file này) để không bị commit ghi đè.
+ * Hỗ trợ nạp file config/database.local.php nếu tồn tại.
  */
 
 if (!class_exists('Database')) {
@@ -22,17 +16,35 @@ if (!class_exists('Database')) {
         private const USER    = 'root';
         private const PASS    = '';
         private const CHARSET = 'utf8mb4';
-    // ==== THÔNG SỐ KẾT NỐI - chỉnh theo máy của bạn ====
-    private const HOST    = '127.0.0.1';
-    private const DBNAME  = 'techpilot';
-    private const USER    = 'root';
-    private const PASS    = '';
-    private const CHARSET = 'utf8mb4';
 
         public static function getConnection(): ?PDO
         {
             if (self::$instance === null) {
-                $dsn = 'mysql:host=' . self::HOST . ';dbname=' . self::DBNAME . ';charset=' . self::CHARSET;
+                $host = self::HOST;
+                $dbname = self::DBNAME;
+                $user = self::USER;
+                $pass = self::PASS;
+                $charset = self::CHARSET;
+                $port = null;
+
+                $localConfigFile = __DIR__ . '/database.local.php';
+                if (file_exists($localConfigFile)) {
+                    $localConfig = require $localConfigFile;
+                    if (is_array($localConfig)) {
+                        $host = $localConfig['host'] ?? $host;
+                        $dbname = $localConfig['database'] ?? $localConfig['dbname'] ?? $dbname;
+                        $user = $localConfig['username'] ?? $localConfig['user'] ?? $user;
+                        $pass = $localConfig['password'] ?? $localConfig['pass'] ?? $pass;
+                        $charset = $localConfig['charset'] ?? $charset;
+                        $port = $localConfig['port'] ?? null;
+                    }
+                }
+
+                $dsn = 'mysql:host=' . $host . ';dbname=' . $dbname . ';charset=' . $charset;
+                if (!empty($port)) {
+                    $dsn .= ';port=' . $port;
+                }
+
                 $options = [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -40,7 +52,7 @@ if (!class_exists('Database')) {
                 ];
 
                 try {
-                    self::$instance = new PDO($dsn, self::USER, self::PASS, $options);
+                    self::$instance = new PDO($dsn, $user, $pass, $options);
                 } catch (PDOException $e) {
                     self::$instance = null;
                 }
