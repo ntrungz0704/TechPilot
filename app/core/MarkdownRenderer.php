@@ -4,28 +4,33 @@ class MarkdownRenderer
 {
     private array $headings = [];
     private array $blocks = [];
+    private array $usedHeadingIds = [];
 
     public function render(string $markdown): array
     {
         $this->headings = [];
         $this->blocks = [];
+        $this->usedHeadingIds = [];
+
         $markdown = str_replace("\r\n", "\n", $markdown);
         // Split by 2 or more newlines to get blocks
         $rawBlocks = preg_split('/\n{2,}/', trim($markdown));
-        
+
         $html = '';
         foreach ($rawBlocks as $block) {
             $block = trim($block);
             if ($block === '') continue;
-            
+
             $renderedBlockHtml = $this->renderBlock($block);
-            $html .= $renderedBlockHtml . "\n";
+            if ($renderedBlockHtml !== '') {
+                $html .= $renderedBlockHtml . "\n";
+            }
         }
 
         return [
-            'html' => $html,
+            'html'     => $html,
             'headings' => $this->headings,
-            'blocks' => $this->blocks,
+            'blocks'   => $this->blocks,
         ];
     }
 
@@ -35,9 +40,9 @@ class MarkdownRenderer
         if (preg_match('/^(#{2,3})\s+(.+)$/s', $block, $matches)) {
             $html = $this->renderHeading($matches);
             $this->blocks[] = [
-                'type' => 'heading',
+                'type'  => 'heading',
                 'level' => strlen(trim($matches[1])),
-                'html' => $html
+                'html'  => $html,
             ];
             return $html;
         }
@@ -51,23 +56,23 @@ class MarkdownRenderer
             $html = '<div class="callout callout-info">' . $this->renderInline($content) . '</div>';
             $this->blocks[] = [
                 'type' => 'callout',
-                'html' => $html
+                'html' => $html,
             ];
             return $html;
         }
 
         // 3. Blockquote (> text)
-        if (str_starts_with($block, '> ')) {
+        if (str_starts_with($block, '>')) {
             $lines = explode("\n", $block);
             $parsedLines = [];
             foreach ($lines as $line) {
-                $parsedLines[] = ltrim($line, '> ');
+                $parsedLines[] = $this->renderInline(preg_replace('/^>\s?/', '', $line));
             }
             $content = implode("<br>", $parsedLines);
-            $html = '<blockquote><p>' . $this->renderInline($content) . '</p></blockquote>';
+            $html = '<blockquote><p>' . $content . '</p></blockquote>';
             $this->blocks[] = [
                 'type' => 'blockquote',
-                'html' => $html
+                'html' => $html,
             ];
             return $html;
         }
@@ -77,7 +82,7 @@ class MarkdownRenderer
             $html = $this->renderList($block, 'ul');
             $this->blocks[] = [
                 'type' => 'ul',
-                'html' => $html
+                'html' => $html,
             ];
             return $html;
         }
@@ -87,26 +92,40 @@ class MarkdownRenderer
             $html = $this->renderList($block, 'ol');
             $this->blocks[] = [
                 'type' => 'ol',
-                'html' => $html
+                'html' => $html,
             ];
             return $html;
         }
 
         // 6. Table (| Header 1 | Header 2 |)
         if (str_starts_with($block, '|') && str_contains($block, "\n|")) {
-            $html = $this->renderTable($block);
-            $this->blocks[] = [
-                'type' => 'table',
-                'html' => $html
-            ];
+            $tableResult = $this->renderTable($block);
+            if ($tableResult !== null) {
+                $this->blocks[] = [
+                    'type' => 'table',
+                    'html' => $tableResult,
+                ];
+                return $tableResult;
+            }
+        }
+
+        // 7. Image-only block
+        if (preg_match('/^\s*!\[([^\]]*)\]\(([^)\s]+)(?:\s+["\'](.*?)["\'])?\)\s*$/s', $block, $matches)) {
+            $html = $this->renderImageBlock($matches);
+            if ($html !== '') {
+                $this->blocks[] = [
+                    'type' => 'image',
+                    'html' => $html,
+                ];
+            }
             return $html;
         }
 
-        // 7. Fallback to Paragraph
+        // 8. Fallback to Paragraph
         $html = '<p>' . $this->renderInline($block) . '</p>';
         $this->blocks[] = [
             'type' => 'paragraph',
-            'html' => $html
+            'html' => $html,
         ];
         return $html;
     }
@@ -114,16 +133,17 @@ class MarkdownRenderer
     private function renderHeading(array $matches): string
     {
         $level = strlen(trim($matches[1]));
-        $text = trim($matches[2]);
-        $id = $this->createId($text);
-        
+        $rawText = trim($matches[2]);
+        $id = $this->createId($rawText);
+        $renderedText = $this->renderInline($rawText);
+
         $this->headings[] = [
             'level' => $level,
-            'id' => $id,
-            'text' => $text,
+            'id'    => $id,
+            'text'  => strip_tags($renderedText),
         ];
 
-        return "<h{$level} id=\"{$id}\">" . $this->renderInline($text) . "</h{$level}>";
+        return "<h{$level} id=\"{$id}\">{$renderedText}</h{$level}>";
     }
 
     private function renderList(string $block, string $type): string
@@ -133,7 +153,7 @@ class MarkdownRenderer
         foreach ($lines as $line) {
             $line = trim($line);
             if ($line === '') continue;
-            
+
             if ($type === 'ul') {
                 $line = preg_replace('/^[-*]\s+/', '', $line);
             } else {
@@ -145,81 +165,147 @@ class MarkdownRenderer
         return $html;
     }
 
-    private function renderTable(string $block): string
+    private function renderTable(string $block): ?string
     {
-        $lines = explode("\n", trim($block));
-        $html = '<div class="table-responsive"><table class="table table-bordered">' . "\n";
-        
-        $isHeader = true;
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ($line === '') continue;
-            if (preg_match('/^\|[\s\-\|]+\|$/', $line)) {
-                // Skip separator row (e.g. |---|---|)
-                $isHeader = false;
-                continue;
-            }
-            
-            // Clean up leading and trailing |
-            $line = trim($line, '|');
-            $cells = explode('|', $line);
-            
-            if ($isHeader) {
-                $html .= "  <thead>\n    <tr>\n";
-                foreach ($cells as $cell) {
-                    $html .= '      <th>' . $this->renderInline(trim($cell)) . "</th>\n";
-                }
-                $html .= "    </tr>\n  </thead>\n  <tbody>\n";
-                $isHeader = false;
-            } else {
-                $html .= "    <tr>\n";
-                foreach ($cells as $cell) {
-                    $html .= '      <td>' . $this->renderInline(trim($cell)) . "</td>\n";
-                }
-                $html .= "    </tr>\n";
-            }
+        $lines = array_values(array_filter(array_map('trim', explode("\n", trim($block)))));
+        if (count($lines) < 2) {
+            return null;
         }
+
+        // Validate separator line (line 1)
+        $separator = $lines[1];
+        if (!preg_match('/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/', $separator)) {
+            return null; // Not a valid Markdown table separator
+        }
+
+        $html = '<div class="article-table-wrap" tabindex="0" role="region" aria-label="Bảng dữ liệu trong bài viết"><table class="table table-bordered">' . "\n";
+
+        // Header (line 0)
+        $headerCells = explode('|', trim($lines[0], '|'));
+        $html .= "  <thead>\n    <tr>\n";
+        foreach ($headerCells as $cell) {
+            $html .= '      <th scope="col">' . $this->renderInline(trim($cell)) . "</th>\n";
+        }
+        $html .= "    </tr>\n  </thead>\n  <tbody>\n";
+
+        // Body (lines 2+)
+        for ($i = 2; $i < count($lines); $i++) {
+            $line = $lines[$i];
+            if ($line === '') continue;
+
+            $cells = explode('|', trim($line, '|'));
+            $html .= "    <tr>\n";
+            foreach ($cells as $cell) {
+                $html .= '      <td>' . $this->renderInline(trim($cell)) . "</td>\n";
+            }
+            $html .= "    </tr>\n";
+        }
+
         $html .= "  </tbody>\n</table></div>";
         return $html;
     }
 
+    private function renderImageBlock(array $matches): string
+    {
+        $alt = htmlspecialchars(trim($matches[1]), ENT_QUOTES, 'UTF-8');
+        $rawUrl = trim($matches[2]);
+        $title = isset($matches[3]) ? trim($matches[3]) : '';
+
+        $sanitizedUrl = $this->sanitizeUrl($rawUrl, false);
+        if ($sanitizedUrl === null) {
+            return $alt !== '' ? '<span>' . $alt . '</span>' : '';
+        }
+
+        if ($title !== '') {
+            $escapedTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+            return '<figure><img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async"><figcaption>' . $escapedTitle . '</figcaption></figure>';
+        }
+
+        return '<img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async">';
+    }
+
     private function renderInline(string $text): string
     {
-        // XSS Protection first
+        // 1. Convert special chars first
         $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
-        // Images: ![alt](url "title")
-        // After htmlspecialchars, quotes in title become &quot;
-        $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;(.*?)&quot;)?\)/', function($m) {
-            $alt = $m[1];
-            $url = $m[2];
-            $title = isset($m[3]) ? $m[3] : '';
-            
-            $img = '<img src="' . $url . '" alt="' . $alt . '"';
-            if ($title) {
-                $img .= ' title="' . $title . '"';
+        // 2. Images: ![alt](url "title")
+        $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;(.*?)&quot;|\s+[\'"](.*?)[\'"])?\)/', function($m) {
+            $alt = $m[1]; // already escaped
+            $rawUrl = $m[2];
+            $title = !empty($m[3]) ? $m[3] : (!empty($m[4]) ? $m[4] : '');
+
+            $sanitizedUrl = $this->sanitizeUrl($rawUrl, false);
+            if ($sanitizedUrl === null) {
+                return $alt !== '' ? '<span>' . $alt . '</span>' : '';
             }
-            $img .= ' loading="lazy">';
-            
-            if ($title) {
-                return '<figure>' . $img . '<figcaption>' . $title . '</figcaption></figure>';
+
+            if ($title !== '') {
+                return '<figure><img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async"><figcaption>' . $title . '</figcaption></figure>';
             }
-            return $img;
+
+            return '<img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async">';
         }, $text);
 
-        // Links: [text](url)
-        $text = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>', $text);
+        // 3. Links: [text](url)
+        $text = preg_replace_callback('/\[([^\]]+)\]\(((?:[^\s()]+|\([^()\s]*\))+)\)/', function($m) {
+            $linkText = $m[1]; // already escaped
+            $rawUrl = $m[2];
 
-        // Bold: **text**
+            $sanitizedUrl = $this->sanitizeUrl($rawUrl, true);
+            if ($sanitizedUrl === null) {
+                return '<span>' . $linkText . '</span>';
+            }
+
+            // Distinguish internal vs external
+            $decodedClean = strtolower(trim(html_entity_decode($rawUrl, ENT_QUOTES, 'UTF-8')));
+            if (str_starts_with($decodedClean, 'http://') || str_starts_with($decodedClean, 'https://')) {
+                return '<a href="' . $sanitizedUrl . '" target="_blank" rel="noopener noreferrer nofollow">' . $linkText . '</a>';
+            }
+
+            return '<a href="' . $sanitizedUrl . '">' . $linkText . '</a>';
+        }, $text);
+
+        // 4. Bold: **text**
         $text = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text);
 
-        // Italic: *text*
+        // 5. Italic: *text*
         $text = preg_replace('/\*([^*]+)\*/', '<em>$1</em>', $text);
 
-        // Line breaks for inline paragraphs
+        // 6. Line breaks
         $text = nl2br($text);
 
         return $text;
+    }
+
+    private function sanitizeUrl(string $url, bool $allowFragment = true): ?string
+    {
+        $decoded = trim(html_entity_decode($url, ENT_QUOTES, 'UTF-8'));
+        if ($decoded === '') {
+            return null;
+        }
+
+        // Strip control chars and whitespace to catch hidden schemes like java\nscript:
+        $clean = preg_replace('/[\x00-\x1F\x7F\s]+/u', '', strtolower($decoded));
+
+        // Block explicit forbidden schemes
+        if (preg_match('/^(javascript|data|vbscript|file|blob):/i', $clean)) {
+            return null;
+        }
+
+        // Check if there is a scheme (scheme:...)
+        if (preg_match('/^([a-z0-9+\-.]+):/i', $clean, $m)) {
+            $scheme = strtolower($m[1]);
+            if (!in_array($scheme, ['http', 'https'], true)) {
+                return null;
+            }
+        }
+
+        if (str_starts_with($decoded, '#') && !$allowFragment) {
+            return null;
+        }
+
+        return htmlspecialchars($decoded, ENT_QUOTES, 'UTF-8');
     }
 
     private function createId(string $text): string
@@ -240,7 +326,19 @@ class MarkdownRenderer
             'ý' => 'y', 'ỳ' => 'y', 'ỷ' => 'y', 'ỹ' => 'y', 'ỵ' => 'y',
             'đ' => 'd'
         ]);
-        $text = preg_replace('/[^a-z0-9]+/u', '-', $text);
-        return trim($text, '-');
+        $slug = preg_replace('/[^a-z0-9]+/u', '-', $text);
+        $slug = trim($slug, '-');
+        if ($slug === '') {
+            $slug = 'section';
+        }
+
+        $id = $slug;
+        $count = 2;
+        while (isset($this->usedHeadingIds[$id])) {
+            $id = $slug . '-' . $count;
+            $count++;
+        }
+        $this->usedHeadingIds[$id] = true;
+        return $id;
     }
 }
