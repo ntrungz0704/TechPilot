@@ -1280,18 +1280,21 @@ html.dark-mode .logo-text span {
     align-items: baseline;
     gap: 8px;
     margin-bottom: 8px;
+    flex-wrap: wrap;
 }
 
 .product-card__price-now {
     font-size: 16px;
     font-weight: 700;
     color: var(--primary);
+    white-space: nowrap;
 }
 
 .product-card__price-old {
     font-size: 12px;
     color: var(--text-secondary);
     text-decoration: line-through;
+    white-space: nowrap;
 }
 
 .product-card__rating {
@@ -1993,7 +1996,7 @@ html.dark-mode .logo-text span {
 
 /* ===== BREADCRUMB ===== */
 .breadcrumb {
-    padding: 16px 0;
+    padding: 16px 12px;
     font-size: 13.5px;
     color: var(--text-secondary);
 }

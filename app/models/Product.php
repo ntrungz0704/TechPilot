@@ -1206,82 +1206,112 @@ class Product
         return array_slice(self::getSampleProducts(), 0, $limit);
     }
 
+    /** Helper dùng chung để dựng mảng WHERE conditions và params cho Search & Count */
+    private function buildSearchQueryConditions(
+        string $keyword = '',
+        string $categorySlug = '',
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        bool $inStockOnly = false
+    ): array {
+        $conditions = ["p.status = 'active'"];
+        $params = [];
+
+        // 1. Filter Category (validate slug & active status)
+        if (!empty($categorySlug)) {
+            $conditions[] = '(c.slug = :catSlug1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :catSlug2 AND status = "active"))';
+            $params[':catSlug1'] = $categorySlug;
+            $params[':catSlug2'] = $categorySlug;
+        }
+
+        // 2. Filter Brand
+        if (!empty($brandSlug)) {
+            $conditions[] = 'b.slug = :brandSlug';
+            $params[':brandSlug'] = $brandSlug;
+        }
+
+        // 3. Filter Price (using COALESCE(NULLIF(p.sale_price, 0), p.price))
+        if ($minPrice > 0) {
+            $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) >= :minPrice';
+            $params[':minPrice'] = $minPrice;
+        }
+        if ($maxPrice > 0) {
+            $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) <= :maxPrice';
+            $params[':maxPrice'] = $maxPrice;
+        }
+
+        // 4. Filter In Stock
+        if ($inStockOnly) {
+            $conditions[] = 'p.stock > 0';
+        }
+
+        // 5. Keyword search in wrapped parentheses (OR inside, AND outside)
+        $rawKeyword = trim($keyword);
+        if (safe_strlen($rawKeyword) > 100) {
+            $rawKeyword = safe_substr($rawKeyword, 0, 100);
+        }
+        $normalizedKeyword = safe_strtolower(preg_replace('/\s+/u', ' ', $rawKeyword));
+
+        if (!empty($normalizedKeyword)) {
+            $kLike = '%' . $normalizedKeyword . '%';
+            
+            $searchGroup = [
+                'LOWER(p.name) LIKE :search_name',
+                'LOWER(c.name) LIKE :search_category',
+                'LOWER(b.name) LIKE :search_brand',
+                'LOWER(p.short_desc) LIKE :search_short_desc',
+                'LOWER(p.description) LIKE :search_description',
+                'LOWER(JSON_UNQUOTE(p.specs)) LIKE :search_specs'
+            ];
+
+            $params[':search_name']       = $kLike;
+            $params[':search_category']   = $kLike;
+            $params[':search_brand']      = $kLike;
+            $params[':search_short_desc'] = $kLike;
+            $params[':search_description']= $kLike;
+            $params[':search_specs']      = $kLike;
+
+            // Strict Model distinction checks (prevent "i3" from matching "i5" or "i7", etc.)
+            if (preg_match('/^i[3579]$/i', $normalizedKeyword)) {
+                $otherModels = array_values(array_diff(['i3', 'i5', 'i7', 'i9'], [$normalizedKeyword]));
+                foreach ($otherModels as $idx => $other) {
+                    $searchGroup[] = "(LOWER(p.name) NOT LIKE :excl_name_{$idx} OR LOWER(p.name) LIKE :target_name_{$idx})";
+                    $params[":excl_name_{$idx}"] = '%core ' . $other . '%';
+                    $params[":target_name_{$idx}"] = '%' . $normalizedKeyword . '%';
+                }
+            }
+
+            $conditions[] = '(' . implode(' OR ', $searchGroup) . ')';
+        }
+
+        return [$conditions, $params, $normalizedKeyword, $rawKeyword];
+    }
+
     /** Tìm kiếm sản phẩm nâng cao với Relevance Scoring, Model Tokenization & Specs Search */
-    public function search(string $keyword = '', string $categorySlug = '', int $limit = 48, int $offset = 0, string $brandSlug = '', float $minPrice = 0, float $maxPrice = 0, string $sort = 'relevance'): array
-    {
+    public function search(
+        string $keyword = '',
+        string $categorySlug = '',
+        int $limit = 48,
+        int $offset = 0,
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        string $sort = 'relevance',
+        bool $inStockOnly = false
+    ): array {
         if ($this->db === null) {
             return [];
         }
 
         try {
-            $rawKeyword = trim($keyword);
+            [$conditions, $params, $normalizedKeyword, $rawKeyword] = $this->buildSearchQueryConditions(
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
+            );
 
-            // 1. Normalize Keyword (max 100 chars, collapse whitespace)
-            if (safe_strlen($rawKeyword) > 100) {
-                $rawKeyword = safe_substr($rawKeyword, 0, 100);
-            }
-            $normalizedKeyword = safe_strtolower(preg_replace('/\s+/u', ' ', $rawKeyword));
-
-            $params = [];
-            $whereConditions = ["p.status = 'active'"];
-
-            // Filter Category
-            if (!empty($categorySlug)) {
-                $whereConditions[] = '(c.slug = :catSlug1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :catSlug2))';
-                $params[':catSlug1'] = $categorySlug;
-                $params[':catSlug2'] = $categorySlug;
-            }
-
-            // Filter Brand
-            if (!empty($brandSlug)) {
-                $whereConditions[] = 'b.slug = :brandSlug';
-                $params[':brandSlug'] = $brandSlug;
-            }
-
-            // Filter Price
-            if ($minPrice > 0) {
-                $whereConditions[] = 'p.price >= :minPrice';
-                $params[':minPrice'] = $minPrice;
-            }
-            if ($maxPrice > 0) {
-                $whereConditions[] = 'p.price <= :maxPrice';
-                $params[':maxPrice'] = $maxPrice;
-            }
-
-            // 2. Search Keyword & Tokenization
+            // Weighted Relevance Scoring
             $relevanceSql = '0';
-
             if (!empty($normalizedKeyword)) {
-                $whereConditions[] = '
-                    (
-                        LOWER(p.name) LIKE :w_name
-                        OR LOWER(p.short_desc) LIKE :w_sdesc
-                        OR LOWER(p.description) LIKE :w_desc
-                        OR LOWER(p.specs) LIKE :w_specs
-                        OR LOWER(b.name) LIKE :w_brand
-                        OR LOWER(c.name) LIKE :w_cat
-                    )
-                ';
-                
-                $kLike = '%' . $normalizedKeyword . '%';
-                $params[':w_name']  = $kLike;
-                $params[':w_sdesc'] = $kLike;
-                $params[':w_desc']  = $kLike;
-                $params[':w_specs'] = $kLike;
-                $params[':w_brand'] = $kLike;
-                $params[':w_cat']   = $kLike;
-
-                // Model distinction checks (prevent "i3" from matching "i5" or "i7", etc.)
-                if (preg_match('/^i[3579]$/i', $normalizedKeyword)) {
-                    $otherModels = array_diff(['i3', 'i5', 'i7', 'i9'], [$normalizedKeyword]);
-                    foreach ($otherModels as $idx => $other) {
-                        $whereConditions[] = "(LOWER(p.name) NOT LIKE :excl_name_{$idx} OR LOWER(p.name) LIKE :target_name_{$idx})";
-                        $params[":excl_name_{$idx}"] = '%core ' . $other . '%';
-                        $params[":target_name_{$idx}"] = '%' . $normalizedKeyword . '%';
-                    }
-                }
-
-                // Weighted Relevance Scoring
                 $relevanceSql = '
                     (CASE WHEN LOWER(p.name) = :exactName THEN 100 ELSE 0 END) +
                     (CASE WHEN LOWER(p.name) LIKE :startsName THEN 80 ELSE 0 END) +
@@ -1303,19 +1333,19 @@ class Product
                 $params[':containsDescription'] = '%' . $normalizedKeyword . '%';
             }
 
-            $whereClause = implode(' AND ', $whereConditions);
+            $whereClause = implode(' AND ', $conditions);
 
             // Whitelist Order By
-            $sortClause = 'relevance_score DESC, p.id DESC';
+            $sortClause = !empty($normalizedKeyword) ? 'relevance_score DESC, p.id DESC' : 'p.id DESC';
             if ($sort === 'price_asc') {
-                $sortClause = 'p.price ASC, p.id DESC';
+                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.id DESC';
             } elseif ($sort === 'price_desc') {
-                $sortClause = 'p.price DESC, p.id DESC';
+                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';
             } elseif ($sort === 'newest') {
                 $sortClause = 'p.created_at DESC, p.id DESC';
             } elseif ($sort === 'name_asc') {
                 $sortClause = 'p.name ASC';
-            } elseif (!empty($normalizedKeyword)) {
+            } elseif ($sort === 'relevance' && !empty($normalizedKeyword)) {
                 $sortClause = 'relevance_score DESC, p.created_at DESC';
             }
 
@@ -1324,10 +1354,11 @@ class Product
                     p.*, 
                     b.name as brand_name, 
                     c.name as category_name, 
+                    c.slug as category_slug,
                     ($relevanceSql) as relevance_score
                 FROM products p
                 LEFT JOIN brands b ON p.brand_id = b.id
-                LEFT JOIN categories c ON p.category_id = c.id
+                JOIN categories c ON p.category_id = c.id
                 WHERE $whereClause
                 ORDER BY $sortClause
                 LIMIT :limit OFFSET :offset
@@ -1343,7 +1374,6 @@ class Product
 
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Compute debug metadata for each item (matched_field & matched_value)
             foreach ($results as &$item) {
                 $nameLower = safe_strtolower($item['name'] ?? '');
                 $specsLower = safe_strtolower($item['specs'] ?? '');
@@ -1376,6 +1406,46 @@ class Product
             return $results;
         } catch (Exception $e) {
             return [];
+        }
+    }
+
+    /** Đếm tổng số kết quả tìm kiếm với cùng JOIN & WHERE conditions */
+    public function countSearch(
+        string $keyword = '',
+        string $categorySlug = '',
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        bool $inStockOnly = false
+    ): int {
+        if ($this->db === null) {
+            return 0;
+        }
+
+        try {
+            [$conditions, $params] = $this->buildSearchQueryConditions(
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly
+            );
+
+            $whereClause = implode(' AND ', $conditions);
+
+            $query = "
+                SELECT COUNT(DISTINCT p.id)
+                FROM products p
+                LEFT JOIN brands b ON p.brand_id = b.id
+                JOIN categories c ON p.category_id = c.id
+                WHERE $whereClause
+            ";
+
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $val) {
+                $stmt->bindValue($key, $val);
+            }
+            $stmt->execute();
+
+            return (int)$stmt->fetchColumn();
+        } catch (Exception $e) {
+            return 0;
         }
     }
 
