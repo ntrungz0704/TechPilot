@@ -8,9 +8,6 @@
 
         <div class="news-header">
             <h1>Tin tức công nghệ</h1>
-            <p style="color: var(--news-text-light); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
-                Cập nhật thông tin công nghệ mới nhất, đánh giá sản phẩm chuyên sâu và kinh nghiệm build PC từ các chuyên gia TechPilot.
-            </p>
         </div>
 
         <div class="category-nav">
@@ -20,24 +17,42 @@
             <?php endforeach; ?>
         </div>
 
-        <?php if ($featuredArticle): ?>
-            <div class="featured-grid">
-                <?php 
-                $article = $featuredArticle;
-                $isFeatured = true;
-                require ROOT_PATH . '/app/views/news/partials/article-card.php'; 
-                ?>
-                <!-- Có thể thêm quảng cáo hoặc banner phụ ở bên cạnh featured -->
+        <?php if (!empty($heroArticles)): ?>
+            <div class="hero-grid">
+                <?php foreach($heroArticles as $index => $article): ?>
+                    <a href="<?= url('tin-tuc/' . $article['slug']) ?>" class="hero-item <?= $index === 0 ? 'hero-item--large' : '' ?>">
+                        <img src="<?= e($article['featured_image']) ?>" alt="<?= e($article['title']) ?>">
+                        <div class="hero-item__content">
+                            <span class="hero-item__category"><?= e($article['category']['name']) ?></span>
+                            <h3 class="hero-item__title"><?= e($article['title']) ?></h3>
+                            <div class="hero-item__meta">
+                                <span><i class="fa-regular fa-clock"></i> <?= e($article['published_at']) ?></span>
+                            </div>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <div class="news-grid">
-            <?php 
-            $isFeatured = false;
-            foreach($articles as $article): 
-                require ROOT_PATH . '/app/views/news/partials/article-card.php';
-            endforeach; 
-            ?>
+        <div class="list-grid">
+            <?php foreach($listArticles as $article): ?>
+                <div class="list-card">
+                    <a href="<?= url('tin-tuc/' . $article['slug']) ?>" class="list-card__img-wrap">
+                        <img src="<?= e($article['featured_image']) ?>" alt="<?= e($article['title']) ?>">
+                    </a>
+                    <div class="list-card__content">
+                        <h3 class="list-card__title">
+                            <a href="<?= url('tin-tuc/' . $article['slug']) ?>"><?= e($article['title']) ?></a>
+                        </h3>
+                        <p class="list-card__excerpt"><?= e($article['excerpt']) ?></p>
+                        <div class="list-card__meta">
+                            <span><i class="fa-solid fa-folder-open"></i> <?= e($article['category']['name']) ?></span>
+                            <span><i class="fa-regular fa-clock"></i> <?= e($article['published_at']) ?></span>
+                            <span><i class="fa-solid fa-glasses"></i> <?= e($article['reading_time']) ?> phút đọc</span>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
 
         <div style="text-align: center; margin-bottom: 60px;">
