@@ -3174,26 +3174,9 @@ html.dark-mode .logo-brand-title span {
     position: static; /* HoÃ¡ÂºÂ·c relative Ã„â€˜Ã¡Â»Æ’ Ã„â€˜Ã¡Â»â€¹nh vÃ¡Â»â€¹ mega-menu */
 }
 
-/* HiÃ¡Â»Æ’n thÃ¡Â»â€¹ mega-menu bÃƒÂªn phÃ¡ÂºÂ£i cÃ¡Â»Â§a thanh danh mÃ¡Â»Â¥c */
+/* Legacy mega-menu positioning managed by category-mega-menu.css */
 .mega-menu {
-    position: absolute;
-    top: 0;
-    left: 100%;
-    width: 640px;
-    min-height: 100%;
-    background-color: var(--bg-white);
-    border: 1px solid var(--border);
-    border-radius: 0 var(--radius-card) var(--radius-card) var(--radius-card);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    padding: 24px;
-    display: none;
-    z-index: 100;
     transition: var(--transition);
-}
-
-.vertical-menu__item:hover .mega-menu {
-    display: block;
-    animation: fadeInSlideRight 0.2s forwards;
 }
 
 @keyframes fadeInSlideRight {

@@ -45,6 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.style.setProperty('--category-overlay-top', `${Math.round(stackBottom)}px`);
     }
 
+    // Recalculate top position on scroll
+    window.addEventListener('scroll', () => {
+        if (catalogState.isOpen) {
+            updateOverlayTop();
+        }
+    }, { passive: true });
+
     // 3. Accessibility & Scroll Lock
     function lockScroll() {
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -158,10 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isDesktop() || !sharedMenu || !overlay) return;
         
         catalogState.isOpen = true;
+        updateOverlayTop();
         updateModeAndDOM();
         lockScroll();
         updateAccessibility();
-        updateOverlayTop();
         
         if (menuItems.length > 0 && !menuItems.some(item => item.classList.contains('is-active'))) {
             activateItem(menuItems[0]);
@@ -181,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         trigger.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (!isDesktop()) return; // On mobile, drawer handles it
+            if (!isDesktop()) return;
             
             if (catalogState.isOpen) {
                 closeCatalog();
@@ -191,11 +198,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Backdrop Click -> Close
     const backdrop = document.getElementById('categoryBackdrop');
     if (backdrop) {
-        backdrop.addEventListener('click', closeCatalog);
+        backdrop.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeCatalog();
+        });
     }
 
+    // Global Click Outside -> Close
+    document.addEventListener('click', (e) => {
+        if (!catalogState.isOpen) return;
+        
+        const isClickInsideMenu = sharedMenu && sharedMenu.contains(e.target);
+        const isClickInsideTrigger = trigger && trigger.contains(e.target);
+        
+        if (!isClickInsideMenu && !isClickInsideTrigger) {
+            closeCatalog();
+        }
+    });
+
+    // Escape Key -> Close
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && catalogState.isOpen) {
             closeCatalog();
@@ -237,14 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentIsDesktop = isDesktop();
             
             if (currentIsDesktop) {
-                // Mobile to Desktop -> Reset expanded
                 menuItems.forEach(item => {
                     item.classList.remove('is-expanded');
                     const t = item.querySelector('.mobile-category-toggle');
                     if (t) t.setAttribute('aria-expanded', 'false');
                 });
             } else {
-                // Desktop to Mobile -> Close overlay
                 if (catalogState.isOpen) {
                     closeCatalog();
                 }
