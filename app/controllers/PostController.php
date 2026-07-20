@@ -1,76 +1,96 @@
 <?php
+require_once ROOT_PATH . '/app/core/Controller.php';
+require_once ROOT_PATH . '/app/models/Post.php';
 
 class PostController extends Controller
 {
-    /** Danh sách bài viết: /post hoặc /post/index */
-    public function index(): void
+    private Post $postModel;
+
+    public function __construct()
     {
-        $postModel = $this->model('Post');
-        
-        // 1. Phân trang & Tag lọc
-        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $this->postModel = new Post();
+    }
+
+    public function index()
+    {
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $tag = isset($_GET['tag']) ? trim($_GET['tag']) : '';
-        $limit = 5;
+        $limit = 6;
         $offset = ($page - 1) * $limit;
 
-        // 2. Lấy Featured Post (Bài viết tiêu điểm) ở trang 1 và không lọc tag
         $featured = null;
+        $heroPopular = [];
+        $excludeFeaturedId = null;
+
         if ($page === 1 && empty($tag)) {
-            $featured = $postModel->getFeatured();
+            $featured = $this->postModel->getFeatured();
+            if ($featured) {
+                $excludeFeaturedId = $featured['id'];
+                // Nếu có featured, lấy 2 bài popular hero grid
+                $allPop = $this->postModel->getPopular(3);
+                foreach ($allPop as $p) {
+                    if ($p['id'] !== $featured['id']) {
+                        $heroPopular[] = $p;
+                    }
+                    if (count($heroPopular) == 2) break;
+                }
+            }
         }
 
-        // 3. Lấy danh sách bài viết (loại trừ bài featured nếu có)
-        $excludeId = $featured ? (int)$featured['id'] : null;
-        $posts = $postModel->getAll($offset, $limit, $tag, $excludeId);
+        $total = $this->postModel->countAll($tag);
+        
+        // Trừ đi featured khỏi danh sách chính nếu trùng
+        $posts = $this->postModel->getAll($offset, $limit, $tag, $excludeFeaturedId);
 
-        // 4. Tính toán tổng số trang
-        $totalCount = $postModel->countAll($tag);
-        if ($featured !== null) {
-            $totalCount = max(0, $totalCount - 1);
+        $popular = $this->postModel->getPopular(5);
+        $filteredPopular = [];
+        foreach ($popular as $p) {
+            if ($featured && $p['id'] === $featured['id']) continue;
+            $filteredPopular[] = $p;
+            if (count($filteredPopular) == 4) break; // chỉ lấy 4 bài popular sidebar
         }
-        $totalPages = (int)ceil($totalCount / $limit);
-
-        // 5. Lấy danh sách bài viết phổ biến (Popular)
-        $popular = $postModel->getPopular(3);
 
         $this->render('post/index', [
-            'pageTitle'   => 'Tin tức công nghệ',
-            'featured'    => $featured,
-            'posts'       => $posts,
-            'popular'     => $popular,
+            'title' => 'Tin tức công nghệ',
+            'posts' => $posts,
+            'featured' => $featured,
+            'heroPopular' => $heroPopular,
+            'popular' => $filteredPopular,
             'currentPage' => $page,
-            'totalPages'  => $totalPages,
-            'currentTag'  => $tag
+            'totalPages' => ceil($total / $limit),
+            'currentTag' => $tag,
+            'pageStyles' => ['news.css']
         ]);
     }
 
-    /** Chi tiết bài viết: /post/detail/{slug} */
-    public function detail(string $slug = ''): void
+    public function detail($slug)
     {
-        if (empty($slug)) {
-            $this->redirect('post');
-            return;
-        }
-
-        $postModel = $this->model('Post');
-        $post = $postModel->getBySlug($slug);
+        $post = $this->postModel->getBySlug($slug);
 
         if (!$post) {
-            http_response_code(404);
-            $this->render('home/404', ['pageTitle' => 'Không tìm thấy bài viết']);
+            $this->render('home/404', ['title' => 'Không tìm thấy bài viết']);
             return;
         }
 
-        // 1. Tăng lượt xem
-        $postModel->incrementViews((int)$post['id']);
+        $this->postModel->incrementViews($post['id']);
 
-        // 2. Lấy bài viết liên quan (loại trừ bài hiện tại)
-        $related = $postModel->getAll(0, 3, '', (int)$post['id']);
+        $related = $this->postModel->getRelatedPosts($post['id'], $post['category_slug'] ?? '', $post['post_type'] ?? '', 4);
+
+        // Xử lý content an toàn
+        $paragraphs = preg_split('/\n+/', trim($post['content']));
+        $safeContent = '';
+        foreach ($paragraphs as $p) {
+            if (trim($p) !== '') {
+                $safeContent .= '<p>' . nl2br(htmlspecialchars(trim($p), ENT_QUOTES, 'UTF-8')) . '</p>';
+            }
+        }
 
         $this->render('post/detail', [
-            'pageTitle' => $post['title'],
-            'post'      => $post,
-            'related'   => $related
+            'title' => $post['title'] . ' - TechPilot News',
+            'post' => $post,
+            'related' => $related,
+            'safeContent' => $safeContent,
+            'pageStyles' => ['news.css']
         ]);
     }
 }
