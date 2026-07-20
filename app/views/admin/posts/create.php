@@ -30,6 +30,43 @@
             <textarea name="content" id="content" class="form-control" rows="12" placeholder="Nhập nội dung bài viết bằng HTML hoặc văn bản thường..."></textarea>
         </div>
 
+            <div class="form-group mb-3">
+                <label>Chuyên mục</label>
+                <select name="category_slug" class="form-control">
+                    <option value="cong-nghe">Công nghệ</option>
+                    <option value="laptop">Laptop</option>
+                    <option value="gaming">PC Gaming</option>
+                    <option value="pc-linh-kien">Linh kiện PC</option>
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label>Loại bài viết</label>
+                <select name="post_type" class="form-control">
+                    <option value="news">Tin tức</option>
+                    <option value="review">Đánh giá</option>
+                    <option value="guide">Thủ thuật / Tư vấn</option>
+                    <option value="comparison">So sánh</option>
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label>Thời gian đọc (phút)</label>
+                <input type="number" name="reading_minutes" class="form-control" min="1" max="60" placeholder="VD: 5">
+            </div>
+
+            <div class="form-group mb-3">
+                <div class="form-check">
+                    <input type="checkbox" name="is_featured" value="1" class="form-check-input" id="is_featured">
+                    <label class="form-check-label" for="is_featured">Bài viết nổi bật</label>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label>Ảnh đại diện</label>
+                <input type="file" name="image" class="form-control" accept="image/*">
+            </div>
+
         <div class="form-group">
             <label for="status">Trạng thái xuất bản</label>
             <select name="status" id="status" class="form-control">
