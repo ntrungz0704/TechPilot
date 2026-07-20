@@ -164,7 +164,7 @@ class AdminOrderController extends Controller
                 // Nếu đơn hàng chuyển sang Completed -> Tự động đánh dấu đã thanh toán (Paid)
                 $paymentStatusSql = '';
                 if ($newStatus === 'completed') {
-                    $paymentStatusSql = ', payment_status = \'paid\', fulfillment_status = \'delivered\'';
+                    $paymentStatusSql = ', payment_status = \'paid\'';
                 }
 
                 // Nếu đơn hàng bị Huỷ (Cancelled) -> Cộng lại số lượng tồn kho sản phẩm
