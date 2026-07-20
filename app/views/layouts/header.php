@@ -51,9 +51,9 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=19.0') ?>">
     <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=2.0') ?>">
-    <?php if (strpos($_SERVER['REQUEST_URI'], '/tin-tuc') !== false): ?>
-        <link rel="stylesheet" href="<?= url('assets/css/news.css?v=1.0') ?>">
-    <?php endif; ?>
+    <?php foreach ($pageStyles ?? [] as $stylesheet): ?>
+        <link rel="stylesheet" href="<?= url($stylesheet) ?>">
+    <?php endforeach; ?>
     <script>
         (() => {
             const stored = localStorage.getItem('techpilot-theme');

@@ -130,9 +130,9 @@
 
     <script src="<?= url('assets/js/main.js?v=7.2') ?>"></script>
     <script src="<?= url('assets/js/category-mega-menu.js?v=2.7') ?>"></script>
-    <?php if (strpos($_SERVER['REQUEST_URI'], '/tin-tuc') !== false): ?>
-        <script src="<?= url('assets/js/news.js?v=1.0') ?>"></script>
-    <?php endif; ?>
+    <?php foreach ($pageScripts ?? [] as $script): ?>
+        <script src="<?= url($script) ?>"></script>
+    <?php endforeach; ?>
     <script>
         // Xử lý menu hamburger và drawer menu trên Mobile
         const mainNav = document.querySelector('.main-nav');

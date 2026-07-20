@@ -291,3 +291,95 @@ if (!function_exists('normalizeSearchKeyword')) {
     }
 }
 
+/**
+ * Tạo URL ảnh bài viết một cách thống nhất.
+ * Hỗ trợ: URL tuyệt đối, path posts/..., legacy filename, placeholder.
+ */
+if (!function_exists('postImageUrl')) {
+    function postImageUrl(?string $image): string
+    {
+        $image = trim((string)$image);
+
+        if ($image === '') {
+            return url('assets/images/products/placeholder-component.webp');
+        }
+
+        // 1. URL tuyệt đối (https:// hoặc http://)
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+            return $image;
+        }
+
+        // 2. Nếu image đã có prefix posts/ → assets/images/posts/...
+        if (str_starts_with($image, 'posts/')) {
+            $fullPath = ROOT_PATH . '/public/assets/images/' . $image;
+            if (file_exists($fullPath)) {
+                return url('assets/images/' . $image);
+            }
+        }
+
+        // 3. Thử đường dẫn posts/ (UploadService trả về dạng posts/filename.jpg)
+        $postsPath = ROOT_PATH . '/public/assets/images/posts/' . basename($image);
+        if (file_exists($postsPath)) {
+            return url('assets/images/posts/' . basename($image));
+        }
+
+        // 4. Legacy: assets/images/news/filename.jpg (ảnh seed cũ)
+        $legacyPath = ROOT_PATH . '/public/assets/images/news/' . basename($image);
+        if (file_exists($legacyPath)) {
+            return url('assets/images/news/' . basename($image));
+        }
+
+        // 5. Không tìm thấy → placeholder
+        return url('assets/images/products/placeholder-component.webp');
+    }
+}
+
+/**
+ * Trả về nhãn loại bài viết (post_type).
+ */
+if (!function_exists('postTypeLabel')) {
+    function postTypeLabel(string $postType): string
+    {
+        $labels = [
+            'news'       => 'Tin mới',
+            'review'     => 'Review',
+            'guide'      => 'Tư vấn',
+            'comparison' => 'So sánh',
+        ];
+        return e($labels[$postType] ?? 'Tin tức');
+    }
+}
+
+/**
+ * Trả về nhãn category bài viết (category_slug).
+ */
+if (!function_exists('postCategoryLabel')) {
+    function postCategoryLabel(string $slug): string
+    {
+        $labels = [
+            'cong-nghe'    => 'Công nghệ',
+            'laptop'       => 'Laptop',
+            'pc-linh-kien' => 'PC & Linh kiện',
+            'gaming'       => 'Gaming',
+            'man-hinh'     => 'Màn hình',
+            'gaming-gear'  => 'Gaming Gear',
+            'thu-thuat'    => 'Thủ thuật',
+            'ai'           => 'AI & Công nghệ mới',
+        ];
+        return e($labels[$slug] ?? 'Công nghệ');
+    }
+}
+
+/**
+ * Tính số phút đọc cho văn bản tiếng Việt (đếm từ UTF-8).
+ */
+if (!function_exists('readingMinutes')) {
+    function readingMinutes(string $content): int
+    {
+        $text = strip_tags($content);
+        preg_match_all('/[\p{L}\p{N}]+/u', $text, $matches);
+        $wordCount = count($matches[0]);
+        return max(1, (int)ceil($wordCount / 200));
+    }
+}
+

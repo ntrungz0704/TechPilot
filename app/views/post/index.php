@@ -1,35 +1,39 @@
 <?php
-$featured = $featured ?? null;
-$posts = $posts ?? [];
-$popular = $popular ?? [];
+/**
+ * Trang danh sách bài viết - /post
+ * Variables: $featured, $posts, $popular, $heroPopular, $currentPage, $totalPages, $currentTag
+ */
+$featured    = $featured    ?? null;
+$posts       = $posts       ?? [];
+$popular     = $popular     ?? [];
 $heroPopular = $heroPopular ?? [];
 $currentPage = $currentPage ?? 1;
-$totalPages = $totalPages ?? 1;
-$currentTag = $currentTag ?? '';
+$totalPages  = $totalPages  ?? 1;
+$currentTag  = $currentTag  ?? '';
 ?>
 
-<section class="container breadcrumb">
-    <a href="<?= url('/') ?>">Trang chủ</a> <i class="fa-solid fa-chevron-right"></i>
-    <span>Tin tức công nghệ</span>
+<section class="container breadcrumb" aria-label="Đường dẫn">
+    <a href="<?= url('/') ?>">Trang chủ</a> <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+    <span aria-current="page">Tin tức công nghệ</span>
 </section>
 
 <!-- ===== TRANG TIN TỨC CHÍNH ===== -->
 <section class="container news-page">
-    
+
     <!-- 1. Dải danh mục tin tức -->
     <?php require_once __DIR__ . '/partials/_category_nav.php'; ?>
 
-    <!-- 2. Bài viết nổi bật (Featured Post) - Chỉ hiển thị ở trang 1 -->
-    <?php if ($featured !== null): ?>
+    <!-- 2. Bài viết nổi bật (Featured Post) - Chỉ hiển thị ở trang 1 không filter -->
+    <?php if ($featured !== null && empty($currentTag)): ?>
         <?php require_once __DIR__ . '/partials/_featured.php'; ?>
     <?php endif; ?>
 
     <!-- 3. Bố cục 2 cột (Main & Sidebar) -->
     <div class="news-layout">
-        <!-- Cột trái: Danh sách bài viết tiếp theo -->
+        <!-- Cột trái: Danh sách bài viết -->
         <div class="news-main">
             <h3 class="news-section-title">Bài viết mới nhất</h3>
-            
+
             <?php if (!empty($posts)): ?>
                 <div class="news-list">
                     <?php foreach ($posts as $p): ?>
@@ -39,45 +43,56 @@ $currentTag = $currentTag ?? '';
 
                 <!-- Phân trang (Pagination) -->
                 <?php if ($totalPages > 1): ?>
-                    <div class="news-pagination">
+                    <nav class="news-pagination" aria-label="Phân trang">
                         <?php if ($currentPage > 1): ?>
-                            <a href="<?= url('post?page=' . ($currentPage - 1) . (!empty($currentTag) ? '&tag=' . $currentTag : '')) ?>" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+                            <a href="<?= url('post?page=' . ($currentPage - 1) . (!empty($currentTag) ? '&tag=' . e($currentTag) : '')) ?>" class="page-btn" aria-label="Trang trước">
+                                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                            </a>
                         <?php endif; ?>
 
                         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <a href="<?= url('post?page=' . $i . (!empty($currentTag) ? '&tag=' . $currentTag : '')) ?>" class="page-btn <?= $currentPage === $i ? 'is-active' : '' ?>"><?= $i ?></a>
+                            <a
+                                href="<?= url('post?page=' . $i . (!empty($currentTag) ? '&tag=' . e($currentTag) : '')) ?>"
+                                class="page-btn <?= $currentPage === $i ? 'is-active' : '' ?>"
+                                <?= $currentPage === $i ? 'aria-current="page"' : '' ?>
+                            ><?= $i ?></a>
                         <?php endfor; ?>
 
                         <?php if ($currentPage < $totalPages): ?>
-                            <a href="<?= url('post?page=' . ($currentPage + 1) . (!empty($currentTag) ? '&tag=' . $currentTag : '')) ?>" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+                            <a href="<?= url('post?page=' . ($currentPage + 1) . (!empty($currentTag) ? '&tag=' . e($currentTag) : '')) ?>" class="page-btn" aria-label="Trang sau">
+                                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                            </a>
                         <?php endif; ?>
-                    </div>
+                    </nav>
                 <?php endif; ?>
 
             <?php else: ?>
                 <div class="news-empty">
-                    <i class="fa-solid fa-inbox"></i>
+                    <i class="fa-solid fa-inbox" aria-hidden="true"></i>
                     <h4>Chưa có bài viết nào phù hợp</h4>
                     <p>Hãy chọn bộ lọc hoặc chuyên mục khác.</p>
+                    <a href="<?= url('post') ?>" class="btn btn--primary btn--sm" style="margin-top: 16px; display: inline-block;">
+                        <i class="fa-solid fa-newspaper" aria-hidden="true"></i> Xem tất cả bài viết
+                    </a>
                 </div>
             <?php endif; ?>
         </div>
 
         <!-- Cột phải: Sidebar -->
-        <aside class="news-sidebar">
+        <aside class="news-sidebar" aria-label="Nội dung liên quan">
             <!-- Box 1: Bài viết phổ biến -->
             <?php if (!empty($popular)): ?>
             <div class="news-sidebar-widget">
                 <h3 class="widget-title">Bài viết phổ biến</h3>
                 <div class="news-popular-list">
-                    <?php 
+                    <?php
                     $rank = 1;
-                    foreach ($popular as $pop): 
+                    foreach ($popular as $pop):
                     ?>
                         <?php require __DIR__ . '/partials/_popular_item.php'; ?>
-                    <?php 
+                    <?php
                         $rank++;
-                    endforeach; 
+                    endforeach;
                     ?>
                 </div>
             </div>
@@ -85,7 +100,7 @@ $currentTag = $currentTag ?? '';
 
             <!-- Box 2: Mua theo nhu cầu -->
             <?php require_once __DIR__ . '/partials/_buying_needs.php'; ?>
-            
+
         </aside>
     </div>
 
