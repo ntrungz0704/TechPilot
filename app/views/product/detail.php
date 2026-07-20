@@ -19,24 +19,24 @@ $reviews = $reviews ?? [];
             <?php if (!empty($product['discount_percent']) && $product['discount_percent'] > 0): ?>
                 <span class="product-card__badge">-<?= (int)$product['discount_percent'] ?>%</span>
             <?php endif; ?>
-            <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
+            <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
         </div>
         <div class="product-detail__thumbs">
             <!-- Thêm ảnh đại diện gốc vào danh sách thumbnail -->
-            <div class="product-detail__thumb is-active" onclick="changeProductImage('<?= e(productImageUrl($product['image'] ?? '')) ?>', this)">
-                <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
+            <div class="product-detail__thumb is-active" onclick="changeProductImage('<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
+                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
             </div>
             <!-- Hiển thị các ảnh chi tiết nếu có -->
             <?php foreach ($productImages as $img): ?>
-                <div class="product-detail__thumb" onclick="changeProductImage('<?= e(productImageUrl($img['image_url'])) ?>', this)">
-                    <img src="<?= e(productImageUrl($img['image_url'])) ?>" alt="Detail" class="product-detail__thumb-image">
+                <div class="product-detail__thumb" onclick="changeProductImage('<?= e(productImageUrl($img['image_url'], $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
+                    <img src="<?= e(productImageUrl($img['image_url'], $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="Detail" class="product-detail__thumb-image">
                 </div>
             <?php endforeach; ?>
             <!-- Fallback điền thêm thumbnail cho đầy giao diện -->
             <?php if (count($productImages) < 3): ?>
                 <?php for ($i = 0; $i < (3 - count($productImages)); $i++): ?>
-                    <div class="product-detail__thumb" onclick="changeProductImage('<?= e(productImageUrl($product['image'] ?? '')) ?>', this)">
-                        <img src="<?= e(productImageUrl($product['image'] ?? '')) ?>" alt="Detail" class="product-detail__thumb-image">
+                    <div class="product-detail__thumb" onclick="changeProductImage('<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
+                        <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="Detail" class="product-detail__thumb-image">
                     </div>
                 <?php endfor; ?>
             <?php endif; ?>

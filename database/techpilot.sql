@@ -423,6 +423,15 @@ INSERT INTO users (full_name, email, phone, password, role, status) VALUES
 INSERT INTO flash_sales (id, title, slug, start_time, end_time, status) VALUES
 (1, 'Flash Sale Công Nghệ', 'flash-sale-cong-nghe', NOW() - INTERVAL 1 HOUR, NOW() + INTERVAL 2 HOUR, 'active');
 
+-- 10.1 Nạp các sản phẩm tham gia Flash Sale (flash_sale_items)
+INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocation_quantity, sold_quantity, limit_per_user) VALUES
+(1, 13, 18990000.00, 10, 0, 1),
+(1, 14, 25990000.00, 15, 0, 1),
+(1, 15, 3290000.00, 12, 0, 1),
+(1, 16, 5490000.00, 8, 0, 1),
+(1, 17, 18990000.00, 10, 0, 1),
+(1, 18, 27990000.00, 5, 0, 1);
+
 -- 11. Bảng thông báo (notifications)
 CREATE TABLE IF NOT EXISTS notifications (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -580,3 +589,11 @@ INSERT INTO products (category_id, brand_id, name, slug, short_desc, description
 INSERT INTO products (category_id, brand_id, name, slug, short_desc, description, price, stock, specs, status, image) VALUES (4, 19, 'Ổ cứng HDD WD Blue 2TB 3.5-inch SATA3', 'hdd-wd-blue-2tb-3.5-inch', 'Ổ cứng HDD WD Blue 2TB 3.5-inch SATA3 chính hãng, thông số chi tiết chuẩn xác.', 'Ổ cứng HDD WD Blue 2TB 3.5-inch SATA3 là dòng linh kiện cao cấp được kiểm định nghiêm ngặt về độ bền và tính tương thích cao trong các cấu hình PC.', 1790000, 30, '{\"component_type\":\"hdd\",\"interface\":\"SATA\",\"form_factor\":\"3.5-inch\",\"capacity_gb\":2000,\"power_w\":6}', 'active', 'ram3.jpg') ON DUPLICATE KEY UPDATE brand_id=VALUES(brand_id), name=VALUES(name), price=VALUES(price), stock=VALUES(stock), specs=VALUES(specs), image=VALUES(image);
 INSERT INTO products (category_id, brand_id, name, slug, short_desc, description, price, stock, specs, status, image) VALUES (4, 29, 'Quạt tản nhiệt Arctic P12 PWM 120mm', 'fan-case-arctic-p12-pwm-120mm', 'Quạt tản nhiệt Arctic P12 PWM 120mm chính hãng, thông số chi tiết chuẩn xác.', 'Quạt tản nhiệt Arctic P12 PWM 120mm là dòng linh kiện cao cấp được kiểm định nghiêm ngặt về độ bền và tính tương thích cao trong các cấu hình PC.', 190000, 150, '{\"component_type\":\"case_fan\",\"size_mm\":120,\"connector\":\"4-pin-PWM\",\"power_w\":2}', 'active', 'case2.jpg') ON DUPLICATE KEY UPDATE brand_id=VALUES(brand_id), name=VALUES(name), price=VALUES(price), stock=VALUES(stock), specs=VALUES(specs), image=VALUES(image);
 INSERT INTO products (category_id, brand_id, name, slug, short_desc, description, price, stock, specs, status, image) VALUES (4, 20, 'Quạt tản nhiệt Noctua NF-A12x25 PWM 120mm', 'fan-case-noctua-nf-a12x25-pwm-120mm', 'Quạt tản nhiệt Noctua NF-A12x25 PWM 120mm chính hãng, thông số chi tiết chuẩn xác.', 'Quạt tản nhiệt Noctua NF-A12x25 PWM 120mm là dòng linh kiện cao cấp được kiểm định nghiêm ngặt về độ bền và tính tương thích cao trong các cấu hình PC.', 750000, 60, '{\"component_type\":\"case_fan\",\"size_mm\":120,\"connector\":\"4-pin-PWM\",\"power_w\":2}', 'active', 'case2.jpg') ON DUPLICATE KEY UPDATE brand_id=VALUES(brand_id), name=VALUES(name), price=VALUES(price), stock=VALUES(stock), specs=VALUES(specs), image=VALUES(image);
+
+-- 3. Nạp sản phẩm Thiết bị văn phòng (office-gear) & Thiết bị mạng (networking)
+INSERT INTO products (category_id, brand_id, name, slug, short_desc, description, price, stock, specs, status, image) VALUES (8, 5, 'Máy in Laser Trắng Đen HP LaserJet Pro M12w', 'may-in-laser-trang-den-hp-laserjet-pro-m12w', 'Máy in laser trắng đen nhỏ gọn, hỗ trợ in không dây tiện lợi.', 'Máy in HP LaserJet Pro M12w có thiết kế tinh tế, nhỏ gọn, tốc độ in nhanh và chất lượng văn bản sắc nét.', 2490000, 15, '{"loai_may":"In laser trắng đen","ket_noi":"USB 2.0, Wi-Fi","do_phan_giai":"600 x 600 dpi","toc_do_in":"18 trang/phút"}', 'active', 'printer.png') ON DUPLICATE KEY UPDATE brand_id=VALUES(brand_id), name=VALUES(name), price=VALUES(price), stock=VALUES(stock), specs=VALUES(specs), image=VALUES(image);
+
+INSERT INTO products (category_id, brand_id, name, slug, short_desc, description, price, stock, specs, status, image) VALUES (8, 5, 'Máy chiếu Văn Phòng HP CC200', 'may-chieu-van-phong-hp-cc200', 'Máy chiếu văn phòng full HD 1080p, hình ảnh sắc nét, dễ lắp đặt.', 'HP CC200 mang lại trải nghiệm trình chiếu chất lượng cao cho phòng họp nhỏ hoặc gia đình với màn hình lên tới 80 inch.', 4590000, 10, '{"do_phan_giai":"Full HD 1920x1080","do_sang":"200 ANSI Lumens","tuoi_tho_bong":"20000 gio"}', 'active', 'projector.png') ON DUPLICATE KEY UPDATE brand_id=VALUES(brand_id), name=VALUES(name), price=VALUES(price), stock=VALUES(stock), specs=VALUES(specs), image=VALUES(image);
+
+INSERT INTO products (category_id, brand_id, name, slug, short_desc, description, price, stock, specs, status, image) VALUES (9, 1, 'Bộ phát WiFi 6 ASUS RT-AX53U Router', 'bo-phat-wifi-6-asus-rt-ax53u-router', 'Router WiFi 6 băng tần kép AX1800, bảo mật AiProtection miễn phí trọn đời.', 'ASUS RT-AX53U mang đến kết nối không dây tốc độ cao và cực kỳ ổn định nhờ công nghệ WiFi 6 hiện đại.', 1290000, 25, '{"chuan_wifi":"WiFi 6 (802.11ax)","bang_tan":"2.4GHz & 5GHz","toc_do":"AX1800 (1201 Mbps + 574 Mbps)"}', 'active', 'router.png') ON DUPLICATE KEY UPDATE brand_id=VALUES(brand_id), name=VALUES(name), price=VALUES(price), stock=VALUES(stock), specs=VALUES(specs), image=VALUES(image);
+

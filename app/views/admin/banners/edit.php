@@ -1,4 +1,4 @@
-<div class="card" style="max-width: 600px; margin: 0 auto 30px;">
+<div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Chỉnh sửa Banner quảng cáo</h3>
     
     <form method="post" action="<?= url('admin/banners/update/' . $banner['id']) ?>" enctype="multipart/form-data">

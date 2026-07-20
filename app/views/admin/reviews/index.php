@@ -46,8 +46,8 @@
                     <?php foreach ($reviews as $rev): ?>
                         <tr>
                             <td><?= (int)$rev['id'] ?></td>
-                            <td>
-                                <strong><a href="<?= url('product/detail/' . e($rev['product_slug'])) ?>" target="_blank" style="color: var(--primary); text-decoration: none; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px;"><?= e($rev['product_name']) ?></a></strong>
+                             <td>
+                                <strong><a href="<?= url('product/detail/' . e($rev['product_slug'])) ?>" target="_blank" style="color: var(--primary); text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px; max-width: 250px;"><?= e($rev['product_name']) ?></a></strong>
                             </td>
                             <td><?= e($rev['reviewer_name']) ?></td>
                             <td>
@@ -66,18 +66,20 @@
                                 </span>
                             </td>
                             <td><?= date('d/m/Y H:i', strtotime($rev['created_at'])) ?></td>
-                            <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; height: 50px;">
-                                <?php if ($rev['status'] !== 'approved'): ?>
-                                    <form method="post" action="<?= url('admin/reviews/approve/' . $rev['id']) ?>" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--sm" style="padding: 6px 12px; font-size: 12px; background-color: #10B981;"><i class="fa-solid fa-check"></i> Phê duyệt</button>
-                                    </form>
-                                <?php else: ?>
-                                    <form method="post" action="<?= url('admin/reviews/hide/' . $rev['id']) ?>" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-eye-slash"></i> Ẩn đánh giá</button>
-                                    </form>
-                                <?php endif; ?>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
+                                    <?php if ($rev['status'] !== 'approved'): ?>
+                                        <form method="post" action="<?= url('admin/reviews/approve/' . $rev['id']) ?>" style="margin: 0;">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn btn--sm" style="padding: 6px 12px; font-size: 12px; background-color: #10B981; white-space: nowrap;"><i class="fa-solid fa-check"></i> Phê duyệt</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <form method="post" action="<?= url('admin/reviews/hide/' . $rev['id']) ?>" style="margin: 0;">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-eye-slash"></i> Ẩn đánh giá</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
