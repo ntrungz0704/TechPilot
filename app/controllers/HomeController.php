@@ -51,9 +51,15 @@ class HomeController extends Controller
     {
         $keyword = trim($_GET['q'] ?? '');
         $categorySlug = trim($_GET['cat'] ?? '');
+        $minPrice = max(0, (int)($_GET['min_price'] ?? 0));
+        $maxPrice = max(0, (int)($_GET['max_price'] ?? 50000000));
+
+        if ($maxPrice < $minPrice) {
+            [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
+        }
 
         $productModel = $this->model('Product');
-        $products = $productModel->search($keyword, $categorySlug, 24);
+        $products = $productModel->search($keyword, $categorySlug, 24, $minPrice, $maxPrice);
 
         $pageTitle = 'Kết quả tìm kiếm';
         if (!empty($keyword) && !empty($categorySlug)) {
@@ -80,6 +86,8 @@ class HomeController extends Controller
             'pageTitle'    => $pageTitle,
             'keyword'      => $keyword,
             'categorySlug' => $categorySlug,
+            'minPrice'     => $minPrice,
+            'maxPrice'     => $maxPrice,
             'products'     => $products,
             'categories'   => $productModel->getCategories(),
             'totalResults' => count($products),
@@ -113,6 +121,13 @@ class HomeController extends Controller
             'products'     => $products,
             'categories'   => $categories,
             'totalResults' => count($products),
+        ]);
+    }
+
+    public function trade_in(): void
+    {
+        $this->render('home/trade_in', [
+            'pageTitle' => 'Thu cũ đổi mới máy cũ - TechPilot'
         ]);
     }
 

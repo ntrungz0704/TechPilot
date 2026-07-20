@@ -21,6 +21,14 @@ if ($scriptDir === '/' || $scriptDir === '\\') {
     $scriptDir = '';
 }
 
+// Nếu truy cập từ root (không qua thư mục public) trong môi trường Apache/XAMPP/Laragon,
+// ta cần bổ sung /public vào BASE_URL để các assets và link chạy đúng.
+if ($scriptDir !== '' && substr($scriptDir, -7) !== '/public' && $scriptDir !== '/public') {
+    if (is_dir(dirname(__DIR__) . '/public')) {
+        $scriptDir .= '/public';
+    }
+}
+
 define('BASE_URL', $scriptDir);
 
 define('APP_NAME', 'TechPilot');
