@@ -228,7 +228,7 @@ class Product
     }
 
     /** Tìm kiếm sản phẩm theo từ khóa và danh mục */
-    public function search(string $keyword = '', string $categorySlug = '', int $limit = 24): array
+    public function search(string $keyword = '', string $categorySlug = '', int $limit = 24, int $minPrice = 0, int $maxPrice = 50000000): array
     {
         if ($this->db === null) {
             return [];
@@ -236,6 +236,12 @@ class Product
 
         // 1. Chuẩn hóa keyword bằng helper
         $keyword = normalizeSearchKeyword($keyword);
+        $minPrice = max(0, $minPrice);
+        $maxPrice = max(0, $maxPrice);
+
+        if ($maxPrice < $minPrice) {
+            [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
+        }
 
         $searchAliases = [
             'máy tính'       => ['pc', 'desktop', 'máy tính để bàn'],
@@ -321,6 +327,10 @@ class Product
             $params[':category'] = $categorySlug;
         }
 
+        $query .= ' AND COALESCE(p.sale_price, p.price) BETWEEN :minPrice AND :maxPrice';
+        $params[':minPrice'] = $minPrice;
+        $params[':maxPrice'] = $maxPrice;
+
         if (!empty($keyword)) {
             // Dùng alias 'relevance' từ SELECT — KHÔNG nhúng lại $relevanceSql
             $query .= ' ORDER BY relevance DESC, p.created_at DESC';
@@ -332,7 +342,11 @@ class Product
 
         $stmt = $this->db->prepare($query);
         foreach ($params as $key => $val) {
-            $stmt->bindValue($key, $val);
+            if ($key === ':minPrice' || $key === ':maxPrice') {
+                $stmt->bindValue($key, $val, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($key, $val);
+            }
         }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();

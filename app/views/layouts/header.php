@@ -161,8 +161,8 @@
                     <li><a href="<?= url('home/search?cat=thiet-bi-mang') ?>" class="desktop-only-link">Thiết bị mạng</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=thiet-bi-van-phong') ?>">Thiết bị văn phòng</a></li>
-                    <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
-                    <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
+                   <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
+                   <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
                 </ul>
             </div>
         </nav>

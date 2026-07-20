@@ -5,6 +5,39 @@ $categories = $categories ?? [];
 $categorySlug = $categorySlug ?? '';
 $totalResults = $totalResults ?? 0;
 $products = $products ?? [];
+$priceMaxLimit = 50000000;
+$minPrice = max(0, (int)($minPrice ?? 0));
+$maxPrice = max(0, (int)($maxPrice ?? $priceMaxLimit));
+$maxPrice = min($priceMaxLimit, $maxPrice);
+
+if ($maxPrice < $minPrice) {
+    [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
+}
+
+$buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug, $minPrice, $maxPrice, $priceMaxLimit): string {
+    $params = array_merge([
+        'q' => $keyword,
+        'cat' => $categorySlug,
+        'min_price' => $minPrice,
+        'max_price' => $maxPrice,
+    ], $overrides);
+
+    if (($params['q'] ?? '') === '') {
+        unset($params['q']);
+    }
+    if (($params['cat'] ?? '') === '') {
+        unset($params['cat']);
+    }
+    if ((int)($params['min_price'] ?? 0) <= 0) {
+        unset($params['min_price']);
+    }
+    if ((int)($params['max_price'] ?? $priceMaxLimit) >= $priceMaxLimit) {
+        unset($params['max_price']);
+    }
+
+    $query = http_build_query($params);
+    return url('home/search' . ($query !== '' ? '?' . $query : ''));
+};
 ?>
 
 <section class="container breadcrumb">
@@ -19,6 +52,11 @@ $products = $products ?? [];
             <h3>Bộ lọc tìm kiếm</h3>
             <form method="get" action="<?= url('home/search') ?>" class="search-widget__form">
                 <input type="text" name="q" placeholder="Nhập từ khóa tìm kiếm..." value="<?= e($keyword) ?>">
+                <?php if ($categorySlug !== ''): ?>
+                    <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
+                <?php endif; ?>
+                <input type="hidden" name="min_price" value="<?= (int)$minPrice ?>">
+                <input type="hidden" name="max_price" value="<?= (int)$maxPrice ?>">
                 <button type="submit" class="btn btn--block"><i class="fa-solid fa-magnifying-glass"></i> Lọc kết quả</button>
             </form>
         </div>
@@ -26,9 +64,9 @@ $products = $products ?? [];
         <div class="search-widget">
             <h3>Danh mục sản phẩm</h3>
             <div class="category-list">
-                <a href="<?= url('home/search') ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
+                <a href="<?= $buildSearchUrl(['cat' => '']) ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
                 <?php foreach ($categories as $cat): ?>
-                    <a href="<?= url('home/search?cat=' . $cat['slug']) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
+                    <a href="<?= $buildSearchUrl(['cat' => $cat['slug']]) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
                         <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>" style="margin-right: 8px;"></i>
                         <?= e($cat['name']) ?>
                     </a>
@@ -38,13 +76,21 @@ $products = $products ?? [];
 
         <div class="search-widget">
             <h3>Khoảng giá bán</h3>
-            <div class="price-range">
-                <input type="range" min="0" max="50000000" step="1000000" value="50000000" class="price-slider" oninput="updatePriceSlider(this.value)">
+            <form method="get" action="<?= url('home/search') ?>" class="price-range" id="priceFilterForm">
+                <?php if ($keyword !== ''): ?>
+                    <input type="hidden" name="q" value="<?= e($keyword) ?>">
+                <?php endif; ?>
+                <?php if ($categorySlug !== ''): ?>
+                    <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
+                <?php endif; ?>
+                <input type="hidden" name="min_price" value="<?= (int)$minPrice ?>">
+                <input type="range" min="0" max="<?= (int)$priceMaxLimit ?>" step="1000000" name="max_price" value="<?= (int)$maxPrice ?>" class="price-slider" id="priceMaxSlider" oninput="updatePriceSlider(this.value)">
                 <div class="price-display">
-                    <span>0đ</span>
-                    <span id="priceMaxDisplay">50 triệu đ</span>
+                    <span><?= formatPrice($minPrice) ?></span>
+                    <span id="priceMaxDisplay"><?= formatPrice($maxPrice) ?></span>
                 </div>
-            </div>
+                <button type="submit" class="btn btn--block price-apply-btn">Áp dụng khoảng giá</button>
+            </form>
         </div>
     </aside>
 
@@ -86,6 +132,19 @@ $products = $products ?? [];
         let display = document.getElementById('priceMaxDisplay');
         let mil = parseFloat(val) / 1000000;
         display.innerHTML = mil.toFixed(0) + ' triệu đ';
+    }
+
+    const priceFilterForm = document.getElementById('priceFilterForm');
+    const priceMaxSlider = document.getElementById('priceMaxSlider');
+    let priceSubmitTimer;
+
+    if (priceFilterForm && priceMaxSlider) {
+        priceMaxSlider.addEventListener('input', function () {
+            clearTimeout(priceSubmitTimer);
+            priceSubmitTimer = setTimeout(function () {
+                priceFilterForm.submit();
+            }, 650);
+        });
     }
 </script>
 
@@ -167,6 +226,10 @@ $products = $products ?? [];
         font-size: 12.5px;
         margin-top: 10px;
         color: var(--text-secondary);
+    }
+
+    .price-apply-btn {
+        margin-top: 14px;
     }
 
     .search-results-header {
