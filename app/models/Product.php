@@ -1207,96 +1207,85 @@ class Product
     }
 
     /** Tìm kiếm sản phẩm theo từ khóa và danh mục */
-    public function search(string $keyword = '', string $categorySlug = '', int $limit = 24): array
+    public function search(string $keyword = '', string $categorySlug = '', int $limit = 48): array
     {
         if ($this->db !== null) {
             try {
-                $keyword = normalizeSearchKeyword($keyword);
+                $rawKeyword = trim($keyword);
+                $normalizedKeyword = normalizeSearchKeyword($rawKeyword);
 
-                $searchAliases = [
-                    'máy tính'       => ['pc', 'desktop', 'máy tính để bàn'],
-                    'máy bộ'         => ['pc build sẵn', 'desktop'],
-                    'máy chơi game'  => ['pc gaming', 'laptop gaming'],
-                    'card màn hình'  => ['vga', 'gpu'],
-                    'ổ cứng'         => ['ssd', 'hdd'],
-                    'bộ nhớ'         => ['ram'],
-                    'tai nghe game'  => ['gaming headset'],
-                    'bo mạch chủ'    => ['mainboard', 'main'],
-                    'nguồn máy tính' => ['psu', 'nguồn pc'],
-                    'tản nhiệt'      => ['cooler', 'fan cpu'],
-                ];
+                $params = [];
+                $whereConditions = ["p.status = 'active'"];
 
-                $aliasesFound = [];
-                if (!empty($keyword)) {
-                    foreach ($searchAliases as $key => $values) {
-                        if (str_contains($keyword, $key)) {
-                            $aliasesFound = array_merge($aliasesFound, $values);
-                        }
-                        foreach ($values as $val) {
-                            if (str_contains($keyword, $val)) {
-                                $aliasesFound[] = $key;
-                                $aliasesFound = array_merge($aliasesFound, array_diff($values, [$val]));
-                            }
-                        }
-                    }
-                    $aliasesFound = array_unique($aliasesFound);
+                // 1. Filter by Category
+                if (!empty($categorySlug)) {
+                    $whereConditions[] = '(c.slug = :cat1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :cat2))';
+                    $params[':cat1'] = $categorySlug;
+                    $params[':cat2'] = $categorySlug;
                 }
 
+                // 2. Filter by Keyword
                 $relevanceSql = '0';
-                $params = [];
 
-                if (!empty($keyword)) {
+                if (!empty($normalizedKeyword)) {
+                    $words = array_filter(explode(' ', $normalizedKeyword), fn($w) => (function_exists('mb_strlen') ? mb_strlen($w, 'UTF-8') : strlen($w)) >= 2 || is_numeric($w));
+                    if (empty($words)) {
+                        $words = [$normalizedKeyword];
+                    }
+
+                    $wordConditions = [];
+                    $wIdx = 1;
+                    foreach ($words as $word) {
+                        $pName  = ':w' . $wIdx . '_name';
+                        $pDesc  = ':w' . $wIdx . '_desc';
+                        $pSpecs = ':w' . $wIdx . '_specs';
+                        $pBrand = ':w' . $wIdx . '_brand';
+                        $pCat   = ':w' . $wIdx . '_cat';
+
+                        $wordConditions[] = "(p.name LIKE $pName OR p.description LIKE $pDesc OR p.specs LIKE $pSpecs OR b.name LIKE $pBrand OR c.name LIKE $pCat)";
+                        $val = '%' . $word . '%';
+                        $params[$pName]  = $val;
+                        $params[$pDesc]  = $val;
+                        $params[$pSpecs] = $val;
+                        $params[$pBrand] = $val;
+                        $params[$pCat]   = $val;
+                        $wIdx++;
+                    }
+
+                    if (!empty($wordConditions)) {
+                        $whereConditions[] = '(' . implode(' AND ', $wordConditions) . ')';
+                    }
+
                     $relevanceSql = '
                         (CASE WHEN p.name = :exactName THEN 100 ELSE 0 END) +
                         (CASE WHEN p.name LIKE :startsName THEN 70 ELSE 0 END) +
                         (CASE WHEN p.name LIKE :containsName THEN 50 ELSE 0 END) +
+                        (CASE WHEN p.specs LIKE :containsSpecs THEN 40 ELSE 0 END) +
                         (CASE WHEN c.name LIKE :containsCat THEN 30 ELSE 0 END) +
                         (CASE WHEN b.name LIKE :containsBrand THEN 20 ELSE 0 END) +
                         (CASE WHEN p.description LIKE :containsDesc THEN 5 ELSE 0 END)
                     ';
 
-                    $params[':exactName']     = $keyword;
-                    $params[':startsName']    = $keyword . '%';
-                    $params[':containsName']  = '%' . $keyword . '%';
-                    $params[':containsCat']   = '%' . $keyword . '%';
-                    $params[':containsBrand'] = '%' . $keyword . '%';
-                    $params[':containsDesc']  = '%' . $keyword . '%';
-
-                    $aliasIdx = 1;
-                    foreach ($aliasesFound as $alias) {
-                        $aliasParam = ':alias_' . $aliasIdx;
-                        $relevanceSql .= " + (CASE WHEN p.name LIKE $aliasParam THEN 35 ELSE 0 END)";
-                        $params[$aliasParam] = '%' . $alias . '%';
-                        $aliasIdx++;
-                    }
+                    $params[':exactName']     = $rawKeyword;
+                    $params[':startsName']    = $rawKeyword . '%';
+                    $params[':containsName']  = '%' . $rawKeyword . '%';
+                    $params[':containsSpecs'] = '%' . $rawKeyword . '%';
+                    $params[':containsCat']   = '%' . $rawKeyword . '%';
+                    $params[':containsBrand'] = '%' . $rawKeyword . '%';
+                    $params[':containsDesc']  = '%' . $rawKeyword . '%';
                 }
+
+                $whereClause = implode(' AND ', $whereConditions);
 
                 $query = "
                     SELECT p.*, b.name as brand_name, c.name as category_name, ($relevanceSql) as relevance
                     FROM products p
                     LEFT JOIN brands b ON p.brand_id = b.id
                     JOIN categories c ON p.category_id = c.id
-                    WHERE p.status = 'active'
+                    WHERE $whereClause
+                    ORDER BY " . (!empty($normalizedKeyword) ? "relevance DESC, p.created_at DESC" : "p.id DESC") . "
+                    LIMIT :limit
                 ";
-
-                if (!empty($keyword)) {
-                    $query .= ' AND (p.name LIKE :filterName OR p.description LIKE :filterDesc)';
-                    $params[':filterName'] = '%' . $keyword . '%';
-                    $params[':filterDesc'] = '%' . $keyword . '%';
-                }
-
-                if (!empty($categorySlug)) {
-                    $query .= ' AND (c.slug = :category OR c.parent_id IN (SELECT id FROM categories WHERE slug = :category))';
-                    $params[':category'] = $categorySlug;
-                }
-
-                if (!empty($keyword)) {
-                    $query .= ' ORDER BY relevance DESC, p.created_at DESC';
-                } else {
-                    $query .= ' ORDER BY p.id DESC';
-                }
-
-                $query .= ' LIMIT :limit';
 
                 $stmt = $this->db->prepare($query);
                 foreach ($params as $key => $val) {
