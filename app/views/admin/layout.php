@@ -10,23 +10,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS Tối giản & Hiện đại dành riêng cho Admin Panel -->
+    <!-- CSS Nhận diện Mockup Admin của TechPilot -->
     <style>
         :root {
-            --primary: #3B82F6;
-            --primary-gradient: linear-gradient(135deg, #3B82F6, #1D4ED8);
-            --primary-light: rgba(59, 130, 246, 0.08);
-            --bg-body: #F8FAFC;
-            --bg-sidebar: #0F172A;
+            --primary: #0B63E5;
+            --primary-light: rgba(11, 99, 229, 0.08);
+            --bg-body: #F4F6F8;
+            --bg-sidebar: #081325;
             --bg-card: #FFFFFF;
-            --text-primary: #0F172A;
+            --text-primary: #1F2937;
             --text-secondary: #64748B;
-            --border: #E2E8F0;
-            --radius-card: 16px;
-            --radius-elem: 10px;
-            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(15, 23, 42, 0.03);
-            --shadow-focus: 0 0 0 4px rgba(59, 130, 246, 0.15);
-            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --border: #E8ECEF;
+            --radius-card: 12px;
+            --radius-elem: 8px;
+            --shadow-card: 0 4px 18px -4px rgba(15, 23, 42, 0.04);
+            --shadow-focus: 0 0 0 3px rgba(11, 99, 229, 0.18);
+            --transition: all 0.2s ease-in-out;
         }
 
         * {
@@ -42,73 +41,46 @@
             display: flex;
             min-height: 100vh;
             overflow-x: hidden;
-            letter-spacing: -0.01em;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #CBD5E1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94A3B8;
         }
 
         /* ===== SIDEBAR ===== */
         .sidebar {
-            width: 270px;
+            width: 250px;
             background-color: var(--bg-sidebar);
             color: #FFFFFF;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
             position: fixed;
-            top: 16px;
-            bottom: 16px;
-            left: 16px;
+            top: 0;
+            bottom: 0;
+            left: 0;
             z-index: 100;
-            border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             transition: var(--transition);
         }
 
         .sidebar__logo {
-            padding: 28px 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 24px 20px;
             font-weight: 800;
-            font-size: 21px;
+            font-size: 20px;
             color: #FFFFFF;
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 12px;
-            letter-spacing: -0.02em;
+            gap: 10px;
         }
 
         .sidebar__logo i {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 24px;
-        }
-
-        .sidebar__logo span {
             color: var(--primary);
+            font-size: 24px;
         }
 
         .sidebar__menu {
             list-style: none;
-            padding: 24px 16px;
+            padding: 10px 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             flex: 1;
             overflow-y: auto;
         }
@@ -117,11 +89,11 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 16px;
+            padding: 11px 16px;
             color: #94A3B8;
             text-decoration: none;
             font-weight: 500;
-            font-size: 14px;
+            font-size: 13.5px;
             border-radius: var(--radius-elem);
             transition: var(--transition);
         }
@@ -135,14 +107,13 @@
 
         .sidebar__menu-item a:hover {
             color: #FFFFFF;
-            background-color: rgba(255, 255, 255, 0.04);
+            background-color: rgba(255, 255, 255, 0.03);
         }
 
         .sidebar__menu-item.active a {
             color: #FFFFFF;
-            background: var(--primary-gradient);
+            background-color: var(--primary);
             font-weight: 600;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         .sidebar__menu-item.active a i {
@@ -150,50 +121,35 @@
         }
 
         .sidebar__footer {
-            padding: 20px 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 16px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
-        .admin-profile-card {
+        .sidebar__collapse-btn {
+            background: none;
+            border: none;
+            color: #64748B;
+            font-size: 16px;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 12px;
             padding: 8px;
-            background: rgba(255, 255, 255, 0.03);
             border-radius: var(--radius-elem);
+            transition: var(--transition);
+            width: max-content;
         }
 
-        .admin-profile-card img {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(59, 130, 246, 0.4);
-        }
-
-        .admin-profile-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .admin-profile-name {
-            font-weight: 600;
-            font-size: 13.5px;
+        .sidebar__collapse-btn:hover {
             color: #FFFFFF;
-        }
-
-        .admin-profile-role {
-            font-size: 11px;
-            color: #64748B;
+            background-color: rgba(255, 255, 255, 0.03);
         }
 
         /* ===== MAIN CONTENT ===== */
         .main-wrapper {
-            margin-left: 302px;
-            margin-right: 16px;
+            margin-left: 250px;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -202,22 +158,16 @@
         }
 
         .header {
-            background-color: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            border-radius: 16px;
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border);
             height: 70px;
-            padding: 0 24px;
+            padding: 0 30px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
-            top: 16px;
+            top: 0;
             z-index: 90;
-            box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.02);
-            margin-top: 16px;
-            margin-bottom: 24px;
         }
 
         .header__toggle-sidebar {
@@ -229,46 +179,104 @@
             cursor: pointer;
             padding: 8px;
             border-radius: 50%;
+        }
+
+        .header__welcome {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .header__search-wrap {
+            position: relative;
+            width: 280px;
+        }
+
+        .header__search-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .header__search-input {
+            width: 100%;
+            padding: 8px 16px 8px 38px;
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            font-size: 13.5px;
+            outline: none;
+            background-color: #F8FAFC;
             transition: var(--transition);
         }
 
-        .header__toggle-sidebar:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
+        .header__search-input:focus {
+            background-color: #FFFFFF;
+            border-color: var(--primary);
+            box-shadow: var(--shadow-focus);
         }
 
-        .header h2 {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-        }
-
-        .header__user {
+        .header__right {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-weight: 600;
-            font-size: 14px;
-            padding: 6px 12px;
-            background: #F1F5F9;
-            border-radius: 9999px;
-            transition: var(--transition);
+            gap: 20px;
+        }
+
+        .header__bell {
+            position: relative;
+            font-size: 20px;
+            color: var(--text-secondary);
             cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
         }
 
-        .header__user:hover {
-            background: #E2E8F0;
+        .header__bell:hover {
+            background-color: #F1F5F9;
+            color: var(--text-primary);
         }
 
-        .header__user i {
-            font-size: 18px;
-            color: var(--primary);
+        .header__bell-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #EF4444;
+            color: #FFFFFF;
+            font-size: 9px;
+            font-weight: 800;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #FFFFFF;
+        }
+
+        .header__avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .header__avatar:hover {
+            transform: scale(1.05);
         }
 
         .content {
+            padding: 30px;
             flex: 1;
-            padding-bottom: 40px;
         }
 
         /* ===== UTILITIES & CARDS ===== */
@@ -276,22 +284,16 @@
             background-color: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius-card);
-            padding: 28px;
+            padding: 24px;
             box-shadow: var(--shadow-card);
             margin-bottom: 24px;
-            transition: var(--transition);
-        }
-
-        .card:hover {
-            box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.04);
         }
 
         .card-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             margin-bottom: 20px;
             color: var(--text-primary);
-            letter-spacing: -0.01em;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -299,11 +301,11 @@
 
         /* Forms & Buttons */
         .btn {
-            background: var(--primary-gradient);
+            background-color: var(--primary);
             color: #FFFFFF;
             border: none;
             border-radius: var(--radius-elem);
-            padding: 10px 18px;
+            padding: 9px 16px;
             font-weight: 600;
             font-size: 13px;
             cursor: pointer;
@@ -313,50 +315,28 @@
             justify-content: center;
             gap: 8px;
             text-decoration: none;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);
         }
 
         .btn:hover {
             opacity: 0.95;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(59, 130, 246, 0.25);
-        }
-
-        .btn:active {
-            transform: translateY(0);
         }
 
         .btn--danger {
-            background: linear-gradient(135deg, #EF4444, #B91C1C);
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15);
-        }
-
-        .btn--danger:hover {
-            box-shadow: 0 6px 14px rgba(239, 68, 68, 0.25);
+            background-color: #EF4444;
         }
 
         .btn--secondary {
-            background: linear-gradient(135deg, #64748B, #475569);
-            box-shadow: 0 4px 10px rgba(100, 116, 139, 0.15);
-        }
-
-        .btn--secondary:hover {
-            box-shadow: 0 6px 14px rgba(100, 116, 139, 0.25);
+            background-color: #64748B;
         }
 
         .btn--outline {
-            background: transparent;
+            background-color: transparent;
             color: var(--text-secondary);
             border: 1px solid var(--border);
-            box-shadow: none;
         }
 
         .btn--outline:hover {
-            background-color: #F1F5F9;
-            color: var(--text-primary);
-            border-color: #CBD5E1;
-            box-shadow: none;
-            transform: none;
+            background-color: #F8FAFC;
         }
 
         .form-group {
@@ -374,7 +354,7 @@
 
         .form-control {
             width: 100%;
-            padding: 11px 16px;
+            padding: 10px 14px;
             border: 1px solid var(--border);
             border-radius: var(--radius-elem);
             font-size: 14px;
@@ -402,29 +382,22 @@
             width: 100%;
             border-collapse: collapse;
             text-align: left;
-            font-size: 14px;
+            font-size: 13.5px;
         }
 
         .table th {
             background-color: #F8FAFC;
-            padding: 14px 20px;
-            font-weight: 700;
+            padding: 12px 16px;
+            font-weight: 600;
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border);
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.05em;
+            font-size: 12px;
         }
 
         .table td {
-            padding: 16px 20px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border);
             color: var(--text-primary);
-            transition: var(--transition);
-        }
-
-        .table tr {
-            transition: var(--transition);
         }
 
         .table tr:hover td {
@@ -440,12 +413,10 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 10px;
-            border-radius: 9999px;
+            padding: 3px 8px;
+            border-radius: 4px;
             font-size: 11.5px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
         }
 
         .badge--success { background-color: #DCFCE7; color: #15803D; }
@@ -455,21 +426,19 @@
         /* ===== RESPONSIVE ===== */
         @media (max-width: 992px) {
             .sidebar {
-                transform: translateX(-290px);
-                left: 10px;
-                top: 10px;
-                bottom: 10px;
+                transform: translateX(-100%);
             }
             .sidebar.open {
                 transform: translateX(0);
-                box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
             }
             .main-wrapper {
-                margin-left: 16px;
-                margin-right: 16px;
+                margin-left: 0;
             }
             .header__toggle-sidebar {
                 display: block;
+            }
+            .header__search-wrap {
+                display: none;
             }
         }
     </style>
@@ -477,53 +446,47 @@
 <body>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar" id="adminSidebar">
+    <aside class="sidebar" id="adminSidebar" style="background-color: #091830;">
         <a href="<?= url('admin') ?>" class="sidebar__logo">
-            <i class="fa-solid fa-laptop-code"></i> Tech<span>Pilot</span> Admin
+            <i class="fa-solid fa-rocket" style="color: #0B63E5;"></i> TechPilot
         </a>
         <ul class="sidebar__menu">
             <li class="sidebar__menu-item <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
-                <a href="<?= url('admin') ?>"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-            </li>
-            <li class="sidebar__menu-item <?= $activeMenu === 'categories' ? 'active' : '' ?>">
-                <a href="<?= url('admin/categories') ?>"><i class="fa-solid fa-list-ul"></i> Danh mục</a>
-            </li>
-            <li class="sidebar__menu-item <?= $activeMenu === 'brands' ? 'active' : '' ?>">
-                <a href="<?= url('admin/brands') ?>"><i class="fa-solid fa-copyright"></i> Thương hiệu</a>
+                <a href="<?= url('admin') ?>"><i class="fa-solid fa-chart-pie"></i> Tổng quan</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'products' ? 'active' : '' ?>">
-                <a href="<?= url('admin/products') ?>"><i class="fa-solid fa-box-open"></i> Sản phẩm</a>
+                <a href="<?= url('admin/products') ?>"><i class="fa-solid fa-box"></i> Sản phẩm</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'orders' ? 'active' : '' ?>">
-                <a href="<?= url('admin/orders') ?>"><i class="fa-solid fa-receipt"></i> Đơn hàng</a>
+                <a href="<?= url('admin/orders') ?>"><i class="fa-solid fa-cart-shopping"></i> Đơn hàng</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'users' ? 'active' : '' ?>">
-                <a href="<?= url('admin/users') ?>"><i class="fa-solid fa-users"></i> Khách hàng</a>
+                <a href="<?= url('admin/users') ?>"><i class="fa-solid fa-users-gear"></i> Khách hàng</a>
             </li>
-            <li class="sidebar__menu-item <?= $activeMenu === 'reviews' ? 'active' : '' ?>">
-                <a href="<?= url('admin/reviews') ?>"><i class="fa-solid fa-star-half-stroke"></i> Đánh giá</a>
+            <li class="sidebar__menu-item <?= $activeMenu === 'categories' ? 'active' : '' ?>">
+                <a href="<?= url('admin/categories') ?>"><i class="fa-solid fa-folder"></i> Danh mục</a>
             </li>
-            <li class="sidebar__menu-item <?= $activeMenu === 'flash-sales' ? 'active' : '' ?>">
-                <a href="<?= url('admin/flash-sales') ?>"><i class="fa-solid fa-bolt"></i> Flash Sale</a>
+            <li class="sidebar__menu-item <?= $activeMenu === 'brands' ? 'active' : '' ?>">
+                <a href="<?= url('admin/brands') ?>"><i class="fa-solid fa-award"></i> Thương hiệu</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'coupons' ? 'active' : '' ?>">
-                <a href="<?= url('admin/coupons') ?>"><i class="fa-solid fa-ticket-simple"></i> Mã giảm giá</a>
+                <a href="<?= url('admin/coupons') ?>"><i class="fa-solid fa-tags"></i> Mã giảm giá</a>
             </li>
-            <li class="sidebar__menu-item <?= $activeMenu === 'banners' ? 'active' : '' ?>">
-                <a href="<?= url('admin/banners') ?>"><i class="fa-solid fa-images"></i> Banners</a>
+            <li class="sidebar__menu-item <?= $activeMenu === 'flash-sales' ? 'active' : '' ?>">
+                <a href="<?= url('admin/flash-sales') ?>"><i class="fa-solid fa-bolt-lightning"></i> Flash Sale</a>
             </li>
             <li class="sidebar__menu-item <?= $activeMenu === 'posts' ? 'active' : '' ?>">
-                <a href="<?= url('admin/posts') ?>"><i class="fa-solid fa-newspaper"></i> Tin tức</a>
+                <a href="<?= url('admin/posts') ?>"><i class="fa-solid fa-file-lines"></i> Bài viết</a>
+            </li>
+            <li class="sidebar__menu-item <?= $activeMenu === 'reviews' ? 'active' : '' ?>">
+                <a href="<?= url('admin/reviews') ?>"><i class="fa-solid fa-star"></i> Đánh giá</a>
+            </li>
+            <li class="sidebar__menu-item <?= $activeMenu === 'banners' ? 'active' : '' ?>">
+                <a href="<?= url('admin/banners') ?>"><i class="fa-solid fa-image"></i> Banner</a>
             </li>
         </ul>
         <div class="sidebar__footer">
-            <div class="admin-profile-card">
-                <img src="<?= url('assets/images/logo.png') ?>" alt="Admin Avatar" onerror="this.src='https://ui-avatars.com/api/?name=Admin&background=0A5BFF&color=fff'">
-                <div class="admin-profile-info">
-                    <span class="admin-profile-name"><?= e($_SESSION['user']['full_name'] ?? 'Quản trị viên') ?></span>
-                    <span class="admin-profile-role">TechPilot Administrator</span>
-                </div>
-            </div>
+            <button class="sidebar__collapse-btn" id="collapseSidebarBtn"><i class="fa-solid fa-angle-left"></i></button>
             <form method="post" action="<?= url('auth/logout') ?>" style="width: 100%;">
                 <?= csrf_field() ?>
                 <button type="submit" class="btn btn--danger btn--block" style="width: 100%;"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
@@ -536,11 +499,23 @@
         <header class="header">
             <div style="display: flex; align-items: center; gap: 16px;">
                 <button class="header__toggle-sidebar" id="toggleSidebarBtn"><i class="fa-solid fa-bars"></i></button>
-                <h2><?= e($pageTitle ?? 'Quản trị hệ thống') ?></h2>
+                <span class="header__welcome">Xin chào, Quản trị viên</span>
             </div>
-            <div class="header__user">
-                <i class="fa-solid fa-circle-user"></i>
-                <span><?= e($_SESSION['user']['full_name'] ?? 'Admin') ?></span>
+            
+            <div class="header__search-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="header__search-input" placeholder="Tìm kiếm...">
+            </div>
+            
+            <div class="header__right">
+                <a href="<?= url('/') ?>" style="font-size: 13px; font-weight: 600; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; color: #0B63E5; border: 1px solid #0B63E5; text-decoration: none; border-radius: 8px; margin-right: 15px; transition: all 0.2s;" onmouseover="this.style.background='#0B63E5'; this.style.color='#FFF';" onmouseout="this.style.background='transparent'; this.style.color='#0B63E5';">
+                    <i class="fa-solid fa-globe"></i> Xem Website
+                </a>
+                <div class="header__bell">
+                    <i class="fa-solid fa-bell"></i>
+                    <span class="header__bell-badge">3</span>
+                </div>
+                <img src="https://ui-avatars.com/api/?name=Admin&background=0B63E5&color=fff" class="header__avatar" alt="Avatar" onerror="this.src='<?= url('assets/images/logo.png') ?>'">
             </div>
         </header>
         <main class="content">
