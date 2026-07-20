@@ -7,15 +7,8 @@
 
 $commerceContext = $commerceContext ?? [];
 $config          = $commerceContext['config'] ?? null;
-$placement       = $commerceContext['placement'] ?? 'news-sidebar';
+$placement       = $commerceContext['placement'] ?? 'sidebar';
 $categorySlug    = $commerceContext['category'] ?? '';
-
-// Fallback nếu không truyền config
-if (empty($config) || empty($config['items'])) {
-    $service = new NewsCommerceService();
-    $fallbackConfig = $service->getConfig('default', '');
-    $config = $fallbackConfig['sidebar'] ?? null;
-}
 
 if (empty($config) || empty($config['items'])) {
     return;
@@ -34,11 +27,11 @@ $title = e($config['title'] ?? 'Mua theo nhu cầu');
                 $placement,
                 $categorySlug
             );
-            $iconClass = e($item['icon'] ?? 'fa-chevron-right');
-            $dataTag   = 'sidebar-' . e(mb_strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $item['label'])));
+            $iconClass  = e($item['icon'] ?? 'fa-chevron-right');
+            $trackingId = e($item['tracking_id'] ?? 'sidebar_item');
             ?>
             <li>
-                <a href="<?= $itemUrl ?>" data-news-cta="<?= $dataTag ?>">
+                <a href="<?= e($itemUrl) ?>" data-news-cta="<?= $trackingId ?>">
                     <i class="fa-solid <?= $iconClass ?>" aria-hidden="true"></i> 
                     <?= e($item['label']) ?>
                 </a>

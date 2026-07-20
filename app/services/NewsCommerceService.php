@@ -2,46 +2,73 @@
 
 final class NewsCommerceService
 {
+    private const CATEGORY_ALIASES = [
+        ''                 => 'default',
+        'cong-nghe'        => 'default',
+        'laptop'           => 'laptop',
+        'laptop-gaming'    => 'laptop',
+        'laptop-van-phong' => 'laptop',
+        'pc-gaming'        => 'pc-gaming',
+        'gaming'           => 'pc-gaming',
+        'pc-build-san'     => 'pc-gaming',
+        'pc-linh-kien'     => 'pc-linh-kien',
+        'man-hinh'          => 'man-hinh',
+        'gaming-gear'      => 'gaming-gear',
+        'office-gear'      => 'office-gear',
+        'networking'        => 'networking',
+        'ai'               => 'ai',
+        'ai-cong-nghe-moi' => 'ai',
+    ];
+
+    public static function normalizeTrackingValue(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = strtr($value, [
+            'á' => 'a', 'à' => 'a', 'ả' => 'a', 'ã' => 'a', 'ạ' => 'a',
+            'ă' => 'a', 'ắ' => 'a', 'ằ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a', 'ặ' => 'a',
+            'â' => 'a', 'ấ' => 'a', 'ầ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a', 'ậ' => 'a',
+            'é' => 'e', 'è' => 'e', 'ẻ' => 'e', 'ẽ' => 'e', 'ẹ' => 'e',
+            'ê' => 'e', 'ế' => 'e', 'ề' => 'e', 'ể' => 'e', 'ễ' => 'e', 'ệ' => 'e',
+            'í' => 'i', 'ì' => 'i', 'ỉ' => 'i', 'ĩ' => 'i', 'ị' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ỏ' => 'o', 'õ' => 'o', 'ọ' => 'o',
+            'ô' => 'o', 'ố' => 'o', 'ồ' => 'o', 'ổ' => 'o', 'ỗ' => 'o', 'ộ' => 'o',
+            'ơ' => 'o', 'ớ' => 'o', 'ờ' => 'o', 'ở' => 'o', 'ỡ' => 'o', 'ợ' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'ủ' => 'u', 'ũ' => 'u', 'ụ' => 'u',
+            'ư' => 'u', 'ứ' => 'u', 'ừ' => 'u', 'ử' => 'u', 'ữ' => 'u', 'ự' => 'u',
+            'ý' => 'y', 'ỳ' => 'y', 'ỷ' => 'y', 'ỹ' => 'y', 'ỵ' => 'y',
+            'đ' => 'd'
+        ]);
+        $value = preg_replace('/[^a-z0-9_\-]+/u', '_', $value);
+        $value = preg_replace('/_+/', '_', $value);
+        $value = trim($value, '_-');
+        return $value !== '' ? $value : 'general';
+    }
+
     public static function buildTrackedUrl(string $path, array $destinationParams, string $placement, string $category): string
     {
+        $normPlacement = self::normalizeTrackingValue($placement);
+        $normCat       = self::normalizeTrackingValue($category);
+
         $query = array_merge($destinationParams, [
             'utm_source'   => 'techpilot_news',
             'utm_medium'   => 'article',
-            'utm_campaign' => $placement . '_' . ($category !== '' ? $category : 'general'),
+            'utm_campaign' => $normPlacement . '_' . $normCat,
         ]);
 
+        $cleanPath   = rtrim(trim($path), '?&');
+        $sep         = str_contains($cleanPath, '?') ? '&' : '?';
         $queryString = http_build_query($query);
-        if (str_contains($path, '?')) {
-            return url($path . '&' . $queryString);
-        }
-        return url($path . '?' . $queryString);
+
+        return url($cleanPath . $sep . $queryString);
     }
 
     public function getConfig(string $categorySlug, string $postType): array
     {
-        $cat = strtolower(trim($categorySlug));
+        $cat  = strtolower(trim($categorySlug));
         $type = strtolower(trim($postType));
 
-        // Standardize category key
-        if (str_contains($cat, 'laptop')) {
-            $catKey = 'laptop';
-        } elseif (str_contains($cat, 'pc-gaming')) {
-            $catKey = 'pc-gaming';
-        } elseif (str_contains($cat, 'linh-kien') || str_contains($cat, 'pc-linh-kien')) {
-            $catKey = 'pc-linh-kien';
-        } elseif (str_contains($cat, 'man-hinh')) {
-            $catKey = 'man-hinh';
-        } elseif (str_contains($cat, 'gaming-gear')) {
-            $catKey = 'gaming-gear';
-        } elseif (str_contains($cat, 'office-gear') || str_contains($cat, 'office')) {
-            $catKey = 'office-gear';
-        } elseif (str_contains($cat, 'networking') || str_contains($cat, 'mang')) {
-            $catKey = 'networking';
-        } elseif (str_contains($cat, 'ai')) {
-            $catKey = 'ai';
-        } else {
-            $catKey = 'default';
-        }
+        // Exact alias lookup
+        $catKey = self::CATEGORY_ALIASES[$cat] ?? 'default';
 
         $sidebar = $this->getSidebarConfig($catKey);
         $midCta  = $this->getMidCtaConfig($catKey, $type);
@@ -62,22 +89,25 @@ final class NewsCommerceService
                     'title' => 'Mua Laptop theo nhu cầu',
                     'items' => [
                         [
-                            'label'  => 'Laptop Gaming đỉnh cao',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'laptop-gaming'],
-                            'icon'   => 'fa-laptop-code',
+                            'label'       => 'Laptop Gaming đỉnh cao',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'laptop-gaming'],
+                            'icon'        => 'fa-laptop-code',
+                            'tracking_id' => 'sidebar_laptop_gaming',
                         ],
                         [
-                            'label'  => 'Laptop Văn Phòng mỏng nhẹ',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'laptop-van-phong'],
-                            'icon'   => 'fa-briefcase',
+                            'label'       => 'Laptop Văn Phòng mỏng nhẹ',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'laptop-van-phong'],
+                            'icon'        => 'fa-briefcase',
+                            'tracking_id' => 'sidebar_laptop_van_phong',
                         ],
                         [
-                            'label'  => 'Laptop Đồ Hoạ - Kỹ Thuật',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'laptop-gaming', 'q' => 'đồ họa'],
-                            'icon'   => 'fa-paint-brush',
+                            'label'       => 'Laptop Đồ Hoạ - Kỹ Thuật',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'laptop-gaming', 'q' => 'đồ họa'],
+                            'icon'        => 'fa-paint-brush',
+                            'tracking_id' => 'sidebar_laptop_do_hoa',
                         ],
                     ],
                 ];
@@ -88,22 +118,25 @@ final class NewsCommerceService
                     'title' => 'Xây dựng & Mua PC',
                     'items' => [
                         [
-                            'label'  => 'Tự Build PC theo ý muốn',
-                            'path'   => 'build-pc',
-                            'params' => [],
-                            'icon'   => 'fa-sliders',
+                            'label'       => 'Tự Build PC theo ý muốn',
+                            'path'        => 'build-pc',
+                            'params'      => [],
+                            'icon'        => 'fa-sliders',
+                            'tracking_id' => 'sidebar_pc_builder',
                         ],
                         [
-                            'label'  => 'PC Build Sẵn hiệu năng cao',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'pc-build-san'],
-                            'icon'   => 'fa-desktop',
+                            'label'       => 'PC Build Sẵn hiệu năng cao',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'pc-build-san'],
+                            'icon'        => 'fa-desktop',
+                            'tracking_id' => 'sidebar_pc_build_san',
                         ],
                         [
-                            'label'  => 'Linh kiện PC chính hãng',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'pc-linh-kien'],
-                            'icon'   => 'fa-microchip',
+                            'label'       => 'Linh kiện PC chính hãng',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'pc-linh-kien'],
+                            'icon'        => 'fa-microchip',
+                            'tracking_id' => 'sidebar_pc_linh_kien',
                         ],
                     ],
                 ];
@@ -113,16 +146,18 @@ final class NewsCommerceService
                     'title' => 'Màn hình & Phụ kiện',
                     'items' => [
                         [
-                            'label'  => 'Màn Hình Gaming tần số quét cao',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'man-hinh', 'q' => 'gaming'],
-                            'icon'   => 'fa-tv',
+                            'label'       => 'Màn Hình Gaming tần số quét cao',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'man-hinh', 'q' => 'gaming'],
+                            'icon'        => 'fa-tv',
+                            'tracking_id' => 'sidebar_man_hinh_gaming',
                         ],
                         [
-                            'label'  => 'Màn Hình Đồ Họa màu chuẩn',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'man-hinh', 'q' => 'đồ họa'],
-                            'icon'   => 'fa-display',
+                            'label'       => 'Màn Hình Đồ Họa màu chuẩn',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'man-hinh', 'q' => 'đồ họa'],
+                            'icon'        => 'fa-display',
+                            'tracking_id' => 'sidebar_man_hinh_do_hoa',
                         ],
                     ],
                 ];
@@ -132,16 +167,18 @@ final class NewsCommerceService
                     'title' => 'Gaming Gear chính hãng',
                     'items' => [
                         [
-                            'label'  => 'Chuột & Bàn phím Gaming',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'gaming-gear'],
-                            'icon'   => 'fa-keyboard',
+                            'label'       => 'Chuột & Bàn phím Gaming',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'gaming-gear'],
+                            'icon'        => 'fa-keyboard',
+                            'tracking_id' => 'sidebar_gaming_gear',
                         ],
                         [
-                            'label'  => 'Tai nghe Gaming cao cấp',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'gaming-gear', 'q' => 'tai nghe'],
-                            'icon'   => 'fa-headset',
+                            'label'       => 'Tai nghe Gaming cao cấp',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'gaming-gear', 'q' => 'tai nghe'],
+                            'icon'        => 'fa-headset',
+                            'tracking_id' => 'sidebar_tai_nghe_gaming',
                         ],
                     ],
                 ];
@@ -151,16 +188,18 @@ final class NewsCommerceService
                     'title' => 'Thiết bị văn phòng',
                     'items' => [
                         [
-                            'label'  => 'Máy in & Phụ kiện văn phòng',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'office-gear'],
-                            'icon'   => 'fa-print',
+                            'label'       => 'Máy in & Phụ kiện văn phòng',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'office-gear'],
+                            'icon'        => 'fa-print',
+                            'tracking_id' => 'sidebar_office_gear',
                         ],
                         [
-                            'label'  => 'Laptop Văn Phòng mỏng nhẹ',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'laptop-van-phong'],
-                            'icon'   => 'fa-briefcase',
+                            'label'       => 'Laptop Văn Phòng mỏng nhẹ',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'laptop-van-phong'],
+                            'icon'        => 'fa-briefcase',
+                            'tracking_id' => 'sidebar_laptop_van_phong',
                         ],
                     ],
                 ];
@@ -170,16 +209,18 @@ final class NewsCommerceService
                     'title' => 'Thiết bị mạng & Wifi',
                     'items' => [
                         [
-                            'label'  => 'Router & Bộ phát Wifi',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'networking'],
-                            'icon'   => 'fa-wifi',
+                            'label'       => 'Router & Bộ phát Wifi',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'networking'],
+                            'icon'        => 'fa-wifi',
+                            'tracking_id' => 'sidebar_networking',
                         ],
                         [
-                            'label'  => 'Phụ kiện mạng cao cấp',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'networking', 'q' => 'phụ kiện'],
-                            'icon'   => 'fa-network-wired',
+                            'label'       => 'Phụ kiện mạng cao cấp',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'networking', 'q' => 'phụ kiện'],
+                            'icon'        => 'fa-network-wired',
+                            'tracking_id' => 'sidebar_phu_kien_mang',
                         ],
                     ],
                 ];
@@ -189,16 +230,18 @@ final class NewsCommerceService
                     'title' => 'Sản phẩm công nghệ AI',
                     'items' => [
                         [
-                            'label'  => 'Laptop tích hợp AI',
-                            'path'   => 'home/search',
-                            'params' => ['q' => 'AI'],
-                            'icon'   => 'fa-robot',
+                            'label'       => 'Laptop tích hợp AI',
+                            'path'        => 'home/search',
+                            'params'      => ['q' => 'AI'],
+                            'icon'        => 'fa-robot',
+                            'tracking_id' => 'sidebar_laptop_ai',
                         ],
                         [
-                            'label'  => 'PC Workstation & AI',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'pc-build-san', 'q' => 'AI'],
-                            'icon'   => 'fa-brain',
+                            'label'       => 'PC Workstation & AI',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'pc-build-san', 'q' => 'AI'],
+                            'icon'        => 'fa-brain',
+                            'tracking_id' => 'sidebar_pc_ai',
                         ],
                     ],
                 ];
@@ -208,22 +251,25 @@ final class NewsCommerceService
                     'title' => 'Gợi ý mua sắm',
                     'items' => [
                         [
-                            'label'  => 'Laptop Gaming & Văn phòng',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'laptop-gaming'],
-                            'icon'   => 'fa-laptop',
+                            'label'       => 'Laptop Gaming & Văn phòng',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'laptop-gaming'],
+                            'icon'        => 'fa-laptop',
+                            'tracking_id' => 'sidebar_laptop_general',
                         ],
                         [
-                            'label'  => 'Tự Xây Dựng Cấu Hình PC',
-                            'path'   => 'build-pc',
-                            'params' => [],
-                            'icon'   => 'fa-gears',
+                            'label'       => 'Tự Xây Dựng Cấu Hình PC',
+                            'path'        => 'build-pc',
+                            'params'      => [],
+                            'icon'        => 'fa-gears',
+                            'tracking_id' => 'sidebar_pc_builder',
                         ],
                         [
-                            'label'  => 'Linh Kiện & Phụ Kiện',
-                            'path'   => 'home/search',
-                            'params' => ['cat' => 'pc-linh-kien'],
-                            'icon'   => 'fa-microchip',
+                            'label'       => 'Linh Kiện & Phụ Kiện',
+                            'path'        => 'home/search',
+                            'params'      => ['cat' => 'pc-linh-kien'],
+                            'icon'        => 'fa-microchip',
+                            'tracking_id' => 'sidebar_pc_linh_kien',
                         ],
                     ],
                 ];
@@ -232,7 +278,7 @@ final class NewsCommerceService
 
     private function getMidCtaConfig(string $catKey, string $type): ?array
     {
-        // Only allow Mid CTA for commercial intent post types
+        // Only allow Mid CTA for review, guide, comparison
         if (!in_array($type, ['review', 'guide', 'comparison'], true)) {
             return null;
         }
@@ -252,7 +298,7 @@ final class NewsCommerceService
                         'path'   => 'home/search',
                         'params' => ['cat' => 'laptop-van-phong'],
                     ],
-                    'cta_id'        => 'mid-laptop-' . $type,
+                    'cta_id'        => 'mid_laptop_' . $type,
                 ];
 
             case 'pc-gaming':
@@ -270,7 +316,7 @@ final class NewsCommerceService
                         'path'   => 'home/search',
                         'params' => ['cat' => 'pc-build-san'],
                     ],
-                    'cta_id'        => 'mid-pc-' . $type,
+                    'cta_id'        => 'mid_pc_' . $type,
                 ];
 
             case 'man-hinh':
@@ -288,7 +334,7 @@ final class NewsCommerceService
                         'path'   => 'home/search',
                         'params' => ['cat' => 'gaming-gear'],
                     ],
-                    'cta_id'        => 'mid-gear-' . $type,
+                    'cta_id'        => 'mid_gear_' . $type,
                 ];
 
             case 'office-gear':
@@ -301,7 +347,7 @@ final class NewsCommerceService
                         'params' => ['cat' => 'office-gear'],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'        => 'mid-office-' . $type,
+                    'cta_id'        => 'mid_office_' . $type,
                 ];
 
             case 'networking':
@@ -314,7 +360,7 @@ final class NewsCommerceService
                         'params' => ['cat' => 'networking'],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'        => 'mid-network-' . $type,
+                    'cta_id'        => 'mid_network_' . $type,
                 ];
 
             default:
@@ -327,13 +373,14 @@ final class NewsCommerceService
                         'params' => [],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'        => 'mid-general-' . $type,
+                    'cta_id'        => 'mid_general_' . $type,
                 ];
         }
     }
 
     private function getEndCtaConfig(string $catKey, string $type): ?array
     {
+        // NO End CTA for news or unknown
         if (!in_array($type, ['review', 'guide', 'comparison', 'howto'], true)) {
             return null;
         }
@@ -349,7 +396,7 @@ final class NewsCommerceService
                         'params' => ['cat' => 'laptop-gaming'],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'      => 'end-laptop-' . $type,
+                    'cta_id'      => 'end_laptop_' . $type,
                 ];
 
             case 'pc-gaming':
@@ -367,7 +414,7 @@ final class NewsCommerceService
                         'path'   => 'build-pc',
                         'params' => [],
                     ],
-                    'cta_id'      => 'end-pc-' . $type,
+                    'cta_id'      => 'end_pc_' . $type,
                 ];
 
             case 'office-gear':
@@ -380,7 +427,7 @@ final class NewsCommerceService
                         'params' => ['cat' => 'office-gear'],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'      => 'end-office-' . $type,
+                    'cta_id'      => 'end_office_' . $type,
                 ];
 
             case 'networking':
@@ -393,7 +440,7 @@ final class NewsCommerceService
                         'params' => ['cat' => 'networking'],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'      => 'end-network-' . $type,
+                    'cta_id'      => 'end_network_' . $type,
                 ];
 
             default:
@@ -406,7 +453,7 @@ final class NewsCommerceService
                         'params' => [],
                     ],
                     'secondary_btn' => null,
-                    'cta_id'      => 'end-general-' . $type,
+                    'cta_id'      => 'end_general_' . $type,
                 ];
         }
     }

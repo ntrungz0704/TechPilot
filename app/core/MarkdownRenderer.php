@@ -213,12 +213,14 @@ class MarkdownRenderer
             return $alt !== '' ? '<span>' . $alt . '</span>' : '';
         }
 
+        $escapedUrl = htmlspecialchars($sanitizedUrl, ENT_QUOTES, 'UTF-8');
+
         if ($title !== '') {
             $escapedTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-            return '<figure><img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async"><figcaption>' . $escapedTitle . '</figcaption></figure>';
+            return '<figure><img src="' . $escapedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async"><figcaption>' . $escapedTitle . '</figcaption></figure>';
         }
 
-        return '<img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async">';
+        return '<img src="' . $escapedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async">';
     }
 
     private function renderInline(string $text): string
@@ -226,7 +228,7 @@ class MarkdownRenderer
         // 1. Convert special chars first
         $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
-        // 2. Images: ![alt](url "title")
+        // 2. Inline Images: ![alt](url "title") - NEVER render figure/figcaption inside paragraph
         $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;(.*?)&quot;|\s+[\'"](.*?)[\'"])?\)/', function($m) {
             $alt = $m[1]; // already escaped
             $rawUrl = $m[2];
@@ -237,11 +239,13 @@ class MarkdownRenderer
                 return $alt !== '' ? '<span>' . $alt . '</span>' : '';
             }
 
+            $escapedUrl = htmlspecialchars($sanitizedUrl, ENT_QUOTES, 'UTF-8');
+            $img = '<img src="' . $escapedUrl . '" alt="' . $alt . '"';
             if ($title !== '') {
-                return '<figure><img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async"><figcaption>' . $title . '</figcaption></figure>';
+                $img .= ' title="' . $title . '"';
             }
-
-            return '<img src="' . $sanitizedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async">';
+            $img .= ' loading="lazy" decoding="async">';
+            return $img;
         }, $text);
 
         // 3. Links: [text](url)
@@ -254,13 +258,15 @@ class MarkdownRenderer
                 return '<span>' . $linkText . '</span>';
             }
 
+            $escapedUrl = htmlspecialchars($sanitizedUrl, ENT_QUOTES, 'UTF-8');
+
             // Distinguish internal vs external
             $decodedClean = strtolower(trim(html_entity_decode($rawUrl, ENT_QUOTES, 'UTF-8')));
             if (str_starts_with($decodedClean, 'http://') || str_starts_with($decodedClean, 'https://')) {
-                return '<a href="' . $sanitizedUrl . '" target="_blank" rel="noopener noreferrer nofollow">' . $linkText . '</a>';
+                return '<a href="' . $escapedUrl . '" target="_blank" rel="noopener noreferrer nofollow">' . $linkText . '</a>';
             }
 
-            return '<a href="' . $sanitizedUrl . '">' . $linkText . '</a>';
+            return '<a href="' . $escapedUrl . '">' . $linkText . '</a>';
         }, $text);
 
         // 4. Bold: **text**
@@ -277,13 +283,23 @@ class MarkdownRenderer
 
     private function sanitizeUrl(string $url, bool $allowFragment = true): ?string
     {
-        $decoded = trim(html_entity_decode($url, ENT_QUOTES, 'UTF-8'));
+        $decoded = trim($url);
+        // Recursively decode entities to catch double-encoded entities like &amp;#x0A;
+        while (($prev = $decoded) && ($decoded = html_entity_decode($decoded, ENT_QUOTES, 'UTF-8')) !== $prev) {
+            // Loop until fully decoded
+        }
+
         if ($decoded === '') {
             return null;
         }
 
         // Strip control chars and whitespace to catch hidden schemes like java\nscript:
         $clean = preg_replace('/[\x00-\x1F\x7F\s]+/u', '', strtolower($decoded));
+
+        // Block protocol-relative URLs (//)
+        if (str_starts_with($clean, '//')) {
+            return null;
+        }
 
         // Block explicit forbidden schemes
         if (preg_match('/^(javascript|data|vbscript|file|blob):/i', $clean)) {
@@ -302,7 +318,7 @@ class MarkdownRenderer
             return null;
         }
 
-        return htmlspecialchars($decoded, ENT_QUOTES, 'UTF-8');
+        return $decoded;
     }
 
     private function createId(string $text): string
