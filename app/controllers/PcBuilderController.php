@@ -507,7 +507,7 @@ class PcBuilderController extends Controller
         foreach ($products as $p) {
             $compat = PcCompatibilityService::checkCompatibility($build, $p, $partKey);
             
-            $p['image_url'] = productImageUrl($p['image']);
+            $p['image_url'] = productImageUrl($p['image'], $p['name']);
             $p['price_formatted'] = formatPrice($p['price']);
             $p['compatible'] = $compat['compatible'];
             $p['blockers'] = $compat['blockers'];

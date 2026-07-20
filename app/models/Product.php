@@ -934,12 +934,13 @@ class Product
             try {
                 $stmt = $this->db->prepare(
                     'SELECT p.*, 
-                            COALESCE(p.sale_price, p.price * 0.85) as discount_price, 
-                            p.stock as fs_stock, 
+                            fsi.discount_price as discount_price, 
+                            fsi.allocation_quantity as fs_stock, 
                             COALESCE(sold_data.total_sold, 0) as fs_sold,
-                            COALESCE(fs.end_time, DATE_ADD(NOW(), INTERVAL 1 DAY)) as end_time 
+                            fs.end_time as end_time 
                      FROM products p
-                     LEFT JOIN flash_sales fs ON fs.status = \'active\' AND fs.start_time <= NOW() AND fs.end_time >= NOW()
+                     INNER JOIN flash_sale_items fsi ON p.id = fsi.product_id
+                     INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
                      LEFT JOIN (
                          SELECT oi.product_id, SUM(oi.quantity) as total_sold
                          FROM order_items oi

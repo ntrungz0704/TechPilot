@@ -1,6 +1,6 @@
 <?php if (!empty($p)): ?>
     <?php
-    $imageUrl = productImageUrl($p['image'] ?? '');
+    $imageUrl = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $p['name'] ?? '');
     $price = (float)($p['price'] ?? 0);
 
     // Giá gốc: ưu tiên old_price nếu lớn hơn price, kế đó dùng price

@@ -423,6 +423,15 @@ INSERT INTO users (full_name, email, phone, password, role, status) VALUES
 INSERT INTO flash_sales (id, title, slug, start_time, end_time, status) VALUES
 (1, 'Flash Sale Công Nghệ', 'flash-sale-cong-nghe', NOW() - INTERVAL 1 HOUR, NOW() + INTERVAL 2 HOUR, 'active');
 
+-- 10.1 Nạp các sản phẩm tham gia Flash Sale (flash_sale_items)
+INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocation_quantity, sold_quantity, limit_per_user) VALUES
+(1, 13, 18990000.00, 10, 0, 1),
+(1, 14, 25990000.00, 15, 0, 1),
+(1, 15, 3290000.00, 12, 0, 1),
+(1, 16, 5490000.00, 8, 0, 1),
+(1, 17, 18990000.00, 10, 0, 1),
+(1, 18, 27990000.00, 5, 0, 1);
+
 -- 11. Bảng thông báo (notifications)
 CREATE TABLE IF NOT EXISTS notifications (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

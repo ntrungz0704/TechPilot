@@ -75,6 +75,35 @@ $products = $products ?? [];
                     <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
                 <?php endforeach; ?>
             </div>
+
+            <?php
+            $currentPage = $page ?? 1;
+            $totalPages = ceil($totalResults / $limit);
+            if ($totalPages > 1):
+            ?>
+                <div class="pagination">
+                    <?php if ($currentPage > 1): ?>
+                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage - 1 ?>)" class="pagination__btn"><i class="fa-solid fa-chevron-left"></i></a>
+                    <?php endif; ?>
+
+                    <?php
+                    // Hiển thị danh sách các số trang
+                    for ($i = 1; $i <= $totalPages; $i++):
+                        if ($i === $currentPage):
+                    ?>
+                            <span class="pagination__item is-active"><?= $i ?></span>
+                    <?php else: ?>
+                            <a href="javascript:void(0)" onclick="goToPage(<?= $i ?>)" class="pagination__item"><?= $i ?></a>
+                    <?php
+                        endif;
+                    endfor;
+                    ?>
+
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage + 1 ?>)" class="pagination__btn"><i class="fa-solid fa-chevron-right"></i></a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
         <?php else: ?>
             <div class="no-results">
                 <i class="fa-solid fa-inbox"></i>
@@ -104,9 +133,55 @@ $products = $products ?? [];
         u.searchParams.set('max_price', val);
         window.location.href = u.toString();
     }
+
+    function goToPage(pageNum) {
+        const u = new URL(window.location.href);
+        u.searchParams.set('page', pageNum);
+        window.location.href = u.toString();
+    }
 </script>
 
 <style>
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-top: 40px;
+    }
+
+    .pagination__item,
+    .pagination__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-elem);
+        border: 1px solid var(--border);
+        background-color: var(--bg-white);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .pagination__item:hover,
+    .pagination__btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background-color: var(--bg-light);
+    }
+
+    .pagination__item.is-active {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: #FFFFFF;
+        cursor: default;
+    }
+
     .search-page {
         display: grid;
         grid-template-columns: 280px 1fr;
