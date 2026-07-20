@@ -1206,117 +1206,179 @@ class Product
         return array_slice(self::getSampleProducts(), 0, $limit);
     }
 
-    /** Tìm kiếm sản phẩm theo từ khóa và danh mục */
-    public function search(string $keyword = '', string $categorySlug = '', int $limit = 48): array
+    /** Tìm kiếm sản phẩm nâng cao với Relevance Scoring, Model Tokenization & Specs Search */
+    public function search(string $keyword = '', string $categorySlug = '', string $brandSlug = '', float $minPrice = 0, float $maxPrice = 0, string $sort = 'relevance', int $limit = 48, int $offset = 0): array
     {
-        if ($this->db !== null) {
-            try {
-                $rawKeyword = trim($keyword);
-                $normalizedKeyword = normalizeSearchKeyword($rawKeyword);
+        if ($this->db === null) {
+            return [];
+        }
 
-                $params = [];
-                $whereConditions = ["p.status = 'active'"];
+        try {
+            $rawKeyword = trim($keyword);
 
-                // 1. Filter by Category
-                if (!empty($categorySlug)) {
-                    $whereConditions[] = '(c.slug = :cat1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :cat2))';
-                    $params[':cat1'] = $categorySlug;
-                    $params[':cat2'] = $categorySlug;
+            // 1. Normalize Keyword (max 100 chars, collapse whitespace)
+            if (mb_strlen($rawKeyword, 'UTF-8') > 100) {
+                $rawKeyword = mb_substr($rawKeyword, 0, 100, 'UTF-8');
+            }
+            $normalizedKeyword = function_exists('mb_strtolower') 
+                ? mb_strtolower(preg_replace('/\s+/u', ' ', $rawKeyword), 'UTF-8') 
+                : strtolower(preg_replace('/\s+/', ' ', $rawKeyword));
+
+            $params = [];
+            $whereConditions = ["p.status = 'active'"];
+
+            // Filter Category
+            if (!empty($categorySlug)) {
+                $whereConditions[] = '(c.slug = :catSlug1 OR c.parent_id IN (SELECT id FROM categories WHERE slug = :catSlug2))';
+                $params[':catSlug1'] = $categorySlug;
+                $params[':catSlug2'] = $categorySlug;
+            }
+
+            // Filter Brand
+            if (!empty($brandSlug)) {
+                $whereConditions[] = 'b.slug = :brandSlug';
+                $params[':brandSlug'] = $brandSlug;
+            }
+
+            // Filter Price
+            if ($minPrice > 0) {
+                $whereConditions[] = 'p.price >= :minPrice';
+                $params[':minPrice'] = $minPrice;
+            }
+            if ($maxPrice > 0) {
+                $whereConditions[] = 'p.price <= :maxPrice';
+                $params[':maxPrice'] = $maxPrice;
+            }
+
+            // 2. Search Keyword & Tokenization
+            $relevanceSql = '0';
+
+            if (!empty($normalizedKeyword)) {
+                $whereConditions[] = '
+                    (
+                        LOWER(p.name) LIKE :w_name
+                        OR LOWER(p.short_desc) LIKE :w_sdesc
+                        OR LOWER(p.description) LIKE :w_desc
+                        OR LOWER(p.specs) LIKE :w_specs
+                        OR LOWER(b.name) LIKE :w_brand
+                        OR LOWER(c.name) LIKE :w_cat
+                    )
+                ';
+                
+                $kLike = '%' . $normalizedKeyword . '%';
+                $params[':w_name']  = $kLike;
+                $params[':w_sdesc'] = $kLike;
+                $params[':w_desc']  = $kLike;
+                $params[':w_specs'] = $kLike;
+                $params[':w_brand'] = $kLike;
+                $params[':w_cat']   = $kLike;
+
+                // Model distinction checks (prevent "i3" from matching "i5" or "i7", etc.)
+                if (preg_match('/^i[3579]$/i', $normalizedKeyword)) {
+                    $otherModels = array_diff(['i3', 'i5', 'i7', 'i9'], [$normalizedKeyword]);
+                    foreach ($otherModels as $idx => $other) {
+                        $whereConditions[] = "(LOWER(p.name) NOT LIKE :excl_name_{$idx} OR LOWER(p.name) LIKE :target_name_{$idx})";
+                        $params[":excl_name_{$idx}"] = '%core ' . $other . '%';
+                        $params[":target_name_{$idx}"] = '%' . $normalizedKeyword . '%';
+                    }
                 }
 
-                // 2. Filter by Keyword
-                $relevanceSql = '0';
+                // Weighted Relevance Scoring
+                $relevanceSql = '
+                    (CASE WHEN LOWER(p.name) = :exactName THEN 100 ELSE 0 END) +
+                    (CASE WHEN LOWER(p.name) LIKE :startsName THEN 80 ELSE 0 END) +
+                    (CASE WHEN LOWER(p.name) LIKE :containsName THEN 60 ELSE 0 END) +
+                    (CASE WHEN LOWER(p.specs) LIKE :containsSpecs THEN 50 ELSE 0 END) +
+                    (CASE WHEN LOWER(c.name) LIKE :containsCategory THEN 35 ELSE 0 END) +
+                    (CASE WHEN LOWER(b.name) LIKE :containsBrand THEN 30 ELSE 0 END) +
+                    (CASE WHEN LOWER(p.short_desc) LIKE :containsShortDesc THEN 15 ELSE 0 END) +
+                    (CASE WHEN LOWER(p.description) LIKE :containsDescription THEN 5 ELSE 0 END)
+                ';
+
+                $params[':exactName']           = $normalizedKeyword;
+                $params[':startsName']          = $normalizedKeyword . '%';
+                $params[':containsName']        = '%' . $normalizedKeyword . '%';
+                $params[':containsSpecs']       = '%' . $normalizedKeyword . '%';
+                $params[':containsCategory']    = '%' . $normalizedKeyword . '%';
+                $params[':containsBrand']       = '%' . $normalizedKeyword . '%';
+                $params[':containsShortDesc']   = '%' . $normalizedKeyword . '%';
+                $params[':containsDescription'] = '%' . $normalizedKeyword . '%';
+            }
+
+            $whereClause = implode(' AND ', $whereConditions);
+
+            // Whitelist Order By
+            $sortClause = 'relevance_score DESC, p.id DESC';
+            if ($sort === 'price_asc') {
+                $sortClause = 'p.price ASC, p.id DESC';
+            } elseif ($sort === 'price_desc') {
+                $sortClause = 'p.price DESC, p.id DESC';
+            } elseif ($sort === 'newest') {
+                $sortClause = 'p.created_at DESC, p.id DESC';
+            } elseif ($sort === 'name_asc') {
+                $sortClause = 'p.name ASC';
+            } elseif (!empty($normalizedKeyword)) {
+                $sortClause = 'relevance_score DESC, p.created_at DESC';
+            }
+
+            $query = "
+                SELECT 
+                    p.*, 
+                    b.name as brand_name, 
+                    c.name as category_name, 
+                    ($relevanceSql) as relevance_score
+                FROM products p
+                LEFT JOIN brands b ON p.brand_id = b.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE $whereClause
+                ORDER BY $sortClause
+                LIMIT :limit OFFSET :offset
+            ";
+
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $val) {
+                $stmt->bindValue($key, $val);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Compute debug metadata for each item (matched_field & matched_value)
+            foreach ($results as &$item) {
+                $nameLower = mb_strtolower($item['name'] ?? '', 'UTF-8');
+                $specsLower = mb_strtolower($item['specs'] ?? '', 'UTF-8');
+                $catLower = mb_strtolower($item['category_name'] ?? '', 'UTF-8');
+                $brandLower = mb_strtolower($item['brand_name'] ?? '', 'UTF-8');
 
                 if (!empty($normalizedKeyword)) {
-                    $words = array_filter(explode(' ', $normalizedKeyword), fn($w) => (function_exists('mb_strlen') ? mb_strlen($w, 'UTF-8') : strlen($w)) >= 2 || is_numeric($w));
-                    if (empty($words)) {
-                        $words = [$normalizedKeyword];
+                    if (str_contains($nameLower, $normalizedKeyword)) {
+                        $item['matched_field'] = 'name';
+                        $item['matched_value'] = $item['name'];
+                    } elseif (str_contains($specsLower, $normalizedKeyword)) {
+                        $item['matched_field'] = 'specs';
+                        $item['matched_value'] = $item['specs'];
+                    } elseif (str_contains($catLower, $normalizedKeyword)) {
+                        $item['matched_field'] = 'category_name';
+                        $item['matched_value'] = $item['category_name'];
+                    } elseif (str_contains($brandLower, $normalizedKeyword)) {
+                        $item['matched_field'] = 'brand_name';
+                        $item['matched_value'] = $item['brand_name'];
+                    } else {
+                        $item['matched_field'] = 'description';
+                        $item['matched_value'] = $item['short_desc'] ?? '';
                     }
-
-                    $wordConditions = [];
-                    $wIdx = 1;
-                    foreach ($words as $word) {
-                        $pName  = ':w' . $wIdx . '_name';
-                        $pDesc  = ':w' . $wIdx . '_desc';
-                        $pSpecs = ':w' . $wIdx . '_specs';
-                        $pBrand = ':w' . $wIdx . '_brand';
-                        $pCat   = ':w' . $wIdx . '_cat';
-
-                        $wordConditions[] = "(p.name LIKE $pName OR p.description LIKE $pDesc OR p.specs LIKE $pSpecs OR b.name LIKE $pBrand OR c.name LIKE $pCat)";
-                        $val = '%' . $word . '%';
-                        $params[$pName]  = $val;
-                        $params[$pDesc]  = $val;
-                        $params[$pSpecs] = $val;
-                        $params[$pBrand] = $val;
-                        $params[$pCat]   = $val;
-                        $wIdx++;
-                    }
-
-                    if (!empty($wordConditions)) {
-                        $whereConditions[] = '(' . implode(' AND ', $wordConditions) . ')';
-                    }
-
-                    $relevanceSql = '
-                        (CASE WHEN p.name = :exactName THEN 100 ELSE 0 END) +
-                        (CASE WHEN p.name LIKE :startsName THEN 70 ELSE 0 END) +
-                        (CASE WHEN p.name LIKE :containsName THEN 50 ELSE 0 END) +
-                        (CASE WHEN p.specs LIKE :containsSpecs THEN 40 ELSE 0 END) +
-                        (CASE WHEN c.name LIKE :containsCat THEN 30 ELSE 0 END) +
-                        (CASE WHEN b.name LIKE :containsBrand THEN 20 ELSE 0 END) +
-                        (CASE WHEN p.description LIKE :containsDesc THEN 5 ELSE 0 END)
-                    ';
-
-                    $params[':exactName']     = $rawKeyword;
-                    $params[':startsName']    = $rawKeyword . '%';
-                    $params[':containsName']  = '%' . $rawKeyword . '%';
-                    $params[':containsSpecs'] = '%' . $rawKeyword . '%';
-                    $params[':containsCat']   = '%' . $rawKeyword . '%';
-                    $params[':containsBrand'] = '%' . $rawKeyword . '%';
-                    $params[':containsDesc']  = '%' . $rawKeyword . '%';
+                } else {
+                    $item['matched_field'] = 'catalog';
+                    $item['matched_value'] = 'all';
                 }
+            }
 
-                $whereClause = implode(' AND ', $whereConditions);
-
-                $query = "
-                    SELECT p.*, b.name as brand_name, c.name as category_name, ($relevanceSql) as relevance
-                    FROM products p
-                    LEFT JOIN brands b ON p.brand_id = b.id
-                    JOIN categories c ON p.category_id = c.id
-                    WHERE $whereClause
-                    ORDER BY " . (!empty($normalizedKeyword) ? "relevance DESC, p.created_at DESC" : "p.id DESC") . "
-                    LIMIT :limit
-                ";
-
-                $stmt = $this->db->prepare($query);
-                foreach ($params as $key => $val) {
-                    $stmt->bindValue($key, $val);
-                }
-                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-                $stmt->execute();
-
-                $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                if (!empty($res)) {
-                    return $res;
-                }
-            } catch (Exception $e) {}
+            return $results;
+        } catch (Exception $e) {
+            return [];
         }
-
-        // Fallback search in sample products
-        $all = self::getSampleProducts();
-        if (!empty($categorySlug)) {
-            $all = array_filter($all, fn($p) => ($p['category_slug'] ?? '') === $categorySlug);
-        }
-        if (!empty($keyword)) {
-            $kw = function_exists('mb_strtolower') ? mb_strtolower($keyword, 'UTF-8') : strtolower($keyword);
-            $all = array_filter($all, function($p) use ($kw) {
-                $name = function_exists('mb_strtolower') ? mb_strtolower($p['name'] ?? '', 'UTF-8') : strtolower($p['name'] ?? '');
-                $desc = function_exists('mb_strtolower') ? mb_strtolower($p['description'] ?? '', 'UTF-8') : strtolower($p['description'] ?? '');
-                $cat = function_exists('mb_strtolower') ? mb_strtolower($p['category_name'] ?? '', 'UTF-8') : strtolower($p['category_name'] ?? '');
-                $brand = function_exists('mb_strtolower') ? mb_strtolower($p['brand_name'] ?? '', 'UTF-8') : strtolower($p['brand_name'] ?? '');
-                return str_contains($name, $kw) || str_contains($desc, $kw) || str_contains($cat, $kw) || str_contains($brand, $kw);
-            });
-        }
-        return array_slice(array_values($all), 0, $limit);
     }
 
     /** Lấy sản phẩm theo danh mục không giới hạn */
