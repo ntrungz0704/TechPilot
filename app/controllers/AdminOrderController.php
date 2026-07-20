@@ -144,14 +144,15 @@ class AdminOrderController extends Controller
                 return;
             }
 
-            // Định nghĩa các chuyển đổi trạng thái hợp lệ
+            // Cho phép chuyển đổi linh hoạt 100% giữa tất cả các trạng thái để Admin dễ dàng kiểm thử và sửa lỗi vận chuyển
+            $allStatuses = ['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'];
             $validTransitions = [
-                'pending'    => ['confirmed', 'processing', 'cancelled'],
-                'confirmed'  => ['processing', 'shipping', 'cancelled'],
-                'processing' => ['shipping', 'completed', 'cancelled'],
-                'shipping'   => ['completed', 'cancelled'],
-                'completed'  => [],
-                'cancelled'  => []
+                'pending'    => $allStatuses,
+                'confirmed'  => $allStatuses,
+                'processing' => $allStatuses,
+                'shipping'   => $allStatuses,
+                'completed'  => $allStatuses,
+                'cancelled'  => $allStatuses
             ];
 
             if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
