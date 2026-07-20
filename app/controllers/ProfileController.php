@@ -95,6 +95,13 @@ class ProfileController extends Controller
         if (!$order) {
             flash('error', 'Đơn hàng không hợp lệ.');
             $this->redirect('profile/orders');
+            return;
+        }
+
+        if ($order['status'] !== 'completed') {
+            flash('error', 'Chỉ những đơn hàng đã giao thành công (Completed) mới được phép yêu cầu đổi trả.');
+            $this->redirect('profile/orders');
+            return;
         }
         
         $this->render('profile/return', [
@@ -126,7 +133,16 @@ class ProfileController extends Controller
         if ($orderId <= 0 || $reason === '') {
             flash('error', 'Lý do đổi trả không được để trống.');
             $this->redirect('profile/orders');
+            return;
         }
+
+        $order = $this->orderModel->getById($orderId, (int)$user['id']);
+        if (!$order || $order['status'] !== 'completed') {
+            flash('error', 'Đơn hàng không hợp lệ hoặc chưa hoàn thành.');
+            $this->redirect('profile/orders');
+            return;
+        }
+
 
         $itemsToReturn = [];
         foreach ($quantities as $orderItemId => $qty) {
