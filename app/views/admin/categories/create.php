@@ -20,6 +20,26 @@
         </div>
 
         <div class="form-group">
+            <label for="parent_id">Danh mục cha</label>
+            <select name="parent_id" id="parent_id" class="form-control">
+                <option value="">-- Là danh mục gốc (Không có cha) --</option>
+                <?php foreach ($categories ?? [] as $c): ?>
+                    <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="icon">Icon class (VD: fa-solid fa-laptop)</label>
+            <input type="text" name="icon" id="icon" class="form-control" placeholder="fa-solid fa-tag">
+        </div>
+
+        <div class="form-group">
+            <label for="image">Ảnh danh mục (đường dẫn hoặc tên file)</label>
+            <input type="text" name="image" id="image" class="form-control" placeholder="assets/images/categories/laptop.png">
+        </div>
+
+        <div class="form-group">
             <label for="sort_order">Thứ tự sắp xếp hiển thị</label>
             <input type="number" name="sort_order" id="sort_order" class="form-control" value="0" min="0">
         </div>
