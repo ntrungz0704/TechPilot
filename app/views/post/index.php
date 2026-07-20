@@ -134,8 +134,8 @@ if (!empty($currentType) && !empty($currentCategory)) {
             </div>
             <?php endif; ?>
 
-            <!-- Box 2: Mua theo nhu cầu -->
-            <?php require_once __DIR__ . '/partials/_buying_needs.php'; ?>
+            <!-- Widget 2: Mua theo nhu cầu -->
+            <?php require __DIR__ . '/partials/_buying_needs.php'; ?>
 
         </aside>
     </div>
