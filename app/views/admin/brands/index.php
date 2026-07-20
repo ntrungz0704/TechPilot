@@ -42,13 +42,15 @@
                             <td><code><?= e($b['slug']) ?></code></td>
                             <td><span style="font-size: 13px; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;"><?= e($b['description']) ?></span></td>
                             <td><span class="badge badge--success" style="background-color: #E0F2FE; color: #0369A1;"><?= (int)$b['product_count'] ?> sản phẩm</span></td>
-                            <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center;">
-                                <a href="<?= url('admin/brands/edit/' . $b['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                
-                                <form method="post" action="<?= url('admin/brands/delete/' . $b['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá thương hiệu này không?');" style="margin: 0;">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                </form>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
+                                    <a href="<?= url('admin/brands/edit/' . $b['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
+                                    
+                                    <form method="post" action="<?= url('admin/brands/delete/' . $b['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá thương hiệu này không?');" style="margin: 0;">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

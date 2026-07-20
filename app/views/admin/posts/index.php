@@ -43,13 +43,15 @@
                                 <span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                             </td>
                             <td><?= !empty($pst['published_at']) ? date('d/m/Y H:i', strtotime((string)$pst['published_at'])) : 'Chưa xuất bản' ?></td>
-                            <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; height: 65px;">
-                                <a href="<?= url('admin/posts/edit/' . $pst['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                
-                                <form method="post" action="<?= url('admin/posts/delete/' . $pst['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá bài viết này không?');" style="margin: 0;">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                </form>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
+                                    <a href="<?= url('admin/posts/edit/' . $pst['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
+                                    
+                                    <form method="post" action="<?= url('admin/posts/delete/' . $pst['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá bài viết này không?');" style="margin: 0;">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

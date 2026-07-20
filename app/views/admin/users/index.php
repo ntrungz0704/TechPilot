@@ -53,25 +53,27 @@
                                 </span>
                             </td>
                             <td><?= date('d/m/Y H:i', strtotime($u['created_at'])) ?></td>
-                            <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; height: 50px;">
-                                <!-- Toggle status button -->
-                                <form method="post" action="<?= url('admin/users/toggle_status/' . $u['id']) ?>" style="margin: 0;">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="btn btn--sm <?= $u['status'] === 'active' ? 'btn--danger' : 'btn--outline' ?>" style="padding: 6px 12px; font-size: 12px;">
-                                        <i class="fa-solid <?= $u['status'] === 'active' ? 'fa-user-slash' : 'fa-user-check' ?>"></i> 
-                                        <?= $u['status'] === 'active' ? 'Khoá' : 'Mở khoá' ?>
-                                    </button>
-                                </form>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
+                                    <!-- Toggle status button -->
+                                    <form method="post" action="<?= url('admin/users/toggle_status/' . $u['id']) ?>" style="margin: 0;">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn--sm <?= $u['status'] === 'active' ? 'btn--danger' : 'btn--outline' ?>" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;">
+                                            <i class="fa-solid <?= $u['status'] === 'active' ? 'fa-user-slash' : 'fa-user-check' ?>"></i> 
+                                            <?= $u['status'] === 'active' ? 'Khoá' : 'Mở khoá' ?>
+                                        </button>
+                                    </form>
 
-                                <!-- Change role button -->
-                                <form method="post" action="<?= url('admin/users/change_role/' . $u['id']) ?>" style="margin: 0; display: flex; gap: 4px; align-items: center;">
-                                    <?= csrf_field() ?>
-                                    <select name="role" style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 600;">
-                                        <option value="customer" <?= $u['role'] === 'customer' ? 'selected' : '' ?>>Customer</option>
-                                        <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
-                                    </select>
-                                    <button type="submit" class="btn btn--outline btn--sm" style="padding: 6px 8px; font-size: 11px;" title="Cập nhật quyền"><i class="fa-solid fa-check"></i></button>
-                                </form>
+                                    <!-- Change role button -->
+                                    <form method="post" action="<?= url('admin/users/change_role/' . $u['id']) ?>" style="margin: 0; display: flex; gap: 4px; align-items: center;">
+                                        <?= csrf_field() ?>
+                                        <select name="role" style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 600; background-color: var(--bg-card); color: var(--text-primary); outline: none;">
+                                            <option value="customer" <?= $u['role'] === 'customer' ? 'selected' : '' ?>>Customer</option>
+                                            <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                                        </select>
+                                        <button type="submit" class="btn btn--outline btn--sm" style="padding: 6px 8px; font-size: 11px;" title="Cập nhật quyền"><i class="fa-solid fa-check"></i></button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
