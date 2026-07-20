@@ -61,15 +61,6 @@ return [
         ]
     ],
     [
-        'name' => 'Loa, Micro, Webcam',
-        'icon' => 'fa-solid fa-volume-high',
-        'slug' => 'office-gear',
-        'columns' => [
-            'Âm thanh' => ['Loa máy tính', 'Tai nghe chụp tai', 'Loa Bluetooth di động'],
-            'Webcam & Ghi âm' => ['Webcam Full HD / 2K', 'Microphone livestream']
-        ]
-    ],
-    [
         'name' => 'Màn hình',
         'icon' => 'fa-solid fa-tv',
         'slug' => 'man-hinh',
@@ -95,51 +86,11 @@ return [
         ]
     ],
     [
-        'name' => 'Tai Nghe',
+        'name' => 'Tai Nghe & Âm Thanh',
         'icon' => 'fa-solid fa-headphones',
         'slug' => 'gaming-gear',
         'columns' => [
-            'Tai nghe' => ['Tai nghe chụp tai', 'Tai nghe in-ear', 'Tai nghe không dây']
-        ]
-    ],
-    [
-        'name' => 'Ghế - Bàn',
-        'icon' => 'fa-solid fa-chair',
-        'slug' => 'office-gear',
-        'columns' => [
-            'Ghế - Bàn' => ['Ghế Gaming', 'Ghế công thái học', 'Bàn chữ Z']
-        ]
-    ],
-    [
-        'name' => 'Phần mềm, mạng',
-        'icon' => 'fa-solid fa-network-wired',
-        'slug' => 'networking',
-        'columns' => [
-            'Mạng & Phần mềm' => ['Router Wifi 6', 'Switch chia cổng', 'Windows bản quyền', 'Office 365']
-        ]
-    ],
-    [
-        'name' => 'Handheld, Console',
-        'icon' => 'fa-solid fa-gamepad',
-        'slug' => 'gaming-gear',
-        'columns' => [
-            'Máy chơi game' => ['Nintendo Switch', 'PlayStation 5', 'ASUS ROG Ally', 'Steam Deck']
-        ]
-    ],
-    [
-        'name' => 'Phụ kiện (Hub, sạc...)',
-        'icon' => 'fa-solid fa-plug',
-        'slug' => 'networking',
-        'columns' => [
-            'Phụ kiện' => ['Hub chuyển đổi', 'Cáp HDMI/DisplayPort', 'Pin dự phòng']
-        ]
-    ],
-    [
-        'name' => 'Dịch vụ & Thông tin khác',
-        'icon' => 'fa-solid fa-circle-info',
-        'slug' => 'networking',
-        'columns' => [
-            'Hỗ trợ' => ['Vệ sinh PC', 'Lắp đặt tại nhà', 'Bảo hành mở rộng']
+            'Âm thanh' => ['Tai nghe chụp tai', 'Tai nghe in-ear', 'Tai nghe không dây', 'Loa máy tính']
         ]
     ]
 ];
