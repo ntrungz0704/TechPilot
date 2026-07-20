@@ -9,12 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
         document.documentElement.classList.toggle('dark-mode', isDark);
         if (themeToggle) {
             const icon = themeToggle.querySelector('i');
-            const label = themeToggle.querySelector('span');
             if (icon) {
                 icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-            }
-            if (label) {
-                label.textContent = isDark ? 'Sáng' : 'Tối';
             }
         }
     }

@@ -117,12 +117,14 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         </div>
                     </a>
                     <a href="<?= url('cart') ?>" class="header-actions__item header-actions__cart">
-                        <i class="fa-solid fa-cart-shopping"></i>
+                        <div class="header-actions__icon-wrapper">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span class="cart-badge"><?= (int)cartCount() ?></span>
+                        </div>
                         <div class="header-actions__text">
                             <span>Giỏ</span>
                             <strong>Hàng</strong>
                         </div>
-                        <span class="cart-badge"><?= (int)cartCount() ?></span>
                     </a>
                     
                     <?php if ($u = currentUser()): ?>
