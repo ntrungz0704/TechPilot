@@ -14,18 +14,20 @@ class NewsController extends Controller
         $categories = $this->data['categories'];
         $articles = $this->data['articles'];
 
-        // Featured article is the first one
-        $featuredArticle = !empty($articles) ? $articles[0] : null;
-        
-        // Other articles
-        $secondaryArticles = array_slice($articles, 1);
+        $heroArticles = array_slice($articles, 0, 3);
+        $listArticles = array_slice($articles, 3);
+
+        // If list is empty (only 3 total), we can mock by reusing them for preview
+        if (empty($listArticles)) {
+            $listArticles = $articles;
+        }
 
         $this->render('news/index', [
             'pageTitle' => 'Tin tức công nghệ',
             'metaDescription' => 'Cập nhật những tin tức công nghệ, thủ thuật, đánh giá sản phẩm mới nhất từ TechPilot.',
             'categories' => $categories,
-            'featuredArticle' => $featuredArticle,
-            'articles' => $secondaryArticles,
+            'heroArticles' => $heroArticles,
+            'listArticles' => $listArticles,
         ]);
     }
 
