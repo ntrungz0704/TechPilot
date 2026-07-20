@@ -1207,7 +1207,7 @@ class Product
     }
 
     /** Tìm kiếm sản phẩm nâng cao với Relevance Scoring, Model Tokenization & Specs Search */
-    public function search(string $keyword = '', string $categorySlug = '', string $brandSlug = '', float $minPrice = 0, float $maxPrice = 0, string $sort = 'relevance', int $limit = 48, int $offset = 0): array
+    public function search(string $keyword = '', string $categorySlug = '', int $limit = 48, int $offset = 0, string $brandSlug = '', float $minPrice = 0, float $maxPrice = 0, string $sort = 'relevance'): array
     {
         if ($this->db === null) {
             return [];
