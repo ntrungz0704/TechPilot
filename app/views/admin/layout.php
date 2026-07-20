@@ -10,22 +10,42 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <script>
+        (() => {
+            const stored = localStorage.getItem('techpilot-theme');
+            const useDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark-mode', useDark);
+        })();
+    </script>
+    
     <!-- CSS Nhận diện Mockup Admin của TechPilot -->
     <style>
         :root {
-            --primary: #0B63E5;
-            --primary-light: rgba(11, 99, 229, 0.08);
-            --bg-body: #F4F6F8;
+            --primary: #0A5BFF;
+            --primary-hover: #0045d8;
+            --primary-light: rgba(10, 91, 255, 0.08);
+            --bg-body: #F9FAFB;
             --bg-sidebar: #081325;
             --bg-card: #FFFFFF;
             --text-primary: #1F2937;
-            --text-secondary: #64748B;
-            --border: #E8ECEF;
-            --radius-card: 12px;
-            --radius-elem: 8px;
-            --shadow-card: 0 4px 18px -4px rgba(15, 23, 42, 0.04);
-            --shadow-focus: 0 0 0 3px rgba(11, 99, 229, 0.18);
-            --transition: all 0.2s ease-in-out;
+            --text-secondary: #6B7280;
+            --border: #E5E7EB;
+            --radius-card: 16px;
+            --radius-elem: 12px;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --shadow-focus: 0 0 0 3px rgba(10, 91, 255, 0.18);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html.dark-mode {
+            --bg-body: #0B0F19;
+            --bg-sidebar: #090D1A;
+            --bg-card: #111827;
+            --text-primary: #F9FAFB;
+            --text-secondary: #A7B0C0;
+            --border: #334155;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-focus: 0 0 0 3px rgba(10, 91, 255, 0.25);
         }
 
         * {
@@ -208,12 +228,13 @@
             border-radius: 9999px;
             font-size: 13.5px;
             outline: none;
-            background-color: #F8FAFC;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
             transition: var(--transition);
         }
 
         .header__search-input:focus {
-            background-color: #FFFFFF;
+            background-color: var(--bg-card);
             border-color: var(--primary);
             box-shadow: var(--shadow-focus);
         }
@@ -222,6 +243,27 @@
             display: flex;
             align-items: center;
             gap: 20px;
+        }
+
+        .header__theme-toggle-btn {
+            background: none;
+            border: 1px solid var(--border);
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 16px;
+        }
+
+        .header__theme-toggle-btn:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--primary);
         }
 
         .header__bell {
@@ -239,7 +281,7 @@
         }
 
         .header__bell:hover {
-            background-color: #F1F5F9;
+            background-color: var(--primary-light);
             color: var(--text-primary);
         }
 
@@ -508,14 +550,17 @@
             </div>
             
             <div class="header__right">
-                <a href="<?= url('/') ?>" style="font-size: 13px; font-weight: 600; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; color: #0B63E5; border: 1px solid #0B63E5; text-decoration: none; border-radius: 8px; margin-right: 15px; transition: all 0.2s;" onmouseover="this.style.background='#0B63E5'; this.style.color='#FFF';" onmouseout="this.style.background='transparent'; this.style.color='#0B63E5';">
+                <a href="<?= url('/') ?>" style="font-size: 13px; font-weight: 600; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; color: #0A5BFF; border: 1px solid #0A5BFF; text-decoration: none; border-radius: 8px; margin-right: 15px; transition: all 0.2s;" onmouseover="this.style.background='#0A5BFF'; this.style.color='#FFF';" onmouseout="this.style.background='transparent'; this.style.color='#0A5BFF';">
                     <i class="fa-solid fa-globe"></i> Xem Website
                 </a>
+                <button type="button" id="adminThemeToggle" class="header__theme-toggle-btn" style="margin-right: 15px;">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
                 <div class="header__bell">
                     <i class="fa-solid fa-bell"></i>
                     <span class="header__bell-badge">3</span>
                 </div>
-                <img src="https://ui-avatars.com/api/?name=Admin&background=0B63E5&color=fff" class="header__avatar" alt="Avatar" onerror="this.src='<?= url('assets/images/logo.png') ?>'">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=0A5BFF&color=fff" class="header__avatar" alt="Avatar" onerror="this.src='<?= url('assets/images/logo.png') ?>'">
             </div>
         </header>
         <main class="content">
@@ -549,6 +594,30 @@
                     if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggleBtn) {
                         sidebar.classList.remove('open');
                     }
+                });
+            }
+
+            // Theme Toggle
+            const themeToggle = document.getElementById('adminThemeToggle');
+            
+            function updateThemeIcon(isDark) {
+                if (themeToggle) {
+                    const icon = themeToggle.querySelector('i');
+                    if (icon) {
+                        icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                    }
+                }
+            }
+            
+            // Initial state
+            updateThemeIcon(document.documentElement.classList.contains('dark-mode'));
+            
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const isDark = !document.documentElement.classList.contains('dark-mode');
+                    document.documentElement.classList.toggle('dark-mode', isDark);
+                    localStorage.setItem('techpilot-theme', isDark ? 'dark' : 'light');
+                    updateThemeIcon(isDark);
                 });
             }
         });
