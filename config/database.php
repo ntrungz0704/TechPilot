@@ -16,13 +16,7 @@ if (!class_exists('Database')) {
     {
         private static ?PDO $instance = null;
 
-        // ==== THÔNG SỐ KẾT NỐI MẶC ĐỊNH ====
-        private const HOST    = '127.0.0.1';
-        private const DBNAME  = 'techpilot';
-        private const USER    = 'root';
-        private const PASS    = '';
-        private const CHARSET = 'utf8mb4';
-    // ==== THÔNG SỐ KẾT NỐI - chỉnh theo máy của bạn ====
+    // ==== THÔNG SỐ KẾT NỐI MẶC ĐỊNH ====
     private const HOST    = '127.0.0.1';
     private const DBNAME  = 'techpilot';
     private const USER    = 'root';
