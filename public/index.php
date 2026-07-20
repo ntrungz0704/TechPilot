@@ -105,4 +105,8 @@ $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
 $router->get('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
 $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 
+// News Routes
+$router->get('/tin-tuc', 'NewsController@index');
+$router->get('/tin-tuc/{slug}', 'NewsController@show');
+
 $router->dispatch($url);
