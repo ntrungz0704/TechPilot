@@ -133,9 +133,11 @@ class PostController extends Controller
         $renderer = new MarkdownRenderer();
         $parsed   = $renderer->render($post['content'] ?? '');
 
-        $renderedContent = (string)($parsed['html'] ?? '');
-        $articleHeadings = is_array($parsed['headings'] ?? null) ? $parsed['headings'] : [];
-        $articleBlocks   = is_array($parsed['blocks'] ?? null) ? $parsed['blocks'] : [];
+        $renderedContent  = (string)($parsed['html'] ?? '');
+        $articleHeadings  = is_array($parsed['headings'] ?? null) ? $parsed['headings'] : [];
+        $articleBlocks    = is_array($parsed['blocks'] ?? null) ? $parsed['blocks'] : [];
+        $quickSummaryHtml = (string)($parsed['quickSummaryHtml'] ?? '');
+        $sourcesHtml      = (string)($parsed['sourcesHtml'] ?? '');
 
         $plainArticleText = trim(
             html_entity_decode(
@@ -163,7 +165,24 @@ class PostController extends Controller
             ? $this->makeAbsoluteImageUrl(postImageUrl($post['image']))
             : absoluteUrl('assets/images/logo.png');
 
-        $authorName  = $post['author_name'] ?? 'TechPilot';
+        // Phân biệt Author Person vs Organization dựa trên dữ liệu thô (raw data)
+        $rawAuthorName = !empty($post['author_name'])
+            ? trim((string)$post['author_name'])
+            : (!empty($post['full_name']) ? trim((string)$post['full_name']) : '');
+
+        if ($rawAuthorName !== '') {
+            $authorSchema = [
+                '@type' => 'Person',
+                'name'  => $rawAuthorName,
+            ];
+        } else {
+            $authorSchema = [
+                '@type' => 'Organization',
+                'name'  => 'Đội ngũ TechPilot',
+                'url'   => absoluteUrl(''),
+            ];
+        }
+
         $publishedAt = date('c', strtotime($post['published_at'] ?? $post['created_at'] ?? 'now'));
         // dateModified dùng updated_at nếu có
         $modifiedAt  = !empty($post['updated_at'])
@@ -190,10 +209,7 @@ class PostController extends Controller
             'image'             => [$imageAbsolute],
             'datePublished'     => $publishedAt,
             'dateModified'      => $modifiedAt,
-            'author'            => [
-                '@type' => 'Person',
-                'name'  => $authorName,
-            ],
+            'author'            => $authorSchema,
             'publisher'         => [
                 '@type'  => 'Organization',
                 'name'   => 'TechPilot',
@@ -265,13 +281,15 @@ class PostController extends Controller
             'articleBlocks'      => $articleBlocks,
             'articleWordCount'   => $articleWordCount,
             'articleH2Count'     => $articleH2Count,
+            'quickSummaryHtml'   => $quickSummaryHtml,
+            'sourcesHtml'        => $sourcesHtml,
             'postType'           => $postType,
             'categorySlug'       => $categorySlug,
             'midCtaConfig'       => $commerceConfig['mid_cta'] ?? null,
             'endCtaConfig'       => $commerceConfig['end_cta'] ?? null,
             'commerceContext'    => $commerceContext,
-            'pageStyles'         => ['assets/css/news.css?v=2.2'],
-            'pageScripts'        => ['assets/js/news.js?v=2.0'],
+            'pageStyles'         => ['assets/css/news.css?v=2.3'],
+            'pageScripts'        => ['assets/js/news.js?v=2.3'],
         ]);
     }
 

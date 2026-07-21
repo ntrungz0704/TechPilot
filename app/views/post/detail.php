@@ -63,7 +63,8 @@ if (!$post) return;
                         src="<?= postImageUrl($post['image']) ?>"
                         alt="<?= e($post['title']) ?>"
                         loading="eager"
-                        onerror="this.parentElement.style.display='none'"
+                        fetchpriority="high"
+                        decoding="async"
                     >
                 </div>
             <?php endif; ?>
@@ -90,6 +91,17 @@ if (!$post) return;
 
         <!-- Cột phải: Sidebar -->
         <aside class="news-sidebar" aria-label="Nội dung liên quan">
+
+            <!-- Box 0: TOC Sidebar Sticky (Desktop) -->
+            <?php if ($articleH2Count >= 3 && !empty($articleHeadings)): ?>
+            <div class="news-sidebar-widget news-sidebar-toc-widget">
+                <?php
+                $tocVariant = 'desktop';
+                $tocIdPrefix = 'desktop-toc';
+                require __DIR__ . '/partials/_article_toc.php';
+                ?>
+            </div>
+            <?php endif; ?>
 
             <!-- Box 1: Bài viết liên quan -->
             <?php if (!empty($related)): ?>

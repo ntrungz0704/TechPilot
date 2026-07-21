@@ -1517,3 +1517,197 @@ html.dark-mode .article-cta-box {
         min-height: 44px;
     }
 }
+
+/* ==========================================================================
+   Editorial Article Experience Extensions
+   ========================================================================== */
+
+/* ── 13. Variables update for .news-page ── */
+.news-page {
+    --news-sticky-offset: 140px; /* Measured: site-header (80px) + main-nav (40px) + 20px gap */
+}
+
+/* ── 14. Dual TOC & Sticky Sidebar Widget ── */
+.news-sidebar-toc-widget {
+    position: sticky;
+    top: var(--news-sticky-offset, 140px);
+    max-height: calc(100vh - var(--news-sticky-offset, 140px) - 30px);
+    overflow-y: auto;
+    z-index: 10;
+    margin-bottom: 0;
+}
+
+/* Desktop vs Mobile visibility for Dual TOC */
+@media (min-width: 1024px) {
+    .news-mobile-toc-wrapper {
+        display: none !important;
+    }
+    .news-sidebar-toc-widget {
+        display: block !important;
+    }
+}
+@media (max-width: 1023px) {
+    .news-mobile-toc-wrapper {
+        display: block !important;
+    }
+    .news-sidebar-toc-widget {
+        display: none !important;
+    }
+}
+
+/* TOC Styling adjustments for Desktop Sidebar and Mobile */
+.news-toc {
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    width: 100%;
+}
+.news-sidebar-toc-widget .news-toc {
+    display: block;
+    margin: 0;
+}
+.news-sidebar-toc-widget .news-toc-toggle {
+    display: none !important; /* Always open in desktop sidebar */
+}
+.news-sidebar-toc-widget .news-toc-list {
+    display: block !important;
+}
+
+/* ── 15. Quick Summary Box (:::summary) ── */
+.article-quick-summary {
+    background: linear-gradient(135deg, rgba(20, 110, 245, 0.06) 0%, rgba(0, 200, 255, 0.06) 100%);
+    border: 1px solid rgba(20, 110, 245, 0.2);
+    border-left: 4px solid var(--news-primary);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 20px 0 30px 0;
+}
+.article-quick-summary h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--news-primary);
+    margin: 0 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.article-quick-summary .summary-body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--news-text-main);
+}
+.article-quick-summary .summary-body p:last-child,
+.article-quick-summary .summary-body ul:last-child,
+.article-quick-summary .summary-body ol:last-child {
+    margin-bottom: 0;
+}
+
+/* Dark mode for Quick Summary */
+html.dark-mode .article-quick-summary {
+    background: linear-gradient(135deg, rgba(20, 110, 245, 0.15) 0%, rgba(0, 200, 255, 0.1) 100%);
+    border-color: rgba(0, 200, 255, 0.3);
+    border-left-color: var(--news-cyan);
+}
+html.dark-mode .article-quick-summary h3 {
+    color: var(--news-cyan);
+}
+
+/* ── 16. Sources Block (:::sources) ── */
+.article-sources-block {
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 35px 0;
+}
+.article-sources-block h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--news-text-main);
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.article-sources-block ul,
+.article-sources-block ol {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+.article-sources-block li {
+    margin-bottom: 6px;
+}
+.article-sources-block li:last-child {
+    margin-bottom: 0;
+}
+.article-sources-block a {
+    color: var(--news-primary);
+    text-decoration: underline;
+    word-break: break-all;
+}
+.article-sources-block a:hover {
+    color: var(--news-cyan);
+}
+
+/* ── 17. Author Box (_author_box.php) ── */
+.news-author-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 30px 0;
+}
+.news-author-avatar-fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--news-primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.news-author-info {
+    flex: 1;
+    min-width: 0;
+}
+.news-author-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--news-text-light);
+    display: block;
+    margin-bottom: 2px;
+}
+.news-author-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--news-text-main);
+    margin: 0 0 4px 0;
+}
+.news-author-note {
+    font-size: 13px;
+    color: var(--news-text-light);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Cover Image Optimization - aspect-ratio & max-width */
+.news-detail-image img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
