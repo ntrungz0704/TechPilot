@@ -23,7 +23,7 @@ if (!$post) return;
 </section>
 
 <!-- Reading Progress Bar -->
-<div class="news-reading-progress">
+<div class="news-reading-progress" aria-hidden="true">
     <div class="news-reading-progress-bar" id="readingProgressBar"></div>
 </div>
 

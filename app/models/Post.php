@@ -202,8 +202,10 @@ class Post
         }
 
         if (!empty($q)) {
-            $sql .= ' AND (title LIKE :keyword OR summary LIKE :keyword OR content LIKE :keyword)';
-            $params[':keyword'] = '%' . $q . '%';
+            $sql .= ' AND (title LIKE :kw1 OR summary LIKE :kw2 OR content LIKE :kw3)';
+            $params[':kw1'] = '%' . $q . '%';
+            $params[':kw2'] = '%' . $q . '%';
+            $params[':kw3'] = '%' . $q . '%';
         }
 
         return $sql;
@@ -304,7 +306,7 @@ class Post
     {
         if ($this->db === null) return null;
         $stmt = $this->db->prepare('
-            SELECT p.*, COALESCE(u.full_name, p.author_name) as author_name
+            SELECT p.*, u.full_name as author_name
             FROM posts p
             LEFT JOIN users u ON p.author_id = u.id
             WHERE p.slug = :slug AND p.status = "published"
