@@ -1255,7 +1255,7 @@ class Product
      * Xây dựng điều kiện WHERE và các tham số bindings.
      * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
      */
-    private function buildSearchQueryConditions(
+    protected function buildSearchQueryConditions(
         string $keyword = '',
         string $categorySlug = '',
         string $brandSlug = '',
@@ -1290,6 +1290,24 @@ class Product
             'may bo'            => ['pc-build-san'],
             'lap'               => ['laptop-gaming', 'laptop-van-phong'],
             'pc'                => ['pc-build-san'],
+            'cpu'               => ['cpu'],
+            'mainboard'         => ['mainboard'],
+            'main'              => ['mainboard'],
+            'ram'               => ['ram'],
+            'vga'               => ['vga'],
+            'card màn hình'     => ['vga'],
+            'card man hinh'     => ['vga'],
+            'card đồ họa'       => ['vga'],
+            'card do hoa'       => ['vga'],
+            'ssd'               => ['ssd'],
+            'hdd'               => ['hdd'],
+            'psu'               => ['psu'],
+            'nguồn'             => ['psu'],
+            'nguon'             => ['psu'],
+            'case'              => ['case'],
+            'vỏ máy'            => ['case'],
+            'tản nhiệt'         => ['tan-nhiet'],
+            'tan nhiet'         => ['tan-nhiet']
         ];
 
         // Sắp xếp alias dài hơn lên trước
@@ -1377,11 +1395,19 @@ class Product
             $conditions[] = '(COALESCE(NULLIF(p.sale_price, 0), p.price) < p.price OR (p.old_price IS NOT NULL AND p.old_price > p.price) OR p.is_flash_sale = 1)';
         }
 
-        // 6. Tìm kiếm tên/thương hiệu cho phần keyword còn lại
         if (!empty($remainingKeyword)) {
-            $conditions[] = '(LOWER(p.name) LIKE :search_name OR LOWER(b.name) LIKE :search_brand)';
-            $params[':search_name'] = '%' . $remainingKeyword . '%';
-            $params[':search_brand'] = '%' . $remainingKeyword . '%';
+            $words = array_filter(explode(' ', $remainingKeyword));
+            $wordConditions = [];
+            foreach ($words as $i => $word) {
+                $pNameName = ':search_word_name_' . $i;
+                $pNameBrand = ':search_word_brand_' . $i;
+                $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand)";
+                $params[$pNameName] = '%' . $word . '%';
+                $params[$pNameBrand] = '%' . $word . '%';
+            }
+            if (!empty($wordConditions)) {
+                $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';
+            }
         }
 
         return [$conditions, $params, $remainingKeyword];
@@ -1474,6 +1500,7 @@ class Product
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            error_log('Search query failed: ' . $e->getMessage());
             return [];
         }
     }
