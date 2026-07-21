@@ -32,7 +32,12 @@ $reviews = $reviews ?? [];
 <div class="home-page-wrapper">
 <section class="container hero-section">
     <!-- Left: Vertical Category Menu -->
-    <div class="hero-section__left" id="heroCategorySlot"></div>
+    <div class="hero-section__left" id="heroCategorySlot">
+        <?php 
+        $isStatic = true; 
+        require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; 
+        ?>
+    </div>
 
     <!-- Center: Large Hero Banner Carousel -->
     <div class="hero-section__center" id="heroCarousel">
@@ -562,7 +567,7 @@ $reviews = $reviews ?? [];
         <?php foreach ($posts as $post): ?>
             <div class="news-card">
                 <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
-                    <img src="<?= url('assets/images/news/' . e($post['image'])) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
+                    <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
                 </a>
                 <div class="news-card__body">
                     <span class="news-card__date"><i class="fa-regular fa-clock"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?></span>
@@ -584,9 +589,15 @@ $reviews = $reviews ?? [];
             <?php 
             // Nhân đôi danh sách thương hiệu để hiệu ứng chạy marquee cuộn mượt không bị đứt đoạn
             $duplicatedBrands = array_merge($brands, $brands);
-            foreach ($duplicatedBrands as $brand): ?>
+            foreach ($duplicatedBrands as $brand): 
+                $slug = $brand['slug'] ?? '';
+                $logoFile = !empty($slug) ? $slug . '.svg' : str_replace(['-logo.svg', '.png'], ['.svg', '.svg'], $brand['logo'] ?? '');
+                if (!str_contains($logoFile, '.')) {
+                    $logoFile .= '.svg';
+                }
+            ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . str_replace('.png', '.svg', e($brand['logo']))) ?>?v=3.0" alt="<?= e($brand['name']) ?>" onerror="this.outerHTML='<span><?= e($brand['name']) ?></span>'">
+                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
                 </div>
             <?php endforeach; ?>
         </div>

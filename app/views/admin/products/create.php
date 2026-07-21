@@ -1,4 +1,4 @@
-<div class="card" style="max-width: 800px; margin: 0 auto 30px;">
+<div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Thêm sản phẩm mới</h3>
     
     <form method="post" action="<?= url('admin/products/store') ?>" enctype="multipart/form-data">

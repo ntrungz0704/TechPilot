@@ -1,10 +1,15 @@
 <!-- CSS riêng cho trang Build PC nhằm đảm bảo giao diện lung linh, premium -->
 <style>
     .pc-builder-container {
-        max-width: 1200px;
+        max-width: 1440px;
         margin: 40px auto;
-        padding: 0 15px;
+        padding: 0 40px;
         font-family: 'Inter', sans-serif;
+    }
+    @media (max-width: 768px) {
+        .pc-builder-container {
+            padding: 0 20px;
+        }
     }
     .pc-builder-header {
         text-align: center;
@@ -103,71 +108,66 @@
         overflow: hidden;
         text-overflow: ellipsis;
         display: block;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
     }
     .pc-builder-selected-price {
-        font-size: 13.5px;
+        font-size: 14px;
         font-weight: 700;
-        color: #0B63E5;
+        color: #EF4444;
+        display: block;
     }
     .pc-builder-placeholder {
-        font-size: 13.5px;
         color: #94A3B8;
+        font-size: 13.5px;
         font-style: italic;
     }
     .pc-builder-actions {
-        text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
     }
     .btn-select-part {
-        background-color: #0B63E5;
+        background: #0B63E5;
         color: #FFFFFF;
         border: none;
-        padding: 9px 16px;
+        padding: 8px 16px;
         border-radius: 8px;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.2s;
-    }
-    .btn-select-part:hover {
-        background-color: #0051C4;
-        transform: translateY(-1px);
-    }
-    .btn-change-part {
-        background: transparent;
-        color: #64748B;
-        border: 1px solid #CBD5E1;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 12.5px;
+        font-size: 13.5px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
-        margin-right: 6px;
+    }
+    .btn-select-part:hover {
+        background: #0051C4;
+    }
+    .btn-change-part {
+        background: #FFFFFF;
+        color: var(--text-primary);
+        border: 1px solid #CBD5E1;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
     }
     .btn-change-part:hover {
-        color: #0B63E5;
-        border-color: #0B63E5;
-        background: #EFF6FF;
+        background: #F8FAFC;
+        border-color: #94A3B8;
     }
     .btn-remove-part {
-        background: transparent;
+        background: #FEF2F2;
         color: #EF4444;
         border: 1px solid #FEE2E2;
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
         cursor: pointer;
         transition: all 0.2s;
     }
     .btn-remove-part:hover {
         background: #FEE2E2;
+        border-color: #FCA5A5;
     }
 
     @media (max-width: 767px) {
@@ -182,89 +182,85 @@
             text-align: center;
         }
         .pc-builder-actions {
-            text-align: center;
+            justify-content: center;
             width: 100%;
         }
     }
 
     /* Sidebar Summary */
+    .pc-builder-summary {
+        position: sticky;
+        top: 20px;
+    }
     .pc-builder-summary-card {
         background: #FFFFFF;
         border: 1px solid var(--border);
         border-radius: 16px;
         box-shadow: var(--shadow-card);
-        padding: 24px;
-        position: sticky;
-        top: 20px;
+        padding: 20px;
     }
     .pc-builder-summary-title {
         font-size: 18px;
         font-weight: 800;
         color: var(--text-primary);
         margin-bottom: 20px;
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 12px;
         display: flex;
+        align-items: center;
         justify-content: space-between;
     }
     .pc-builder-summary-row {
         display: flex;
         justify-content: space-between;
         margin-bottom: 12px;
-        font-size: 14px;
+        font-size: 14.5px;
         color: var(--text-secondary);
     }
     .pc-builder-total-price {
-        font-size: 22px;
+        font-size: 26px;
         font-weight: 800;
         color: #EF4444;
         text-align: right;
-        margin: 20px 0;
+        margin: 10px 0 20px;
     }
     .btn-add-config-to-cart {
         width: 100%;
-        background: linear-gradient(135deg, #0B63E5, #3B82F6);
+        background: #EF4444;
         color: #FFFFFF;
         border: none;
-        padding: 14px 20px;
+        padding: 14px;
         border-radius: 10px;
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 700;
         cursor: pointer;
+        transition: all 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(11, 99, 229, 0.2);
+        margin-bottom: 15px;
     }
-    .btn-add-config-to-cart:hover:not(:disabled) {
-        opacity: 0.95;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(11, 99, 229, 0.3);
-    }
-    .btn-add-config-to-cart:disabled {
-        background: #CBD5E1;
-        color: #94A3B8;
-        cursor: not-allowed;
-        box-shadow: none;
+    .btn-add-config-to-cart:hover {
+        background: #DC2626;
     }
     .btn-reset-config {
         width: 100%;
-        background: transparent;
+        background: #FFFFFF;
         color: #64748B;
         border: 1px solid #CBD5E1;
-        padding: 11px 20px;
+        padding: 12px;
         border-radius: 10px;
-        font-size: 13.5px;
+        font-size: 14.5px;
         font-weight: 600;
         cursor: pointer;
-        margin-top: 10px;
         transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
     .btn-reset-config:hover {
         background: #F8FAFC;
-        color: var(--text-primary);
+        color: #334155;
     }
 
     /* Modal chọn linh kiện */
@@ -274,107 +270,107 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 2000;
-        padding: 15px;
+        padding: 20px;
+        backdrop-filter: blur(4px);
     }
     .pc-modal {
         background: #FFFFFF;
         width: 100%;
-        max-width: 850px;
-        max-height: 85vh;
-        border-radius: 16px;
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        max-width: 800px;
+        border-radius: 20px;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
-        animation: modalFadeIn 0.25s ease-out;
-    }
-    @keyframes modalFadeIn {
-        from { transform: scale(0.95); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
+        max-height: 90vh;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
     .pc-modal-header {
-        padding: 20px 24px;
+        padding: 20px 25px;
         border-bottom: 1px solid var(--border);
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
     }
     .pc-modal-title {
         font-size: 18px;
         font-weight: 800;
         color: var(--text-primary);
+        margin: 0;
     }
     .pc-modal-close {
         background: none;
         border: none;
-        font-size: 20px;
+        font-size: 24px;
         color: #94A3B8;
         cursor: pointer;
-        transition: color 0.2s;
+        transition: all 0.2s;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
     }
     .pc-modal-close:hover {
+        background: #F1F5F9;
         color: var(--text-primary);
     }
     .pc-modal-body {
-        padding: 20px 24px;
+        padding: 25px;
         overflow-y: auto;
         flex: 1;
+    }
+    .pc-search-box {
+        position: relative;
+        margin-bottom: 25px;
+    }
+    .pc-search-box input {
+        width: 100%;
+        padding: 14px 20px 14px 45px;
+        border: 1px solid #CBD5E1;
+        border-radius: 12px;
+        font-size: 15px;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+    .pc-search-box input:focus {
+        outline: none;
+        border-color: #0B63E5;
+        box-shadow: 0 0 0 4px rgba(11, 99, 229, 0.1);
+    }
+    .pc-search-box i {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+        font-size: 16px;
+    }
+    .pc-modal-products-list {
         display: flex;
         flex-direction: column;
         gap: 15px;
     }
-    .pc-search-box {
-        position: relative;
-    }
-    .pc-search-box input {
-        width: 100%;
-        padding: 12px 16px 12px 42px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font-size: 14.5px;
-        outline: none;
-        transition: all 0.2s;
-    }
-    .pc-search-box input:focus {
-        border-color: #0B63E5;
-        box-shadow: 0 0 0 3px rgba(11, 99, 229, 0.15);
-    }
-    .pc-search-box i {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #94A3B8;
-        font-size: 15px;
-    }
-    /* Danh sách sản phẩm trong modal */
-    .pc-modal-products-list {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
     .pc-modal-item {
         display: grid;
-        grid-template-columns: 60px 1fr 140px 110px;
+        grid-template-columns: 80px 1fr 150px 120px;
         align-items: center;
-        padding: 14px 18px;
+        padding: 15px;
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 12px;
         transition: all 0.2s;
     }
     .pc-modal-item:hover {
         border-color: #0B63E5;
-        background: #F8FAFC;
+        background: #FAFAFA;
     }
     .pc-modal-item-img {
-        width: 44px;
-        height: 44px;
+        width: 60px;
+        height: 60px;
         object-fit: contain;
         border: 1px solid var(--border);
         border-radius: 6px;
@@ -448,7 +444,7 @@
     }
 </style>
 
-<div class="pc-builder-container">
+<div class="container pc-builder-container">
     <div class="pc-builder-header">
         <h1>Xây dựng cấu hình PC theo yêu cầu</h1>
         <p>Lựa chọn linh kiện tối ưu hiệu năng - Tương thích hoàn hảo - Hỗ trợ lắp ráp miễn phí</p>
@@ -492,16 +488,27 @@
                     <span>Phân tích công suất nguồn</span>
                     <i class="fa-solid fa-bolt" style="color: #F59E0B;"></i>
                 </div>
-                <div class="pc-builder-summary-row">
-                    <span>Công suất tải ước tính:</span>
-                    <span id="psu-estimated-w" style="font-weight: 700; color: var(--text-primary);">0W</span>
+                
+                <div id="psu-analysis-placeholder" style="font-size:13px; color:#64748B; font-style:italic; padding: 10px 0; text-align: center;">
+                    Chọn CPU để nhận đề xuất nguồn.
                 </div>
-                <div class="pc-builder-summary-row">
-                    <span>Nguồn tối thiểu khuyên dùng:</span>
-                    <span id="psu-recommended-w" style="font-weight: 700; color: #EF4444;">300W</span>
-                </div>
-                <div style="font-size:11.5px; color:#64748B; font-style:italic; line-height:1.4; margin-top:8px;">
-                    * Công suất đã cộng 30% Headroom an toàn và làm tròn lên 50W.
+
+                <div id="psu-analysis-content" style="display: none;">
+                    <div class="pc-builder-summary-row" style="font-size:13px;">
+                        <span>Công suất tải đỉnh:</span>
+                        <span id="psu-estimated-w" style="font-weight: 600; color: var(--text-primary);">0W</span>
+                    </div>
+                    <div class="pc-builder-summary-row" style="font-size:13px; margin-top:4px;">
+                        <span>Yêu cầu tối thiểu từ GPU:</span>
+                        <span id="psu-gpu-minimum-w" style="font-weight: 600; color: var(--text-secondary);">0W</span>
+                    </div>
+                    <div class="pc-builder-summary-row" style="margin-top:8px; border-top: 1px dashed #E2E8F0; padding-top:8px;">
+                        <span style="font-weight:600;">Nguồn khuyến nghị:</span>
+                        <span id="psu-recommended-w" style="font-weight: 700; color: #EF4444; font-size:16px;">300W</span>
+                    </div>
+                    <div style="font-size:11px; color:#94A3B8; font-style:italic; line-height:1.4; margin-top:8px; text-align:right;">
+                        * Đã tính 30% dự phòng an toàn.
+                    </div>
                 </div>
             </div>
 
@@ -787,9 +794,21 @@
             .then(data => {
                 if (data.success) {
                     const power = data.power;
-                    // Cập nhật công suất nguồn hiển thị
-                    document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
-                    document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+                    
+                    const psuPlaceholder = document.getElementById('psu-analysis-placeholder');
+                    const psuContent = document.getElementById('psu-analysis-content');
+                    
+                    if (cpuId === 0 && gpuId === 0) {
+                        psuPlaceholder.style.display = 'block';
+                        psuContent.style.display = 'none';
+                    } else {
+                        psuPlaceholder.style.display = 'none';
+                        psuContent.style.display = 'block';
+                        
+                        document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
+                        document.getElementById('psu-gpu-minimum-w').innerText = (power.gpu_minimum_psu_w > 0 ? power.gpu_minimum_psu_w : 0) + 'W';
+                        document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+                    }
 
                     // Hiển thị danh sách cảnh báo & lỗi
                     const alertsContainer = document.getElementById('build-alerts-container');
@@ -798,6 +817,14 @@
                     
                     alertsList.innerHTML = '';
                     let hasBlockers = false;
+                    let missingCores = [];
+
+                    // Yêu cầu linh kiện cốt lõi để mua hàng
+                    if (cpuId === 0) missingCores.push('CPU');
+                    if (mainboardId === 0) missingCores.push('Bo mạch chủ');
+                    if (ramId === 0) missingCores.push('RAM');
+                    if (storageId === 0) missingCores.push('Ổ cứng');
+                    if (psuId === 0) missingCores.push('Nguồn (PSU)');
 
                     // Duyệt các lỗi nghiêm trọng (Blockers)
                     if (data.blockers && data.blockers.length > 0) {
@@ -809,6 +836,15 @@
                                 </div>
                             `;
                         });
+                    }
+
+                    if (missingCores.length > 0) {
+                        hasBlockers = true; // Not technically a "blocker" array element from backend, but it blocks purchase
+                        alertsList.innerHTML += `
+                            <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
+                                <i class="fa-solid fa-circle-xmark"></i> Thiếu linh kiện cốt lõi: ${missingCores.join(', ')}
+                            </div>
+                        `;
                     }
 
                     // Duyệt các cảnh báo (Warnings)
@@ -829,7 +865,15 @@
                     }
 
                     // Vô hiệu hóa nút thêm vào giỏ hàng nếu cấu hình có Blockers
-                    btnAddToCart.disabled = hasBlockers;
+                    if (hasBlockers) {
+                        btnAddToCart.disabled = true;
+                        btnAddToCart.style.opacity = '0.5';
+                        btnAddToCart.style.cursor = 'not-allowed';
+                    } else {
+                        btnAddToCart.disabled = false;
+                        btnAddToCart.style.opacity = '1';
+                        btnAddToCart.style.cursor = 'pointer';
+                    }
                 }
             })
             .catch(err => {

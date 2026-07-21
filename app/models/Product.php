@@ -933,10 +933,20 @@ class Product
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, COALESCE(p.sale_price, p.price * 0.85) as discount_price, p.stock as fs_stock, 
-                            0 as fs_sold, COALESCE(fs.end_time, DATE_ADD(NOW(), INTERVAL 1 DAY)) as end_time 
+                    'SELECT p.*, 
+                            fsi.discount_price as discount_price, 
+                            fsi.allocation_quantity as fs_stock, 
+                            COALESCE(sold_data.total_sold, 0) as fs_sold,
+                            fs.end_time as end_time 
                      FROM products p
-                     LEFT JOIN flash_sales fs ON fs.status = \'active\' AND fs.start_time <= NOW() AND fs.end_time >= NOW()
+                     INNER JOIN flash_sale_items fsi ON p.id = fsi.product_id
+                     INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
+                     LEFT JOIN (
+                         SELECT oi.product_id, SUM(oi.quantity) as total_sold
+                         FROM order_items oi
+                         INNER JOIN orders o ON oi.order_id = o.id
+                         GROUP BY oi.product_id
+                     ) sold_data ON sold_data.product_id = p.id
                      WHERE (p.is_flash_sale = 1 OR p.sale_price IS NOT NULL)
                      ORDER BY p.id DESC LIMIT :limit'
                 );
@@ -952,6 +962,7 @@ class Product
         $samples = array_filter(self::getSampleProducts(), fn($p) => !empty($p['is_flash_sale']));
         return array_slice(array_values($samples), 0, $limit);
     }
+
 
     /** Lấy sản phẩm theo slug danh mục (hỗ trợ cả danh mục con) */
     public function getByCategorySlug(string $slug, int $limit = 6): array
@@ -1206,129 +1217,338 @@ class Product
         return array_slice(self::getSampleProducts(), 0, $limit);
     }
 
-    /** Tìm kiếm sản phẩm theo từ khóa và danh mục */
-    public function search(string $keyword = '', string $categorySlug = '', int $limit = 24): array
+    /**
+     * Loại bỏ dấu tiếng Việt để đối chiếu alias
+     */
+    private function removeVietnameseAccents(string $str): string
     {
-        if ($this->db !== null) {
-            try {
-                $keyword = normalizeSearchKeyword($keyword);
-
-                $searchAliases = [
-                    'máy tính'       => ['pc', 'desktop', 'máy tính để bàn'],
-                    'máy bộ'         => ['pc build sẵn', 'desktop'],
-                    'máy chơi game'  => ['pc gaming', 'laptop gaming'],
-                    'card màn hình'  => ['vga', 'gpu'],
-                    'ổ cứng'         => ['ssd', 'hdd'],
-                    'bộ nhớ'         => ['ram'],
-                    'tai nghe game'  => ['gaming headset'],
-                    'bo mạch chủ'    => ['mainboard', 'main'],
-                    'nguồn máy tính' => ['psu', 'nguồn pc'],
-                    'tản nhiệt'      => ['cooler', 'fan cpu'],
-                ];
-
-                $aliasesFound = [];
-                if (!empty($keyword)) {
-                    foreach ($searchAliases as $key => $values) {
-                        if (str_contains($keyword, $key)) {
-                            $aliasesFound = array_merge($aliasesFound, $values);
-                        }
-                        foreach ($values as $val) {
-                            if (str_contains($keyword, $val)) {
-                                $aliasesFound[] = $key;
-                                $aliasesFound = array_merge($aliasesFound, array_diff($values, [$val]));
-                            }
-                        }
-                    }
-                    $aliasesFound = array_unique($aliasesFound);
-                }
-
-                $relevanceSql = '0';
-                $params = [];
-
-                if (!empty($keyword)) {
-                    $relevanceSql = '
-                        (CASE WHEN p.name = :exactName THEN 100 ELSE 0 END) +
-                        (CASE WHEN p.name LIKE :startsName THEN 70 ELSE 0 END) +
-                        (CASE WHEN p.name LIKE :containsName THEN 50 ELSE 0 END) +
-                        (CASE WHEN c.name LIKE :containsCat THEN 30 ELSE 0 END) +
-                        (CASE WHEN b.name LIKE :containsBrand THEN 20 ELSE 0 END) +
-                        (CASE WHEN p.description LIKE :containsDesc THEN 5 ELSE 0 END)
-                    ';
-
-                    $params[':exactName']     = $keyword;
-                    $params[':startsName']    = $keyword . '%';
-                    $params[':containsName']  = '%' . $keyword . '%';
-                    $params[':containsCat']   = '%' . $keyword . '%';
-                    $params[':containsBrand'] = '%' . $keyword . '%';
-                    $params[':containsDesc']  = '%' . $keyword . '%';
-
-                    $aliasIdx = 1;
-                    foreach ($aliasesFound as $alias) {
-                        $aliasParam = ':alias_' . $aliasIdx;
-                        $relevanceSql .= " + (CASE WHEN p.name LIKE $aliasParam THEN 35 ELSE 0 END)";
-                        $params[$aliasParam] = '%' . $alias . '%';
-                        $aliasIdx++;
-                    }
-                }
-
-                $query = "
-                    SELECT p.*, b.name as brand_name, c.name as category_name, ($relevanceSql) as relevance
-                    FROM products p
-                    LEFT JOIN brands b ON p.brand_id = b.id
-                    JOIN categories c ON p.category_id = c.id
-                    WHERE p.status = 'active'
-                ";
-
-                if (!empty($keyword)) {
-                    $query .= ' AND (p.name LIKE :filterName OR p.description LIKE :filterDesc)';
-                    $params[':filterName'] = '%' . $keyword . '%';
-                    $params[':filterDesc'] = '%' . $keyword . '%';
-                }
-
-                if (!empty($categorySlug)) {
-                    $query .= ' AND (c.slug = :category OR c.parent_id IN (SELECT id FROM categories WHERE slug = :category))';
-                    $params[':category'] = $categorySlug;
-                }
-
-                if (!empty($keyword)) {
-                    $query .= ' ORDER BY relevance DESC, p.created_at DESC';
-                } else {
-                    $query .= ' ORDER BY p.id DESC';
-                }
-
-                $query .= ' LIMIT :limit';
-
-                $stmt = $this->db->prepare($query);
-                foreach ($params as $key => $val) {
-                    $stmt->bindValue($key, $val);
-                }
-                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-                $stmt->execute();
-
-                $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                if (!empty($res)) {
-                    return $res;
-                }
-            } catch (Exception $e) {}
+        $unicode = [
+            'a' => 'á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ',
+            'd' => 'đ',
+            'e' => 'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+            'i' => 'í|ì|ỉ|ĩ|ị',
+            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+            'u' => 'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+            'y' => 'ý|ỳ|ỷ|ỹ|ỵ',
+        ];
+        foreach ($unicode as $nonUnicode => $uni) {
+            $str = preg_replace("/($uni)/iu", $nonUnicode, $str);
         }
-
-        // Fallback search in sample products
-        $all = self::getSampleProducts();
-        if (!empty($categorySlug)) {
-            $all = array_filter($all, fn($p) => ($p['category_slug'] ?? '') === $categorySlug);
-        }
-        if (!empty($keyword)) {
-            $kw = function_exists('mb_strtolower') ? mb_strtolower($keyword, 'UTF-8') : strtolower($keyword);
-            $all = array_filter($all, function($p) use ($kw) {
-                $name = function_exists('mb_strtolower') ? mb_strtolower($p['name'] ?? '', 'UTF-8') : strtolower($p['name'] ?? '');
-                $desc = function_exists('mb_strtolower') ? mb_strtolower($p['description'] ?? '', 'UTF-8') : strtolower($p['description'] ?? '');
-                $cat = function_exists('mb_strtolower') ? mb_strtolower($p['category_name'] ?? '', 'UTF-8') : strtolower($p['category_name'] ?? '');
-                $brand = function_exists('mb_strtolower') ? mb_strtolower($p['brand_name'] ?? '', 'UTF-8') : strtolower($p['brand_name'] ?? '');
-                return str_contains($name, $kw) || str_contains($desc, $kw) || str_contains($cat, $kw) || str_contains($brand, $kw);
-            });
-        }
-        return array_slice(array_values($all), 0, $limit);
+        return $str;
     }
+
+    /**
+     * Chuẩn hóa từ khóa tìm kiếm
+     */
+    private function normalizeSearchKeyword(string $keyword): string
+    {
+        $keyword = mb_strtolower(trim($keyword), 'UTF-8');
+        $keyword = preg_replace('/\s+/u', ' ', $keyword);
+        return $keyword;
+    }
+
+    /**
+     * Xây dựng điều kiện WHERE và các tham số bindings.
+     * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
+     */
+    /**
+     * Xây dựng điều kiện WHERE và các tham số bindings.
+     * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
+     */
+    protected function buildSearchQueryConditions(
+        string $keyword = '',
+        string $categorySlug = '',
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        bool $inStockOnly = false,
+        bool $promoOnly = false
+    ): array {
+        $conditions = ["p.status = 'active'"];
+        $params = [];
+
+        // 1. Phân loại từ khóa theo bí danh danh mục (Category Aliases)
+        $normalized = $this->normalizeSearchKeyword($keyword);
+        $normalizedNoAccent = $this->removeVietnameseAccents($normalized);
+
+        $matchedCategorySlugs = [];
+        $aliases = [
+            'laptop gaming'     => ['laptop-gaming'],
+            'laptop van phong'  => ['laptop-van-phong'],
+            'laptop văn phòng'  => ['laptop-van-phong'],
+            'máy tính xách tay' => ['laptop-gaming', 'laptop-van-phong'],
+            'may tinh xach tay' => ['laptop-gaming', 'laptop-van-phong'],
+            'máy tính để bàn'   => ['pc-build-san'],
+            'may tinh de ban'   => ['pc-build-san'],
+            'gaming gear'       => ['gaming-gear'],
+            'linh kiện'         => ['linh-kien-pc'],
+            'linh kien'         => ['linh-kien-pc'],
+            'màn hình'          => ['man-hinh'],
+            'man hinh'          => ['man-hinh'],
+            'laptop'            => ['laptop-gaming', 'laptop-van-phong'],
+            'máy bộ'            => ['pc-build-san'],
+            'may bo'            => ['pc-build-san'],
+            'lap'               => ['laptop-gaming', 'laptop-van-phong'],
+            'pc'                => ['pc-build-san'],
+            'cpu'               => ['cpu'],
+            'mainboard'         => ['mainboard'],
+            'main'              => ['mainboard'],
+            'ram'               => ['ram'],
+            'vga'               => ['vga'],
+            'card màn hình'     => ['vga'],
+            'card man hinh'     => ['vga'],
+            'card đồ họa'       => ['vga'],
+            'card do hoa'       => ['vga'],
+            'ssd'               => ['ssd'],
+            'hdd'               => ['hdd'],
+            'psu'               => ['psu'],
+            'nguồn'             => ['psu'],
+            'nguon'             => ['psu'],
+            'case'              => ['case'],
+            'vỏ máy'            => ['case'],
+            'tản nhiệt'         => ['tan-nhiet'],
+            'tan nhiet'         => ['tan-nhiet']
+        ];
+
+        // Sắp xếp alias dài hơn lên trước
+        uksort($aliases, function($a, $b) {
+            return strlen($b) <=> strlen($a);
+        });
+
+        $remainingKeyword = $normalized;
+        $remainingKeywordNoAccent = $normalizedNoAccent;
+
+        foreach ($aliases as $alias => $slugs) {
+            $pattern = '/(?<=^|\s)' . preg_quote($alias, '/') . '(?=$|\s)/u';
+            $matched = false;
+            if (preg_match($pattern, $remainingKeyword)) {
+                $matchedCategorySlugs = array_merge($matchedCategorySlugs, $slugs);
+                $remainingKeyword = preg_replace($pattern, '', $remainingKeyword);
+                $matched = true;
+            }
+
+            $aliasNoAccent = $this->removeVietnameseAccents($alias);
+            $patternNoAccent = '/(?<=^|\s)' . preg_quote($aliasNoAccent, '/') . '(?=$|\s)/u';
+            if (preg_match($patternNoAccent, $remainingKeywordNoAccent)) {
+                if (!$matched) {
+                    $matchedCategorySlugs = array_merge($matchedCategorySlugs, $slugs);
+                }
+                $remainingKeywordNoAccent = preg_replace($patternNoAccent, '', $remainingKeywordNoAccent);
+            }
+        }
+
+        $remainingKeyword = trim(preg_replace('/\s+/u', ' ', $remainingKeyword));
+        $matchedCategorySlugs = array_unique($matchedCategorySlugs);
+
+        // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL
+        $urlSlugs = !empty($categorySlug) ? [$categorySlug] : [];
+        $hasCategoryConstraint = !empty($categorySlug) || !empty($matchedCategorySlugs);
+
+        if ($hasCategoryConstraint) {
+            if (!empty($urlSlugs) && !empty($matchedCategorySlugs)) {
+                $targetSlugs = array_values(array_intersect($matchedCategorySlugs, $urlSlugs));
+            } elseif (!empty($urlSlugs)) {
+                $targetSlugs = $urlSlugs;
+            } else {
+                $targetSlugs = $matchedCategorySlugs;
+            }
+
+            if (empty($targetSlugs)) {
+                // Giao rỗng -> 0 kết quả
+                $conditions[] = '1 = 0';
+            } else {
+                $catConditions = [];
+                foreach ($targetSlugs as $i => $slug) {
+                    $pName = ':catSlug_' . $i;
+                    $params[$pName] = $slug;
+                    $pNameParent = ':catSlugParent_' . $i;
+                    $params[$pNameParent] = $slug;
+                    $catConditions[] = "(c.slug = $pName OR c.parent_id IN (SELECT id FROM categories WHERE slug = $pNameParent AND status = 'active'))";
+                }
+                $conditions[] = '(' . implode(' OR ', $catConditions) . ')';
+            }
+        }
+
+        // 3. Filter Brand
+        if (!empty($brandSlug)) {
+            $conditions[] = 'b.slug = :brandSlug';
+            $params[':brandSlug'] = $brandSlug;
+        }
+
+        // 4. Filter Price
+        if ($minPrice > 0) {
+            $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) >= :minPrice';
+            $params[':minPrice'] = $minPrice;
+        }
+        if ($maxPrice > 0) {
+            $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) <= :maxPrice';
+            $params[':maxPrice'] = $maxPrice;
+        }
+
+        // 5. Filter Stock
+        if ($inStockOnly) {
+            $conditions[] = 'p.stock > 0';
+        }
+
+        // 5.5. Promotion Only (Khuyến mãi)
+        if ($promoOnly) {
+            $conditions[] = '(COALESCE(NULLIF(p.sale_price, 0), p.price) < p.price OR (p.old_price IS NOT NULL AND p.old_price > p.price) OR p.is_flash_sale = 1)';
+        }
+
+        if (!empty($remainingKeyword)) {
+            $words = array_filter(explode(' ', $remainingKeyword));
+            $wordConditions = [];
+            foreach ($words as $i => $word) {
+                $pNameName = ':search_word_name_' . $i;
+                $pNameBrand = ':search_word_brand_' . $i;
+                $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand)";
+                $params[$pNameName] = '%' . $word . '%';
+                $params[$pNameBrand] = '%' . $word . '%';
+            }
+            if (!empty($wordConditions)) {
+                $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';
+            }
+        }
+
+        return [$conditions, $params, $remainingKeyword];
+    }
+
+    /**
+     * Tìm kiếm sản phẩm nâng cao kết hợp điểm số
+     */
+    public function search(
+        string $keyword = '',
+        string $categorySlug = '',
+        int $limit = 48,
+        int $offset = 0,
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        string $sort = 'relevance',
+        bool $inStockOnly = false,
+        bool $promoOnly = false
+    ): array {
+        if ($this->db === null) {
+            return [];
+        }
+
+        try {
+            [$conditions, $params, $remainingKeyword] = $this->buildSearchQueryConditions(
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
+            );
+
+            $whereClause = implode(' AND ', $conditions);
+
+            // Xây dựng câu lệnh điểm số tương đồng nếu có keyword tên/thương hiệu
+            $scoreSql = '0 AS search_score';
+            if (!empty($remainingKeyword)) {
+                $scoreSql = "(CASE
+                    WHEN LOWER(p.name) = :exact_name THEN 100
+                    WHEN LOWER(p.name) LIKE :starts_name THEN 80
+                    WHEN LOWER(p.name) LIKE :contains_name THEN 60
+                    WHEN LOWER(b.name) = :exact_brand THEN 40
+                    WHEN LOWER(b.name) LIKE :contains_brand THEN 30
+                    ELSE 0
+                END) AS search_score";
+
+                $params[':exact_name'] = $remainingKeyword;
+                $params[':starts_name'] = $remainingKeyword . '%';
+                $params[':contains_name'] = '%' . $remainingKeyword . '%';
+                $params[':exact_brand'] = $remainingKeyword;
+                $params[':contains_brand'] = '%' . $remainingKeyword . '%';
+            }
+
+            // Sắp xếp
+            if ($sort === 'price_asc' || $sort === 'price-low') {
+                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.id DESC';
+            } elseif ($sort === 'price_desc' || $sort === 'price-high') {
+                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';
+            } elseif ($sort === 'newest') {
+                $sortClause = 'p.created_at DESC, p.id DESC';
+            } elseif ($sort === 'name_asc') {
+                $sortClause = 'p.name ASC';
+            } elseif ($sort === 'rating') {
+                $sortClause = 'p.rating DESC, p.id DESC';
+            } elseif (!empty($remainingKeyword)) {
+                $sortClause = 'search_score DESC, p.name ASC';
+            } else {
+                $sortClause = 'p.created_at DESC, p.id DESC';
+            }
+
+            $query = "
+                SELECT
+                    p.*,
+                    b.name as brand_name,
+                    c.name as category_name,
+                    c.slug as category_slug,
+                    $scoreSql
+                FROM products p
+                LEFT JOIN brands b ON p.brand_id = b.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE $whereClause
+                ORDER BY $sortClause
+                LIMIT :limit OFFSET :offset
+            ";
+
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $val) {
+                $stmt->bindValue($key, $val);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Search query failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Đếm tổng số kết quả khớp điều kiện tìm kiếm
+     */
+    public function countSearch(
+        string $keyword = '',
+        string $categorySlug = '',
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        bool $inStockOnly = false,
+        bool $promoOnly = false
+    ): int {
+        if ($this->db === null) {
+            return 0;
+        }
+
+        try {
+            [$conditions, $params] = $this->buildSearchQueryConditions(
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
+            );
+
+            $whereClause = implode(' AND ', $conditions);
+
+            $query = "
+                SELECT COUNT(DISTINCT p.id)
+                FROM products p
+                LEFT JOIN brands b ON p.brand_id = b.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE $whereClause
+            ";
+
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $val) {
+                $stmt->bindValue($key, $val);
+            }
+            $stmt->execute();
+
+            return (int)$stmt->fetchColumn();
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+
 
     /** Lấy sản phẩm theo danh mục không giới hạn */
     public function getByCategory(string $slug, int $limit = 24): array

@@ -19,6 +19,13 @@ class Controller
 
         if ($useLayout) {
             // Lấy danh mục chung cho header (MVC Standard)
+            require_once ROOT_PATH . '/app/services/CategoryMenuService.php';
+            try {
+                $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
+            } catch (Exception $e) {
+                $globalCategoryMenu = []; // Graceful fallback
+            }
+            
             require_once ROOT_PATH . '/config/database.php';
             $db = Database::getConnection();
             $globalCategories = [];

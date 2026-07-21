@@ -38,7 +38,7 @@
                         <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Thanh toán & Vận chuyển</h4>
                         <p style="margin: 0; font-size: 14px;">Hình thức: <strong><?= e($order['payment_method']) ?></strong></p>
                         <p style="margin: 4px 0 0 0; font-size: 14px;">Thanh toán: <strong style="text-transform: uppercase;"><?= e($order['payment_status']) ?></strong></p>
-                        <p style="margin: 4px 0 0 0; font-size: 14px;">Vận chuyển: <strong style="text-transform: uppercase;"><?= e($order['fulfillment_status']) ?></strong></p>
+                        <p style="margin: 4px 0 0 0; font-size: 14px;">Vận chuyển: <strong style="text-transform: uppercase;"><?= e($order['status']) ?></strong></p>
                     </div>
                 </div>
 

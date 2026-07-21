@@ -52,12 +52,29 @@ class HomeController extends Controller
     {
         $keyword = trim($_GET['q'] ?? '');
         $categorySlug = trim($_GET['cat'] ?? '');
+        $brandSlug = trim($_GET['brand'] ?? '');
+        $minPrice = filter_input(INPUT_GET, 'min_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
+        $maxPrice = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
+        $inStockOnly = ($_GET['stock'] ?? '') === '1';
+        $promoOnly = ($_GET['promo'] ?? '') === '1';
+        $sort = $_GET['sort'] ?? ($keyword !== '' ? 'relevance' : 'newest');
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = 24;
+        $offset = ($page - 1) * $limit;
 
         $productModel = $this->model('Product');
-        $products = $productModel->search($keyword, $categorySlug, 24);
+
+        $products = $productModel->search(
+            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
+        );
+        $totalResults = $productModel->countSearch(
+            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
+        );
 
         $pageTitle = 'Kết quả tìm kiếm';
-        if (!empty($keyword) && !empty($categorySlug)) {
+        if ($promoOnly) {
+            $pageTitle = 'Sản phẩm đang Khuyến mãi';
+        } elseif (!empty($keyword) && !empty($categorySlug)) {
             $categoryName = '';
             foreach ($productModel->getCategories() as $cat) {
                 if ($cat['slug'] === $categorySlug) {
@@ -65,7 +82,7 @@ class HomeController extends Controller
                     break;
                 }
             }
-            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . $categoryName;
+            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . ($categoryName ?: $categorySlug);
         } elseif (!empty($keyword)) {
             $pageTitle = 'Tìm kiếm: ' . $keyword;
         } elseif (!empty($categorySlug)) {
@@ -81,11 +98,20 @@ class HomeController extends Controller
             'pageTitle'    => $pageTitle,
             'keyword'      => $keyword,
             'categorySlug' => $categorySlug,
+            'brandSlug'    => $brandSlug,
+            'minPrice'     => $minPrice,
+            'maxPrice'     => $maxPrice,
+            'inStockOnly'  => $inStockOnly,
+            'promoOnly'    => $promoOnly,
+            'sort'         => $sort,
+            'page'         => $page,
+            'limit'        => $limit,
             'products'     => $products,
             'categories'   => $productModel->getCategories(),
-            'totalResults' => count($products),
+            'totalResults' => $totalResults,
         ]);
     }
+
 
     /** Trang danh mục */
     public function category(string $slug = ''): void
@@ -126,7 +152,7 @@ class HomeController extends Controller
         header('Content-Type: application/json; charset=utf-8');
 
         // Require at least 2 characters (mirrors client-side guard)
-        if (mb_strlen($keyword) < 2) {
+        if (safe_strlen($keyword) < 2) {
             echo json_encode([]);
             return;
         }

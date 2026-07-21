@@ -70,11 +70,7 @@
                         <tr>
                             <td><?= (int)$p['id'] ?></td>
                             <td>
-                                <?php if (!empty($p['image'])): ?>
-                                    <img src="<?= url('assets/images/' . e($p['image'])) ?>" alt="<?= e($p['name']) ?>" style="width: 44px; height: 44px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; padding: 2px;">
-                                <?php else: ?>
-                                    <div style="width: 44px; height: 44px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #9CA3AF; border-radius: 4px;">No image</div>
-                                <?php endif; ?>
+                                <img src="<?= e(productImageUrl($p['image'] ?? '', $p['name'] ?? '')) ?>" alt="<?= e($p['name']) ?>" style="width: 44px; height: 44px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; padding: 2px; background: var(--bg-body);">
                             </td>
                             <td>
                                 <strong style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px;"><?= e($p['name']) ?></strong>
@@ -103,13 +99,15 @@
                                     <?= $p['status'] === 'active' ? 'Hiển thị' : 'Ẩn/Khoá' ?>
                                 </span>
                             </td>
-                            <td style="text-align: center; display: flex; gap: 6px; justify-content: center; align-items: center; height: 60px;">
-                                <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 10px; font-size: 12px;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                
-                                <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá sản phẩm này?');" style="margin: 0;">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 10px; font-size: 12px;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                </form>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
+                                    <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
+                                    
+                                    <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá sản phẩm này?');" style="margin: 0;">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

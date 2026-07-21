@@ -26,11 +26,15 @@ $total = $total ?? 0;
                 <?php foreach ($cartItems as $item): ?>
                     <div class="cart-item">
                         <div class="cart-item__info">
-                            <div class="cart-item__thumb">
-                                <i class="fa-solid fa-laptop-code"></i>
-                            </div>
+                            <a href="<?= url('product/detail/' . e($item['slug'] ?? '')) ?>" class="cart-item__thumb" style="text-decoration: none; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: var(--bg-body); border: 1px solid var(--border);">
+                                <img src="<?= e(productImageUrl($item['image'] ?? '', $item['name'] ?? '')) ?>" alt="<?= e($item['name']) ?>" style="width: 100%; height: 100%; object-fit: contain;">
+                            </a>
                             <div>
-                                <h3><?= e($item['name']) ?></h3>
+                                <h3>
+                                    <a href="<?= url('product/detail/' . e($item['slug'] ?? '')) ?>" style="color: var(--text-primary); text-decoration: none; transition: var(--transition);" onmouseover="this.style.color='var(--primary)';" onmouseout="this.style.color='var(--text-primary)';">
+                                        <?= e($item['name']) ?>
+                                    </a>
+                                </h3>
                                 <p><?= formatPrice($item['price']) ?> / sản phẩm</p>
                             </div>
                         </div>
@@ -48,7 +52,7 @@ $total = $total ?? 0;
                                 <button type="submit" class="btn btn--outline btn--sm" style="box-shadow: none;">Xóa</button>
                             </form>
                         </div>
-                        <strong style="font-size: 16px; color: var(--primary);"><?= formatPrice($item['line_total']) ?></strong>
+                        <strong style="font-size: 16px; color: var(--primary);"><?= formatPrice((float)$item['price'] * (int)$item['quantity']) ?></strong>
                     </div>
                 <?php endforeach; ?>
             </div>
