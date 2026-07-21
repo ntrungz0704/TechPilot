@@ -74,7 +74,7 @@ class AdminOrderController extends Controller
         if ($db) {
             // Lấy thông tin đơn hàng và mã coupon nếu có
             $stmt = $db->prepare(
-                'SELECT o.*, c.code as coupon_code, c.discount_value, c.discount_type
+                'SELECT o.*, c.code as coupon_code, c.discount_value, c.type as discount_type
                  FROM orders o
                  LEFT JOIN coupons c ON o.coupon_id = c.id
                  WHERE o.id = :id LIMIT 1'
@@ -126,29 +126,33 @@ class AdminOrderController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Lấy trạng thái hiện tại của đơn hàng
-            $stmt = $db->prepare('SELECT status FROM orders WHERE id = :id LIMIT 1');
+            // Lấy thông tin hiện tại của đơn hàng
+            $stmt = $db->prepare('SELECT status, user_id, order_code FROM orders WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $id]);
-            $currentStatus = $stmt->fetchColumn();
+            $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$currentStatus) {
+            if (!$orderData) {
                 flash('error', 'Đơn hàng không tồn tại.');
                 $this->redirect('admin/orders');
                 return;
             }
+
+            $currentStatus = $orderData['status'];
 
             if ($currentStatus === $newStatus) {
                 $this->redirect('admin/orders/detail/' . $id);
                 return;
             }
 
-            // Định nghĩa các chuyển đổi trạng thái hợp lệ
+            // Cho phép chuyển đổi linh hoạt 100% giữa tất cả các trạng thái để Admin dễ dàng kiểm thử và sửa lỗi vận chuyển
+            $allStatuses = ['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'];
             $validTransitions = [
-                'pending'   => ['confirmed', 'cancelled'],
-                'confirmed' => ['shipping', 'cancelled'],
-                'shipping'  => ['completed', 'cancelled'],
-                'completed' => [],
-                'cancelled' => []
+                'pending'    => $allStatuses,
+                'confirmed'  => $allStatuses,
+                'processing' => $allStatuses,
+                'shipping'   => $allStatuses,
+                'completed'  => $allStatuses,
+                'cancelled'  => $allStatuses
             ];
 
             if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
@@ -163,7 +167,7 @@ class AdminOrderController extends Controller
                 // Nếu đơn hàng chuyển sang Completed -> Tự động đánh dấu đã thanh toán (Paid)
                 $paymentStatusSql = '';
                 if ($newStatus === 'completed') {
-                    $paymentStatusSql = ', payment_status = \'paid\', fulfillment_status = \'delivered\'';
+                    $paymentStatusSql = ', payment_status = \'paid\'';
                 }
 
                 // Nếu đơn hàng bị Huỷ (Cancelled) -> Cộng lại số lượng tồn kho sản phẩm
@@ -212,6 +216,28 @@ class AdminOrderController extends Controller
                     ':status' => $newStatus,
                     ':id'     => $id
                 ]);
+
+                // Tạo thông báo cho khách hàng
+                if (!empty($orderData['user_id'])) {
+                    $title = 'Cập nhật đơn hàng #' . $orderData['order_code'];
+                    $statusLabel = [
+                        'pending'    => 'Chờ xử lý (Pending)',
+                        'confirmed'  => 'Đã xác nhận (Confirmed)',
+                        'processing' => 'Đang xử lý (Processing)',
+                        'shipping'   => 'Đang giao hàng (Shipping)',
+                        'completed'  => 'Hoàn thành (Completed)',
+                        'cancelled'  => 'Đã huỷ (Cancelled)',
+                    ][$newStatus] ?? $newStatus;
+                    
+                    $content = "Đơn hàng #{$orderData['order_code']} của bạn đã được chuyển sang trạng thái: {$statusLabel}.";
+                    
+                    $notifStmt = $db->prepare('INSERT INTO notifications (user_id, title, content, is_read) VALUES (:user_id, :title, :content, 0)');
+                    $notifStmt->execute([
+                        ':user_id' => (int)$orderData['user_id'],
+                        ':title'   => $title,
+                        ':content' => $content
+                    ]);
+                }
 
                 $db->commit();
                 flash('success', 'Đã cập nhật trạng thái đơn hàng thành công!');

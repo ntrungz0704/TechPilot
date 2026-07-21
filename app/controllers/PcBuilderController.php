@@ -75,10 +75,11 @@ class PcBuilderController extends Controller
                     'specs' => json_encode([
                         'component_type' => 'cpu',
                         'socket' => 'LGA1700',
-                        'generation' => 13,
+                        'generation' => '13th_gen',
                         'brand_platform' => 'intel',
-                        'max_turbo_power_w' => 148,
-                        'tdp_w' => 65
+                        'max_power_w' => 148,
+                        'base_power_w' => 65,
+                        'integrated_graphics' => false
                     ])
                 ],
                 [
@@ -90,10 +91,11 @@ class PcBuilderController extends Controller
                     'specs' => json_encode([
                         'component_type' => 'cpu',
                         'socket' => 'LGA1700',
-                        'generation' => 14,
+                        'generation' => '14th_gen',
                         'brand_platform' => 'intel',
-                        'max_turbo_power_w' => 253,
-                        'tdp_w' => 125
+                        'max_power_w' => 253,
+                        'base_power_w' => 125,
+                        'integrated_graphics' => true
                     ])
                 ],
                 [
@@ -105,10 +107,11 @@ class PcBuilderController extends Controller
                     'specs' => json_encode([
                         'component_type' => 'cpu',
                         'socket' => 'AM5',
-                        'generation' => 7,
+                        'generation' => '7000_series',
                         'brand_platform' => 'amd',
-                        'ppt_w' => 162,
-                        'tdp_w' => 120
+                        'max_power_w' => 162,
+                        'base_power_w' => 120,
+                        'integrated_graphics' => true
                     ])
                 ],
                 [
@@ -120,10 +123,11 @@ class PcBuilderController extends Controller
                     'specs' => json_encode([
                         'component_type' => 'cpu',
                         'socket' => 'AM5',
-                        'generation' => 7,
+                        'generation' => '7000_series',
                         'brand_platform' => 'amd',
-                        'ppt_w' => 142,
-                        'tdp_w' => 105
+                        'max_power_w' => 142,
+                        'base_power_w' => 105,
+                        'integrated_graphics' => true
                     ])
                 ]
             ],
@@ -142,7 +146,8 @@ class PcBuilderController extends Controller
                         'form_factor' => 'mATX',
                         'ram_slots' => 4,
                         'max_memory_gb' => 192,
-                        'supported_cpu_generations' => [12, 13, 14]
+                        'bios_cpu_generations' => ['12th_gen', '13th_gen', '14th_gen'],
+                        'bios_warning_generations' => ['14th_gen']
                     ])
                 ],
                 [
@@ -159,7 +164,8 @@ class PcBuilderController extends Controller
                         'form_factor' => 'ATX',
                         'ram_slots' => 4,
                         'max_memory_gb' => 192,
-                        'supported_cpu_generations' => [12, 13, 14]
+                        'bios_cpu_generations' => ['12th_gen', '13th_gen', '14th_gen'],
+                        'bios_warning_generations' => ['14th_gen']
                     ])
                 ],
                 [
@@ -176,7 +182,8 @@ class PcBuilderController extends Controller
                         'form_factor' => 'mATX',
                         'ram_slots' => 4,
                         'max_memory_gb' => 192,
-                        'supported_cpu_generations' => [7, 8, 9]
+                        'bios_cpu_generations' => ['7000_series', '8000_series', '9000_series'],
+                        'bios_warning_generations' => ['9000_series']
                     ])
                 ]
             ],
@@ -190,8 +197,10 @@ class PcBuilderController extends Controller
                     'specs' => json_encode([
                         'component_type' => 'ram',
                         'memory_type' => 'DDR5',
+                        'module_type' => 'DIMM',
                         'capacity_gb' => 32,
                         'modules' => 2,
+                        'speed_mt_s' => 6000,
                         'power_w_per_module' => 4
                     ])
                 ],
@@ -204,9 +213,11 @@ class PcBuilderController extends Controller
                     'specs' => json_encode([
                         'component_type' => 'ram',
                         'memory_type' => 'DDR5',
+                        'module_type' => 'DIMM',
                         'capacity_gb' => 32,
                         'modules' => 2,
-                        'power_w_per_module' => 4.5
+                        'speed_mt_s' => 6400,
+                        'power_w_per_module' => 5
                     ])
                 ]
             ],
@@ -219,9 +230,11 @@ class PcBuilderController extends Controller
                     'stock' => 14,
                     'specs' => json_encode([
                         'component_type' => 'gpu',
-                        'power_w' => 115,
-                        'recommended_psu_w' => 450,
-                        'length_mm' => 272
+                        'board_power_w' => 115,
+                        'minimum_system_psu_w' => 450,
+                        'power_connectors' => ['8-pin'],
+                        'length_mm' => 272,
+                        'thickness_slots' => 2
                     ])
                 ],
                 [
@@ -232,9 +245,11 @@ class PcBuilderController extends Controller
                     'stock' => 10,
                     'specs' => json_encode([
                         'component_type' => 'gpu',
-                        'power_w' => 220,
-                        'recommended_psu_w' => 650,
-                        'length_mm' => 242
+                        'board_power_w' => 220,
+                        'minimum_system_psu_w' => 650,
+                        'power_connectors' => ['12VHPWR'],
+                        'length_mm' => 242,
+                        'thickness_slots' => 2
                     ])
                 ],
                 [
@@ -245,9 +260,11 @@ class PcBuilderController extends Controller
                     'stock' => 8,
                     'specs' => json_encode([
                         'component_type' => 'gpu',
-                        'power_w' => 285,
-                        'recommended_psu_w' => 750,
-                        'length_mm' => 336
+                        'board_power_w' => 285,
+                        'minimum_system_psu_w' => 750,
+                        'power_connectors' => ['12VHPWR'],
+                        'length_mm' => 336,
+                        'thickness_slots' => 3.1
                     ])
                 ]
             ],
@@ -260,6 +277,8 @@ class PcBuilderController extends Controller
                     'stock' => 40,
                     'specs' => json_encode([
                         'component_type' => 'ssd',
+                        'form_factor' => 'M.2 2280',
+                        'interface' => 'PCIe 4.0',
                         'power_w' => 6
                     ])
                 ],
@@ -271,6 +290,8 @@ class PcBuilderController extends Controller
                     'stock' => 50,
                     'specs' => json_encode([
                         'component_type' => 'ssd',
+                        'form_factor' => 'M.2 2280',
+                        'interface' => 'PCIe 4.0',
                         'power_w' => 4
                     ])
                 ]
@@ -284,7 +305,11 @@ class PcBuilderController extends Controller
                     'stock' => 20,
                     'specs' => json_encode([
                         'component_type' => 'psu',
-                        'wattage_w' => 750
+                        'rated_power_w' => 750,
+                        'form_factor' => 'ATX',
+                        'atx_version' => '3.0',
+                        'pcie_8pin_connectors' => 3,
+                        'has_12vhpwr' => true
                     ])
                 ],
                 [
@@ -295,7 +320,11 @@ class PcBuilderController extends Controller
                     'stock' => 15,
                     'specs' => json_encode([
                         'component_type' => 'psu',
-                        'wattage_w' => 850
+                        'rated_power_w' => 850,
+                        'form_factor' => 'ATX',
+                        'atx_version' => '3.0',
+                        'pcie_8pin_connectors' => 4,
+                        'has_12vhpwr' => true
                     ])
                 ]
             ],
@@ -308,6 +337,7 @@ class PcBuilderController extends Controller
                     'stock' => 12,
                     'specs' => json_encode([
                         'component_type' => 'case',
+                        'form_factor' => 'Mid Tower',
                         'supported_motherboard_form_factors' => ['ATX', 'mATX', 'ITX'],
                         'max_gpu_length_mm' => 365,
                         'max_cpu_cooler_height_mm' => 165
@@ -321,6 +351,7 @@ class PcBuilderController extends Controller
                     'stock' => 18,
                     'specs' => json_encode([
                         'component_type' => 'case',
+                        'form_factor' => 'Mid Tower',
                         'supported_motherboard_form_factors' => ['ATX', 'mATX', 'ITX'],
                         'max_gpu_length_mm' => 360,
                         'max_cpu_cooler_height_mm' => 170
