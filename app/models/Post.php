@@ -306,7 +306,7 @@ class Post
     {
         if ($this->db === null) return null;
         $stmt = $this->db->prepare('
-            SELECT p.*, u.full_name as author_name
+            SELECT p.*, COALESCE(NULLIF(u.full_name, ""), NULLIF(p.author_name, "")) AS author_name
             FROM posts p
             LEFT JOIN users u ON p.author_id = u.id
             WHERE p.slug = :slug AND p.status = "published"
