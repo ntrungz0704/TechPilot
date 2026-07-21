@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
     address TEXT DEFAULT NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    remember_token VARCHAR(100) DEFAULT NULL,
+    reset_token VARCHAR(100) DEFAULT NULL,
+    reset_token_expiry DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_users_role_status (role, status)
@@ -282,6 +285,17 @@ CREATE TABLE IF NOT EXISTS posts (
     CONSTRAINT fk_posts_author FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE SET NULL,
     INDEX idx_posts_status_time (status, published_at, created_at),
     INDEX idx_posts_editorial (status, category_slug, post_type, is_featured, published_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    INDEX idx_notifications_user_read (user_id, is_read)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

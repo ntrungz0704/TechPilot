@@ -62,7 +62,7 @@
             <h3 class="card-title">Thông tin giao hàng</h3>
             <div style="font-size: 14px; display: flex; flex-direction: column; gap: 12px; line-height: 1.5;">
                 <p><strong>Người nhận:</strong> <?= e($order['customer_name']) ?></p>
-                <p><strong>Số điện thoại:</strong> <?= e($order['phone']) ?></p>
+                <p><strong>Số điện thoại:</strong> <?= e(formatPhone($order['phone'])) ?></p>
                 <?php if (!empty($order['email'])): ?>
                     <p><strong>Email:</strong> <?= e($order['email']) ?></p>
                 <?php endif; ?>
