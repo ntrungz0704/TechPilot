@@ -444,7 +444,7 @@ class ChatbotController extends Controller
      */
     private function handleNaturalLanguage(string $q): ?array
     {
-        $q = strtolower(removeVietnameseAccents($q));
+        $q = strtolower($this->removeVietnameseAccents($q));
 
         // Kiểm tra xem người dùng có đang hỏi tìm máy theo mức giá cụ thể không (Ví dụ: "có máy 3 triệu không")
         $targetPrice = $this->extractTargetPrice($q);
@@ -621,7 +621,7 @@ class ChatbotController extends Controller
     private function extractTargetPrice(string $text): ?float
     {
         // Loại bỏ dấu tiếng Việt để đồng nhất so sánh
-        $text = strtolower(removeVietnameseAccents($text));
+        $text = strtolower($this->removeVietnameseAccents($text));
         
         // Tìm dạng: số + tr hoặc số + trieu (có thể có phần thập phân như 3.5tr, 12,5tr, 8,5 triệu)
         if (preg_match('/(\d+([.,]\d+)?)\s*(trieu|tr)/i', $text, $matches)) {
@@ -642,13 +642,11 @@ class ChatbotController extends Controller
 
         return null;
     }
-}
 
-/**
- * Helper loại bỏ dấu tiếng Việt để so sánh chuỗi chính xác
- */
-if (!function_exists('removeVietnameseAccents')) {
-    function removeVietnameseAccents(string $str): string
+    /**
+     * Helper loại bỏ dấu tiếng Việt để so sánh chuỗi chính xác
+     */
+    private function removeVietnameseAccents(string $str): string
     {
         $unicode = [
             'a' => 'á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ',
