@@ -33,7 +33,6 @@ $hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($c
 
     <!-- 1. Dải danh mục tin tức -->
     <?php require_once __DIR__ . '/partials/_category_nav.php'; ?>
-    <?php require __DIR__ . '/partials/_hot_topics.php'; ?>
 
     <!-- 2. Bài viết nổi bật (Featured Post) - Chỉ hiển thị ở trang 1 không filter -->
     <?php if ($featured !== null && !$hasActiveFilter): ?>
@@ -60,26 +59,8 @@ if (!empty($currentQ)) {
     <div class="news-layout">
         <!-- Cột trái: Danh sách bài viết -->
         <div class="news-main">
-            <div class="news-main-header" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 1rem;">
-                <h3 class="news-section-title" style="margin-bottom: 0;"><?= e($sectionTitle) ?></h3>
-                
-                <form action="<?= url('post') ?>" method="get" class="news-search-form" style="display: flex; max-width: 300px; width: 100%; position: relative;">
-                    <?php if (!empty($currentType)): ?>
-                        <input type="hidden" name="type" value="<?= e($currentType) ?>">
-                    <?php endif; ?>
-                    <?php if (!empty($currentCategory)): ?>
-                        <input type="hidden" name="category" value="<?= e($currentCategory) ?>">
-                    <?php endif; ?>
-                    <input type="text" name="q" value="<?= e($currentQ) ?>" placeholder="Tìm bài viết, hướng dẫn..." aria-label="Tìm kiếm bài viết" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-card); color: var(--text-color);" required maxlength="150">
-                    <button type="submit" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    <?php if (!empty($currentQ)): ?>
-                        <?php 
-                            $clearParams = $pageQueryParams;
-                            unset($clearParams['q']);
-                        ?>
-                        <a href="<?= url('post?' . http_build_query($clearParams)) ?>" style="position: absolute; right: 2rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); text-decoration: none;" aria-label="Xóa tìm kiếm"><i class="fa-solid fa-xmark"></i></a>
-                    <?php endif; ?>
-                </form>
+            <div class="news-main-header">
+                <h3 class="news-section-title"><?= e($sectionTitle) ?></h3>
             </div>
 
             <?php if (!empty($posts)): ?>
@@ -140,7 +121,13 @@ if (!empty($currentQ)) {
             </div>
             <?php endif; ?>
 
-            <!-- Widget 2: Mua theo nhu cầu -->
+            <!-- Box 2: Xu hướng tìm kiếm (Sidebar Variant) -->
+            <?php
+            $hotTopicsVariant = 'sidebar';
+            require __DIR__ . '/partials/_hot_topics.php';
+            ?>
+
+            <!-- Box 3: Mua theo nhu cầu -->
             <?php require __DIR__ . '/partials/_buying_needs.php'; ?>
 
         </aside>

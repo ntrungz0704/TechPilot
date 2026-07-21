@@ -89,7 +89,7 @@ class PostController extends Controller
             'currentTag'      => $tag,
             'currentQ'        => $q,
             'commerceContext' => $commerceContext,
-            'pageStyles'      => ['assets/css/news.css?v=2.0'],
+            'pageStyles'      => ['assets/css/news.css?v=2.2'],
         ]);
     }
 
@@ -270,7 +270,7 @@ class PostController extends Controller
             'midCtaConfig'       => $commerceConfig['mid_cta'] ?? null,
             'endCtaConfig'       => $commerceConfig['end_cta'] ?? null,
             'commerceContext'    => $commerceContext,
-            'pageStyles'         => ['assets/css/news.css?v=2.0'],
+            'pageStyles'         => ['assets/css/news.css?v=2.2'],
             'pageScripts'        => ['assets/js/news.js?v=2.0'],
         ]);
     }
