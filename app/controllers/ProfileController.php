@@ -72,10 +72,11 @@ class ProfileController extends Controller
     {
         $user = $this->requireLogin();
         
-        // Đánh dấu tất cả đã đọc trước
-        $this->notifModel->markAllAsRead((int)$user['id']);
-
+        // Lấy danh sách thông báo trước (để giữ trạng thái chưa đọc khi hiển thị lần đầu)
         $notifications = $this->notifModel->getByUserId((int)$user['id']);
+
+        // Đánh dấu tất cả đã đọc sau đó trong DB để lần load tiếp theo hoặc icon chuông reset về 0
+        $this->notifModel->markAllAsRead((int)$user['id']);
 
         $this->render('profile/notifications', [
             'pageTitle' => 'Thông báo hệ thống',
@@ -94,6 +95,13 @@ class ProfileController extends Controller
         if (!$order) {
             flash('error', 'Đơn hàng không hợp lệ.');
             $this->redirect('profile/orders');
+            return;
+        }
+
+        if ($order['status'] !== 'completed') {
+            flash('error', 'Chỉ những đơn hàng đã giao thành công (Completed) mới được phép yêu cầu đổi trả.');
+            $this->redirect('profile/orders');
+            return;
         }
         
         $this->render('profile/return', [
@@ -125,7 +133,16 @@ class ProfileController extends Controller
         if ($orderId <= 0 || $reason === '') {
             flash('error', 'Lý do đổi trả không được để trống.');
             $this->redirect('profile/orders');
+            return;
         }
+
+        $order = $this->orderModel->getById($orderId, (int)$user['id']);
+        if (!$order || $order['status'] !== 'completed') {
+            flash('error', 'Đơn hàng không hợp lệ hoặc chưa hoàn thành.');
+            $this->redirect('profile/orders');
+            return;
+        }
+
 
         $itemsToReturn = [];
         foreach ($quantities as $orderItemId => $qty) {
@@ -357,5 +374,35 @@ class ProfileController extends Controller
         }
 
         $this->redirect('profile/order_detail?id=' . $orderId);
+    }
+
+    /** API: Lấy thông báo chưa đọc phục vụ Realtime Polling */
+    public function apiUnreadNotifications(): void
+    {
+        header('Content-Type: application/json');
+        $user = currentUser();
+        if (!$user) {
+            echo json_encode(['success' => false, 'count' => 0, 'notifications' => []]);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        $notifications = [];
+        $unreadCount = 0;
+        
+        if ($db) {
+            $stmt = $db->prepare("SELECT id, title, content, created_at FROM notifications WHERE user_id = :user_id AND is_read = 0 ORDER BY id DESC");
+            $stmt->execute([':user_id' => $user['id']]);
+            $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $unreadCount = count($notifications);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'count' => $unreadCount,
+            'notifications' => $notifications
+        ]);
+        exit;
     }
 }

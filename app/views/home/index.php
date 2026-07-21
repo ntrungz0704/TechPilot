@@ -33,7 +33,10 @@ $reviews = $reviews ?? [];
 <section class="container hero-section">
     <!-- Left: Vertical Category Menu -->
     <div class="hero-section__left" id="heroCategorySlot">
-        <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
+        <?php 
+        $isStatic = true; 
+        require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; 
+        ?>
     </div>
 
     <!-- Center: Large Hero Banner Carousel -->

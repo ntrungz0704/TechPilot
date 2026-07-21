@@ -14,9 +14,12 @@ echo "Connecting to MySQL server at $host:$port as user '$user'...\n";
 
 try {
     $dsn = "mysql:host=$host;port=$port;charset=utf8mb4";
+    $multiStmtAttr = defined('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+        ? constant('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+        : (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS') ? constant('PDO::MYSQL_ATTR_MULTI_STATEMENTS') : 1003);
     $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+        $multiStmtAttr => true,
     ]);
     echo "[OK] Connected to MySQL server successfully!\n";
 } catch (PDOException $e) {

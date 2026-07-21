@@ -6,6 +6,23 @@
  * Tự động khởi tạo CSDL và đồng bộ dữ liệu (Auto DB Import & Sync) khi có thay đổi tệp techpilot.sql.
  */
 
+// Polyfills for missing mbstring extension
+if (!function_exists('mb_strtolower')) {
+    function mb_strtolower(string $string, ?string $encoding = null): string {
+        return strtolower($string);
+    }
+}
+if (!function_exists('mb_strlen')) {
+    function mb_strlen(string $string, ?string $encoding = null): int {
+        return strlen($string);
+    }
+}
+if (!function_exists('mb_substr')) {
+    function mb_substr(string $string, int $start, ?int $length = null, ?string $encoding = null): string {
+        return $length !== null ? substr($string, $start, $length) : substr($string, $start);
+    }
+}
+
 if (!class_exists('Database')) {
     class Database
     {
@@ -63,9 +80,12 @@ if (!class_exists('Database')) {
                         if (!empty($port)) {
                             $serverDsn .= ';port=' . $port;
                         }
+                        $multiStmtAttr = defined('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+                            ? constant('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+                            : (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS') ? constant('PDO::MYSQL_ATTR_MULTI_STATEMENTS') : 1003);
                         $serverPdo = new PDO($serverDsn, $user, $pass, [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                            PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+                            $multiStmtAttr => true,
                         ]);
 
                         $sqlFile = dirname(__DIR__) . '/database/techpilot.sql';

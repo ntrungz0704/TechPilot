@@ -86,9 +86,10 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                 </a>
 
                 <!-- Nút Danh mục sản phẩm -->
-                <button type="button" class="header-category-btn desktop-only-link" id="categoryMenuButton" aria-expanded="false" aria-controls="categoryMegaMenu">
+                <button type="button" class="category-toggle desktop-only-link" id="categoryMenuToggle" aria-expanded="false" aria-controls="categoryMegaDropdown">
                     <i class="fa-solid fa-bars"></i>
                     <span class="desktop-only-link">Danh mục</span>
+                    <i class="category-toggle__chevron fa-solid fa-chevron-down"></i>
                 </button>
 
                 <!-- Search Bar với Category Dropdown -->
@@ -123,15 +124,43 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         </div>
                     </a>
                     <a href="<?= url('cart') ?>" class="header-actions__item header-actions__cart">
-                        <i class="fa-solid fa-cart-shopping"></i>
+                        <div class="header-actions__icon-wrapper">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span class="cart-badge"><?= (int)cartCount() ?></span>
+                        </div>
                         <div class="header-actions__text">
                             <span>Giỏ</span>
                             <strong>Hàng</strong>
                         </div>
-                        <span class="cart-badge"><?= (int)cartCount() ?></span>
                     </a>
                     
                     <?php if ($u = currentUser()): ?>
+                        <?php
+                        // Fetch unread notifications count dynamically
+                        $unreadNotificationsCount = 0;
+                        try {
+                            require_once ROOT_PATH . '/config/database.php';
+                            $db = Database::getConnection();
+                            if ($db) {
+                                $stmt = $db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :user_id AND is_read = 0");
+                                $stmt->execute([':user_id' => $u['id']]);
+                                $unreadNotificationsCount = (int)$stmt->fetchColumn();
+                            }
+                        } catch (Exception $e) {
+                            // Fail silently
+                        }
+                        ?>
+                        <a href="<?= url('profile/notifications') ?>" class="header-actions__item header-actions__notifications" style="position: relative; text-decoration: none; color: inherit;">
+                            <i class="fa-solid fa-bell"></i>
+                            <div class="header-actions__text">
+                                <span>Thông</span>
+                                <strong>Báo</strong>
+                            </div>
+                            <?php if ($unreadNotificationsCount > 0): ?>
+                                <span class="notification-badge" style="position: absolute; top: 0; right: 0; background-color: #EF4444; color: #FFFFFF; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-card); padding: 0 3px; transform: translate(30%, -30%);"><?= $unreadNotificationsCount ?></span>
+                            <?php endif; ?>
+                        </a>
+
                         <div class="header-actions__item dropdown header-actions__account">
                             <i class="fa-solid fa-circle-user"></i>
                             <span><?= e($u['full_name']) ?></span>
@@ -212,16 +241,11 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
             </nav>
 
 
-            <!-- Category Mega Menu Container (Separate Element) -->
-            <div id="categoryMegaMenu" class="category-mega-menu" hidden>
-                <div class="category-mega-menu__container">
-                    <?php require ROOT_PATH . '/app/views/components/category-menu.php'; ?>
-                </div>
-            </div>
+            <!-- 4. Category Mega Menu Dropdown -->
+            <?php if ($activeMenu !== 'home'): ?>
+                <?php require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; ?>
+            <?php endif; ?>
         </header>
     </div> <!-- Close commerce-header-stack -->
-
-    <!-- Category Backdrop (Separate Root Element) -->
-    <div id="categoryBackdrop" class="category-backdrop" hidden></div>
 
     <main>
