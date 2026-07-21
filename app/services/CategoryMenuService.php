@@ -5,6 +5,10 @@ class CategoryMenuService {
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
         
+        if ($db === null) {
+            return []; // Return empty menu tree if database is unavailable
+        }
+
         // 1. Get main categories (parent_id IS NULL)
         $stmt = $db->query("SELECT id, name, slug, icon FROM categories WHERE status = 'active' AND parent_id IS NULL ORDER BY sort_order ASC, name ASC");
         $mainCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
