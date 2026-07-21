@@ -370,13 +370,13 @@ class Post
         return $text;
     }
 
-    /** Helper static: Xây dựng Author Schema cho JSON-LD dựa trên contract has_real_author */
+    /** Helper static: Xây dựng Author Schema cho JSON-LD dựa trên contract has_real_author và author_name thô */
     public static function buildAuthorSchema(array $post): array
     {
         $hasRealAuthor = !empty($post['has_real_author']);
-        $authorName    = !empty($post['author_name']) ? trim((string)$post['author_name']) : 'Đội ngũ TechPilot';
+        $authorName    = !empty($post['author_name']) ? trim((string)$post['author_name']) : '';
 
-        if ($hasRealAuthor) {
+        if ($hasRealAuthor && $authorName !== '') {
             return [
                 '@type' => 'Person',
                 'name'  => $authorName,

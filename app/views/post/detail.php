@@ -46,10 +46,17 @@ if (!$post) return;
                 <p class="news-detail-summary"><?= e($post['summary']) ?></p>
             <?php endif; ?>
 
+            <?php
+            $rawPubTime = !empty($post['published_at']) ? strtotime($post['published_at']) : (!empty($post['created_at']) ? strtotime($post['created_at']) : false);
+            $hasValidPubDate = ($rawPubTime !== false && $rawPubTime > 0);
+            ?>
+
             <!-- Meta: Tác giả, Ngày, Thời gian đọc, Lượt xem -->
             <div class="news-meta news-detail-meta">
                 <span><i class="fa-solid fa-user" aria-hidden="true"></i> <strong><?= e($post['author_name'] ?? 'Đội ngũ TechPilot') ?></strong></span>
-                <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> <?= date('d/m/Y', strtotime($post['published_at'] ?? $post['created_at'])) ?></span>
+                <?php if ($hasValidPubDate): ?>
+                    <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> <?= date('d/m/Y', $rawPubTime) ?></span>
+                <?php endif; ?>
                 <?php if (!empty($hasValidUpdatedAt)): ?>
                     <span><i class="fa-solid fa-rotate" aria-hidden="true"></i> Cập nhật: <?= date('d/m/Y', strtotime($post['updated_at'])) ?></span>
                 <?php endif; ?>

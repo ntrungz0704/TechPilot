@@ -168,8 +168,9 @@ class PostController extends Controller
         // Phân biệt Author Person vs Organization dựa trên helper production Post::buildAuthorSchema
         $authorSchema = Post::buildAuthorSchema($post);
 
-        $publishedTime = strtotime($post['published_at'] ?? $post['created_at'] ?? 'now');
-        $publishedAt   = date('c', $publishedTime);
+        $rawPubTime      = !empty($post['published_at']) ? strtotime($post['published_at']) : (!empty($post['created_at']) ? strtotime($post['created_at']) : false);
+        $hasValidPubDate = ($rawPubTime !== false && $rawPubTime > 0);
+        $publishedAt     = $hasValidPubDate ? date('c', $rawPubTime) : null;
 
         // Phạm vi không migration: dateModified dùng datePublished và tạm ẩn badge Cập nhật
         $hasValidUpdatedAt = false;
@@ -193,8 +194,6 @@ class PostController extends Controller
             'headline'          => $post['title'],
             'description'       => $description,
             'image'             => [$imageAbsolute],
-            'datePublished'     => $publishedAt,
-            'dateModified'      => $modifiedAt,
             'author'            => $authorSchema,
             'publisher'         => [
                 '@type'  => 'Organization',
@@ -209,6 +208,11 @@ class PostController extends Controller
                 '@id'   => $canonicalAbsolute,
             ],
         ];
+
+        if ($publishedAt !== null) {
+            $articleSchema['datePublished'] = $publishedAt;
+            $articleSchema['dateModified']  = $modifiedAt;
+        }
 
         $breadcrumbSchema = [
             '@context'        => 'https://schema.org',
