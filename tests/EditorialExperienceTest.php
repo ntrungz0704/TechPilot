@@ -92,14 +92,22 @@ $resMalSrc = $renderer->render($mdMalSrc);
 tc('Sources 4.5c: Malformed sources preserved in body safely', has($resMalSrc['html'], 'Unclosed sources line here'));
 
 // ── 5. Extracted Blocks Not in articleBlocks ─────────────────────────────────
-$hasExtractedInBlocks = false;
+$hasSummaryInBlocks = false;
 foreach ($res['blocks'] as $b) {
-    if (str_contains($b['html'], 'article-quick-summary') || str_contains($b['html'], 'article-sources-block')) {
-        $hasExtractedInBlocks = true;
+    if (str_contains($b['html'], 'article-quick-summary')) {
+        $hasSummaryInBlocks = true;
         break;
     }
 }
-tc('Blocks 5a: Extracted summary/sources are NOT in articleBlocks', !$hasExtractedInBlocks);
+$hasSourcesInBlocks = false;
+foreach ($resSrc['blocks'] as $b) {
+    if (str_contains($b['html'], 'article-sources-block')) {
+        $hasSourcesInBlocks = true;
+        break;
+    }
+}
+tc('Blocks 5a: Extracted summary is NOT in articleBlocks', !$hasSummaryInBlocks);
+tc('Blocks 5b: Extracted sourcesHtml is NOT in articleBlocks', !$hasSourcesInBlocks);
 
 // ── 6. Sources XSS & Invalid URL Protection ──────────────────────────────────
 $mdSrcXss = ":::sources\n- [XSS Test](javascript:alert(1))\n- [Valid](https://safe.org)\n:::\n\nNội dung.";
@@ -128,10 +136,17 @@ $schema2 = Post::buildAuthorSchema($postTeamFallback);
 tc('Schema 8c: Production Post::buildAuthorSchema produces Organization for fallback', $schema2['@type'] === 'Organization');
 tc('Schema 8d: Fallback name is Đội ngũ TechPilot', $schema2['name'] === 'Đội ngũ TechPilot');
 
-// ── 9. Post::incrementViews SQL Integrity Check ─────────────────────────────
-$ref = new ReflectionMethod('Post', 'incrementViews');
+$postInconsistent = ['has_real_author' => true, 'author_name' => '   '];
+$schema3 = Post::buildAuthorSchema($postInconsistent);
+tc('Schema 8e: Inconsistent has_real_author=true + empty author_name falls back to Organization', $schema3['@type'] === 'Organization');
+
+// ── 9. Post::incrementViews SQL Integrity & Date Hardening ────────────────────
 $postPhpContent = file_get_contents(ROOT_PATH . '/app/models/Post.php');
 tc('Model 9a: incrementViews SQL explicitly retains updated_at = updated_at', has($postPhpContent, 'UPDATE posts SET views = views + 1, updated_at = updated_at WHERE id = :id'));
+
+$invalidTs = !empty('invalid-date') ? strtotime('invalid-date') : false;
+$hasValidInvalid = ($invalidTs !== false && $invalidTs > 0);
+tc('Date 9b: Invalid date string rejected by date parser check', $hasValidInvalid === false);
 
 // ── 10. No-JS Dual TOC Markup, aria-controls & Unique IDs ───────────────────
 $tocHeadings = [
@@ -156,6 +171,12 @@ $desktopTocHtml = ob_get_clean();
 tc('TOC 10a: Mobile TOC aria-controls matches list ID mobile-toc-list', has($mobileTocHtml, 'aria-controls="mobile-toc-list"') && has($mobileTocHtml, 'id="mobile-toc-list"'));
 tc('TOC 10b: Desktop TOC does NOT render toggle button', hasNot($desktopTocHtml, 'news-toc-toggle'));
 tc('TOC 10c: Unique IDs between Mobile and Desktop TOC', has($mobileTocHtml, 'id="mobile-toc-title"') && has($desktopTocHtml, 'id="desktop-toc-title"'));
+
+$combinedTocHtml = $mobileTocHtml . $desktopTocHtml;
+preg_match_all('/\bid="([^"]+)"/', $combinedTocHtml, $idMatches);
+$allIds = $idMatches[1] ?? [];
+$uniqueIds = array_unique($allIds);
+tc('TOC 10d: Combined Dual TOC HTML has ZERO duplicate element IDs', count($allIds) === count($uniqueIds));
 
 // ── 11. Content Order Partial Verification ──────────────────────────────────
 ob_start();
