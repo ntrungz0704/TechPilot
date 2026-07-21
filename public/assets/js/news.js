@@ -77,53 +77,54 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProgress();
     }
 
-    /* ── Article Table of Contents – Active tracking ────────────────────────
-     * Thứ tự đúng:
-     *   1. Khởi tạo mobile toggle (luôn chạy, không phụ thuộc IO).
-     *   2. Kiểm tra links/headings.
-     *   3. Kiểm tra IntersectionObserver support.
-     *   4. Khởi tạo active tracking.
-     *
-     * Fallback khi không có IntersectionObserver:
-     *   - TOC vẫn click được.
-     *   - Không có console error.
-     *   - Không highlight active (graceful degradation).
+    /* ── Article Table of Contents – Dual TOC & Active tracking ─────────────
+     * Support cả Mobile Accordion TOC & Desktop Sticky Sidebar TOC:
+     *   1. Khởi tạo toggle listener riêng cho từng TOC.
+     *   2. Lấy danh sách headings được tham chiếu bởi các TOC link.
+     *   3. Dùng 1 shared IntersectionObserver duy nhất để theo dõi viewport.
+     *   4. Cập nhật active class đồng bộ cho tất cả TOC links (querySelectorAll).
      */
     function initArticleToc() {
-        const toc = document.querySelector('.news-toc');
-        if (!toc) return;
+        const tocs = document.querySelectorAll('.news-toc');
+        if (!tocs.length) return;
 
-        // ── Bước 1: Mobile toggle (luôn chạy) ──────────────────────────────
-        const toggle = toc.querySelector('.news-toc-toggle');
-        const list   = toc.querySelector('.news-toc-list');
-        if (toggle && list) {
-            toggle.addEventListener('click', () => {
-                const isOpen = toc.classList.toggle('is-open');
-                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-            });
-        }
+        // ── Bước 1: Toggle listener riêng cho từng TOC ─────────────────────
+        tocs.forEach(toc => {
+            const toggle = toc.querySelector('.news-toc-toggle');
+            const list   = toc.querySelector('.news-toc-list');
+            if (toggle && list) {
+                toggle.addEventListener('click', () => {
+                    const isOpen = toc.classList.toggle('is-open');
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+        });
 
-        // ── Bước 2: Kiểm tra links / headings ──────────────────────────────
-        const tocLinks = toc.querySelectorAll('.news-toc-item a[href^="#"]');
-        if (!tocLinks.length) return;
+        // ── Bước 2: Gom toàn bộ TOC links & Target Headings ────────────────
+        const allTocLinks = document.querySelectorAll('.news-toc-item a[href^="#"]');
+        if (!allTocLinks.length) return;
 
-        const headingEls = Array.from(tocLinks).map(link => {
-            const id = link.getAttribute('href').substring(1);
-            return document.getElementById(id);
-        }).filter(h => h !== null);
+        const headingIdSet = new Set();
+        allTocLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && href.length > 1) {
+                headingIdSet.add(href.substring(1));
+            }
+        });
+
+        const headingEls = Array.from(headingIdSet)
+            .map(id => document.getElementById(id))
+            .filter(h => h !== null);
 
         if (!headingEls.length) return;
 
         // ── Bước 3: Kiểm tra IntersectionObserver support ──────────────────
         if (!('IntersectionObserver' in window)) {
-            // Graceful degradation: TOC vẫn click được, không có lỗi
             return;
         }
 
-        // ── Bước 4: Active tracking ─────────────────────────────────────────
-        // Tập heading đang nằm trong vùng nhìn thấy (visible set)
+        // ── Bước 4: Shared Active tracking ─────────────────────────────────
         const visibleSet = new Set();
-        // Heading cuối cùng đã đi qua top của viewport (fallback cuộn ngược)
         let lastPassedHeadingId = null;
 
         const observerOptions = {
@@ -132,12 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         function setActiveById(id) {
-            toc.querySelectorAll('.news-toc-item').forEach(item => item.classList.remove('is-active'));
+            document.querySelectorAll('.news-toc-item').forEach(item => item.classList.remove('is-active'));
+            if (!id) return;
             const escapedId = id.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, '\\$&');
-            const link = toc.querySelector(`.news-toc-item a[href="#${escapedId}"]`);
-            if (link) {
-                link.parentElement.classList.add('is-active');
-            }
+            document.querySelectorAll(`.news-toc-item a[href="#${escapedId}"]`).forEach(link => {
+                if (link.parentElement) {
+                    link.parentElement.classList.add('is-active');
+                }
+            });
         }
 
         const observer = new IntersectionObserver(entries => {
@@ -148,14 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     lastPassedHeadingId = id;
                 } else {
                     visibleSet.delete(id);
-                    // Heading đi ra phía trên viewport → cập nhật lastPassed
                     if (entry.boundingClientRect.top < 0) {
                         lastPassedHeadingId = id;
                     }
                 }
             });
 
-            // Ưu tiên heading đầu tiên trong visible set (theo thứ tự DOM)
             let activeId = null;
             for (const el of headingEls) {
                 if (visibleSet.has(el.id)) {
@@ -164,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Fallback: dùng heading cuối cùng đã đi qua viewport
             if (!activeId && lastPassedHeadingId) {
                 activeId = lastPassedHeadingId;
             }

@@ -6,6 +6,8 @@ class MarkdownRenderer
     private array $blocks = [];
     private array $usedHeadingIds = [];
     private array $codeBlocks = [];
+    private string $quickSummaryHtml = '';
+    private string $sourcesHtml = '';
 
     /**
      * Render markdown string sang HTML + metadata.
@@ -14,10 +16,12 @@ class MarkdownRenderer
      */
     public function render(string $markdown): array
     {
-        $this->headings      = [];
-        $this->blocks        = [];
-        $this->usedHeadingIds = [];
-        $this->codeBlocks    = [];
+        $this->headings         = [];
+        $this->blocks           = [];
+        $this->usedHeadingIds   = [];
+        $this->codeBlocks       = [];
+        $this->quickSummaryHtml = '';
+        $this->sourcesHtml      = '';
 
         $markdown = str_replace("\r\n", "\n", $markdown);
 
@@ -54,14 +58,68 @@ class MarkdownRenderer
         }
 
         return [
-            'html'     => $html,
-            'headings' => $this->headings,
-            'blocks'   => $this->blocks,
+            'html'             => $html,
+            'headings'         => $this->headings,
+            'blocks'           => $this->blocks,
+            'quickSummaryHtml' => $this->quickSummaryHtml,
+            'sourcesHtml'      => $this->sourcesHtml,
         ];
     }
 
     private function renderBlock(string $block): string
     {
+        // 0.1 Quick Summary Block (:::summary ... :::)
+        if (preg_match('/^:::summary[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
+            $content = trim($matches[1]);
+            $innerHtml = (preg_match('/^[-*]\s+/m', $content) || preg_match('/^\d+\.\s+/m', $content))
+                ? $this->renderList($content, preg_match('/^[-*]\s+/m', $content) ? 'ul' : 'ol')
+                : '<p>' . $this->renderInline($content) . '</p>';
+
+            $boxHtml = '<section class="article-quick-summary" aria-label="Tóm tắt ý chính">'
+                . '<h3><i class="fa-solid fa-bolt" aria-hidden="true"></i> Tóm tắt nhanh</h3>'
+                . '<div class="summary-body">' . $innerHtml . '</div>'
+                . '</section>';
+
+            if ($this->quickSummaryHtml === '') {
+                $this->quickSummaryHtml = $boxHtml;
+                return ''; // Extracted from main body
+            }
+
+            // Duplicate summary block handling: Preserve safely in main body with dev warning comment
+            $html = '<!-- Development Warning: Duplicate :::summary block detected -->'
+                . '<div class="callout callout-info">' . $innerHtml . '</div>';
+            $this->blocks[] = ['type' => 'callout', 'html' => $html];
+            return $html;
+        }
+
+        // 0.2 Sources Block (:::sources ... :::)
+        if (preg_match('/^:::sources[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
+            $content = trim($matches[1]);
+            $listType = preg_match('/^\d+\.\s+/m', $content) ? 'ol' : 'ul';
+            $innerHtml = (preg_match('/^[-*]\s+/m', $content) || preg_match('/^\d+\.\s+/m', $content))
+                ? $this->renderList($content, $listType, true)
+                : '<p>' . $this->renderInline($content, true) . '</p>';
+
+            $boxHtml = '<section class="article-sources-block" aria-label="Nguồn tham khảo">'
+                . '<h3><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i> Nguồn tham khảo</h3>'
+                . $innerHtml
+                . '</section>';
+
+            if ($this->sourcesHtml === '') {
+                $this->sourcesHtml = $boxHtml;
+                return ''; // Extracted from main body
+            }
+
+            // Duplicate sources block handling: Preserve safely in main body with dev warning comment
+            $html = '<!-- Development Warning: Duplicate :::sources block detected -->'
+                . '<section class="article-sources-block article-sources-duplicate">'
+                . '<h3><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i> Nguồn tham khảo bổ sung</h3>'
+                . $innerHtml
+                . '</section>';
+            $this->blocks[] = ['type' => 'sources', 'html' => $html];
+            return $html;
+        }
+
         // 1. Headings (##, ### - Single line only)
         if (preg_match('/^(#{2,3})[ \t]+([^\n]+)$/', $block, $matches)) {
             $html = $this->renderHeading($matches);
@@ -268,7 +326,7 @@ class MarkdownRenderer
         return "<h{$level} id=\"{$id}\">{$renderedText}</h{$level}>";
     }
 
-    private function renderList(string $block, string $type): string
+    private function renderList(string $block, string $type, bool $isSourceLink = false): string
     {
         $lines = explode("\n", $block);
         $html = "<{$type}>\n";
@@ -281,7 +339,7 @@ class MarkdownRenderer
             } else {
                 $line = preg_replace('/^\d+\.\s+/', '', $line);
             }
-            $html .= '  <li>' . $this->renderInline($line) . "</li>\n";
+            $html .= '  <li>' . $this->renderInline($line, $isSourceLink) . "</li>\n";
         }
         $html .= "</{$type}>";
         return $html;
@@ -348,7 +406,7 @@ class MarkdownRenderer
         return '<img src="' . $escapedUrl . '" alt="' . $alt . '" loading="lazy" decoding="async">';
     }
 
-    private function renderInline(string $text): string
+    private function renderInline(string $text, bool $isSourceLink = false): string
     {
         // 1. Convert special chars first
         $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
@@ -374,7 +432,7 @@ class MarkdownRenderer
         }, $text);
 
         // 3. Links: [text](url)
-        $text = preg_replace_callback('/\[([^\]]+)\]\(((?:[^\s()]+|\([^()\s]*\))+)\)/', function($m) {
+        $text = preg_replace_callback('/\[([^\]]+)\]\(((?:[^\s()]+|\([^()\s]*\))+)\)/', function($m) use ($isSourceLink) {
             $linkText = $m[1]; // already escaped
             $rawUrl = $m[2];
 
@@ -388,7 +446,8 @@ class MarkdownRenderer
             // Distinguish internal vs external
             $decodedClean = strtolower(trim(html_entity_decode($rawUrl, ENT_QUOTES, 'UTF-8')));
             if (str_starts_with($decodedClean, 'http://') || str_starts_with($decodedClean, 'https://')) {
-                return '<a href="' . $escapedUrl . '" target="_blank" rel="noopener noreferrer nofollow">' . $linkText . '</a>';
+                $rel = $isSourceLink ? 'noopener noreferrer' : 'noopener noreferrer nofollow';
+                return '<a href="' . $escapedUrl . '" target="_blank" rel="' . $rel . '">' . $linkText . '</a>';
             }
 
             return '<a href="' . $escapedUrl . '">' . $linkText . '</a>';
