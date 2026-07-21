@@ -1,4 +1,4 @@
-<div class="card" style="max-width: 600px; margin: 0 auto 30px;">
+<div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Thêm mã giảm giá mới</h3>
     
     <form method="post" action="<?= url('admin/coupons/store') ?>">

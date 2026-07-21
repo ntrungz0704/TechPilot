@@ -3,7 +3,25 @@
 /**
  * Cấu hình kết nối cơ sở dữ liệu (PDO - MySQL)
  * Hỗ trợ nạp file config/database.local.php nếu tồn tại.
+ * Tự động khởi tạo CSDL và đồng bộ dữ liệu (Auto DB Import & Sync) khi có thay đổi tệp techpilot.sql.
  */
+
+// Polyfills for missing mbstring extension
+if (!function_exists('mb_strtolower')) {
+    function mb_strtolower(string $string, ?string $encoding = null): string {
+        return strtolower($string);
+    }
+}
+if (!function_exists('mb_strlen')) {
+    function mb_strlen(string $string, ?string $encoding = null): int {
+        return strlen($string);
+    }
+}
+if (!function_exists('mb_substr')) {
+    function mb_substr(string $string, int $start, ?int $length = null, ?string $encoding = null): string {
+        return $length !== null ? substr($string, $start, $length) : substr($string, $start);
+    }
+}
 
 if (!class_exists('Database')) {
     class Database
@@ -14,7 +32,7 @@ if (!class_exists('Database')) {
         private const HOST    = '127.0.0.1';
         private const DBNAME  = 'techpilot';
         private const USER    = 'root';
-        private const PASS    = '';
+        private const PASS    = '123456';
         private const CHARSET = 'utf8mb4';
 
         public static function getConnection(): ?PDO
@@ -53,12 +71,93 @@ if (!class_exists('Database')) {
 
                 try {
                     self::$instance = new PDO($dsn, $user, $pass, $options);
+                    self::ensureAutoSync(self::$instance);
                 } catch (PDOException $e) {
-                    self::$instance = null;
+                    // Nếu kết nối trực tiếp vào database 'techpilot' thất bại (ví dụ CSDL chưa được tạo)
+                    // Tự động kết nối tới MySQL Server để tạo CSDL và nạp dữ liệu tự động
+                    try {
+                        $serverDsn = 'mysql:host=' . $host . ';charset=' . $charset;
+                        if (!empty($port)) {
+                            $serverDsn .= ';port=' . $port;
+                        }
+                        $multiStmtAttr = defined('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+                            ? constant('Pdo\Mysql::ATTR_MULTI_STATEMENTS') 
+                            : (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS') ? constant('PDO::MYSQL_ATTR_MULTI_STATEMENTS') : 1003);
+                        $serverPdo = new PDO($serverDsn, $user, $pass, [
+                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                            $multiStmtAttr => true,
+                        ]);
+
+                        $sqlFile = dirname(__DIR__) . '/database/techpilot.sql';
+                        if (file_exists($sqlFile)) {
+                            $sql = file_get_contents($sqlFile);
+                            $serverPdo->exec($sql);
+                        }
+
+                        // Kết nối lại vào database techpilot sau khi tự động nạp
+                        self::$instance = new PDO($dsn, $user, $pass, $options);
+                        self::saveSyncTimestamp($sqlFile);
+                    } catch (PDOException $ex) {
+                        self::$instance = null;
+                    }
                 }
             }
 
             return self::$instance;
+        }
+
+        /** Kiểm tra và tự động đồng bộ khi file techpilot.sql có sự thay đổi mới */
+        private static function ensureAutoSync(PDO $pdo): void
+        {
+            $sqlFile = dirname(__DIR__) . '/database/techpilot.sql';
+            if (!file_exists($sqlFile)) return;
+
+            $mtime = filemtime($sqlFile);
+            $hash = md5_file($sqlFile);
+            $syncFile = __DIR__ . '/.db_sync_state.json';
+
+            $shouldSync = false;
+            if (!file_exists($syncFile)) {
+                $shouldSync = true;
+            } else {
+                $state = json_decode(file_get_contents($syncFile), true);
+                if (($state['hash'] ?? '') !== $hash || ($state['mtime'] ?? 0) !== $mtime) {
+                    $shouldSync = true;
+                }
+            }
+
+            // Kiểm tra thêm xem bảng products có dữ liệu chưa
+            if (!$shouldSync) {
+                try {
+                    $cnt = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
+                    if ($cnt == 0) {
+                        $shouldSync = true;
+                    }
+                } catch (Exception $e) {
+                    $shouldSync = true;
+                }
+            }
+
+            if ($shouldSync) {
+                try {
+                    $sql = file_get_contents($sqlFile);
+                    $pdo->exec($sql);
+                    self::saveSyncTimestamp($sqlFile);
+                } catch (Exception $e) {
+                    // Bỏ qua cảnh báo nếu đã có bảng
+                }
+            }
+        }
+
+        private static function saveSyncTimestamp(string $sqlFile): void
+        {
+            $syncFile = __DIR__ . '/.db_sync_state.json';
+            $state = [
+                'mtime' => filemtime($sqlFile),
+                'hash' => md5_file($sqlFile),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+            file_put_contents($syncFile, json_encode($state));
         }
     }
 }

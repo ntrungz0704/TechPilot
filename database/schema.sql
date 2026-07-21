@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS products (
     is_best_seller TINYINT(1) DEFAULT 0,
     is_new_arrival TINYINT(1) DEFAULT 0,
     is_ai_recommend TINYINT(1) DEFAULT 0,
+    component_type VARCHAR(30) DEFAULT NULL,
+    power_draw_w INT UNSIGNED DEFAULT NULL,
+    recommended_psu_w INT UNSIGNED DEFAULT NULL,
     status ENUM('draft', 'active', 'inactive') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -261,18 +264,24 @@ CREATE TABLE IF NOT EXISTS banners (
 CREATE TABLE IF NOT EXISTS posts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     author_id INT UNSIGNED DEFAULT NULL,
+    author_name VARCHAR(100) DEFAULT NULL,
     title VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL UNIQUE,
     summary VARCHAR(500) DEFAULT NULL,
     content TEXT DEFAULT NULL,
     image VARCHAR(255) DEFAULT NULL,
+    category_slug VARCHAR(60) NOT NULL DEFAULT 'cong-nghe',
+    post_type ENUM('news', 'review', 'guide', 'comparison', 'howto') NOT NULL DEFAULT 'news',
+    is_featured TINYINT(1) NOT NULL DEFAULT 0,
+    reading_minutes SMALLINT UNSIGNED DEFAULT NULL,
     views INT UNSIGNED NOT NULL DEFAULT 0,
     status ENUM('draft', 'published', 'hidden') NOT NULL DEFAULT 'published',
     published_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_posts_author FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE SET NULL,
-    INDEX idx_posts_status_time (status, published_at, created_at)
+    INDEX idx_posts_status_time (status, published_at, created_at),
+    INDEX idx_posts_editorial (status, category_slug, post_type, is_featured, published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -414,6 +423,15 @@ INSERT INTO users (full_name, email, phone, password, role, status) VALUES
 INSERT INTO flash_sales (id, title, slug, start_time, end_time, status) VALUES
 (1, 'Flash Sale Công Nghệ', 'flash-sale-cong-nghe', NOW() - INTERVAL 1 HOUR, NOW() + INTERVAL 2 HOUR, 'active');
 
+-- 10.1 Nạp các sản phẩm tham gia Flash Sale (flash_sale_items)
+INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocation_quantity, sold_quantity, limit_per_user) VALUES
+(1, 13, 18990000.00, 10, 0, 1),
+(1, 14, 25990000.00, 15, 0, 1),
+(1, 15, 3290000.00, 12, 0, 1),
+(1, 16, 5490000.00, 8, 0, 1),
+(1, 17, 18990000.00, 10, 0, 1),
+(1, 18, 27990000.00, 5, 0, 1);
+
 -- 11. Bảng thông báo (notifications)
 CREATE TABLE IF NOT EXISTS notifications (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -446,3 +464,110 @@ CREATE TABLE IF NOT EXISTS return_items (
     resolution ENUM('refund', 'replace', 'repair') DEFAULT 'refund',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+
+
+-- Insert missing brands
+INSERT INTO brands (id, name, slug) VALUES 
+(17, 'Kingston', 'kingston'),
+(18, 'WD', 'wd'),
+(19, 'Lexar', 'lexar'),
+(20, 'DeepCool', 'deepcool'),
+(21, 'Thermalright', 'thermalright'),
+(22, 'Montech', 'montech'),
+(23, 'NZXT', 'nzxt'),
+(24, 'Lian Li', 'lian-li'),
+(25, 'G.Skill', 'g-skill')
+ON DUPLICATE KEY UPDATE name=VALUES(name);
+
+INSERT INTO products (id, category_id, brand_id, name, slug, short_desc, description, price, old_price, sale_price, discount_percent, image, rating, review_count, stock, specs, is_flash_sale, is_best_seller, is_new_arrival, is_ai_recommend, component_type, power_draw_w, recommended_psu_w) VALUES 
+(200, 4, 9, 'Intel Core i3-12100F', 'intel-core-i3-12100f-200', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i3-12100F', 2190000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 89, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 89, NULL),
+(201, 4, 9, 'Intel Core i5-12400F', 'intel-core-i5-12400f-201', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i5-12400F', 2990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 117, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 117, NULL),
+(202, 4, 9, 'Intel Core i5-13400F', 'intel-core-i5-13400f-202', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i5-13400F', 4090000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 148, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 148, NULL),
+(203, 4, 9, 'Intel Core i5-14400F', 'intel-core-i5-14400f-203', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i5-14400F', 4490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 148, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 148, NULL),
+(204, 4, 9, 'Intel Core i5-14600K', 'intel-core-i5-14600k-204', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i5-14600K', 6990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 181, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 181, NULL),
+(205, 4, 9, 'Intel Core i7-14700F', 'intel-core-i7-14700f-205', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i7-14700F', 8690000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 219, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 219, NULL),
+(206, 4, 9, 'Intel Core i7-14700K', 'intel-core-i7-14700k-206', 'Linh kiện PC chính hãng', 'Mô tả Intel Core i7-14700K', 10290000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "memory_type": ["DDR4", "DDR5"], "base_power_w": 253, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 253, NULL),
+(207, 4, 9, 'Intel Core Ultra 5 225F', 'intel-core-ultra-5-225f-207', 'Linh kiện PC chính hãng', 'Mô tả Intel Core Ultra 5 225F', 5490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "memory_type": ["DDR5"], "base_power_w": 121, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 121, NULL),
+(208, 4, 9, 'Intel Core Ultra 5 245K', 'intel-core-ultra-5-245k-208', 'Linh kiện PC chính hãng', 'Mô tả Intel Core Ultra 5 245K', 7990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "memory_type": ["DDR5"], "base_power_w": 159, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 159, NULL),
+(209, 4, 9, 'Intel Core Ultra 7 265K', 'intel-core-ultra-7-265k-209', 'Linh kiện PC chính hãng', 'Mô tả Intel Core Ultra 7 265K', 10990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "memory_type": ["DDR5"], "base_power_w": 250, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 250, NULL),
+(210, 4, 9, 'Intel Core Ultra 9 285K', 'intel-core-ultra-9-285k-210', 'Linh kiện PC chính hãng', 'Mô tả Intel Core Ultra 9 285K', 15990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "memory_type": ["DDR5"], "base_power_w": 250, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 250, NULL),
+(211, 4, 10, 'AMD Ryzen 5 5500', 'amd-ryzen-5-5500-211', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 5 5500', 1990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM4", "memory_type": ["DDR4"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(212, 4, 10, 'AMD Ryzen 5 5600', 'amd-ryzen-5-5600-212', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 5 5600', 2490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM4", "memory_type": ["DDR4"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(213, 4, 10, 'AMD Ryzen 7 5700X', 'amd-ryzen-7-5700x-213', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 7 5700X', 3990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM4", "memory_type": ["DDR4"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(214, 4, 10, 'AMD Ryzen 7 5700X3D', 'amd-ryzen-7-5700x3d-214', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 7 5700X3D', 5490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM4", "memory_type": ["DDR4"], "base_power_w": 105, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 105, NULL),
+(215, 4, 10, 'AMD Ryzen 5 7500F', 'amd-ryzen-5-7500f-215', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 5 7500F', 3790000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 65, "integrated_graphics": false}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(216, 4, 10, 'AMD Ryzen 5 7600', 'amd-ryzen-5-7600-216', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 5 7600', 4690000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(217, 4, 10, 'AMD Ryzen 7 7700', 'amd-ryzen-7-7700-217', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 7 7700', 7190000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(218, 4, 10, 'AMD Ryzen 7 7800X3D', 'amd-ryzen-7-7800x3d-218', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 7 7800X3D', 9990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 120, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 120, NULL),
+(219, 4, 10, 'AMD Ryzen 5 9600X', 'amd-ryzen-5-9600x-219', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 5 9600X', 6990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(220, 4, 10, 'AMD Ryzen 7 9700X', 'amd-ryzen-7-9700x-220', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 7 9700X', 9290000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 65, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 65, NULL),
+(221, 4, 10, 'AMD Ryzen 7 9800X3D', 'amd-ryzen-7-9800x3d-221', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 7 9800X3D', 13490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 120, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 120, NULL),
+(222, 4, 10, 'AMD Ryzen 9 9900X', 'amd-ryzen-9-9900x-222', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 9 9900X', 12490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 120, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 120, NULL),
+(223, 4, 10, 'AMD Ryzen 9 9950X', 'amd-ryzen-9-9950x-223', 'Linh kiện PC chính hãng', 'Mô tả AMD Ryzen 9 9950X', 17990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "memory_type": ["DDR5"], "base_power_w": 170, "integrated_graphics": true}', 0, 0, 0, 0, 'cpu', 170, NULL),
+(224, 4, 1, 'ASUS PRIME H610M-K D4', 'asus-prime-h610m-k-d4-224', 'Linh kiện PC chính hãng', 'Mô tả ASUS PRIME H610M-K D4', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "H610", "memory_type": "DDR4", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(225, 4, 2, 'MSI PRO H610M-E DDR4', 'msi-pro-h610m-e-ddr4-225', 'Linh kiện PC chính hãng', 'Mô tả MSI PRO H610M-E DDR4', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "H610", "memory_type": "DDR4", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(226, 4, 3, 'Gigabyte B760M DS3H DDR4', 'gigabyte-b760m-ds3h-ddr4-226', 'Linh kiện PC chính hãng', 'Mô tả Gigabyte B760M DS3H DDR4', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "B760", "memory_type": "DDR4", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(227, 4, 2, 'MSI PRO B760M-A WIFI DDR4', 'msi-pro-b760m-a-wifi-ddr4-227', 'Linh kiện PC chính hãng', 'Mô tả MSI PRO B760M-A WIFI DDR4', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "B760", "memory_type": "DDR4", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(228, 4, 1, 'ASUS PRIME B760M-A WIFI DDR5', 'asus-prime-b760m-a-wifi-ddr5-228', 'Linh kiện PC chính hãng', 'Mô tả ASUS PRIME B760M-A WIFI DDR5', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "B760", "memory_type": "DDR5", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(229, 4, 2, 'MSI MAG B760 TOMAHAWK WIFI DDR5', 'msi-mag-b760-tomahawk-wifi-ddr5-229', 'Linh kiện PC chính hãng', 'Mô tả MSI MAG B760 TOMAHAWK WIFI DDR5', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "B760", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(230, 4, 1, 'ASUS TUF GAMING Z790-PLUS WIFI', 'asus-tuf-gaming-z790-plus-wifi-230', 'Linh kiện PC chính hãng', 'Mô tả ASUS TUF GAMING Z790-PLUS WIFI', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1700", "chipset": "Z790", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(231, 4, 2, 'MSI PRO B860M-A WIFI', 'msi-pro-b860m-a-wifi-231', 'Linh kiện PC chính hãng', 'Mô tả MSI PRO B860M-A WIFI', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "chipset": "B860", "memory_type": "DDR5", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(232, 4, 1, 'ASUS TUF GAMING B860-PLUS WIFI', 'asus-tuf-gaming-b860-plus-wifi-232', 'Linh kiện PC chính hãng', 'Mô tả ASUS TUF GAMING B860-PLUS WIFI', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "chipset": "B860", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(233, 4, 3, 'Gigabyte Z890 AORUS ELITE WIFI7', 'gigabyte-z890-aorus-elite-wifi7-233', 'Linh kiện PC chính hãng', 'Mô tả Gigabyte Z890 AORUS ELITE WIFI7', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "LGA1851", "chipset": "Z890", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(234, 4, 2, 'MSI B550M PRO-VDH WIFI', 'msi-b550m-pro-vdh-wifi-234', 'Linh kiện PC chính hãng', 'Mô tả MSI B550M PRO-VDH WIFI', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM4", "chipset": "B550", "memory_type": "DDR4", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(235, 4, 1, 'ASUS TUF GAMING B550M-PLUS', 'asus-tuf-gaming-b550m-plus-235', 'Linh kiện PC chính hãng', 'Mô tả ASUS TUF GAMING B550M-PLUS', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM4", "chipset": "B550", "memory_type": "DDR4", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(236, 4, 3, 'Gigabyte A620M S2H', 'gigabyte-a620m-s2h-236', 'Linh kiện PC chính hãng', 'Mô tả Gigabyte A620M S2H', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "chipset": "A620", "memory_type": "DDR5", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(237, 4, 1, 'ASUS PRIME B650M-A WIFI II', 'asus-prime-b650m-a-wifi-ii-237', 'Linh kiện PC chính hãng', 'Mô tả ASUS PRIME B650M-A WIFI II', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "chipset": "B650", "memory_type": "DDR5", "form_factor": "mATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(238, 4, 2, 'MSI MAG B650 TOMAHAWK WIFI', 'msi-mag-b650-tomahawk-wifi-238', 'Linh kiện PC chính hãng', 'Mô tả MSI MAG B650 TOMAHAWK WIFI', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "chipset": "B650", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(239, 4, 1, 'ASUS TUF GAMING B850-PLUS WIFI', 'asus-tuf-gaming-b850-plus-wifi-239', 'Linh kiện PC chính hãng', 'Mô tả ASUS TUF GAMING B850-PLUS WIFI', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "chipset": "B850", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(240, 4, 3, 'Gigabyte X870 AORUS ELITE WIFI7', 'gigabyte-x870-aorus-elite-wifi7-240', 'Linh kiện PC chính hãng', 'Mô tả Gigabyte X870 AORUS ELITE WIFI7', 3500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"socket": "AM5", "chipset": "X870", "memory_type": "DDR5", "form_factor": "ATX", "ram_slots": 4, "max_ram_gb": 192}', 0, 0, 0, 0, 'mainboard', 50, NULL),
+(241, 4, 17, 'Kingston Fury Beast 16GB', 'kingston-fury-beast-16gb-241', 'Linh kiện PC chính hãng', 'Mô tả Kingston Fury Beast 16GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR4", "capacity": "16GB", "kit": "1x16GB", "speed": "3200"}', 0, 0, 0, 0, 'ram', 5, NULL),
+(242, 4, 8, 'Corsair Vengeance LPX 16GB', 'corsair-vengeance-lpx-16gb-242', 'Linh kiện PC chính hãng', 'Mô tả Corsair Vengeance LPX 16GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR4", "capacity": "16GB", "kit": "2x8GB", "speed": "3200"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(243, 4, 17, 'Kingston Fury Beast 32GB', 'kingston-fury-beast-32gb-243', 'Linh kiện PC chính hãng', 'Mô tả Kingston Fury Beast 32GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR4", "capacity": "32GB", "kit": "2x16GB", "speed": "3200"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(244, 4, 8, 'Corsair Vengeance RGB Pro 32GB', 'corsair-vengeance-rgb-pro-32gb-244', 'Linh kiện PC chính hãng', 'Mô tả Corsair Vengeance RGB Pro 32GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR4", "capacity": "32GB", "kit": "2x16GB", "speed": "3600"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(245, 4, 17, 'Kingston Fury Beast 16GB', 'kingston-fury-beast-16gb-245', 'Linh kiện PC chính hãng', 'Mô tả Kingston Fury Beast 16GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR5", "capacity": "16GB", "kit": "1x16GB", "speed": "5600"}', 0, 0, 0, 0, 'ram', 5, NULL),
+(246, 4, 17, 'Kingston Fury Beast 32GB', 'kingston-fury-beast-32gb-246', 'Linh kiện PC chính hãng', 'Mô tả Kingston Fury Beast 32GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR5", "capacity": "32GB", "kit": "2x16GB", "speed": "6000"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(247, 4, 8, 'Corsair Vengeance RGB 32GB', 'corsair-vengeance-rgb-32gb-247', 'Linh kiện PC chính hãng', 'Mô tả Corsair Vengeance RGB 32GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR5", "capacity": "32GB", "kit": "2x16GB", "speed": "6000"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(248, 4, 25, 'G.Skill Trident Z5 Neo RGB 32GB', 'gskill-trident-z5-neo-rgb-32gb-248', 'Linh kiện PC chính hãng', 'Mô tả G.Skill Trident Z5 Neo RGB 32GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR5", "capacity": "32GB", "kit": "2x16GB", "speed": "6000"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(249, 4, 17, 'Kingston Fury Renegade 64GB', 'kingston-fury-renegade-64gb-249', 'Linh kiện PC chính hãng', 'Mô tả Kingston Fury Renegade 64GB', 1500000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"memory_type": "DDR5", "capacity": "64GB", "kit": "2x32GB", "speed": "6400"}', 0, 0, 0, 0, 'ram', 10, NULL),
+(250, 4, 14, 'NVIDIA GeForce RTX 4060 8GB', 'nvidia-geforce-rtx-4060-8gb-250', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 4060 8GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "8GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 115, 550),
+(251, 4, 14, 'NVIDIA GeForce RTX 5050 8GB', 'nvidia-geforce-rtx-5050-8gb-251', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 5050 8GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "8GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 130, 550),
+(252, 4, 14, 'NVIDIA GeForce RTX 5060 8GB', 'nvidia-geforce-rtx-5060-8gb-252', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 5060 8GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "8GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 145, 550),
+(253, 4, 14, 'NVIDIA GeForce RTX 5060 Ti 16GB', 'nvidia-geforce-rtx-5060-ti-16gb-253', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 5060 Ti 16GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "16GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 180, 600),
+(254, 4, 14, 'NVIDIA GeForce RTX 5070 12GB', 'nvidia-geforce-rtx-5070-12gb-254', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 5070 12GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "12GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 250, 650),
+(255, 4, 14, 'NVIDIA GeForce RTX 5070 Ti 16GB', 'nvidia-geforce-rtx-5070-ti-16gb-255', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 5070 Ti 16GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "16GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 300, 750),
+(256, 4, 14, 'NVIDIA GeForce RTX 5080 16GB', 'nvidia-geforce-rtx-5080-16gb-256', 'Linh kiện PC chính hãng', 'Mô tả NVIDIA GeForce RTX 5080 16GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "16GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 360, 850),
+(257, 4, 10, 'AMD Radeon RX 9060 XT 8GB', 'amd-radeon-rx-9060-xt-8gb-257', 'Linh kiện PC chính hãng', 'Mô tả AMD Radeon RX 9060 XT 8GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "8GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 200, 550),
+(258, 4, 10, 'AMD Radeon RX 9060 XT 16GB', 'amd-radeon-rx-9060-xt-16gb-258', 'Linh kiện PC chính hãng', 'Mô tả AMD Radeon RX 9060 XT 16GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "16GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 200, 550),
+(259, 4, 10, 'AMD Radeon RX 9070 16GB', 'amd-radeon-rx-9070-16gb-259', 'Linh kiện PC chính hãng', 'Mô tả AMD Radeon RX 9070 16GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "16GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 220, 650),
+(260, 4, 10, 'AMD Radeon RX 9070 XT 16GB', 'amd-radeon-rx-9070-xt-16gb-260', 'Linh kiện PC chính hãng', 'Mô tả AMD Radeon RX 9070 XT 16GB', 15000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"vram": "16GB", "length_mm": 300}', 0, 0, 0, 0, 'gpu', 304, 750),
+(261, 4, 17, 'Kingston NV2 500GB', 'kingston-nv2-500gb-261', 'Linh kiện PC chính hãng', 'Mô tả Kingston NV2 500GB', 890000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "NVMe PCIe 4.0", "capacity": "500GB"}', 0, 0, 0, 0, 'storage', 8, NULL),
+(262, 4, 17, 'Kingston NV3 1TB', 'kingston-nv3-1tb-262', 'Linh kiện PC chính hãng', 'Mô tả Kingston NV3 1TB', 1590000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "NVMe PCIe 4.0", "capacity": "1TB"}', 0, 0, 0, 0, 'storage', 8, NULL),
+(263, 4, 18, 'WD Blue SN580 1TB', 'wd-blue-sn580-1tb-263', 'Linh kiện PC chính hãng', 'Mô tả WD Blue SN580 1TB', 1790000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "NVMe PCIe 4.0", "capacity": "1TB"}', 0, 0, 0, 0, 'storage', 8, NULL),
+(264, 4, 19, 'Lexar NM790 1TB', 'lexar-nm790-1tb-264', 'Linh kiện PC chính hãng', 'Mô tả Lexar NM790 1TB', 1990000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "NVMe PCIe 4.0", "capacity": "1TB"}', 0, 0, 0, 0, 'storage', 8, NULL),
+(265, 4, 11, 'Samsung 990 EVO Plus 1TB', 'samsung-990-evo-plus-1tb-265', 'Linh kiện PC chính hãng', 'Mô tả Samsung 990 EVO Plus 1TB', 2490000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "NVMe PCIe 4.0", "capacity": "1TB"}', 0, 0, 0, 0, 'storage', 8, NULL),
+(266, 4, 11, 'Samsung 990 PRO 2TB', 'samsung-990-pro-2tb-266', 'Linh kiện PC chính hãng', 'Mô tả Samsung 990 PRO 2TB', 4690000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "NVMe PCIe 4.0", "capacity": "2TB"}', 0, 0, 0, 0, 'storage', 8, NULL),
+(267, 4, 20, 'DeepCool PK550D', 'deepcool-pk550d-267', 'Linh kiện PC chính hãng', 'Mô tả DeepCool PK550D', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 550, "standard": "ATX 2.x", "efficiency": "80 Plus Bronze"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(268, 4, 2, 'MSI MAG A550BN', 'msi-mag-a550bn-268', 'Linh kiện PC chính hãng', 'Mô tả MSI MAG A550BN', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 550, "standard": "ATX 2.x", "efficiency": "80 Plus Bronze"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(269, 4, 8, 'Corsair CX650', 'corsair-cx650-269', 'Linh kiện PC chính hãng', 'Mô tả Corsair CX650', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 650, "standard": "ATX 2.x", "efficiency": "80 Plus Bronze"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(270, 4, 2, 'MSI MAG A650GL PCIE5', 'msi-mag-a650gl-pcie5-270', 'Linh kiện PC chính hãng', 'Mô tả MSI MAG A650GL PCIE5', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 650, "standard": "ATX 3.x", "efficiency": "80 Plus Gold"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(271, 4, 8, 'Corsair RM750e', 'corsair-rm750e-271', 'Linh kiện PC chính hãng', 'Mô tả Corsair RM750e', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 750, "standard": "ATX 3.x", "efficiency": "80 Plus Gold"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(272, 4, 2, 'MSI MAG A750GL PCIE5', 'msi-mag-a750gl-pcie5-272', 'Linh kiện PC chính hãng', 'Mô tả MSI MAG A750GL PCIE5', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 750, "standard": "ATX 3.x", "efficiency": "80 Plus Gold"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(273, 4, 8, 'Corsair RM850e', 'corsair-rm850e-273', 'Linh kiện PC chính hãng', 'Mô tả Corsair RM850e', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 850, "standard": "ATX 3.x", "efficiency": "80 Plus Gold"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(274, 4, 2, 'MSI MPG A850G PCIE5', 'msi-mpg-a850g-pcie5-274', 'Linh kiện PC chính hãng', 'Mô tả MSI MPG A850G PCIE5', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 850, "standard": "ATX 3.x", "efficiency": "80 Plus Gold"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(275, 4, 8, 'Corsair RM1000e', 'corsair-rm1000e-275', 'Linh kiện PC chính hãng', 'Mô tả Corsair RM1000e', 2000000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"wattage": 1000, "standard": "ATX 3.x", "efficiency": "80 Plus Gold"}', 0, 0, 0, 0, 'psu', NULL, NULL),
+(276, 4, 22, 'Montech Air 100 ARGB', 'montech-air-100-argb-276', 'Linh kiện PC chính hãng', 'Mô tả Montech Air 100 ARGB', 1200000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"form_factors": ["mATX", "ITX"], "max_gpu_length_mm": 330, "max_cooler_height_mm": 161}', 0, 0, 0, 0, 'case', NULL, NULL),
+(277, 4, 20, 'DeepCool CH370', 'deepcool-ch370-277', 'Linh kiện PC chính hãng', 'Mô tả DeepCool CH370', 1200000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"form_factors": ["mATX", "ITX"], "max_gpu_length_mm": 320, "max_cooler_height_mm": 165}', 0, 0, 0, 0, 'case', NULL, NULL),
+(278, 4, 8, 'Corsair 3000D Airflow', 'corsair-3000d-airflow-278', 'Linh kiện PC chính hãng', 'Mô tả Corsair 3000D Airflow', 1200000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"form_factors": ["ATX", "mATX", "ITX"], "max_gpu_length_mm": 360, "max_cooler_height_mm": 170}', 0, 0, 0, 0, 'case', NULL, NULL),
+(279, 4, 22, 'Montech Air 903 Max', 'montech-air-903-max-279', 'Linh kiện PC chính hãng', 'Mô tả Montech Air 903 Max', 1200000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"form_factors": ["ATX", "mATX", "ITX"], "max_gpu_length_mm": 400, "max_cooler_height_mm": 180}', 0, 0, 0, 0, 'case', NULL, NULL),
+(280, 4, 23, 'NZXT H5 Flow', 'nzxt-h5-flow-280', 'Linh kiện PC chính hãng', 'Mô tả NZXT H5 Flow', 1200000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"form_factors": ["ATX", "mATX", "ITX"], "max_gpu_length_mm": 365, "max_cooler_height_mm": 175}', 0, 0, 0, 0, 'case', NULL, NULL),
+(281, 4, 24, 'Lian Li Lancool 216', 'lian-li-lancool-216-281', 'Linh kiện PC chính hãng', 'Mô tả Lian Li Lancool 216', 1200000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"form_factors": ["ATX", "mATX", "ITX"], "max_gpu_length_mm": 392, "max_cooler_height_mm": 180}', 0, 0, 0, 0, 'case', NULL, NULL),
+(282, 4, 20, 'DeepCool AG400', 'deepcool-ag400-282', 'Linh kiện PC chính hãng', 'Mô tả DeepCool AG400', 800000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "Air", "sockets": ["AM4", "AM5", "LGA1700", "LGA1851"], "height_mm": 160, "is_aio": false}', 0, 0, 0, 0, 'cpu_cooler', 4, NULL),
+(283, 4, 21, 'Thermalright Peerless Assassin 120 SE', 'thermalright-peerless-assassin-120-se-283', 'Linh kiện PC chính hãng', 'Mô tả Thermalright Peerless Assassin 120 SE', 800000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "Air", "sockets": ["AM4", "AM5", "LGA1700", "LGA1851"], "height_mm": 160, "is_aio": false}', 0, 0, 0, 0, 'cpu_cooler', 4, NULL),
+(284, 4, 20, 'DeepCool AK620', 'deepcool-ak620-284', 'Linh kiện PC chính hãng', 'Mô tả DeepCool AK620', 800000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "Air", "sockets": ["AM4", "AM5", "LGA1700", "LGA1851"], "height_mm": 160, "is_aio": false}', 0, 0, 0, 0, 'cpu_cooler', 4, NULL),
+(285, 4, 21, 'Thermalright Phantom Spirit 120 SE', 'thermalright-phantom-spirit-120-se-285', 'Linh kiện PC chính hãng', 'Mô tả Thermalright Phantom Spirit 120 SE', 800000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "Air", "sockets": ["AM4", "AM5", "LGA1700", "LGA1851"], "height_mm": 160, "is_aio": false}', 0, 0, 0, 0, 'cpu_cooler', 4, NULL),
+(286, 4, 20, 'DeepCool LE520', 'deepcool-le520-286', 'Linh kiện PC chính hãng', 'Mô tả DeepCool LE520', 800000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "AIO 240mm", "sockets": ["AM4", "AM5", "LGA1700", "LGA1851"], "height_mm": 0, "is_aio": true}', 0, 0, 0, 0, 'cpu_cooler', 15, NULL),
+(287, 4, 8, 'Corsair Nautilus 240 RS', 'corsair-nautilus-240-rs-287', 'Linh kiện PC chính hãng', 'Mô tả Corsair Nautilus 240 RS', 800000, NULL, NULL, 0, 'pc-part.jpg', 5.0, 10, 100, '{"type": "AIO 240mm", "sockets": ["AM4", "AM5", "LGA1700", "LGA1851"], "height_mm": 0, "is_aio": true}', 0, 0, 0, 0, 'cpu_cooler', 15, NULL);

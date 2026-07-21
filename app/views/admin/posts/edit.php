@@ -1,4 +1,4 @@
-<div class="card" style="max-width: 800px; margin: 0 auto 30px;">
+<div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Chỉnh sửa bài viết</h3>
     
     <form method="post" action="<?= url('admin/posts/update/' . $post['id']) ?>" enctype="multipart/form-data">
@@ -16,7 +16,7 @@
             <?php if (!empty($post['image'])): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ảnh hiện tại:</span>
-                    <img src="<?= url('assets/images/news/' . e($post['image'])) ?>" alt="<?= e($post['title']) ?>" style="height: 80px; width: 150px; object-fit: cover; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="height: 80px; width: 150px; object-fit: cover; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
                 </div>
             <?php endif; ?>
 
@@ -30,8 +30,47 @@
         </div>
 
         <div class="form-group">
-            <label for="content">Nội dung chi tiết bài viết</label>
-            <textarea name="content" id="content" class="form-control" rows="12"><?= e($post['content']) ?></textarea>
+            <label for="content">Nội dung chi tiết bài viết (Hỗ trợ Markdown)</label>
+            <textarea name="content" id="content" class="form-control" rows="14"><?= e($post['content']) ?></textarea>
+            <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Hỗ trợ: ## Heading 2, ### Heading 3, - Danh sách, > Blockquote, | Table |, :::info Callout :::</small>
+        </div>
+
+        <div class="form-group mb-3">
+            <label>Chuyên mục (Thiết bị)</label>
+            <select name="category_slug" class="form-control">
+                <option value="laptop" <?= ($post['category_slug'] ?? '') == 'laptop' ? 'selected' : '' ?>>Laptop</option>
+                <option value="pc-gaming" <?= in_array($post['category_slug'] ?? '', ['pc-gaming', 'gaming']) ? 'selected' : '' ?>>PC Gaming</option>
+                <option value="pc-linh-kien" <?= ($post['category_slug'] ?? '') == 'pc-linh-kien' ? 'selected' : '' ?>>PC & Linh kiện</option>
+                <option value="man-hinh" <?= ($post['category_slug'] ?? '') == 'man-hinh' ? 'selected' : '' ?>>Màn hình</option>
+                <option value="gaming-gear" <?= ($post['category_slug'] ?? '') == 'gaming-gear' ? 'selected' : '' ?>>Gaming Gear</option>
+                <option value="office-gear" <?= ($post['category_slug'] ?? '') == 'office-gear' ? 'selected' : '' ?>>Thiết Bị Văn Phòng</option>
+                <option value="networking" <?= ($post['category_slug'] ?? '') == 'networking' ? 'selected' : '' ?>>Thiết Bị Mạng</option>
+                <option value="ai-cong-nghe-moi" <?= in_array($post['category_slug'] ?? '', ['ai-cong-nghe-moi', 'ai']) ? 'selected' : '' ?>>AI & Công nghệ mới</option>
+                <option value="cong-nghe" <?= ($post['category_slug'] ?? '') == 'cong-nghe' ? 'selected' : '' ?>>Công nghệ chung</option>
+            </select>
+        </div>
+
+        <div class="form-group mb-3">
+            <label>Loại nội dung</label>
+            <select name="post_type" class="form-control">
+                <option value="news" <?= ($post['post_type'] ?? '') == 'news' ? 'selected' : '' ?>>Ra mắt & Xu hướng</option>
+                <option value="review" <?= ($post['post_type'] ?? '') == 'review' ? 'selected' : '' ?>>Đánh giá & Review</option>
+                <option value="guide" <?= ($post['post_type'] ?? '') == 'guide' ? 'selected' : '' ?>>Tư vấn chọn mua</option>
+                <option value="howto" <?= ($post['post_type'] ?? '') == 'howto' ? 'selected' : '' ?>>Mẹo hay & Thủ thuật</option>
+                <option value="comparison" <?= ($post['post_type'] ?? '') == 'comparison' ? 'selected' : '' ?>>So sánh sản phẩm</option>
+            </select>
+        </div>
+
+        <div class="form-group mb-3">
+            <label>Thời gian đọc (phút)</label>
+            <input type="number" name="reading_minutes" class="form-control" min="1" max="60" value="<?= htmlspecialchars($post['reading_minutes'] ?? '') ?>">
+        </div>
+
+        <div class="form-group mb-3">
+            <div class="form-check">
+                <input type="checkbox" name="is_featured" value="1" class="form-check-input" id="is_featured" <?= (!empty($post['is_featured']) && $post['is_featured']) ? 'checked' : '' ?>>
+                <label class="form-check-label" for="is_featured">Bài viết nổi bật</label>
+            </div>
         </div>
 
         <div class="form-group">

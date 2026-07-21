@@ -1,4 +1,4 @@
-<div class="card" style="max-width: 800px; margin: 0 auto 30px;">
+<div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Chỉnh sửa sản phẩm</h3>
     
     <form method="post" action="<?= url('admin/products/update/' . $product['id']) ?>" enctype="multipart/form-data">
@@ -60,7 +60,7 @@
             <?php if (!empty($product['image'])): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ảnh hiện tại:</span>
-                    <img src="<?= url('assets/images/' . e($product['image'])) ?>" alt="<?= e($product['name']) ?>" style="height: 80px; width: 80px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= e(productImageUrl($product['image'] ?? '', $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" style="height: 80px; width: 80px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: var(--bg-body);">
                 </div>
             <?php endif; ?>
 

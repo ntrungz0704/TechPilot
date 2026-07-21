@@ -1,76 +1,167 @@
 <?php
+require_once ROOT_PATH . '/app/core/Controller.php';
+require_once ROOT_PATH . '/app/models/Post.php';
+require_once ROOT_PATH . '/app/core/MarkdownRenderer.php';
 
 class PostController extends Controller
 {
-    /** Danh sách bài viết: /post hoặc /post/index */
-    public function index(): void
+    private Post $postModel;
+
+    public function __construct()
     {
-        $postModel = $this->model('Post');
-        
-        // 1. Phân trang & Tag lọc
-        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $tag = isset($_GET['tag']) ? trim($_GET['tag']) : '';
-        $limit = 5;
-        $offset = ($page - 1) * $limit;
+        $this->postModel = new Post();
+    }
 
-        // 2. Lấy Featured Post (Bài viết tiêu điểm) ở trang 1 và không lọc tag
+    public function index()
+    {
+        $page     = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $type     = isset($_GET['type']) ? trim($_GET['type']) : '';
+        $category = isset($_GET['category']) ? trim($_GET['category']) : '';
+        $tag      = isset($_GET['tag']) ? trim($_GET['tag']) : '';
+        $limit    = 6;
+        $offset   = ($page - 1) * $limit;
+
         $featured = null;
-        if ($page === 1 && empty($tag)) {
-            $featured = $postModel->getFeatured();
+        $heroPopular = [];
+        $excludeFeaturedId = null;
+
+        // Chỉ hiển thị Featured / Hero Grid khi ở trang 1 và không có bộ lọc nào
+        if ($page === 1 && empty($type) && empty($category) && empty($tag)) {
+            $featured = $this->postModel->getFeatured();
+            if ($featured) {
+                $excludeFeaturedId = $featured['id'];
+                // Nếu có featured, lấy 2 bài popular hero grid
+                $allPop = $this->postModel->getPopular(3);
+                foreach ($allPop as $p) {
+                    if ($p['id'] !== $featured['id']) {
+                        $heroPopular[] = $p;
+                    }
+                    if (count($heroPopular) == 2) break;
+                }
+            }
         }
 
-        // 3. Lấy danh sách bài viết (loại trừ bài featured nếu có)
-        $excludeId = $featured ? (int)$featured['id'] : null;
-        $posts = $postModel->getAll($offset, $limit, $tag, $excludeId);
+        // countAll và getAll dùng cùng bộ điều kiện và excludeId
+        $total = $this->postModel->countAll($type, $category, $tag, $excludeFeaturedId);
+        $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $excludeFeaturedId);
 
-        // 4. Tính toán tổng số trang
-        $totalCount = $postModel->countAll($tag);
-        if ($featured !== null) {
-            $totalCount = max(0, $totalCount - 1);
+        $popular = $this->postModel->getPopular(5);
+        $filteredPopular = [];
+        foreach ($popular as $p) {
+            if ($featured && $p['id'] === $featured['id']) continue;
+            $filteredPopular[] = $p;
+            if (count($filteredPopular) == 4) break; // chỉ lấy 4 bài popular sidebar
         }
-        $totalPages = (int)ceil($totalCount / $limit);
 
-        // 5. Lấy danh sách bài viết phổ biến (Popular)
-        $popular = $postModel->getPopular(3);
+        require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
+        $commerceService = new NewsCommerceService();
+        $genericCommerce = $commerceService->getConfig($category ?: 'default', $type);
+
+        $commerceContext = [
+            'category'  => $category,
+            'post_type' => $type,
+            'placement' => 'news-index-sidebar',
+            'config'    => $genericCommerce['sidebar'] ?? null,
+        ];
 
         $this->render('post/index', [
-            'pageTitle'   => 'Tin tức công nghệ',
-            'featured'    => $featured,
-            'posts'       => $posts,
-            'popular'     => $popular,
-            'currentPage' => $page,
-            'totalPages'  => $totalPages,
-            'currentTag'  => $tag
+            'pageTitle'       => 'Tin tức công nghệ',
+            'title'           => 'Tin tức công nghệ',
+            'posts'           => $posts,
+            'featured'        => $featured,
+            'heroPopular'     => $heroPopular,
+            'popular'         => $filteredPopular,
+            'currentPage'     => $page,
+            'totalPages'      => (int)ceil($total / $limit),
+            'currentType'     => $type,
+            'currentCategory' => $category,
+            'currentTag'      => $tag,
+            'commerceContext' => $commerceContext,
+            'pageStyles'      => ['assets/css/news.css?v=1.2'],
         ]);
     }
 
-    /** Chi tiết bài viết: /post/detail/{slug} */
-    public function detail(string $slug = ''): void
-    {
-        if (empty($slug)) {
-            $this->redirect('post');
-            return;
-        }
 
-        $postModel = $this->model('Post');
-        $post = $postModel->getBySlug($slug);
+    public function detail($slug)
+    {
+        $post = $this->postModel->getBySlug($slug);
 
         if (!$post) {
-            http_response_code(404);
-            $this->render('home/404', ['pageTitle' => 'Không tìm thấy bài viết']);
+            $this->render('home/404', [
+                'pageTitle' => 'Không tìm thấy bài viết',
+                'title'     => 'Không tìm thấy bài viết',
+            ]);
             return;
         }
 
-        // 1. Tăng lượt xem
-        $postModel->incrementViews((int)$post['id']);
+        $this->postModel->incrementViews($post['id']);
 
-        // 2. Lấy bài viết liên quan (loại trừ bài hiện tại)
-        $related = $postModel->getAll(0, 3, '', (int)$post['id']);
+        $related = $this->postModel->getRelatedPosts(
+            $post['id'],
+            $post['category_slug'] ?? '',
+            $post['post_type'] ?? '',
+            4
+        );
+
+        $postType     = strtolower(trim((string)($post['post_type'] ?? '')));
+        $categorySlug = strtolower(trim((string)($post['category_slug'] ?? '')));
+
+        require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
+        $commerceService = new NewsCommerceService();
+        $commerceConfig  = $commerceService->getConfig($categorySlug, $postType);
+
+        $commerceContext = [
+            'category'  => $categorySlug,
+            'post_type' => $postType,
+            'placement' => 'article-sidebar',
+            'config'    => $commerceConfig['sidebar'] ?? null,
+        ];
+
+        // Xử lý Markdown content
+        $renderer = new MarkdownRenderer();
+        $parsed   = $renderer->render($post['content'] ?? '');
+
+        $renderedContent = (string)($parsed['html'] ?? '');
+        $articleHeadings = is_array($parsed['headings'] ?? null) ? $parsed['headings'] : [];
+        $articleBlocks   = is_array($parsed['blocks'] ?? null) ? $parsed['blocks'] : [];
+
+        $plainArticleText = trim(
+            html_entity_decode(
+                strip_tags($renderedContent),
+                ENT_QUOTES,
+                'UTF-8'
+            )
+        );
+
+        preg_match_all(
+            '/[\p{L}\p{N}]+/u',
+            $plainArticleText,
+            $wordMatches
+        );
+        $articleWordCount = count($wordMatches[0]);
+
+        $articleH2Count = count(array_filter(
+            $articleHeadings,
+            static fn (array $heading): bool => (int)($heading['level'] ?? 0) === 2
+        ));
 
         $this->render('post/detail', [
-            'pageTitle' => $post['title'],
-            'post'      => $post,
-            'related'   => $related
+            'pageTitle'        => $post['title'],
+            'title'            => $post['title'] . ' - TechPilot News',
+            'post'             => $post,
+            'related'          => $related,
+            'renderedContent'  => $renderedContent,
+            'articleHeadings'  => $articleHeadings,
+            'articleBlocks'    => $articleBlocks,
+            'articleWordCount' => $articleWordCount,
+            'articleH2Count'   => $articleH2Count,
+            'postType'         => $postType,
+            'categorySlug'     => $categorySlug,
+            'midCtaConfig'     => $commerceConfig['mid_cta'] ?? null,
+            'endCtaConfig'     => $commerceConfig['end_cta'] ?? null,
+            'commerceContext'  => $commerceContext,
+            'pageStyles'       => ['assets/css/news.css?v=1.2'],
+            'pageScripts'      => ['assets/js/news.js?v=1.1'],
         ]);
     }
 }
