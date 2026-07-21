@@ -446,6 +446,69 @@ class ChatbotController extends Controller
     {
         $q = strtolower(removeVietnameseAccents($q));
 
+        // Kiểm tra xem người dùng có đang hỏi tìm máy theo mức giá cụ thể không (Ví dụ: "có máy 3 triệu không")
+        $targetPrice = $this->extractTargetPrice($q);
+        if ($targetPrice !== null) {
+            $stmt = $this->db->prepare(
+                "SELECT p.*, b.name as brand_name, c.name as category_name 
+                 FROM products p
+                 LEFT JOIN brands b ON p.brand_id = b.id
+                 LEFT JOIN categories c ON p.category_id = c.id
+                 WHERE p.status = 'active'
+                 ORDER BY ABS(p.price - ?) ASC
+                 LIMIT 5"
+            );
+            $stmt->execute([$targetPrice]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($products)) {
+                $recs = [];
+                foreach ($products as $p) {
+                    $specs = json_decode($p['specs'], true) ?? [];
+                    // Tính độ phù hợp dựa trên khoảng cách giá lệch (càng gần càng cao, tối đa 98%)
+                    $priceDiff = abs($p['price'] - $targetPrice);
+                    $score = 98 - (int)($priceDiff / 150000); 
+                    if ($score > 98) $score = 98;
+                    if ($score < 40) $score = 40;
+
+                    $recs[] = [
+                        'id' => $p['id'],
+                        'name' => $p['name'],
+                        'price' => (float)$p['price'],
+                        'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
+                        'image' => $p['image'],
+                        'slug' => $p['slug'],
+                        'score' => $score,
+                        'specs' => [
+                            'CPU' => $specs['CPU'] ?? 'Intel/AMD',
+                            'RAM' => $specs['RAM'] ?? '8GB',
+                            'SSD' => $specs['SSD'] ?? '512GB',
+                            'VGA' => $specs['VGA'] ?? 'Onboard'
+                        ],
+                        'reasons' => [
+                            "Mức giá thực tế: " . number_format($p['price'], 0, ',', '.') . "đ",
+                            "Gần nhất với mức ngân sách " . number_format($targetPrice, 0, ',', '.') . "đ bạn yêu cầu."
+                        ]
+                    ];
+                }
+
+                $aiMessage = "🤖 **Dạ có!** Dưới đây là danh sách 5 sản phẩm có mức giá gần với **" . number_format($targetPrice, 0, ',', '.') . "đ** nhất hiện đang được bán tại cửa hàng TechPilot:";
+
+                return [
+                    'success' => true,
+                    'type' => 'recommendations',
+                    'ai_message' => $aiMessage,
+                    'recommendations' => $recs
+                ];
+            } else {
+                return [
+                    'success' => true,
+                    'type' => 'text',
+                    'message' => "🤖 Dạ hiện tại TechPilot chưa có sản phẩm nào có tầm giá gần mức **" . number_format($targetPrice, 0, ',', '.') . "đ**."
+                ];
+            }
+        }
+
         // 1. Hỏi về RAM 8GB vs 16GB
         if (strpos($q, 'ram') !== false && (strpos($q, '8g') !== false && strpos($q, '16g') !== false || strpos($q, 'khac gi') !== false || strpos($q, 'so sanh') !== false)) {
             return [
@@ -549,6 +612,34 @@ class ChatbotController extends Controller
         }
 
         // Fallback: Tìm thử xem có tên sản phẩm nào xuất hiện trong câu hỏi không
+        return null;
+    }
+
+    /**
+     * Hỗ trợ trích xuất số tiền người dùng nhập từ ngôn ngữ tự nhiên
+     */
+    private function extractTargetPrice(string $text): ?float
+    {
+        // Loại bỏ dấu tiếng Việt để đồng nhất so sánh
+        $text = strtolower(removeVietnameseAccents($text));
+        
+        // Tìm dạng: số + tr hoặc số + trieu (có thể có phần thập phân như 3.5tr, 12,5tr, 8,5 triệu)
+        if (preg_match('/(\d+([.,]\d+)?)\s*(trieu|tr)/i', $text, $matches)) {
+            $num = (float)str_replace(',', '.', $matches[1]);
+            return $num * 1000000;
+        }
+
+        // Tìm dạng số tiền đầy đủ: 3.000.000, 3,000,000, 3000000
+        if (preg_match('/(\d{1,3}([.,]\d{3})+)/', $text, $matches)) {
+            $cleaned = str_replace(['.', ','], '', $matches[1]);
+            return (float)$cleaned;
+        }
+
+        // Tìm số đơn lẻ lớn hơn 100000
+        if (preg_match('/(\d{5,10})/', $text, $matches)) {
+            return (float)$matches[1];
+        }
+
         return null;
     }
 }

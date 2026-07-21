@@ -1458,6 +1458,9 @@
                         if (res.type === 'start_quiz') {
                             renderBotMessage(res.message);
                             startQuizFlow();
+                        } else if (res.type === 'recommendations') {
+                            renderBotMessage(res.ai_message);
+                            renderRecommendations(res.recommendations);
                         } else {
                             renderBotMessage(res.message);
                             setTimeout(() => {
