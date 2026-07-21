@@ -1557,19 +1557,39 @@ html.dark-mode .article-cta-box {
 
 /* TOC Styling adjustments for Desktop Sidebar and Mobile */
 .news-toc {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
     background: var(--news-muted-bg);
     border: 1px solid var(--news-border);
     border-radius: 8px;
     padding: 18px 20px;
-    width: 100%;
 }
 .news-sidebar-toc-widget .news-toc {
     display: block;
     margin: 0;
 }
-.news-sidebar-toc-widget .news-toc-toggle {
-    display: none !important; /* Always open in desktop sidebar */
+
+/* No-JS (default): List is visible, toggle button is hidden */
+.news-toc-list {
+    display: block;
 }
+.news-toc-toggle {
+    display: none;
+}
+
+/* Progressive enhancement with JS (when html.js is active) */
+html.js .news-toc--mobile .news-toc-toggle {
+    display: inline-flex;
+}
+html.js .news-toc--mobile .news-toc-list {
+    display: none;
+}
+html.js .news-toc--mobile.is-open .news-toc-list {
+    display: block;
+}
+
 .news-sidebar-toc-widget .news-toc-list {
     display: block !important;
 }
@@ -1583,7 +1603,8 @@ html.dark-mode .article-cta-box {
     padding: 18px 20px;
     margin: 20px 0 30px 0;
 }
-.article-quick-summary h3 {
+.article-quick-summary .article-summary-title,
+.article-quick-summary h2 {
     font-size: 16px;
     font-weight: 700;
     color: var(--news-primary);
@@ -1609,7 +1630,8 @@ html.dark-mode .article-quick-summary {
     border-color: rgba(0, 200, 255, 0.3);
     border-left-color: var(--news-cyan);
 }
-html.dark-mode .article-quick-summary h3 {
+html.dark-mode .article-quick-summary .article-summary-title,
+html.dark-mode .article-quick-summary h2 {
     color: var(--news-cyan);
 }
 
@@ -1621,7 +1643,8 @@ html.dark-mode .article-quick-summary h3 {
     padding: 18px 20px;
     margin: 35px 0;
 }
-.article-sources-block h3 {
+.article-sources-block .article-sources-title,
+.article-sources-block h2 {
     font-size: 15px;
     font-weight: 700;
     color: var(--news-text-main);
@@ -1648,7 +1671,7 @@ html.dark-mode .article-quick-summary h3 {
 .article-sources-block a {
     color: var(--news-primary);
     text-decoration: underline;
-    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 .article-sources-block a:hover {
     color: var(--news-cyan);
@@ -1694,6 +1717,7 @@ html.dark-mode .article-quick-summary h3 {
     font-weight: 700;
     color: var(--news-text-main);
     margin: 0 0 4px 0;
+    display: block;
 }
 .news-author-note {
     font-size: 13px;
