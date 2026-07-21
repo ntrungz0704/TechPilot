@@ -12,13 +12,15 @@ $totalPages      = $totalPages      ?? 1;
 $currentType     = $currentType     ?? '';
 $currentCategory = $currentCategory ?? '';
 $currentTag      = $currentTag      ?? '';
+$currentQ        = $currentQ        ?? '';
 
 $pageQueryParams = [];
 if (!empty($currentType))     $pageQueryParams['type']     = $currentType;
 if (!empty($currentCategory)) $pageQueryParams['category'] = $currentCategory;
 if (!empty($currentTag))      $pageQueryParams['tag']      = $currentTag;
+if (!empty($currentQ))        $pageQueryParams['q']        = $currentQ;
 
-$hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($currentTag);
+$hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($currentTag) || !empty($currentQ);
 ?>
 
 <section class="container breadcrumb" aria-label="Đường dẫn">
@@ -31,6 +33,7 @@ $hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($c
 
     <!-- 1. Dải danh mục tin tức -->
     <?php require_once __DIR__ . '/partials/_category_nav.php'; ?>
+    <?php require __DIR__ . '/partials/_hot_topics.php'; ?>
 
     <!-- 2. Bài viết nổi bật (Featured Post) - Chỉ hiển thị ở trang 1 không filter -->
     <?php if ($featured !== null && !$hasActiveFilter): ?>
@@ -40,7 +43,9 @@ $hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($c
 <?php
 // Tính toán Tiêu đề danh sách bài viết động theo bộ lọc
 $sectionTitle = 'Bài viết mới nhất';
-if (!empty($currentType) && !empty($currentCategory)) {
+if (!empty($currentQ)) {
+    $sectionTitle = 'Kết quả tìm kiếm cho “' . $currentQ . '”';
+} elseif (!empty($currentType) && !empty($currentCategory)) {
     $sectionTitle = postTypeLabel($currentType) . ' — ' . postCategoryLabel($currentCategory);
 } elseif (!empty($currentType)) {
     $sectionTitle = postTypeLabel($currentType);
@@ -55,7 +60,27 @@ if (!empty($currentType) && !empty($currentCategory)) {
     <div class="news-layout">
         <!-- Cột trái: Danh sách bài viết -->
         <div class="news-main">
-            <h3 class="news-section-title"><?= e($sectionTitle) ?></h3>
+            <div class="news-main-header" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 1rem;">
+                <h3 class="news-section-title" style="margin-bottom: 0;"><?= e($sectionTitle) ?></h3>
+                
+                <form action="<?= url('post') ?>" method="get" class="news-search-form" style="display: flex; max-width: 300px; width: 100%; position: relative;">
+                    <?php if (!empty($currentType)): ?>
+                        <input type="hidden" name="type" value="<?= e($currentType) ?>">
+                    <?php endif; ?>
+                    <?php if (!empty($currentCategory)): ?>
+                        <input type="hidden" name="category" value="<?= e($currentCategory) ?>">
+                    <?php endif; ?>
+                    <input type="text" name="q" value="<?= e($currentQ) ?>" placeholder="Tìm bài viết, hướng dẫn..." aria-label="Tìm kiếm bài viết" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-card); color: var(--text-color);" required maxlength="150">
+                    <button type="submit" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <?php if (!empty($currentQ)): ?>
+                        <?php 
+                            $clearParams = $pageQueryParams;
+                            unset($clearParams['q']);
+                        ?>
+                        <a href="<?= url('post?' . http_build_query($clearParams)) ?>" style="position: absolute; right: 2rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); text-decoration: none;" aria-label="Xóa tìm kiếm"><i class="fa-solid fa-xmark"></i></a>
+                    <?php endif; ?>
+                </form>
+            </div>
 
             <?php if (!empty($posts)): ?>
                 <div class="news-list">
@@ -65,39 +90,16 @@ if (!empty($currentType) && !empty($currentCategory)) {
                 </div>
 
                 <!-- Phân trang (Pagination) -->
-                <?php if ($totalPages > 1): ?>
-                    <nav class="news-pagination" aria-label="Phân trang">
-                        <?php if ($currentPage > 1): ?>
-                            <?php $prevParams = array_merge($pageQueryParams, ['page' => $currentPage - 1]); ?>
-                            <a href="<?= url('post?' . http_build_query($prevParams)) ?>" class="page-btn" aria-label="Trang trước">
-                                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-                            </a>
-                        <?php endif; ?>
-
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <?php $iParams = array_merge($pageQueryParams, ['page' => $i]); ?>
-                            <a
-                                href="<?= url('post?' . http_build_query($iParams)) ?>"
-                                class="page-btn <?= $currentPage === $i ? 'is-active' : '' ?>"
-                                <?= $currentPage === $i ? 'aria-current="page"' : '' ?>
-                            ><?= $i ?></a>
-                        <?php endfor; ?>
-
-                        <?php if ($currentPage < $totalPages): ?>
-                            <?php $nextParams = array_merge($pageQueryParams, ['page' => $currentPage + 1]); ?>
-                            <a href="<?= url('post?' . http_build_query($nextParams)) ?>" class="page-btn" aria-label="Trang sau">
-                                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                            </a>
-                        <?php endif; ?>
-                    </nav>
-                <?php endif; ?>
+                <?php require __DIR__ . '/partials/_pagination.php'; ?>
 
             <?php else: ?>
                 <div class="news-empty">
                     <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
                     <h4>Chưa có bài viết nào phù hợp</h4>
                     <p>
-                        <?php if (!empty($currentType) || !empty($currentCategory)): ?>
+                        <?php if (!empty($currentQ)): ?>
+                            Không tìm thấy bài viết phù hợp với “<?= e($currentQ) ?>”.
+                        <?php elseif (!empty($currentType) || !empty($currentCategory)): ?>
                             Không tìm thấy bài viết thuộc
                             <strong><?= !empty($currentType) ? postTypeLabel($currentType) : '' ?></strong>
                             <?= (!empty($currentType) && !empty($currentCategory)) ? ' dành cho ' : '' ?>
@@ -106,8 +108,12 @@ if (!empty($currentType) && !empty($currentCategory)) {
                             Hãy chọn bộ lọc hoặc chuyên mục khác.
                         <?php endif; ?>
                     </p>
-                    <a href="<?= url('post') ?>" class="btn btn--primary btn--sm" style="margin-top: 16px; display: inline-block;">
-                        <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Xem tất cả bài viết
+                    <?php 
+                        $clearParams = $pageQueryParams;
+                        unset($clearParams['q']);
+                    ?>
+                    <a href="<?= url('post?' . http_build_query($clearParams)) ?>" class="btn btn--primary btn--sm" style="margin-top: 16px; display: inline-block;">
+                        <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Xem lại danh sách
                     </a>
                 </div>
             <?php endif; ?>

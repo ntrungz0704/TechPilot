@@ -43,18 +43,31 @@ class Post
         return $post ?: null;
     }
 
-    /** Lấy danh sách bài viết phổ biến (nhiều lượt xem nhất) */
+    /** Lấy danh sách bài viết phổ biến (nhiều lượt xem nhất, ưu tiên 30 ngày gần đây) */
     public function getPopular(int $limit = 3): array
     {
         if ($this->db === null) return [];
-        $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" ORDER BY views DESC, COALESCE(published_at, created_at) DESC LIMIT :limit');
+        // Ưu tiên bài viết trong 30 ngày qua, sau đó mới tính đến view chung
+        $sql = '
+            SELECT * FROM posts 
+            WHERE status = "published" 
+            ORDER BY 
+                CASE 
+                    WHEN COALESCE(published_at, created_at) >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1
+                    ELSE 0 
+                END DESC,
+                views DESC, 
+                COALESCE(published_at, created_at) DESC 
+            LIMIT :limit
+        ';
+        $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Build where clause cho filter type, category và legacy tag */
-    private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', array &$params = []): string
+    /** Build where clause cho filter type, category và legacy tag, bao gồm cả từ khóa tìm kiếm (q) */
+    private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', string $q = '', array &$params = []): string
     {
         $sql = '';
 
@@ -93,17 +106,22 @@ class Post
             }
         }
 
+        if (!empty($q)) {
+            $sql .= ' AND (title LIKE :keyword OR summary LIKE :keyword OR content LIKE :keyword)';
+            $params[':keyword'] = '%' . $q . '%';
+        }
+
         return $sql;
     }
 
     /** Đếm số lượng bài viết để phân trang (hỗ trợ excludeId để đồng bộ với getAll) */
-    public function countAll(string $type = '', string $category = '', string $tag = '', ?int $excludeId = null): int
+    public function countAll(string $type = '', string $category = '', string $tag = '', string $q = '', ?int $excludeId = null): int
     {
         if ($this->db === null) return 0;
 
         $sql = 'SELECT COUNT(*) FROM posts WHERE status = "published"';
         $params = [];
-        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $params);
+        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
@@ -124,14 +142,14 @@ class Post
     }
 
     /** Lấy danh sách bài viết phân trang */
-    public function getAll(int $offset, int $limit, string $type = '', string $category = '', string $tag = '', ?int $excludeId = null): array
+    public function getAll(int $offset, int $limit, string $type = '', string $category = '', string $tag = '', string $q = '', ?int $excludeId = null): array
     {
         if ($this->db === null) return [];
 
         $sql = 'SELECT * FROM posts WHERE status = "published"';
         $params = [];
 
-        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $params);
+        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';

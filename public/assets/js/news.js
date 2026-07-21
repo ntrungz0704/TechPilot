@@ -12,6 +12,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initCopyLink();
     initArticleToc();
+    initReadingProgress();
+
+    /* ── Reading Progress Bar ──────────────────────────────────────────── */
+    function initReadingProgress() {
+        const progressBar = document.getElementById('readingProgressBar');
+        const article = document.querySelector('.news-detail-content');
+        if (!progressBar || !article) return;
+
+        window.addEventListener('scroll', () => {
+            const rect = article.getBoundingClientRect();
+            const topPos = rect.top;
+            const height = rect.height;
+            const windowHeight = window.innerHeight;
+            
+            let progress = 0;
+            if (topPos < windowHeight / 2) {
+                const scrolled = (windowHeight / 2) - topPos;
+                progress = (scrolled / height) * 100;
+            }
+            
+            progress = Math.max(0, Math.min(100, progress));
+            progressBar.style.width = `${progress}%`;
+        }, { passive: true });
+    }
 
     /* ── Article Table of Contents Mobile Toggle ───────────────────────── */
     function initArticleToc() {
@@ -20,15 +44,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const toggle = toc.querySelector('.news-toc-toggle');
         const list   = toc.querySelector('.news-toc-list');
-        if (!toggle || !list) return;
+        if (toggle && list) {
+            toggle.addEventListener('click', () => {
+                const isOpen = toc.classList.toggle('is-open');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+        }
 
-        toggle.addEventListener('click', () => {
-            const isOpen = toc.classList.toggle('is-open');
-            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        });
+        const tocLinks = toc.querySelectorAll('.news-toc-item a');
+        if (!tocLinks.length) return;
+
+        const headings = Array.from(tocLinks).map(link => {
+            const id = link.getAttribute('href').substring(1);
+            return document.getElementById(id);
+        }).filter(h => h !== null);
+
+        if (!headings.length) return;
+
+        const observerOptions = {
+            rootMargin: '-80px 0px -80% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver(entries => {
+            let activeId = null;
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    activeId = entry.target.id;
+                }
+            });
+            
+            if (activeId) {
+                const activeLink = toc.querySelector(`.news-toc-item a[href="#${activeId}"]`);
+                if (activeLink) {
+                    toc.querySelectorAll('.news-toc-item').forEach(item => item.classList.remove('is-active'));
+                    activeLink.parentElement.classList.add('is-active');
+                }
+            }
+        }, observerOptions);
+
+        headings.forEach(heading => observer.observe(heading));
     }
 
-    /* ── Copy Link ─────────────────────────────────────────────────────── */
+    /* ── Copy Link & Web Share API ─────────────────────────────────────── */
     function initCopyLink() {
         const copyBtns = document.querySelectorAll('.copy-link-btn');
         if (!copyBtns.length) return;
@@ -39,6 +97,24 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const url = window.location.href;
+                const title = document.title;
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: title,
+                            url: url
+                        });
+                        return; // Đã share thành công
+                    } catch (err) {
+                        // Nếu user bấm cancel thì bỏ qua, lỗi khác thì log
+                        if (err.name !== 'AbortError') {
+                            console.warn('[TechPilot] Share failed:', err);
+                        } else {
+                            return;
+                        }
+                    }
+                }
 
                 try {
                     if (navigator.clipboard && navigator.clipboard.writeText) {
