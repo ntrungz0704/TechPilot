@@ -25,7 +25,7 @@
                             <td><?= (int)$pst['id'] ?></td>
                             <td>
                                 <?php if (!empty($pst['image'])): ?>
-                                    <img src="<?= url('assets/images/news/' . e($pst['image'])) ?>" alt="<?= e($pst['title']) ?>" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px;">
+                                    <img src="<?= postImageUrl($pst['image']) ?>" alt="<?= e($pst['title']) ?>" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px;">
                                 <?php else: ?>
                                     <div style="width: 100px; height: 50px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #9CA3AF;">No image</div>
                                 <?php endif; ?>
