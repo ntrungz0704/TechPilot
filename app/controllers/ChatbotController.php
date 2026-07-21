@@ -249,16 +249,26 @@ class ChatbotController extends Controller
             }
         }
 
+        // Phát hiện danh mục từ câu hỏi tự nhiên hoặc mặc định dùng Laptop (1, 2)
+        $categories = [];
+        if ($queryText !== '') {
+            $categories = $this->detectCategoryFilter($queryText);
+        }
+        if (empty($categories)) {
+            $categories = [1, 2]; // mặc định Laptop
+        }
+
         // Chạy bộ máy chấm điểm tư vấn (Recommendation Engine)
         try {
+            $placeholders = implode(',', array_fill(0, count($categories), '?'));
             $stmt = $this->db->prepare(
                 "SELECT p.*, b.name as brand_name, c.name as category_name 
                  FROM products p
                  LEFT JOIN brands b ON p.brand_id = b.id
                  LEFT JOIN categories c ON p.category_id = c.id
-                 WHERE p.category_id IN (1, 2) AND p.status = 'active'"
+                 WHERE p.category_id IN ($placeholders) AND p.status = 'active'"
             );
-            $stmt->execute();
+            $stmt->execute($categories);
             $laptops = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $scoredLaptops = [];
@@ -416,16 +426,28 @@ class ChatbotController extends Controller
             // Lấy top 3 chiếc phù hợp nhất
             $recommendations = array_slice($scoredLaptops, 0, 3);
 
+            // Xác định nhãn loại sản phẩm
+            $productTypeLabel = 'sản phẩm';
+            if (in_array(3, $categories)) $productTypeLabel = 'cấu hình PC / Máy tính bộ';
+            elseif (in_array(5, $categories)) $productTypeLabel = 'mẫu Màn hình (LCD)';
+            elseif (in_array(7, $categories)) $productTypeLabel = 'món Phụ kiện / Gaming Gear';
+            elseif (in_array(4, $categories)) $productTypeLabel = 'món Linh kiện PC';
+            elseif (in_array(1, $categories)) $productTypeLabel = 'mẫu Laptop';
+
             // Chuẩn bị tin nhắn phản hồi của AI
             $aiMessage = "🤖 **TechPilot AI đề xuất cho bạn:**\n\n";
             if (empty($recommendations)) {
-                $aiMessage = "🤖 Xin lỗi, hiện tại hệ thống chưa tìm được laptop nào phù hợp với hạn mức ngân sách của bạn. Bạn hãy thử tăng ngân sách hoặc liên hệ trực tiếp đội ngũ TechPilot để được tư vấn kỹ hơn nhé!";
+                $aiMessage = "🤖 Xin lỗi, hiện tại hệ thống chưa tìm được " . $productTypeLabel . " nào phù hợp với hạn mức ngân sách của bạn. Bạn hãy thử tăng ngân sách hoặc liên hệ trực tiếp đội ngũ TechPilot để được tư vấn kỹ hơn nhé!";
             } else {
-                $aiMessage .= "Dựa trên hồ sơ của bạn:\n";
-                $aiMessage .= "• Nhóm đối tượng: **" . ($userGroup !== '' ? $userGroup : 'Chưa chọn') . "**\n";
-                $aiMessage .= "• Ngân sách: **" . ($userBudgetStr !== '' ? number_format($maxBudget, 0, ',', '.') . 'đ' : 'Chưa chọn') . "**\n";
-                $aiMessage .= "• Ưu tiên: **" . ($userPriority !== '' ? $userPriority : 'Chân thực') . "**\n\n";
-                $aiMessage .= "Dưới đây là 3 mẫu laptop phù hợp nhất đã được chọn lọc và chấm điểm:";
+                if ($queryText !== '') {
+                    $aiMessage .= "Tìm thấy các " . $productTypeLabel . " phù hợp nhất dựa trên từ khóa **\"" . htmlspecialchars($queryText) . "\"** của bạn:\n\n";
+                } else {
+                    $aiMessage .= "Dựa trên hồ sơ khảo sát của bạn:\n";
+                    $aiMessage .= "• Nhóm đối tượng: **" . ($userGroup !== '' ? $userGroup : 'Chưa chọn') . "**\n";
+                    $aiMessage .= "• Ngân sách: **" . ($userBudgetStr !== '' ? number_format($maxBudget, 0, ',', '.') . 'đ' : 'Chưa chọn') . "**\n";
+                    $aiMessage .= "• Ưu tiên: **" . ($userPriority !== '' ? $userPriority : 'Chân thực') . "**\n\n";
+                    $aiMessage .= "Dưới đây là 3 " . $productTypeLabel . " phù hợp nhất đã được chọn lọc và chấm điểm:";
+                }
             }
 
             echo json_encode([
@@ -449,16 +471,27 @@ class ChatbotController extends Controller
         // Kiểm tra xem người dùng có đang hỏi tìm máy theo mức giá cụ thể không (Ví dụ: "có máy 3 triệu không")
         $targetPrice = $this->extractTargetPrice($q);
         if ($targetPrice !== null) {
-            $stmt = $this->db->prepare(
-                "SELECT p.*, b.name as brand_name, c.name as category_name 
-                 FROM products p
-                 LEFT JOIN brands b ON p.brand_id = b.id
-                 LEFT JOIN categories c ON p.category_id = c.id
-                 WHERE p.status = 'active'
-                 ORDER BY ABS(p.price - ?) ASC
-                 LIMIT 5"
-            );
-            $stmt->execute([$targetPrice]);
+            $categories = $this->detectCategoryFilter($q);
+
+            $sql = "SELECT p.*, b.name as brand_name, c.name as category_name 
+                    FROM products p
+                    LEFT JOIN brands b ON p.brand_id = b.id
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    WHERE p.status = 'active'";
+
+            $params = [];
+            if (!empty($categories)) {
+                $placeholders = implode(',', array_fill(0, count($categories), '?'));
+                $sql .= " AND p.category_id IN ($placeholders)";
+                $params = array_merge($categories, [$targetPrice]);
+            } else {
+                $params = [$targetPrice];
+            }
+
+            $sql .= " ORDER BY ABS(p.price - ?) ASC LIMIT 5";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (!empty($products)) {
@@ -492,7 +525,16 @@ class ChatbotController extends Controller
                     ];
                 }
 
-                $aiMessage = "🤖 **Dạ có!** Dưới đây là danh sách 5 sản phẩm có mức giá gần với **" . number_format($targetPrice, 0, ',', '.') . "đ** nhất hiện đang được bán tại cửa hàng TechPilot:";
+                $productTypeLabel = 'sản phẩm';
+                if (!empty($categories)) {
+                    if (in_array(3, $categories)) $productTypeLabel = 'mẫu PC / Máy tính bộ';
+                    elseif (in_array(5, $categories)) $productTypeLabel = 'mẫu Màn hình (LCD)';
+                    elseif (in_array(7, $categories)) $productTypeLabel = 'món Phụ kiện / Gaming Gear';
+                    elseif (in_array(4, $categories)) $productTypeLabel = 'món Linh kiện PC';
+                    elseif (in_array(1, $categories)) $productTypeLabel = 'mẫu Laptop';
+                }
+
+                $aiMessage = "🤖 **Dạ có!** Dưới đây là danh sách 5 " . $productTypeLabel . " có mức giá gần với **" . number_format($targetPrice, 0, ',', '.') . "đ** nhất hiện đang được bán tại cửa hàng TechPilot:";
 
                 return [
                     'success' => true,
@@ -641,6 +683,67 @@ class ChatbotController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Tự động phát hiện các danh mục sản phẩm tương ứng dựa trên từ khóa trong câu hỏi
+     */
+    private function detectCategoryFilter(string $text): array
+    {
+        $text = strtolower($this->removeVietnameseAccents($text));
+        
+        // 1. PC build / Máy tính bộ / Case máy tính / Bộ máy tính
+        if (strpos($text, 'pc') !== false 
+            || strpos($text, 'may tinh bo') !== false 
+            || strpos($text, 'de ban') !== false 
+            || strpos($text, 'case') !== false 
+            || strpos($text, 'cay pc') !== false 
+            || strpos($text, 'thung may') !== false) {
+            return [3, 6];
+        }
+        
+        // 2. Màn hình / LCD / Monitor
+        if (strpos($text, 'man hinh') !== false 
+            || strpos($text, 'lcd') !== false 
+            || strpos($text, 'monitor') !== false) {
+            return [5];
+        }
+        
+        // 3. Accessories / Gaming Gear / Phụ kiện / Bàn phím / Chuột / Tai nghe / Gear / Loa
+        if (strpos($text, 'phu kien') !== false 
+            || strpos($text, 'gear') !== false 
+            || strpos($text, 'ban phim') !== false 
+            || strpos($text, 'chuot') !== false 
+            || strpos($text, 'tai nghe') !== false 
+            || strpos($text, 'loa') !== false 
+            || strpos($text, 'headset') !== false 
+            || strpos($text, 'keyboard') !== false 
+            || strpos($text, 'mouse') !== false) {
+            return [7, 8];
+        }
+        
+        // 4. Components / Linh kiện / CPU / GPU / VGA / RAM / SSD / Mainboard
+        if (strpos($text, 'linh kien') !== false 
+            || strpos($text, 'cpu') !== false 
+            || strpos($text, 'gpu') !== false 
+            || strpos($text, 'vga') !== false 
+            || strpos($text, 'mainboard') !== false 
+            || strpos($text, 'bo mach') !== false 
+            || strpos($text, 'ram') !== false 
+            || strpos($text, 'ssd') !== false 
+            || strpos($text, 'nguon may') !== false 
+            || strpos($text, 'o cung') !== false) {
+            return [4];
+        }
+        
+        // 5. Laptop / Máy tính xách tay
+        if (strpos($text, 'laptop') !== false 
+            || strpos($text, 'xach tay') !== false 
+            || strpos($text, 'lap top') !== false) {
+            return [1, 2];
+        }
+        
+        return [];
     }
 
     /**
