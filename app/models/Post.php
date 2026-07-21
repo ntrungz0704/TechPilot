@@ -191,7 +191,7 @@ class Post
     {
         if ($this->db === null) return null;
         $stmt = $this->db->prepare('
-            SELECT p.*, u.full_name as author_name
+            SELECT p.*, COALESCE(u.full_name, p.author_name) as author_name
             FROM posts p
             LEFT JOIN users u ON p.author_id = u.id
             WHERE p.slug = :slug AND p.status = "published"

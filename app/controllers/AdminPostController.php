@@ -72,7 +72,7 @@ class AdminPostController extends Controller
 
                 $image = null;
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                    $image = UploadService::uploadImage($_FILES['image'], 'news');
+                    $image = UploadService::uploadImage($_FILES['image'], 'posts');
                 }
 
                 $slug = Post::slugify($title);
@@ -169,9 +169,16 @@ class AdminPostController extends Controller
                 $image = $post['image'];
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                     if ($image) {
-                        UploadService::deleteImage($image, 'news');
+                        // Xoá ảnh cũ nếu tồn tại (tìm cả posts/ lẫn news/ cho backward compat)
+                        $oldPaths = [
+                            ROOT_PATH . '/public/assets/images/posts/' . basename($image),
+                            ROOT_PATH . '/public/assets/images/news/' . basename($image),
+                        ];
+                        foreach ($oldPaths as $oldPath) {
+                            if (file_exists($oldPath)) { @unlink($oldPath); break; }
+                        }
                     }
-                    $image = UploadService::uploadImage($_FILES['image'], 'news');
+                    $image = UploadService::uploadImage($_FILES['image'], 'posts');
                 }
 
                 // Không tự động đổi slug khi edit để tránh hỏng SEO (chỉ đổi nếu explicit update slug form - tạm bỏ qua)
