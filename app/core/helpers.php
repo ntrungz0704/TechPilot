@@ -60,17 +60,28 @@ if (!function_exists('url')) {
 
 if (!function_exists('absoluteUrl')) {
     /**
-     * Trả về absolute URL (có scheme + host) cho SEO meta tags.
-     * Ưu tiên: APP_ABSOLUTE_URL constant → HTTP_X_FORWARDED_PROTO → HTTPS server var.
-     * Không tin Host header trực tiếp nếu không cần thiết.
+     * Trả về absolute URL (scheme + host + BASE_URL) cho SEO meta tags.
+     *
+     * Ưu tiên thứ tự:
+     *   1. Constant APP_URL (ví dụ: 'https://techpilot.vn' hoặc 'https://techpilot.vn/subdir')
+     *   2. Tự detect scheme + validated host + BASE_URL subdirectory
+     *   3. Fallback localhost
+     *
+     * Không thay đổi hành vi của helper url() hiện tại.
+     *
+     * Test cases:
+     *   BASE_URL=""            → http://localhost/{path}
+     *   BASE_URL="/techpilot/public" → http://localhost/techpilot/public/{path}
+     *   APP_URL="https://techpilot.vn" → https://techpilot.vn/{path}
      */
     function absoluteUrl(string $path = ''): string
     {
-        // Nếu đã define constant APP_ABSOLUTE_URL (ví dụ: 'https://techpilot.vn'), dùng luôn
-        if (defined('APP_ABSOLUTE_URL') && APP_ABSOLUTE_URL !== '') {
-            $base = rtrim(APP_ABSOLUTE_URL, '/');
+        // ── Bước 1: Xác định base (scheme + host [+ subdir]) ────────────────
+        if (defined('APP_URL') && APP_URL !== '') {
+            // APP_URL đã chứa full origin (scheme + host + optional subdir)
+            $base = rtrim(APP_URL, '/');
         } else {
-            // Xác định scheme
+            // Tự detect scheme
             $scheme = 'http';
             if (
                 (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
@@ -80,22 +91,26 @@ if (!function_exists('absoluteUrl')) {
                 $scheme = 'https';
             }
 
-            // Lấy host an toàn
-            $host = defined('APP_HOST') && APP_HOST !== ''
+            // Host an toàn: ưu tiên APP_HOST nếu có (set trong config production)
+            $rawHost = defined('APP_HOST') && APP_HOST !== ''
                 ? APP_HOST
                 : ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost');
 
-            // Loại bỏ ký tự nguy hiểm trong host
-            $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)$host);
+            // Loại bỏ ký tự không hợp lệ trong hostname (chống header injection)
+            $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string) $rawHost);
+            if ($host === '') {
+                $host = 'localhost';
+            }
 
             $base = $scheme . '://' . $host;
 
-            // Giữ BASE_URL subdirectory nếu có
+            // Gắn BASE_URL subdirectory nếu có (ví dụ: /techpilot/public)
             if (defined('BASE_URL') && BASE_URL !== '') {
                 $base .= '/' . ltrim(BASE_URL, '/');
             }
         }
 
+        // ── Bước 2: Ghép path ────────────────────────────────────────────────
         $base = rtrim($base, '/');
         $path = ltrim($path, '/');
 
