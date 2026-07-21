@@ -130,6 +130,9 @@
 
     <script src="<?= url('assets/js/main.js?v=7.2') ?>"></script>
     <script src="<?= url('assets/js/category-mega-menu.js?v=2.7') ?>"></script>
+    <?php foreach ($pageScripts ?? [] as $script): ?>
+        <script src="<?= url($script) ?>"></script>
+    <?php endforeach; ?>
     <script>
         // Xử lý menu hamburger và drawer menu trên Mobile
         const mainNav = document.querySelector('.main-nav');

@@ -43,11 +43,17 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' . APP_NAME : APP_NAME ?></title>
+    <?php if (isset($metaDescription)): ?>
+        <meta name="description" content="<?= e($metaDescription) ?>">
+    <?php endif; ?>
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=19.0') ?>">
     <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=2.0') ?>">
+    <?php foreach ($pageStyles ?? [] as $stylesheet): ?>
+        <link rel="stylesheet" href="<?= url($stylesheet) ?>">
+    <?php endforeach; ?>
     <script>
         (() => {
             const stored = localStorage.getItem('techpilot-theme');
@@ -186,7 +192,6 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     <input type="text" name="q" placeholder="Tìm sản phẩm..." aria-label="Tìm sản phẩm" required>
                 </form>
             </div>
-
             <div class="mobile-quick-categories">
                 <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-laptop"></i>
