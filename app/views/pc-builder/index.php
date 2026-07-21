@@ -659,7 +659,8 @@
 
         fetch(url)
             .then(res => res.json())
-            .then(data => {
+            .then(resData => {
+                const data = Array.isArray(resData) ? resData : (resData.data || []);
                 if (!data || data.length === 0) {
                     container.innerHTML = '<div class="pc-modal-empty">Không tìm thấy linh kiện tương thích nào phù hợp.</div>';
                     return;
