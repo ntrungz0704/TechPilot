@@ -7,25 +7,44 @@ class MarkdownRenderer
     private array $usedHeadingIds = [];
     private array $codeBlocks = [];
 
+    /**
+     * Render markdown string sang HTML + metadata.
+     * Code fence được tokenize trước khi split để tránh
+     * placeholder bị ghép vào paragraph.
+     */
     public function render(string $markdown): array
     {
-        $this->headings = [];
-        $this->blocks = [];
+        $this->headings      = [];
+        $this->blocks        = [];
         $this->usedHeadingIds = [];
-        $this->codeBlocks = [];
+        $this->codeBlocks    = [];
 
         $markdown = str_replace("\r\n", "\n", $markdown);
 
-        // Extract fenced code blocks and replace with placeholder
-        $markdown = preg_replace_callback('/^```(.*?)?\n(.*?)\n```/ms', function($matches) {
-            $id = '%%CODEBLOCK_' . count($this->codeBlocks) . '%%';
-            $this->codeBlocks[$id] = [
-                'lang' => trim($matches[1]),
-                'code' => $matches[2]
-            ];
-            return $id;
-        }, $markdown);
-        // Split by 2 or more newlines to get blocks
+        // ── Step 1: Tokenize code fences TRƯỚC khi split ──────────────────
+        // Hỗ trợ code ở đầu/cuối doc, có/không dòng trống xung quanh.
+        // Closing ``` phải nằm trên dòng riêng (^```$).
+        // Placeholder đủ unique, không xung đột với nội dung người dùng.
+        $markdown = preg_replace_callback(
+            '/^```([^\n]*)?\n(.*?)^```[ \t]*$/ms',
+            function (array $matches): string {
+                $lang = preg_replace('/[^a-z0-9_+\-]/i', '', trim($matches[1]));
+                $code = $matches[2];
+                // Xoá trailing newline của code body nếu có
+                $code = rtrim($code, "\n");
+                $idx  = count($this->codeBlocks);
+                $id   = "\x02CODEBLOCK_{$idx}\x03";
+                $this->codeBlocks[$id] = [
+                    'lang' => $lang,
+                    'code' => $code,
+                ];
+                // Bọc placeholder trong \n\n để preg_split tạo block riêng
+                return "\n\n{$id}\n\n";
+            },
+            $markdown
+        );
+
+        // Split by 2+ newlines
         $rawBlocks = preg_split('/\n{2,}/', trim($markdown));
 
         $html = '';
@@ -59,15 +78,19 @@ class MarkdownRenderer
             return $html;
         }
 
-        // 1.5. Fenced Code Block
-        if (preg_match('/^%%CODEBLOCK_\d+%%$/', $block, $matches)) {
-            $id = $matches[0];
+        // 1.5. Fenced Code Block placeholder
+        if (preg_match('/^\x02CODEBLOCK_\d+\x03$/', $block)) {
+            $id = $block;
             if (isset($this->codeBlocks[$id])) {
-                $lang = $this->codeBlocks[$id]['lang'];
-                $code = $this->codeBlocks[$id]['code'];
-                $escapedCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
-                $classAttr = $lang ? ' class="language-' . htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') . '"' : '';
-                $html = '<div class="news-code-block"><pre><code' . $classAttr . '>' . $escapedCode . '</code></pre></div>';
+                $lang         = $this->codeBlocks[$id]['lang'];
+                $code         = $this->codeBlocks[$id]['code'];
+                $escapedCode  = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $classAttr    = $lang !== ''
+                    ? ' class="language-' . htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') . '"'
+                    : '';
+                $html = '<div class="news-code-block"><pre><code' . $classAttr . '>'
+                    . $escapedCode
+                    . '</code></pre></div>';
                 $this->blocks[] = [
                     'type' => 'code',
                     'html' => $html,
@@ -89,37 +112,27 @@ class MarkdownRenderer
 
         // 2.1. Pros Block (:::pros ... :::)
         if (preg_match('/^:::pros[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
-            $content = trim($matches[1]);
-            // Re-render internal content as blocks? No, just as list or inline.
-            // But usually pros/cons contain a list. Let's just process the inner text for lists.
-            $innerHtml = '';
-            if (preg_match('/^[-*]\s+/m', $content)) {
-                $innerHtml = $this->renderList($content, 'ul');
-            } else {
-                $innerHtml = '<p>' . $this->renderInline($content) . '</p>';
-            }
-            $html = '<div class="pros-cons-block pros-block"><h4><i class="fa-solid fa-check-circle" style="color: var(--news-green);"></i> Ưu điểm</h4>' . $innerHtml . '</div>';
-            $this->blocks[] = [
-                'type' => 'pros',
-                'html' => $html,
-            ];
+            $content   = trim($matches[1]);
+            $innerHtml = preg_match('/^[-*]\s+/m', $content)
+                ? $this->renderList($content, 'ul')
+                : '<p>' . $this->renderInline($content) . '</p>';
+            $html = '<div class="pros-cons-block pros-block">'
+                . '<h4><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Ưu điểm</h4>'
+                . $innerHtml . '</div>';
+            $this->blocks[] = ['type' => 'pros', 'html' => $html];
             return $html;
         }
 
         // 2.2. Cons Block (:::cons ... :::)
         if (preg_match('/^:::cons[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
-            $content = trim($matches[1]);
-            $innerHtml = '';
-            if (preg_match('/^[-*]\s+/m', $content)) {
-                $innerHtml = $this->renderList($content, 'ul');
-            } else {
-                $innerHtml = '<p>' . $this->renderInline($content) . '</p>';
-            }
-            $html = '<div class="pros-cons-block cons-block"><h4><i class="fa-solid fa-xmark-circle" style="color: var(--news-red);"></i> Nhược điểm</h4>' . $innerHtml . '</div>';
-            $this->blocks[] = [
-                'type' => 'cons',
-                'html' => $html,
-            ];
+            $content   = trim($matches[1]);
+            $innerHtml = preg_match('/^[-*]\s+/m', $content)
+                ? $this->renderList($content, 'ul')
+                : '<p>' . $this->renderInline($content) . '</p>';
+            $html = '<div class="pros-cons-block cons-block">'
+                . '<h4><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Nhược điểm</h4>'
+                . $innerHtml . '</div>';
+            $this->blocks[] = ['type' => 'cons', 'html' => $html];
             return $html;
         }
 
@@ -172,7 +185,7 @@ class MarkdownRenderer
         }
 
         // 7. Image-only block
-        if (preg_match('/^\s*!\[([^\]]*)\]\(([^)\s]+)(?:\s+["\'](.*?)["\'])?\)\s*$/s', $block, $matches)) {
+        if (preg_match('/^\s*!\[([^\]]*)\]\(([^)\s]+)(?:\s+["\']?(.*?)["\']?)?\)\s*$/s', $block, $matches)) {
             $html = $this->renderImageBlock($matches);
             if ($html !== '') {
                 $this->blocks[] = [
@@ -183,11 +196,23 @@ class MarkdownRenderer
             return $html;
         }
 
-        // 7.5. YouTube Embed Block (Standalone link or @[youtube](ID))
-        if (preg_match('/^\s*(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?\s*$/i', $block, $matches)
-            || preg_match('/^\s*@\[youtube\]\(([a-zA-Z0-9_-]{11})\)\s*$/i', $block, $matches)) {
-            $videoId = $matches[1];
-            $html = '<div class="youtube-embed-wrapper"><iframe width="560" height="315" src="https://www.youtube.com/embed/' . $videoId . '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+        // 7.5. YouTube Embed Block
+        // Hỗ trợ: @[youtube](ID) hoặc URL YouTube đứng riêng
+        $videoId = $this->extractYouTubeId($block);
+        if ($videoId !== null) {
+            $escapedId = htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8');
+            $html = '<div class="youtube-embed-wrapper">'
+                . '<iframe'
+                . ' width="560" height="315"'
+                . ' src="https://www.youtube-nocookie.com/embed/' . $escapedId . '"'
+                . ' title="Video YouTube: ' . $escapedId . '"'
+                . ' frameborder="0"'
+                . ' loading="lazy"'
+                . ' referrerpolicy="strict-origin-when-cross-origin"'
+                . ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"'
+                . ' allowfullscreen'
+                . '></iframe>'
+                . '</div>';
             $this->blocks[] = [
                 'type' => 'youtube',
                 'html' => $html,
@@ -202,6 +227,33 @@ class MarkdownRenderer
             'html' => $html,
         ];
         return $html;
+    }
+
+    /**
+     * Extract YouTube video ID from a block string.
+     * Chấp nhận: @[youtube](ID) hoặc URL YouTube.
+     * Chỉ chấp nhận ID khớp [a-zA-Z0-9_-]{11}.
+     * Trả về null nếu không nhận dạng được.
+     */
+    private function extractYouTubeId(string $block): ?string
+    {
+        $block = trim($block);
+
+        // Cú pháp @[youtube](VIDEO_ID)
+        if (preg_match('/^@\[youtube\]\(([a-zA-Z0-9_\-]{11})\)$/i', $block, $m)) {
+            return $m[1];
+        }
+
+        // URL YouTube đứng riêng
+        if (preg_match(
+            '/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_\-]{11})(?:[&?#\s].*)?$/i',
+            $block,
+            $m
+        )) {
+            return $m[1];
+        }
+
+        return null;
     }
 
     private function renderHeading(array $matches): string
@@ -306,7 +358,7 @@ class MarkdownRenderer
         $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
         // 2. Inline Images: ![alt](url "title") - NEVER render figure/figcaption inside paragraph
-        $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;(.*?)&quot;|\s+[\'"](.*?)[\'"])?\)/', function($m) {
+        $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;(.*?)&quot;|\s+[\'\"](.*?)[\'\"])?\)/', function($m) {
             $alt = $m[1]; // already escaped
             $rawUrl = $m[2];
             $title = !empty($m[3]) ? $m[3] : (!empty($m[4]) ? $m[4] : '');

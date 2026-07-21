@@ -1169,16 +1169,23 @@ html.dark-mode .news-detail-content .callout {
     z-index: 10000;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    white-space: nowrap;
 }
 .toast-message.show {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
     visibility: visible;
 }
+@media (min-width: 768px) {
+    .toast-message {
+        bottom: 32px;
+    }
+}
 
 /* ── 13. Reading Progress Bar ────────────────────────────────────────────── */
+/* Nằm NGOÀI .news-page nên phải dùng fallback value cho biến CSS */
 .news-reading-progress {
     position: fixed;
     top: 0;
@@ -1191,32 +1198,14 @@ html.dark-mode .news-detail-content .callout {
 }
 .news-reading-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--news-cyan) 0%, var(--news-primary) 100%);
+    /* Fallback values cho --news-cyan và --news-primary khi nằm ngoài .news-page */
+    background: linear-gradient(
+        90deg,
+        var(--news-cyan, #00C8FF) 0%,
+        var(--news-primary, #146EF5) 100%
+    );
     width: 0%;
     transition: width 0.15s ease-out;
-}
-    background: #111827;
-    color: #fff;
-    padding: 10px 22px;
-    border-radius: 24px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 9999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .25s ease, transform .25s ease;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,.25);
-}
-.toast-message.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-}
-@media (min-width: 768px) {
-    .toast-message {
-        bottom: 32px;
-    }
 }
 
 /* ── 13. Dark Mode ───────────────────────────────────────────────────────── */
@@ -1270,6 +1259,23 @@ html.dark-mode .toast-message {
     background: #F9FAFB;
     color: #111827;
 }
+/* Dark mode: code block */
+html.dark-mode .news-detail-content .news-code-block {
+    background: #0d1117;
+    border: 1px solid #374151;
+}
+html.dark-mode .news-detail-content .news-code-block code {
+    color: #e6edf3;
+}
+/* Dark mode: YouTube embed – chỉ border */
+html.dark-mode .news-detail-content .youtube-embed-wrapper {
+    background: #000;
+}
+/* Dark mode: Pros/Cons */
+html.dark-mode .news-detail-content .pros-cons-block {
+    background-color: var(--news-muted-bg);
+    border-color: var(--news-border);
+}
 
 /* ── 14. Reduced Motion ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -1281,6 +1287,14 @@ html.dark-mode .toast-message {
     }
     .toast-message {
         transition: opacity .1s;
+    }
+    /* Tắt transition progress bar khi user prefer reduced motion */
+    .news-reading-progress-bar {
+        transition: none;
+    }
+    /* Tắt animation icon rotate trong TOC toggle */
+    .news-toc-toggle i {
+        transition: none !important;
     }
 }
 

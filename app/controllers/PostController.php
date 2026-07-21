@@ -34,7 +34,7 @@ class PostController extends Controller
                 $excludeFeaturedId = $featured['id'];
                 $usedHeroIds[] = $featured['id'];
                 // Nếu có featured, lấy 2 bài popular hero grid
-                $allPop = $this->postModel->getPopular(4);
+                $allPop = $this->postModel->getPopularRecent(4);
                 foreach ($allPop as $p) {
                     if (!in_array($p['id'], $usedHeroIds)) {
                         $heroPopular[] = $p;
@@ -49,13 +49,13 @@ class PostController extends Controller
         $total = $this->postModel->countAll($type, $category, $tag, $q, $excludeFeaturedId);
         $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
 
-        // Lấy bài phổ biến cho sidebar, lấy dư (ví dụ 10) để trừ trùng lặp
-        $popular = $this->postModel->getPopular(10);
+        // Lấy bài phổ biến gần đây cho sidebar, lấy dư để trừ trùng lặp
+        $popular = $this->postModel->getPopularRecent(10);
         $filteredPopular = [];
         foreach ($popular as $p) {
             if (in_array($p['id'], $usedHeroIds)) continue;
             $filteredPopular[] = $p;
-            if (count($filteredPopular) == 4) break; // chỉ lấy tối đa 4 bài popular sidebar
+            if (count($filteredPopular) == 4) break;
         }
 
         require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
@@ -69,16 +69,20 @@ class PostController extends Controller
             'config'    => $genericCommerce['sidebar'] ?? null,
         ];
 
+        $canonicalAbsolute = absoluteUrl('post');
+
         $this->render('post/index', [
             'pageTitle'       => 'Tin tức công nghệ',
             'title'           => 'Tin tức công nghệ',
             'metaDescription' => 'Cập nhật tin tức công nghệ, đánh giá sản phẩm, thủ thuật và hướng dẫn chuyên sâu.',
-            'canonicalUrl'    => url('post'),
+            'canonicalUrl'    => $canonicalAbsolute,
             'ogType'          => 'website',
             'ogTitle'         => 'Tin tức công nghệ - TechPilot',
             'ogDescription'   => 'Cập nhật tin tức công nghệ, đánh giá sản phẩm, thủ thuật và hướng dẫn chuyên sâu.',
-            'ogUrl'           => url('post'),
+            'ogUrl'           => $canonicalAbsolute,
             'twitterCard'     => 'summary',
+            'twitterTitle'    => 'Tin tức công nghệ - TechPilot',
+            'twitterDescription' => 'Cập nhật tin tức công nghệ, đánh giá sản phẩm, thủ thuật và hướng dẫn chuyên sâu.',
             'posts'           => $posts,
             'featured'        => $featured,
             'heroPopular'     => $heroPopular,
@@ -90,7 +94,7 @@ class PostController extends Controller
             'currentTag'      => $tag,
             'currentQ'        => $q,
             'commerceContext' => $commerceContext,
-            'pageStyles'      => ['assets/css/news.css?v=1.2'],
+            'pageStyles'      => ['assets/css/news.css?v=2.0'],
         ]);
     }
 
@@ -158,84 +162,137 @@ class PostController extends Controller
             static fn (array $heading): bool => (int)($heading['level'] ?? 0) === 2
         ));
 
-        $canonicalUrl = url('post/detail/' . $post['slug']);
-        $imageUrl = !empty($post['image']) ? postImageUrl($post['image']) : url('assets/images/logo.png');
-        $authorName = $post['author_name'] ?? 'TechPilot';
+        // ── SEO: Absolute URLs ──────────────────────────────────────────────
+        $canonicalAbsolute = absoluteUrl('post/detail/' . $post['slug']);
+        $imageAbsolute     = !empty($post['image'])
+            ? $this->makeAbsoluteImageUrl(postImageUrl($post['image']))
+            : absoluteUrl('assets/images/logo.png');
+
+        $authorName  = $post['author_name'] ?? 'TechPilot';
         $publishedAt = date('c', strtotime($post['published_at'] ?? $post['created_at'] ?? 'now'));
-        $description = $post['summary'] ?? ('Đọc bài viết ' . $post['title'] . ' tại TechPilot.');
-        
+        // dateModified dùng updated_at nếu có
+        $modifiedAt  = !empty($post['updated_at'])
+            ? date('c', strtotime($post['updated_at']))
+            : $publishedAt;
+
+        $description = !empty($post['summary'])
+            ? $post['summary']
+            : ('Đọc bài viết ' . $post['title'] . ' tại TechPilot.');
+
+        // ── JSON-LD: hardened encoding ──────────────────────────────────────
+        $jsonFlags = JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+            | JSON_HEX_TAG
+            | JSON_HEX_AMP
+            | JSON_HEX_APOS
+            | JSON_HEX_QUOT;
+
         $articleSchema = [
-            '@context' => 'https://schema.org',
-            '@type' => 'Article',
-            'headline' => $post['title'],
-            'description' => $description,
-            'image' => [$imageUrl],
-            'datePublished' => $publishedAt,
-            'dateModified' => $publishedAt,
-            'author' => [
+            '@context'          => 'https://schema.org',
+            '@type'             => 'Article',
+            'headline'          => $post['title'],
+            'description'       => $description,
+            'image'             => [$imageAbsolute],
+            'datePublished'     => $publishedAt,
+            'dateModified'      => $modifiedAt,
+            'author'            => [
                 '@type' => 'Person',
-                'name' => $authorName
+                'name'  => $authorName,
             ],
-            'publisher' => [
-                '@type' => 'Organization',
-                'name' => 'TechPilot'
+            'publisher'         => [
+                '@type'  => 'Organization',
+                'name'   => 'TechPilot',
+                'logo'   => [
+                    '@type' => 'ImageObject',
+                    'url'   => absoluteUrl('assets/images/logo.png'),
+                ],
             ],
-            'mainEntityOfPage' => $canonicalUrl
+            'mainEntityOfPage'  => [
+                '@type' => 'WebPage',
+                '@id'   => $canonicalAbsolute,
+            ],
         ];
-        
+
         $breadcrumbSchema = [
-            '@context' => 'https://schema.org',
-            '@type' => 'BreadcrumbList',
+            '@context'        => 'https://schema.org',
+            '@type'           => 'BreadcrumbList',
             'itemListElement' => [
                 [
-                    '@type' => 'ListItem',
+                    '@type'    => 'ListItem',
                     'position' => 1,
-                    'name' => 'Trang chủ',
-                    'item' => url('')
+                    'name'     => 'Trang chủ',
+                    'item'     => absoluteUrl(''),
                 ],
                 [
-                    '@type' => 'ListItem',
+                    '@type'    => 'ListItem',
                     'position' => 2,
-                    'name' => 'Tin tức công nghệ',
-                    'item' => url('post')
+                    'name'     => 'Tin tức công nghệ',
+                    'item'     => absoluteUrl('post'),
                 ],
                 [
-                    '@type' => 'ListItem',
+                    '@type'    => 'ListItem',
                     'position' => 3,
-                    'name' => $post['title'],
-                    'item' => $canonicalUrl
-                ]
-            ]
+                    'name'     => $post['title'],
+                    'item'     => $canonicalAbsolute,
+                ],
+            ],
         ];
 
-        $structuredData = json_encode([$articleSchema, $breadcrumbSchema], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $encodedStructuredData = json_encode([$articleSchema, $breadcrumbSchema], $jsonFlags);
+
+        if ($encodedStructuredData === false) {
+            // Log lỗi trong dev, không render JSON-LD bị hỏng
+            if (defined('APP_ENV') && APP_ENV === 'development') {
+                error_log('[TechPilot] JSON-LD encode failed: ' . json_last_error_msg());
+            }
+            $encodedStructuredData = null;
+        }
 
         $this->render('post/detail', [
-            'pageTitle'        => $post['title'],
-            'title'            => $post['title'] . ' - TechPilot News',
-            'metaDescription'  => $description,
-            'canonicalUrl'     => $canonicalUrl,
-            'ogType'           => 'article',
-            'ogTitle'          => $post['title'],
-            'ogDescription'    => $description,
-            'ogUrl'            => $canonicalUrl,
-            'ogImage'          => $imageUrl,
-            'twitterCard'      => 'summary_large_image',
-            'structuredData'   => $structuredData,
-            'post'             => $post,
-            'related'          => $related,
-            'renderedContent'  => $renderedContent,
-            'articleHeadings'  => $articleHeadings,
-            'articleBlocks'    => $articleBlocks,
-            'articleWordCount' => $articleWordCount,
-            'articleH2Count'   => $articleH2Count,
-            'postType'         => $postType,
-            'categorySlug'     => $categorySlug,
-            'midCtaConfig'     => $commerceConfig['mid_cta'] ?? null,
-            'endCtaConfig'     => $commerceConfig['end_cta'] ?? null,
-            'commerceContext'  => $commerceContext,
-            'pageStyles'       => ['assets/css/news.css?v=1.2'],
-            'pageScripts'      => ['assets/js/news.js?v=1.1'],
+            'pageTitle'          => $post['title'],
+            'title'              => $post['title'] . ' - TechPilot News',
+            'metaDescription'    => $description,
+            'canonicalUrl'       => $canonicalAbsolute,
+            'ogType'             => 'article',
+            'ogTitle'            => $post['title'],
+            'ogDescription'      => $description,
+            'ogUrl'              => $canonicalAbsolute,
+            'ogImage'            => $imageAbsolute,
+            'twitterCard'        => 'summary_large_image',
+            'twitterTitle'       => $post['title'],
+            'twitterDescription' => $description,
+            'twitterImage'       => $imageAbsolute,
+            'structuredData'     => $encodedStructuredData,
+            'post'               => $post,
+            'related'            => $related,
+            'renderedContent'    => $renderedContent,
+            'articleHeadings'    => $articleHeadings,
+            'articleBlocks'      => $articleBlocks,
+            'articleWordCount'   => $articleWordCount,
+            'articleH2Count'     => $articleH2Count,
+            'postType'           => $postType,
+            'categorySlug'       => $categorySlug,
+            'midCtaConfig'       => $commerceConfig['mid_cta'] ?? null,
+            'endCtaConfig'       => $commerceConfig['end_cta'] ?? null,
+            'commerceContext'    => $commerceContext,
+            'pageStyles'         => ['assets/css/news.css?v=2.0'],
+            'pageScripts'        => ['assets/js/news.js?v=2.0'],
         ]);
+    }
+
+    /**
+     * Chuyển URL ảnh tương đối thành tuyệt đối.
+     * Nếu đã là URL tuyệt đối thì giữ nguyên.
+     */
+    private function makeAbsoluteImageUrl(string $imageUrl): string
+    {
+        if (str_starts_with($imageUrl, 'http://') || str_starts_with($imageUrl, 'https://')) {
+            return $imageUrl;
+        }
+        // Bỏ BASE_URL prefix nếu có để tránh duplicate
+        if (defined('BASE_URL') && BASE_URL !== '' && str_starts_with($imageUrl, BASE_URL . '/')) {
+            $imageUrl = substr($imageUrl, strlen(BASE_URL) + 1);
+        }
+        return absoluteUrl($imageUrl);
     }
 }
