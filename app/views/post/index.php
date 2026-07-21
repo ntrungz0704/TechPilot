@@ -125,7 +125,7 @@ if (!empty($currentQ)) {
             <!-- Box 1: Bài viết phổ biến -->
             <?php if (!empty($popular)): ?>
             <div class="news-sidebar-widget">
-                <h3 class="widget-title">Bài viết phổ biến</h3>
+                <h3 class="widget-title">Xem nhiều gần đây</h3>
                 <div class="news-popular-list">
                     <?php
                     $rank = 1;

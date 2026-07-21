@@ -66,6 +66,75 @@ class Post
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Lấy bài viết xem nhiều gần đây.
+     *
+     * 1. Lấy bài trong $days ngày gần nhất, sắp xếp theo views.
+     * 2. Nếu chưa đủ $limit, bổ sung bằng bài all-time popular.
+     * 3. Loại duplicate theo ID.
+     * 4. Không lấy bài draft.
+     * 5. Không tạo N+1 query (chỉ 2 query tối đa).
+     */
+    public function getPopularRecent(int $limit = 5, int $days = 30): array
+    {
+        if ($this->db === null) return [];
+
+        // Query 1: bài trong $days ngày qua, sắp xếp theo views DESC
+        $sql1 = '
+            SELECT * FROM posts
+            WHERE status = "published"
+              AND COALESCE(published_at, created_at) >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            ORDER BY views DESC, COALESCE(published_at, created_at) DESC
+            LIMIT :limit
+        ';
+        $stmt1 = $this->db->prepare($sql1);
+        $stmt1->bindValue(':days', $days, PDO::PARAM_INT);
+        $stmt1->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt1->execute();
+        $recent = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($recent) >= $limit) {
+            return $recent;
+        }
+
+        // Query 2: bổ sung bài all-time nếu chưa đủ
+        $usedIds = array_column($recent, 'id');
+        $needed  = $limit - count($recent);
+
+        if ($usedIds) {
+            // Placeholder IN list
+            $placeholders = implode(',', array_fill(0, count($usedIds), '?'));
+            $sql2 = "
+                SELECT * FROM posts
+                WHERE status = \"published\"
+                  AND id NOT IN ($placeholders)
+                ORDER BY views DESC, COALESCE(published_at, created_at) DESC
+                LIMIT ?
+            ";
+            $stmt2 = $this->db->prepare($sql2);
+            $bindValues = array_values($usedIds);
+            $bindValues[] = $needed;
+            foreach ($bindValues as $idx => $val) {
+                $stmt2->bindValue($idx + 1, $val, PDO::PARAM_INT);
+            }
+        } else {
+            $sql2 = '
+                SELECT * FROM posts
+                WHERE status = "published"
+                ORDER BY views DESC, COALESCE(published_at, created_at) DESC
+                LIMIT ?
+            ';
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->bindValue(1, $needed, PDO::PARAM_INT);
+        }
+
+        $stmt2->execute();
+        $allTime = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_merge($recent, $allTime);
+    }
+
+
     /** Build where clause cho filter type, category và legacy tag, bao gồm cả từ khóa tìm kiếm (q) */
     private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', string $q = '', array &$params = []): string
     {

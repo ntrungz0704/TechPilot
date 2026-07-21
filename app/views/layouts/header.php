@@ -67,7 +67,16 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <?php if (isset($twitterCard)): ?>
         <meta name="twitter:card" content="<?= e($twitterCard) ?>">
     <?php endif; ?>
-    <?php if (isset($structuredData)): ?>
+    <?php if (!empty($twitterTitle)): ?>
+        <meta name="twitter:title" content="<?= e($twitterTitle) ?>">
+    <?php endif; ?>
+    <?php if (!empty($twitterDescription)): ?>
+        <meta name="twitter:description" content="<?= e($twitterDescription) ?>">
+    <?php endif; ?>
+    <?php if (!empty($twitterImage)): ?>
+        <meta name="twitter:image" content="<?= e($twitterImage) ?>">
+    <?php endif; ?>
+    <?php if (!empty($structuredData)): ?>
         <script type="application/ld+json">
 <?= $structuredData ?>
         </script>

@@ -58,6 +58,51 @@ if (!function_exists('url')) {
     }
 }
 
+if (!function_exists('absoluteUrl')) {
+    /**
+     * Trả về absolute URL (có scheme + host) cho SEO meta tags.
+     * Ưu tiên: APP_ABSOLUTE_URL constant → HTTP_X_FORWARDED_PROTO → HTTPS server var.
+     * Không tin Host header trực tiếp nếu không cần thiết.
+     */
+    function absoluteUrl(string $path = ''): string
+    {
+        // Nếu đã define constant APP_ABSOLUTE_URL (ví dụ: 'https://techpilot.vn'), dùng luôn
+        if (defined('APP_ABSOLUTE_URL') && APP_ABSOLUTE_URL !== '') {
+            $base = rtrim(APP_ABSOLUTE_URL, '/');
+        } else {
+            // Xác định scheme
+            $scheme = 'http';
+            if (
+                (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+                (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+            ) {
+                $scheme = 'https';
+            }
+
+            // Lấy host an toàn
+            $host = defined('APP_HOST') && APP_HOST !== ''
+                ? APP_HOST
+                : ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost');
+
+            // Loại bỏ ký tự nguy hiểm trong host
+            $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string)$host);
+
+            $base = $scheme . '://' . $host;
+
+            // Giữ BASE_URL subdirectory nếu có
+            if (defined('BASE_URL') && BASE_URL !== '') {
+                $base .= '/' . ltrim(BASE_URL, '/');
+            }
+        }
+
+        $base = rtrim($base, '/');
+        $path = ltrim($path, '/');
+
+        return $path === '' ? $base . '/' : $base . '/' . $path;
+    }
+}
+
 if (!function_exists('productImageUrl')) {
     function productImageUrl(?string $image = '', ?string $productType = ''): string
     {

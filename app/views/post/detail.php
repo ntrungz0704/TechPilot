@@ -74,8 +74,11 @@ if (!$post) return;
             <!-- Footer: Chia sẻ + Quay lại -->
             <div class="news-detail-footer">
                 <div class="share-buttons">
-                    <span>Chia sẻ bài viết:</span>
-                    <button type="button" class="btn btn--outline btn--sm copy-link-btn" aria-label="Sao chép link bài viết">
+                    <span>Chia sẻ:</span>
+                    <button type="button" class="btn btn--outline btn--sm share-native-btn" aria-label="Chia sẻ bài viết này">
+                        <i class="fa-solid fa-share-nodes" aria-hidden="true"></i> Chia sẻ
+                    </button>
+                    <button type="button" class="btn btn--outline btn--sm copy-link-btn" aria-label="Sao chép liên kết bài viết">
                         <i class="fa-solid fa-link" aria-hidden="true"></i> Sao chép link
                     </button>
                 </div>
