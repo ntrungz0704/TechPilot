@@ -1,6 +1,6 @@
 <?php
 /**
- * Test Suite: Editorial Experience (Summary, Sources, Dual TOC, Author Semantics, Updated Date)
+ * Test Suite: Editorial Experience (Summary, Sources, Dual TOC, Author Semantics, Updated Date, Content Order)
  * Run: php tests/EditorialExperienceTest.php
  * Exit code: 0 = ALL PASS, 1 = FAIL
  */
@@ -8,6 +8,8 @@
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/app/core/helpers.php';
 require_once ROOT_PATH . '/app/core/MarkdownRenderer.php';
+require_once ROOT_PATH . '/app/models/Post.php';
+require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
 
 $passed = 0;
 $failed = 0;
@@ -78,6 +80,17 @@ tc('Sources 4c: Link rel is noopener noreferrer (no nofollow for editorial sourc
 tc('Sources 4d: Link rel does not contain nofollow', hasNot($resSrc['sourcesHtml'], 'nofollow'));
 tc('Sources 4e: Uses h2 title for heading hierarchy', has($resSrc['sourcesHtml'], '<h2 class="article-sources-title">'));
 
+// ── 4.5 Duplicate & Malformed Sources Handling ──────────────────────────────
+$mdDupSrc = ":::sources\n- [Nguồn 1](https://src1.org)\n:::\n\nĐoạn giữa\n\n:::sources\n- [Nguồn 2](https://src2.org)\n:::\n\nKết";
+$resDupSrc = $renderer->render($mdDupSrc);
+
+tc('Sources 4.5a: First sources extracted', has($resDupSrc['sourcesHtml'], 'src1.org'));
+tc('Sources 4.5b: Duplicate sources preserved in body', has($resDupSrc['html'], 'src2.org'));
+
+$mdMalSrc = ":::sources\nUnclosed sources line here\n\nTiếp tục.";
+$resMalSrc = $renderer->render($mdMalSrc);
+tc('Sources 4.5c: Malformed sources preserved in body safely', has($resMalSrc['html'], 'Unclosed sources line here'));
+
 // ── 5. Extracted Blocks Not in articleBlocks ─────────────────────────────────
 $hasExtractedInBlocks = false;
 foreach ($res['blocks'] as $b) {
@@ -102,37 +115,25 @@ tc('Contract 7c: Return array has blocks', array_key_exists('blocks', $res));
 tc('Contract 7d: Return array has quickSummaryHtml', array_key_exists('quickSummaryHtml', $res));
 tc('Contract 7e: Return array has sourcesHtml', array_key_exists('sourcesHtml', $res));
 
-// ── 8. Author Semantics Logic (Person vs Organization with has_real_author) ──
+// ── 8. Production Author Schema Logic (Post::buildAuthorSchema) ──────────────
 $postRealAuthor = ['has_real_author' => true, 'author_name' => 'Nguyễn Minh Hiếu'];
-$hasReal1 = !empty($postRealAuthor['has_real_author']);
-$schema1  = $hasReal1
-    ? ['@type' => 'Person', 'name' => $postRealAuthor['author_name']]
-    : ['@type' => 'Organization', 'name' => 'Đội ngũ TechPilot'];
+$schema1 = Post::buildAuthorSchema($postRealAuthor);
 
-tc('Schema 8a: Real author produces Person schema type', $schema1['@type'] === 'Person');
-tc('Schema 8b: Real author name matches', $schema1['name'] === 'Nguyễn Minh Hiếu');
+tc('Schema 8a: Production Post::buildAuthorSchema produces Person for real author', $schema1['@type'] === 'Person');
+tc('Schema 8b: Production author name matches', $schema1['name'] === 'Nguyễn Minh Hiếu');
 
 $postTeamFallback = ['has_real_author' => false, 'author_name' => 'Đội ngũ TechPilot'];
-$hasReal2 = !empty($postTeamFallback['has_real_author']);
-$schema2  = $hasReal2
-    ? ['@type' => 'Person', 'name' => $postTeamFallback['author_name']]
-    : ['@type' => 'Organization', 'name' => 'Đội ngũ TechPilot'];
+$schema2 = Post::buildAuthorSchema($postTeamFallback);
 
-tc('Schema 8c: Team fallback produces Organization schema type', $schema2['@type'] === 'Organization');
+tc('Schema 8c: Production Post::buildAuthorSchema produces Organization for fallback', $schema2['@type'] === 'Organization');
 tc('Schema 8d: Fallback name is Đội ngũ TechPilot', $schema2['name'] === 'Đội ngũ TechPilot');
 
-// ── 9. Updated Date Logic & Schema ───────────────────────────────────────────
-$pubTime = strtotime('2026-07-20 10:00:00');
-$updTimeVal = strtotime('2026-07-21 15:30:00');
-$updTimeSame = strtotime('2026-07-20 10:00:30');
+// ── 9. Post::incrementViews SQL Integrity Check ─────────────────────────────
+$ref = new ReflectionMethod('Post', 'incrementViews');
+$postPhpContent = file_get_contents(ROOT_PATH . '/app/models/Post.php');
+tc('Model 9a: incrementViews SQL explicitly retains updated_at = updated_at', has($postPhpContent, 'UPDATE posts SET views = views + 1, updated_at = updated_at WHERE id = :id'));
 
-$hasValidUpd1 = ($updTimeVal > ($pubTime + 60));
-$hasValidUpd2 = ($updTimeSame > ($pubTime + 60));
-
-tc('Date 9a: Meaningful updated_at recognized as valid', $hasValidUpd1 === true);
-tc('Date 9b: Same/minor updated_at ignored (< 60s difference)', $hasValidUpd2 === false);
-
-// ── 10. No-JS Dual TOC Markup & Unique IDs ──────────────────────────────────
+// ── 10. No-JS Dual TOC Markup, aria-controls & Unique IDs ───────────────────
 $tocHeadings = [
     ['level' => 2, 'id' => 'section-1', 'text' => 'Phần 1'],
     ['level' => 3, 'id' => 'section-1-1', 'text' => 'Phần 1.1']
@@ -152,9 +153,31 @@ $articleHeadings = $tocHeadings;
 require ROOT_PATH . '/app/views/post/partials/_article_toc.php';
 $desktopTocHtml = ob_get_clean();
 
-tc('TOC 10a: Mobile TOC has toggle button with aria-expanded="false"', has($mobileTocHtml, 'class="news-toc-toggle"') && has($mobileTocHtml, 'aria-expanded="false"'));
+tc('TOC 10a: Mobile TOC aria-controls matches list ID mobile-toc-list', has($mobileTocHtml, 'aria-controls="mobile-toc-list"') && has($mobileTocHtml, 'id="mobile-toc-list"'));
 tc('TOC 10b: Desktop TOC does NOT render toggle button', hasNot($desktopTocHtml, 'news-toc-toggle'));
 tc('TOC 10c: Unique IDs between Mobile and Desktop TOC', has($mobileTocHtml, 'id="mobile-toc-title"') && has($desktopTocHtml, 'id="desktop-toc-title"'));
+
+// ── 11. Content Order Partial Verification ──────────────────────────────────
+ob_start();
+$renderedContent  = '<p>Body Text</p>';
+$quickSummaryHtml = '<div class="summary">Summary</div>';
+$sourcesHtml      = '<div class="sources">Sources</div>';
+$endCtaConfig     = ['title' => 'End CTA'];
+$post             = ['has_real_author' => false, 'author_name' => 'Đội ngũ TechPilot'];
+$articleH2Count   = 0;
+$articleHeadings  = [];
+require ROOT_PATH . '/app/views/post/partials/_article_content.php';
+$contentPartialHtml = ob_get_clean();
+
+$posSummary  = strpos($contentPartialHtml, 'class="summary"');
+$posBody     = strpos($contentPartialHtml, 'Body Text');
+$posEndCta   = strpos($contentPartialHtml, 'End CTA');
+$posSources  = strpos($contentPartialHtml, 'class="sources"');
+$posAuthor   = strpos($contentPartialHtml, 'news-author-box');
+
+tc('Order 11a: Quick Summary appears before Body', $posSummary !== false && $posBody !== false && $posSummary < $posBody);
+tc('Order 11b: End CTA appears before Sources', $posEndCta !== false && $posSources !== false && $posEndCta < $posSources);
+tc('Order 11c: Sources appears before Author Box', $posSources !== false && $posAuthor !== false && $posSources < $posAuthor);
 
 // Output summary
 echo implode("\n", $cases) . "\n";

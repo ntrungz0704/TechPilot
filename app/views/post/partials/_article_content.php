@@ -123,15 +123,7 @@ if (!empty($articleBlocks)) {
     <!-- Body Bài viết -->
     <?= $renderedBodyHtml ?>
 
-    <!-- Sources / Nguồn tham khảo (nếu có) -->
-    <?php if (!empty($sourcesHtml)): ?>
-        <?= $sourcesHtml ?>
-    <?php endif; ?>
-
-    <!-- Khối tác giả (Author Box) -->
-    <?php require __DIR__ . '/_author_box.php'; ?>
-
-    <!-- End CTA (Allowed for review, guide, comparison, howto) -->
+    <!-- End CTA (Allowed for review, guide, comparison, howto - đứng trước Sources và Author Box) -->
     <?php if (!empty($endCtaConfig)): ?>
         <?php
         $ctaConfig = $endCtaConfig;
@@ -139,5 +131,13 @@ if (!empty($articleBlocks)) {
         require __DIR__ . '/_article_cta.php';
         ?>
     <?php endif; ?>
+
+    <!-- Sources / Nguồn tham khảo (nếu có) -->
+    <?php if (!empty($sourcesHtml)): ?>
+        <?= $sourcesHtml ?>
+    <?php endif; ?>
+
+    <!-- Khối tác giả (Author Box) -->
+    <?php require __DIR__ . '/_author_box.php'; ?>
 </div>
 
