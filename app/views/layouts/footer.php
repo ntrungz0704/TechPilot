@@ -332,6 +332,37 @@
                 .catch(err => console.error("Error polling notifications:", err));
         }
 
+        function checkNotifications() {
+            fetch('<?= url("api/notifications/unread") ?>')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Cập nhật số lượng trên chuông ở Header
+                        const bellLink = document.querySelector('.header-actions__notifications');
+                        if (bellLink) {
+                            let badge = bellLink.querySelector('.notification-badge');
+                            if (data.count > 0) {
+                                if (!badge) {
+                                    badge = document.createElement('span');
+                                    badge.className = 'notification-badge';
+                                    badge.style.cssText = 'position: absolute; top: 0; right: 0; background-color: #EF4444; color: #FFFFFF; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-card); padding: 0 3px; transform: translate(30%, -30%);';
+                                    bellLink.appendChild(badge);
+                                }
+                                badge.textContent = data.count;
+                            } else {
+                                if (badge) badge.remove();
+                            }
+                        }
+
+                        // Hiển thị popup toast cho thông báo mới
+                        if (data.notifications && data.notifications.length > 0) {
+                            data.notifications.forEach(showToast);
+                        }
+                    }
+                })
+                .catch(err => console.error("Error polling notifications:", err));
+        }
+
         // Chạy ngay khi tải trang
         checkNotifications();
 
@@ -340,6 +371,1131 @@
     });
     </script>
     <?php endif; ?>
+
+    <!-- =======================================================
+         TECHPILOT DYNAMIC AI CHATBOT INTEGRATION
+         ======================================================= -->
+    <style>
+        /* Chatbot Launcher */
+        .tp-chatbot-launcher {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: #FFFFFF;
+            border: none;
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 8px 24px rgba(10, 91, 255, 0.3);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+        }
+        .tp-chatbot-launcher:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(10, 91, 255, 0.4);
+        }
+        .tp-chatbot-launcher-pulse {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            animation: tpPulse 2s infinite;
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes tpPulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* Chat Window */
+        .tp-chatbot-window {
+            position: fixed;
+            bottom: 105px;
+            right: 30px;
+            width: 380px;
+            height: 580px;
+            border-radius: 16px;
+            background: var(--surface-card, #FFFFFF);
+            border: 1px solid var(--border, #E2E8F0);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .tp-chatbot-window.is-open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Header */
+        .tp-chatbot-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #FFFFFF;
+        }
+        .tp-chatbot-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .tp-chatbot-header-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .tp-chatbot-header-info h4 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .tp-chatbot-header-status {
+            font-size: 11px;
+            opacity: 0.85;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            background: #10B981;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .tp-chatbot-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .tp-chatbot-close:hover {
+            color: #FFFFFF;
+        }
+
+        /* Body */
+        .tp-chatbot-body {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--surface-muted, #F8FAFC);
+            padding: 16px;
+        }
+        .tp-chatbot-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Bubbles */
+        .tp-message {
+            display: flex;
+            gap: 10px;
+            max-width: 85%;
+            margin-bottom: 4px;
+        }
+        .tp-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .tp-message.bot {
+            align-self: flex-start;
+        }
+        .tp-message-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .tp-message-content {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .tp-message.bot .tp-message-content {
+            background: var(--surface-card, #FFFFFF);
+            color: var(--text-primary, #0F172A);
+            border: 1px solid var(--border, #E2E8F0);
+            border-top-left-radius: 2px;
+        }
+        .tp-message.user .tp-message-content {
+            background: var(--primary);
+            color: #FFFFFF;
+            border-top-right-radius: 2px;
+        }
+        .tp-message-content p {
+            margin: 0 0 8px 0;
+        }
+        .tp-message-content p:last-child {
+            margin-bottom: 0;
+        }
+        .tp-message-content ul, .tp-message-content ol {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        /* Actions Grid & Buttons */
+        .tp-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .tp-action-btn {
+            background: var(--surface-card, #FFFFFF);
+            border: 1px solid var(--border, #E2E8F0);
+            border-radius: 8px;
+            padding: 10px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-primary, #0F172A);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .tp-action-btn i {
+            font-size: 16px;
+            color: var(--primary);
+        }
+        .tp-action-btn:hover {
+            border-color: var(--primary);
+            background: rgba(10, 91, 255, 0.05);
+            transform: translateY(-1px);
+        }
+        
+        .tp-options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .tp-option-choice {
+            background: var(--surface-card, #FFFFFF);
+            border: 1px solid var(--border, #E2E8F0);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-primary, #0F172A);
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .tp-option-choice:hover {
+            border-color: var(--primary);
+            background: rgba(10, 91, 255, 0.05);
+            color: var(--primary);
+        }
+
+        /* Recommendations layout */
+        .tp-recommendations {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .tp-rec-card {
+            background: var(--surface-card, #FFFFFF);
+            border: 1px solid var(--border, #E2E8F0);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-card);
+        }
+        .tp-rec-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .tp-rec-img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #F1F5F9;
+            flex-shrink: 0;
+        }
+        .tp-rec-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .tp-rec-info h5 {
+            margin: 0 0 4px 0;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary, #0F172A);
+        }
+        .tp-rec-price {
+            font-size: 12px;
+            font-weight: 700;
+            color: #EF4444;
+            margin-bottom: 6px;
+        }
+        .tp-rec-score {
+            font-size: 10px;
+            font-weight: 700;
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 2px 6px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .tp-rec-reasons {
+            font-size: 10.5px;
+            color: var(--text-secondary, #64748B);
+            list-style: none;
+            padding: 0;
+            margin: 6px 0 0 0;
+        }
+        .tp-rec-reasons li {
+            margin-bottom: 2px;
+        }
+        .tp-rec-link {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        /* Comparison matrix */
+        .tp-compare-container {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+        .tp-compare-selects {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .tp-compare-selects select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 11px;
+            background: var(--surface-card);
+            color: var(--text-primary);
+        }
+        .tp-compare-btn {
+            width: 100%;
+            background: var(--primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tp-compare-btn:hover {
+            background: var(--primary-hover);
+        }
+        
+        .tp-compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 8px;
+            color: var(--text-primary);
+        }
+        .tp-compare-table th {
+            background: var(--border);
+            padding: 6px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .tp-compare-table td {
+            padding: 6px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+        .tp-compare-table td:first-child {
+            text-align: left;
+            font-weight: 700;
+            background: var(--surface-muted);
+        }
+        .tp-compare-stars {
+            color: #FBBF24;
+        }
+
+        /* Footer Input */
+        .tp-chatbot-footer {
+            padding: 10px 15px;
+            border-top: 1px solid var(--border, #E2E8F0);
+            background: var(--surface-card, #FFFFFF);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .tp-chatbot-footer input {
+            flex: 1;
+            border: 1px solid var(--border, #E2E8F0);
+            background: var(--surface-muted, #F8FAFC);
+            color: var(--text-primary, #0F172A);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .tp-chatbot-footer input:focus {
+            border-color: var(--primary);
+        }
+        .tp-chatbot-send {
+            background: var(--primary);
+            color: #FFFFFF;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .tp-chatbot-send:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Typing indicator */
+        .tp-typing {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            padding: 6px 12px;
+        }
+        .tp-typing span {
+            width: 6px;
+            height: 6px;
+            background: var(--text-secondary, #64748B);
+            border-radius: 50%;
+            animation: tpBounce 1.4s infinite ease-in-out both;
+        }
+        .tp-typing span:nth-child(1) { animation-delay: -0.32s; }
+        .tp-typing span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes tpBounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Dark Mode overrides */
+        .dark-mode .tp-message.bot .tp-message-content {
+            background: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
+        }
+        .dark-mode .tp-action-btn,
+        .dark-mode .tp-option-choice,
+        .dark-mode .tp-rec-card {
+            background: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
+        }
+        .dark-mode .tp-action-btn:hover,
+        .dark-mode .tp-option-choice:hover {
+            border-color: var(--primary);
+            background: rgba(10, 91, 255, 0.1);
+        }
+        .dark-mode .tp-compare-selects select {
+            background: #1E293B;
+            border-color: #334155;
+            color: #F8FAFC;
+        }
+        .dark-mode .tp-compare-table td:first-child {
+            background: #0F172A;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .tp-chatbot-window {
+                width: calc(100% - 30px);
+                right: 15px;
+                left: 15px;
+                bottom: 95px;
+                height: calc(100vh - 120px);
+            }
+            .tp-chatbot-launcher {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+    </style>
+
+    <!-- Floating Launcher Button -->
+    <button type="button" class="tp-chatbot-launcher" id="tpChatbotLauncher" onclick="toggleChatbot()">
+        <i class="fa-solid fa-robot"></i>
+        <span class="tp-chatbot-launcher-pulse"></span>
+    </button>
+
+    <!-- Chat Window -->
+    <div class="tp-chatbot-window" id="tpChatbotWindow">
+        <!-- Header -->
+        <div class="tp-chatbot-header">
+            <div class="tp-chatbot-header-left">
+                <span class="tp-chatbot-header-avatar"><i class="fa-solid fa-robot"></i></span>
+                <div class="tp-chatbot-header-info">
+                    <h4>TechPilot AI</h4>
+                    <span class="tp-chatbot-header-status"><span class="status-dot"></span> Trợ lý ảo online</span>
+                </div>
+            </div>
+            <button type="button" class="tp-chatbot-close" onclick="toggleChatbot()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Body / Messages -->
+        <div class="tp-chatbot-body" id="tpChatbotBody">
+            <div class="tp-chatbot-messages" id="tpChatbotMessages">
+                <!-- Welcome message will be added dynamically -->
+            </div>
+        </div>
+
+        <!-- Footer Input -->
+        <div class="tp-chatbot-footer">
+            <input type="text" id="tpChatbotInput" placeholder="Hỏi AI về Laptop, RAM, CPU..." onkeydown="handleChatbotKey(event)">
+            <button type="button" class="tp-chatbot-send" onclick="sendChatbotMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Chatbot Logics -->
+    <script>
+        let chatbotOpen = false;
+        let chatbotProducts = [];
+        let chatbotQuizState = {
+            active: false,
+            step: 0,
+            profile: {
+                group: '',
+                budget: '',
+                priority: ''
+            }
+        };
+
+        // Toggle Chat Window
+        function toggleChatbot() {
+            const windowEl = document.getElementById('tpChatbotWindow');
+            chatbotOpen = !chatbotOpen;
+            if (chatbotOpen) {
+                windowEl.classList.add('is-open');
+                // Khởi tạo tin nhắn chào mừng nếu chưa có
+                const msgBox = document.getElementById('tpChatbotMessages');
+                if (msgBox.children.length === 0) {
+                    renderBotMessage("Xin chào! 👋 Tôi là trợ lý ảo **TechPilot AI**. Tôi có thể giúp gì cho bạn hôm nay?");
+                    renderInitialActions();
+                }
+                // Tải trước danh sách laptop nếu chưa tải
+                if (chatbotProducts.length === 0) {
+                    loadChatbotProducts();
+                }
+            } else {
+                windowEl.classList.remove('is-open');
+            }
+        }
+
+        // Tải danh sách laptop phục vụ so sánh
+        function loadChatbotProducts() {
+            fetch('<?= url("chatbot/products") ?>')
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        chatbotProducts = res.data;
+                    }
+                })
+                .catch(err => console.error("Error loading chatbot products:", err));
+        }
+
+        // Renders
+        function renderBotMessage(html) {
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tp-message bot';
+            wrapper.innerHTML = `
+                <div class="tp-message-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="tp-message-content">${formatMarkdownText(html)}</div>
+            `;
+            msgBox.appendChild(wrapper);
+            scrollChatToBottom();
+            return wrapper;
+        }
+
+        function renderUserMessage(text) {
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tp-message user';
+            wrapper.innerHTML = `
+                <div class="tp-message-content">${formatMarkdownText(text)}</div>
+            `;
+            msgBox.appendChild(wrapper);
+            scrollChatToBottom();
+        }
+
+        function renderTypingIndicator() {
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tp-message bot tp-typing-wrapper';
+            wrapper.innerHTML = `
+                <div class="tp-message-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="tp-message-content">
+                    <div class="tp-typing">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            msgBox.appendChild(wrapper);
+            scrollChatToBottom();
+            return wrapper;
+        }
+
+        function removeTypingIndicator(indicatorEl) {
+            if (indicatorEl && indicatorEl.parentNode) {
+                indicatorEl.parentNode.removeChild(indicatorEl);
+            }
+        }
+
+        function scrollChatToBottom() {
+            const bodyEl = document.getElementById('tpChatbotBody');
+            bodyEl.scrollTop = bodyEl.scrollHeight;
+        }
+
+        // Format Markdown cơ bản
+        function formatMarkdownText(text) {
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/✔️/g, '<span style="color:#10B981;">✔️</span>')
+                .replace(/✔/g, '<span style="color:#10B981;">✔</span>')
+                .replace(/⚠️/g, '<span style="color:#FBBF24;">⚠️</span>')
+                .replace(/• (.*?)(<br>|$)/g, '<li style="margin-left: 10px;">$1</li>');
+        }
+
+        // Khởi động các tác vụ nhanh ban đầu
+        function renderInitialActions() {
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const grid = document.createElement('div');
+            grid.className = 'tp-actions-grid';
+            grid.innerHTML = `
+                <button type="button" class="tp-action-btn" onclick="triggerAction('quiz')">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Tư vấn theo nhu cầu</span>
+                </button>
+                <button type="button" class="tp-action-btn" onclick="triggerAction('compare')">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                    <span>AI So sánh</span>
+                </button>
+                <button type="button" class="tp-action-btn" onclick="triggerAction('budget')">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>Chọn theo ngân sách</span>
+                </button>
+                <button type="button" class="tp-action-btn" onclick="triggerAction('faq')">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <span>Hỏi đáp AI</span>
+                </button>
+            `;
+            msgBox.appendChild(grid);
+            scrollChatToBottom();
+        }
+
+        // Kích hoạt nút tác vụ
+        function triggerAction(action) {
+            // Hủy trạng thái quiz nếu đang dở
+            chatbotQuizState.active = false;
+
+            if (action === 'quiz') {
+                renderUserMessage("Tôi muốn tư vấn chọn Laptop theo nhu cầu");
+                startQuizFlow();
+            } else if (action === 'compare') {
+                renderUserMessage("Tôi muốn so sánh sản phẩm");
+                startCompareFlow();
+            } else if (action === 'budget') {
+                renderUserMessage("Tôi muốn tìm laptop theo ngân sách");
+                startBudgetFlow();
+            } else if (action === 'faq') {
+                renderUserMessage("Tôi muốn hỏi đáp AI");
+                startFaqFlow();
+            }
+        }
+
+        // ==========================================
+        // CHỨC NĂNG 1: TƯ VẤN THEO NHU CẦU (QUIZ FLOW)
+        // ==========================================
+        function startQuizFlow() {
+            chatbotQuizState.active = true;
+            chatbotQuizState.step = 1;
+            chatbotQuizState.profile = { group: '', budget: '', priority: '' };
+
+            renderBotMessage("Bạn thuộc nhóm đối tượng nào?");
+            
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const optList = document.createElement('div');
+            optList.className = 'tp-options-list';
+            optList.innerHTML = `
+                <button type="button" class="tp-option-choice" onclick="selectQuizChoice('group', 'Sinh viên')">○ Sinh viên</button>
+                <button type="button" class="tp-option-choice" onclick="selectQuizChoice('group', 'Người đi làm')">○ Người đi làm</button>
+                <button type="button" class="tp-option-choice" onclick="selectQuizChoice('group', 'Designer / Đồ họa')">○ Designer / Đồ họa</button>
+                <button type="button" class="tp-option-choice" onclick="selectQuizChoice('group', 'Game thủ')">○ Game thủ</button>
+                <button type="button" class="tp-option-choice" onclick="selectQuizChoice('group', 'Lập trình viên')">○ Lập trình viên</button>
+                <button type="button" class="tp-option-choice" onclick="selectQuizChoice('group', 'Khác')">○ Khác</button>
+            `;
+            msgBox.appendChild(optList);
+            scrollChatToBottom();
+        }
+
+        function selectQuizChoice(field, value) {
+            // Xóa danh sách nút cũ
+            const activeChoiceLists = document.querySelectorAll('.tp-options-list');
+            if (activeChoiceLists.length > 0) {
+                const lastList = activeChoiceLists[activeChoiceLists.length - 1];
+                lastList.innerHTML = `<div style="font-size: 12px; color: var(--text-secondary); padding: 5px 10px;">✔ Đã chọn: <strong>${value}</strong></div>`;
+            }
+
+            renderUserMessage(value);
+
+            if (field === 'group') {
+                chatbotQuizState.profile.group = value;
+                chatbotQuizState.step = 2;
+                
+                // Hỏi tiếp Ngân sách
+                setTimeout(() => {
+                    renderBotMessage("Hạn mức ngân sách tối đa của bạn là bao nhiêu?");
+                    const msgBox = document.getElementById('tpChatbotMessages');
+                    const optList = document.createElement('div');
+                    optList.className = 'tp-options-list';
+                    optList.innerHTML = `
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('budget', 'under_5m')">○ Dưới 5 triệu</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('budget', '5_10m')">○ 5 - 10 triệu</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('budget', '10_20m')">○ 10 - 20 triệu</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('budget', 'over_20m')">○ Trên 20 triệu</button>
+                    `;
+                    msgBox.appendChild(optList);
+                    scrollChatToBottom();
+                }, 400);
+
+            } else if (field === 'budget') {
+                chatbotQuizState.profile.budget = value;
+                chatbotQuizState.step = 3;
+
+                // Hỏi tiếp Ưu tiên
+                setTimeout(() => {
+                    renderBotMessage("Bạn ưu tiên điều gì nhất ở Laptop?");
+                    const msgBox = document.getElementById('tpChatbotMessages');
+                    const optList = document.createElement('div');
+                    optList.className = 'tp-options-list';
+                    optList.innerHTML = `
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('priority', 'Giá')">○ Tiết kiệm giá bán</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('priority', 'Hiệu năng')">○ Hiệu năng CPU mạnh mẽ</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('priority', 'Pin')">○ Pin khỏe dùng lâu</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('priority', 'Mỏng nhẹ')">○ Mỏng nhẹ dễ di chuyển</button>
+                        <button type="button" class="tp-option-choice" onclick="selectQuizChoice('priority', 'Chơi game')">○ Card đồ họa chiến game mượt</button>
+                    `;
+                    msgBox.appendChild(optList);
+                    scrollChatToBottom();
+                }, 400);
+
+            } else if (field === 'priority') {
+                chatbotQuizState.profile.priority = value;
+                chatbotQuizState.active = false; // Kết thúc quiz flow
+
+                // Gọi API lấy kết quả tư vấn từ Backend
+                setTimeout(() => {
+                    const indicator = renderTypingIndicator();
+                    const params = new URLSearchParams({
+                        group: chatbotQuizState.profile.group,
+                        budget: chatbotQuizState.profile.budget,
+                        priority: chatbotQuizState.profile.priority
+                    });
+
+                    fetch('<?= url("chatbot/query?") ?>' + params.toString())
+                        .then(res => res.json())
+                        .then(res => {
+                            removeTypingIndicator(indicator);
+                            if (res.success) {
+                                renderBotMessage(res.ai_message);
+                                renderRecommendations(res.recommendations);
+                            } else {
+                                renderBotMessage("🤖 Đã có lỗi xảy ra trong quá trình xử lý: " + res.message);
+                            }
+                        })
+                        .catch(err => {
+                            removeTypingIndicator(indicator);
+                            renderBotMessage("🤖 Lỗi kết nối máy chủ tư vấn.");
+                        });
+                }, 500);
+            }
+        }
+
+        // Hiển thị Card các sản phẩm đề xuất
+        function renderRecommendations(recs) {
+            if (!recs || recs.length === 0) return;
+
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const container = document.createElement('div');
+            container.className = 'tp-recommendations';
+
+            recs.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'tp-rec-card';
+                
+                let reasonsHtml = '';
+                item.reasons.forEach(r => {
+                    reasonsHtml += `<li>✔️ ${r}</li>`;
+                });
+
+                card.innerHTML = `
+                    <img class="tp-rec-img" src="<?= url('public/uploads/products/') ?>${item.image}" onerror="this.src='<?= url('public/assets/images/laptop-gaming.jpg') ?>'">
+                    <div class="tp-rec-info">
+                        <h5>${item.name}</h5>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="tp-rec-price">${item.price_formatted}</span>
+                            <span class="tp-rec-score">Phù hợp ${item.score}%</span>
+                        </div>
+                        <ul class="tp-rec-reasons">${reasonsHtml}</ul>
+                        <a href="<?= url('product/detail/') ?>${item.slug}" class="tp-rec-link" target="_blank">
+                            Xem chi tiết <i class="fa-solid fa-circle-arrow-right"></i>
+                        </a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            msgBox.appendChild(container);
+            
+            // Hiện lại menu chính sau khi hoàn thành tư vấn
+            setTimeout(() => {
+                renderBotMessage("Bạn muốn tiếp tục hỏi về vấn đề gì nữa không?");
+                renderInitialActions();
+            }, 800);
+            
+            scrollChatToBottom();
+        }
+
+        // ==========================================
+        // CHỨC NĂNG 2: AI SO SÁNH SẢN PHẨM
+        // ==========================================
+        function startCompareFlow() {
+            renderBotMessage("Vui lòng chọn 2 chiếc Laptop cần so sánh cấu hình:");
+
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const container = document.createElement('div');
+            container.className = 'tp-compare-container';
+
+            // Tạo dropdown 1 & 2
+            let optionsHtml = '<option value="">-- Chọn sản phẩm --</option>';
+            chatbotProducts.forEach(p => {
+                optionsHtml += `<option value="${p.id}">${p.name} (${p.price_formatted})</option>`;
+            });
+
+            container.innerHTML = `
+                <div class="tp-compare-selects">
+                    <select id="compare_left">${optionsHtml}</select>
+                    <select id="compare_right">${optionsHtml}</select>
+                </div>
+                <button type="button" class="tp-compare-btn" onclick="submitCompareFlow()">So sánh cấu hình</button>
+            `;
+            msgBox.appendChild(container);
+            scrollChatToBottom();
+        }
+
+        function submitCompareFlow() {
+            const leftId = document.getElementById('compare_left').value;
+            const rightId = document.getElementById('compare_right').value;
+
+            if (!leftId || !rightId) {
+                alert("Vui lòng chọn đầy đủ 2 sản phẩm!");
+                return;
+            }
+
+            // Đóng băng nút so sánh
+            const compareBtn = document.querySelector('.tp-compare-btn');
+            if (compareBtn) compareBtn.disabled = true;
+
+            const indicator = renderTypingIndicator();
+
+            fetch(`<?= url("chatbot/compare?left_id=") ?>${leftId}&right_id=${rightId}`)
+                .then(res => res.json())
+                .then(res => {
+                    removeTypingIndicator(indicator);
+                    if (res.success) {
+                        renderBotMessage("📊 **Bảng so sánh chi tiết giữa 2 sản phẩm:**");
+                        renderCompareTable(res.data);
+                    } else {
+                        renderBotMessage("🤖 Lỗi: " + res.message);
+                    }
+                })
+                .catch(err => {
+                    removeTypingIndicator(indicator);
+                    renderBotMessage("🤖 Lỗi kết nối hệ thống so sánh.");
+                });
+        }
+
+        function renderCompareTable(data) {
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const tableWrapper = document.createElement('div');
+            tableWrapper.style.width = '100%';
+            tableWrapper.style.overflowX = 'auto';
+
+            const starHtml = (count) => {
+                let stars = '';
+                for (let i = 0; i < 5; i++) {
+                    stars += i < count ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+                }
+                return `<span class="tp-compare-stars">${stars}</span>`;
+            };
+
+            tableWrapper.innerHTML = `
+                <table class="tp-compare-table">
+                    <thead>
+                        <tr>
+                            <th>Tiêu chí</th>
+                            <th>${data.left.name.split(' ').slice(0,3).join(' ')}...</th>
+                            <th>${data.right.name.split(' ').slice(0,3).join(' ')}...</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Giá</td>
+                            <td style="color:#EF4444; font-weight:700;">${data.left.price}</td>
+                            <td style="color:#EF4444; font-weight:700;">${data.right.price}</td>
+                        </tr>
+                        <tr>
+                            <td>CPU</td>
+                            <td>${data.left.specs.CPU}</td>
+                            <td>${data.right.specs.CPU}</td>
+                        </tr>
+                        <tr>
+                            <td>RAM</td>
+                            <td>${data.left.specs.RAM}</td>
+                            <td>${data.right.specs.RAM}</td>
+                        </tr>
+                        <tr>
+                            <td>SSD</td>
+                            <td>${data.left.specs.SSD}</td>
+                            <td>${data.right.specs.SSD}</td>
+                        </tr>
+                        <tr>
+                            <td>VGA</td>
+                            <td>${data.left.specs.VGA.split(' ').slice(0,2).join(' ')}</td>
+                            <td>${data.right.specs.VGA.split(' ').slice(0,2).join(' ')}</td>
+                        </tr>
+                        <tr>
+                            <td>Game</td>
+                            <td>${starHtml(data.left.ratings.game)}</td>
+                            <td>${starHtml(data.right.ratings.game)}</td>
+                        </tr>
+                        <tr>
+                            <td>Văn phòng</td>
+                            <td>${starHtml(data.left.ratings.office)}</td>
+                            <td>${starHtml(data.right.ratings.office)}</td>
+                        </tr>
+                        <tr>
+                            <td>Đồ họa</td>
+                            <td>${starHtml(data.left.ratings.graphic)}</td>
+                            <td>${starHtml(data.right.ratings.graphic)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            msgBox.appendChild(tableWrapper);
+
+            // In lời khuyên của AI
+            setTimeout(() => {
+                let adviceHtml = "🤖 **AI Đánh giá tổng quan:**\n\n";
+                data.advice.forEach(adv => {
+                    adviceHtml += adv + "\n";
+                });
+                renderBotMessage(adviceHtml);
+                renderInitialActions();
+            }, 500);
+
+            scrollChatToBottom();
+        }
+
+        // ==========================================
+        // CHỨC NĂNG 3: TÌM KIẾM THEO NGÂN SÁCH NHANH
+        // ==========================================
+        function startBudgetFlow() {
+            renderBotMessage("Hãy chọn khoảng ngân sách của bạn:");
+
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const optList = document.createElement('div');
+            optList.className = 'tp-options-list';
+            optList.innerHTML = `
+                <button type="button" class="tp-option-choice" onclick="selectBudgetBracket('under_5m', 'Dưới 5 triệu')">○ Dưới 5 triệu</button>
+                <button type="button" class="tp-option-choice" onclick="selectBudgetBracket('5_10m', '5 - 10 triệu')">○ 5 - 10 triệu</button>
+                <button type="button" class="tp-option-choice" onclick="selectBudgetBracket('10_20m', '10 - 20 triệu')">○ 10 - 20 triệu</button>
+                <button type="button" class="tp-option-choice" onclick="selectBudgetBracket('over_20m', 'Trên 20 triệu')">○ Trên 20 triệu</button>
+            `;
+            msgBox.appendChild(optList);
+            scrollChatToBottom();
+        }
+
+        function selectBudgetBracket(bracket, label) {
+            const activeChoiceLists = document.querySelectorAll('.tp-options-list');
+            if (activeChoiceLists.length > 0) {
+                activeChoiceLists[activeChoiceLists.length - 1].remove();
+            }
+
+            renderUserMessage(label);
+            
+            const indicator = renderTypingIndicator();
+            fetch(`<?= url("chatbot/query?budget=") ?>${bracket}`)
+                .then(res => res.json())
+                .then(res => {
+                    removeTypingIndicator(indicator);
+                    if (res.success) {
+                        renderBotMessage(`🤖 Tìm thấy các mẫu Laptop nổi bật trong phân khúc **${label}**:`);
+                        renderRecommendations(res.recommendations);
+                    }
+                })
+                .catch(err => {
+                    removeTypingIndicator(indicator);
+                    renderBotMessage("🤖 Lỗi kết nối hệ thống tìm kiếm ngân sách.");
+                });
+        }
+
+        // ==========================================
+        // CHỨC NĂNG 4: HỎI ĐÁP AI (FAQ CHIPS)
+        // ==========================================
+        function startFaqFlow() {
+            renderBotMessage("Bạn có thể click trực tiếp các câu hỏi mẫu bên dưới để hỏi trợ lý AI:");
+
+            const msgBox = document.getElementById('tpChatbotMessages');
+            const optList = document.createElement('div');
+            optList.className = 'tp-options-list';
+            optList.innerHTML = `
+                <button type="button" class="tp-option-choice" onclick="sendNaturalQuery('RAM 8GB với 16GB khác gì?')">❓ RAM 8GB với 16GB khác gì?</button>
+                <button type="button" class="tp-option-choice" onclick="sendNaturalQuery('i3 học lập trình được không?')">❓ CPU i3 học lập trình được không?</button>
+                <button type="button" class="tp-option-choice" onclick="sendNaturalQuery('So sánh Core i3 và i7?')">❓ So sánh Core i3 và Core i7?</button>
+                <button type="button" class="tp-option-choice" onclick="sendNaturalQuery('Laptop này chơi Valorant được không?')">❓ Laptop này chơi Valorant được không?</button>
+                <button type="button" class="tp-option-choice" onclick="sendNaturalQuery('Laptop văn phòng dùng được bao lâu?')">❓ Máy tính văn phòng dùng được bao lâu?</button>
+            `;
+            msgBox.appendChild(optList);
+            scrollChatToBottom();
+        }
+
+        function sendNaturalQuery(text) {
+            const activeChoiceLists = document.querySelectorAll('.tp-options-list');
+            if (activeChoiceLists.length > 0) {
+                activeChoiceLists[activeChoiceLists.length - 1].remove();
+            }
+            document.getElementById('tpChatbotInput').value = text;
+            sendChatbotMessage();
+        }
+
+        // ==========================================
+        // GỬI TIN NHẮN TỰ NHIÊN (CHAT INPUT)
+        // ==========================================
+        function handleChatbotKey(event) {
+            if (event.key === 'Enter') {
+                sendChatbotMessage();
+            }
+        }
+
+        function sendChatbotMessage() {
+            const inputEl = document.getElementById('tpChatbotInput');
+            const text = inputEl.value.trim();
+            if (text === '') return;
+
+            inputEl.value = '';
+            renderUserMessage(text);
+
+            const indicator = renderTypingIndicator();
+
+            fetch('<?= url("chatbot/query?q=") ?>' + encodeURIComponent(text))
+                .then(res => res.json())
+                .then(res => {
+                    removeTypingIndicator(indicator);
+                    if (res.success) {
+                        if (res.type === 'start_quiz') {
+                            renderBotMessage(res.message);
+                            startQuizFlow();
+                        } else {
+                            renderBotMessage(res.message);
+                            setTimeout(() => {
+                                renderInitialActions();
+                            }, 500);
+                        }
+                    } else {
+                        // Tìm kiếm thô sản phẩm phù hợp nếu AI không nhận diện được từ khóa cụ thể
+                        searchRawProducts(text);
+                    }
+                })
+                .catch(err => {
+                    removeTypingIndicator(indicator);
+                    renderBotMessage("🤖 Xin lỗi, tôi gặp sự cố kết nối máy chủ AI.");
+                });
+        }
+
+        function searchRawProducts(text) {
+            const indicator = renderTypingIndicator();
+            fetch('<?= url("chatbot/query?q=") ?>' + encodeURIComponent(text) + '&priority=performance')
+                .then(res => res.json())
+                .then(res => {
+                    removeTypingIndicator(indicator);
+                    if (res.success && res.recommendations && res.recommendations.length > 0) {
+                        renderBotMessage("🤖 Tôi chưa hiểu rõ hoàn toàn câu hỏi của bạn. Tuy nhiên, dưới đây là các mẫu máy tính có thể bạn quan tâm dựa trên từ khóa tìm kiếm:");
+                        renderRecommendations(res.recommendations);
+                    } else {
+                        renderBotMessage("🤖 Tôi chưa hiểu rõ câu hỏi của bạn. Bạn hãy thử click vào các tác vụ nhanh bên dưới hoặc liên hệ tổng đài hỗ trợ để được giải đáp chi tiết hơn nhé!");
+                        renderInitialActions();
+                    }
+                })
+                .catch(err => {
+                    removeTypingIndicator(indicator);
+                    renderBotMessage("🤖 Không thể tra cứu sản phẩm liên quan.");
+                    renderInitialActions();
+                });
+        }
+    </script>
 </body>
 
 </html>
