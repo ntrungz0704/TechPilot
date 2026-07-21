@@ -6,13 +6,15 @@ class MarkdownRenderer
     private array $blocks = [];
     private array $usedHeadingIds = [];
     private array $codeBlocks = [];
+    private array $summaryBlocks = [];
+    private array $sourcesBlocks = [];
     private string $quickSummaryHtml = '';
     private string $sourcesHtml = '';
 
     /**
      * Render markdown string sang HTML + metadata.
-     * Code fence được tokenize trước khi split để tránh
-     * placeholder bị ghép vào paragraph.
+     * Code fence và custom blocks được tokenize trước khi split
+     * để tránh placeholder bị ghép vào paragraph hoặc vỡ block.
      */
     public function render(string $markdown): array
     {
@@ -20,14 +22,14 @@ class MarkdownRenderer
         $this->blocks           = [];
         $this->usedHeadingIds   = [];
         $this->codeBlocks       = [];
+        $this->summaryBlocks    = [];
+        $this->sourcesBlocks    = [];
         $this->quickSummaryHtml = '';
         $this->sourcesHtml      = '';
 
         $markdown = str_replace("\r\n", "\n", $markdown);
 
         // ── Step 1: Tokenize code fences TRƯỚC khi split ──────────────────
-        // Placeholder dùng random bytes để không xung đột với nội dung người dùng.
-        // Bọc trong \n\n để preg_split luôn tạo block riêng biệt.
         $markdown = preg_replace_callback(
             '/^```([^\n]*)?\n(.*?)^```[ \t]*$/ms',
             function (array $matches): string {
@@ -38,6 +40,30 @@ class MarkdownRenderer
                     'lang' => $lang,
                     'code' => $code,
                 ];
+                return "\n\n{$token}\n\n";
+            },
+            $markdown
+        );
+
+        // ── Step 1.1: Tokenize :::summary blocks TRƯỚC khi split ──────────
+        $markdown = preg_replace_callback(
+            '/^:::summary[ \t]*\n(.*?)\n:::[ \t]*$/ms',
+            function (array $matches): string {
+                $content = trim($matches[1]);
+                $token   = '__TECHPILOT_SUMMARY_' . bin2hex(random_bytes(8)) . '__';
+                $this->summaryBlocks[$token] = $content;
+                return "\n\n{$token}\n\n";
+            },
+            $markdown
+        );
+
+        // ── Step 1.2: Tokenize :::sources blocks TRƯỚC khi split ──────────
+        $markdown = preg_replace_callback(
+            '/^:::sources[ \t]*\n(.*?)\n:::[ \t]*$/ms',
+            function (array $matches): string {
+                $content = trim($matches[1]);
+                $token   = '__TECHPILOT_SOURCES_' . bin2hex(random_bytes(8)) . '__';
+                $this->sourcesBlocks[$token] = $content;
                 return "\n\n{$token}\n\n";
             },
             $markdown
@@ -68,15 +94,13 @@ class MarkdownRenderer
 
     private function renderBlock(string $block): string
     {
-        // 0.1 Quick Summary Block (:::summary ... :::)
-        if (preg_match('/^:::summary[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
-            $content = trim($matches[1]);
-            $innerHtml = (preg_match('/^[-*]\s+/m', $content) || preg_match('/^\d+\.\s+/m', $content))
-                ? $this->renderList($content, preg_match('/^[-*]\s+/m', $content) ? 'ul' : 'ol')
-                : '<p>' . $this->renderInline($content) . '</p>';
+        // 0.1 Summary Block placeholder
+        if (isset($this->summaryBlocks[$block])) {
+            $content   = $this->summaryBlocks[$block];
+            $innerHtml = $this->renderSummaryInner($content);
 
             $boxHtml = '<section class="article-quick-summary" aria-label="Tóm tắt ý chính">'
-                . '<h3><i class="fa-solid fa-bolt" aria-hidden="true"></i> Tóm tắt nhanh</h3>'
+                . '<h2 class="article-summary-title"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Tóm tắt nhanh</h2>'
                 . '<div class="summary-body">' . $innerHtml . '</div>'
                 . '</section>';
 
@@ -85,23 +109,22 @@ class MarkdownRenderer
                 return ''; // Extracted from main body
             }
 
-            // Duplicate summary block handling: Preserve safely in main body with dev warning comment
-            $html = '<!-- Development Warning: Duplicate :::summary block detected -->'
-                . '<div class="callout callout-info">' . $innerHtml . '</div>';
+            if (defined('APP_ENV') && APP_ENV === 'development') {
+                error_log('[TechPilot MarkdownRenderer] Duplicate :::summary block detected');
+            }
+
+            $html = '<div class="callout callout-info">' . $innerHtml . '</div>';
             $this->blocks[] = ['type' => 'callout', 'html' => $html];
             return $html;
         }
 
-        // 0.2 Sources Block (:::sources ... :::)
-        if (preg_match('/^:::sources[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
-            $content = trim($matches[1]);
-            $listType = preg_match('/^\d+\.\s+/m', $content) ? 'ol' : 'ul';
-            $innerHtml = (preg_match('/^[-*]\s+/m', $content) || preg_match('/^\d+\.\s+/m', $content))
-                ? $this->renderList($content, $listType, true)
-                : '<p>' . $this->renderInline($content, true) . '</p>';
+        // 0.2 Sources Block placeholder
+        if (isset($this->sourcesBlocks[$block])) {
+            $content   = $this->sourcesBlocks[$block];
+            $innerHtml = $this->renderSourcesInner($content);
 
             $boxHtml = '<section class="article-sources-block" aria-label="Nguồn tham khảo">'
-                . '<h3><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i> Nguồn tham khảo</h3>'
+                . '<h2 class="article-sources-title"><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i> Nguồn tham khảo</h2>'
                 . $innerHtml
                 . '</section>';
 
@@ -110,10 +133,12 @@ class MarkdownRenderer
                 return ''; // Extracted from main body
             }
 
-            // Duplicate sources block handling: Preserve safely in main body with dev warning comment
-            $html = '<!-- Development Warning: Duplicate :::sources block detected -->'
-                . '<section class="article-sources-block article-sources-duplicate">'
-                . '<h3><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i> Nguồn tham khảo bổ sung</h3>'
+            if (defined('APP_ENV') && APP_ENV === 'development') {
+                error_log('[TechPilot MarkdownRenderer] Duplicate :::sources block detected');
+            }
+
+            $html = '<section class="article-sources-block article-sources-duplicate">'
+                . '<h2 class="article-sources-title"><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i> Nguồn tham khảo bổ sung</h2>'
                 . $innerHtml
                 . '</section>';
             $this->blocks[] = ['type' => 'sources', 'html' => $html];
@@ -132,7 +157,6 @@ class MarkdownRenderer
         }
 
         // 1.5. Fenced Code Block placeholder
-        // Token dạng __TECHPILOT_CODE_<hex>__ hoặc legacy \x02CODEBLOCK_N\x03
         if (isset($this->codeBlocks[$block])) {
             $lang         = $this->codeBlocks[$block]['lang'];
             $code         = $this->codeBlocks[$block]['code'];
@@ -248,7 +272,6 @@ class MarkdownRenderer
         }
 
         // 7.5. YouTube Embed Block
-        // Hỗ trợ: @[youtube](ID) hoặc URL YouTube đứng riêng
         $videoId = $this->extractYouTubeId($block);
         if ($videoId !== null) {
             $escapedId = htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8');
@@ -279,29 +302,59 @@ class MarkdownRenderer
         return $html;
     }
 
+    private function renderSummaryInner(string $content): string
+    {
+        $subBlocks = preg_split('/\n{2,}/', trim($content));
+        $html = '';
+        foreach ($subBlocks as $sub) {
+            $sub = trim($sub);
+            if ($sub === '') continue;
+
+            if (preg_match('/^[-*]\s+/m', $sub)) {
+                $html .= $this->renderList($sub, 'ul');
+            } elseif (preg_match('/^\d+\.\s+/m', $sub)) {
+                $html .= $this->renderList($sub, 'ol');
+            } else {
+                $html .= '<p>' . $this->renderInline($sub) . '</p>';
+            }
+        }
+        return $html;
+    }
+
+    private function renderSourcesInner(string $content): string
+    {
+        $subBlocks = preg_split('/\n{2,}/', trim($content));
+        $html = '';
+        foreach ($subBlocks as $sub) {
+            $sub = trim($sub);
+            if ($sub === '') continue;
+
+            $listType = preg_match('/^\d+\.\s+/m', $sub) ? 'ol' : 'ul';
+            if (preg_match('/^[-*]\s+/m', $sub) || preg_match('/^\d+\.\s+/m', $sub)) {
+                $html .= $this->renderList($sub, $listType, true);
+            } else {
+                $html .= '<p>' . $this->renderInline($sub, true) . '</p>';
+            }
+        }
+        return $html;
+    }
+
     /**
      * Extract YouTube video ID from a block string.
-     * Chấp nhận: @[youtube](ID) hoặc URL YouTube.
-     * Chỉ chấp nhận ID khớp [a-zA-Z0-9_-]{11}.
-     * Trả về null nếu không nhận dạng được.
      */
     private function extractYouTubeId(string $block): ?string
     {
         $block = trim($block);
 
-        // Cú pháp @[youtube](VIDEO_ID) – yêu cầu đúng 11 ký tự
         if (preg_match('/^@\[youtube\]\(([a-zA-Z0-9_\-]{11})\)$/i', $block, $m)) {
             return $m[1];
         }
 
-        // URL YouTube đứng riêng – extract video ID (đúng 11 ký tự)
-        // Hỗ trợ: watch?v=, embed/, youtu.be/, v/ – playlist và timestamp OK
         if (preg_match(
             '/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_\-]{11})(?:[&?#\s].*)?\/?\ *$/i',
             $block,
             $m
         )) {
-            // Phải đúng 11 ký tự
             if (strlen($m[1]) === 11) {
                 return $m[1];
             }
@@ -352,15 +405,13 @@ class MarkdownRenderer
             return null;
         }
 
-        // Validate separator line (line 1)
         $separator = $lines[1];
         if (!preg_match('/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/', $separator)) {
-            return null; // Not a valid Markdown table separator
+            return null;
         }
 
         $html = '<div class="article-table-wrap" tabindex="0" role="region" aria-label="Bảng dữ liệu trong bài viết"><table class="table table-bordered">' . "\n";
 
-        // Header (line 0)
         $headerCells = explode('|', trim($lines[0], '|'));
         $html .= "  <thead>\n    <tr>\n";
         foreach ($headerCells as $cell) {
@@ -368,7 +419,6 @@ class MarkdownRenderer
         }
         $html .= "    </tr>\n  </thead>\n  <tbody>\n";
 
-        // Body (lines 2+)
         for ($i = 2; $i < count($lines); $i++) {
             $line = $lines[$i];
             if ($line === '') continue;
@@ -408,12 +458,10 @@ class MarkdownRenderer
 
     private function renderInline(string $text, bool $isSourceLink = false): string
     {
-        // 1. Convert special chars first
         $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
-        // 2. Inline Images: ![alt](url "title") - NEVER render figure/figcaption inside paragraph
         $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;(.*?)&quot;|\s+[\'\"](.*?)[\'\"])?\)/', function($m) {
-            $alt = $m[1]; // already escaped
+            $alt = $m[1];
             $rawUrl = $m[2];
             $title = !empty($m[3]) ? $m[3] : (!empty($m[4]) ? $m[4] : '');
 
@@ -431,9 +479,8 @@ class MarkdownRenderer
             return $img;
         }, $text);
 
-        // 3. Links: [text](url)
         $text = preg_replace_callback('/\[([^\]]+)\]\(((?:[^\s()]+|\([^()\s]*\))+)\)/', function($m) use ($isSourceLink) {
-            $linkText = $m[1]; // already escaped
+            $linkText = $m[1];
             $rawUrl = $m[2];
 
             $sanitizedUrl = $this->sanitizeUrl($rawUrl, true);
@@ -443,7 +490,6 @@ class MarkdownRenderer
 
             $escapedUrl = htmlspecialchars($sanitizedUrl, ENT_QUOTES, 'UTF-8');
 
-            // Distinguish internal vs external
             $decodedClean = strtolower(trim(html_entity_decode($rawUrl, ENT_QUOTES, 'UTF-8')));
             if (str_starts_with($decodedClean, 'http://') || str_starts_with($decodedClean, 'https://')) {
                 $rel = $isSourceLink ? 'noopener noreferrer' : 'noopener noreferrer nofollow';
@@ -453,13 +499,8 @@ class MarkdownRenderer
             return '<a href="' . $escapedUrl . '">' . $linkText . '</a>';
         }, $text);
 
-        // 4. Bold: **text**
         $text = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text);
-
-        // 5. Italic: *text*
         $text = preg_replace('/\*([^*]+)\*/', '<em>$1</em>', $text);
-
-        // 6. Line breaks
         $text = nl2br($text);
 
         return $text;
@@ -468,29 +509,23 @@ class MarkdownRenderer
     private function sanitizeUrl(string $url, bool $allowFragment = true): ?string
     {
         $decoded = trim($url);
-        // Recursively decode entities to catch double-encoded entities like &amp;#x0A;
         while (($prev = $decoded) && ($decoded = html_entity_decode($decoded, ENT_QUOTES, 'UTF-8')) !== $prev) {
-            // Loop until fully decoded
         }
 
         if ($decoded === '') {
             return null;
         }
 
-        // Strip control chars and whitespace to catch hidden schemes like java\nscript:
         $clean = preg_replace('/[\x00-\x1F\x7F\s]+/u', '', strtolower($decoded));
 
-        // Block protocol-relative URLs (//)
         if (str_starts_with($clean, '//')) {
             return null;
         }
 
-        // Block explicit forbidden schemes
         if (preg_match('/^(javascript|data|vbscript|file|blob):/i', $clean)) {
             return null;
         }
 
-        // Check if there is a scheme (scheme:...)
         if (preg_match('/^([a-z0-9+\-.]+):/i', $clean, $m)) {
             $scheme = strtolower($m[1]);
             if (!in_array($scheme, ['http', 'https'], true)) {

@@ -50,6 +50,9 @@ if (!$post) return;
             <div class="news-meta news-detail-meta">
                 <span><i class="fa-solid fa-user" aria-hidden="true"></i> <strong><?= e($post['author_name'] ?? 'Đội ngũ TechPilot') ?></strong></span>
                 <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> <?= date('d/m/Y', strtotime($post['published_at'] ?? $post['created_at'])) ?></span>
+                <?php if (!empty($hasValidUpdatedAt)): ?>
+                    <span><i class="fa-solid fa-rotate" aria-hidden="true"></i> Cập nhật: <?= date('d/m/Y', strtotime($post['updated_at'])) ?></span>
+                <?php endif; ?>
                 <?php if (!empty($post['reading_minutes'])): ?>
                     <span><i class="fa-regular fa-hourglass-half" aria-hidden="true"></i> <?= (int)$post['reading_minutes'] ?> phút đọc</span>
                 <?php endif; ?>

@@ -165,15 +165,12 @@ class PostController extends Controller
             ? $this->makeAbsoluteImageUrl(postImageUrl($post['image']))
             : absoluteUrl('assets/images/logo.png');
 
-        // Phân biệt Author Person vs Organization dựa trên dữ liệu thô (raw data)
-        $rawAuthorName = !empty($post['author_name'])
-            ? trim((string)$post['author_name'])
-            : (!empty($post['full_name']) ? trim((string)$post['full_name']) : '');
-
-        if ($rawAuthorName !== '') {
+        // Phân biệt Author Person vs Organization dựa trên semantic flag has_real_author
+        $hasRealAuthor = !empty($post['has_real_author']);
+        if ($hasRealAuthor) {
             $authorSchema = [
                 '@type' => 'Person',
-                'name'  => $rawAuthorName,
+                'name'  => $post['author_name'],
             ];
         } else {
             $authorSchema = [
@@ -183,9 +180,14 @@ class PostController extends Controller
             ];
         }
 
-        $publishedAt = date('c', strtotime($post['published_at'] ?? $post['created_at'] ?? 'now'));
-        // dateModified dùng updated_at nếu có
-        $modifiedAt  = !empty($post['updated_at'])
+        $publishedTime = strtotime($post['published_at'] ?? $post['created_at'] ?? 'now');
+        $publishedAt   = date('c', $publishedTime);
+
+        // Hiển thị updated_at khi có giá trị hợp lệ và khác biệt so với published_at (> 60s)
+        $hasValidUpdatedAt = !empty($post['updated_at'])
+            && (strtotime($post['updated_at']) > ($publishedTime + 60));
+
+        $modifiedAt = $hasValidUpdatedAt
             ? date('c', strtotime($post['updated_at']))
             : $publishedAt;
 
@@ -283,6 +285,7 @@ class PostController extends Controller
             'articleH2Count'     => $articleH2Count,
             'quickSummaryHtml'   => $quickSummaryHtml,
             'sourcesHtml'        => $sourcesHtml,
+            'hasValidUpdatedAt'  => $hasValidUpdatedAt,
             'postType'           => $postType,
             'categorySlug'       => $categorySlug,
             'midCtaConfig'       => $commerceConfig['mid_cta'] ?? null,

@@ -21,15 +21,17 @@ $isDesktop = ($tocVariant === 'desktop');
 <nav class="news-toc news-toc--<?= e($tocVariant) ?>" aria-labelledby="<?= e($headerId) ?>">
     <div class="news-toc-header">
         <strong id="<?= e($headerId) ?>">Nội dung bài viết</strong>
+        <?php if (!$isDesktop): ?>
         <button
             type="button"
             class="news-toc-toggle"
-            aria-expanded="<?= $isDesktop ? 'true' : 'false' ?>"
+            aria-expanded="false"
             aria-controls="<?= e($listId) ?>"
             aria-label="Thu gọn/Mở rộng mục lục"
         >
             <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
         </button>
+        <?php endif; ?>
     </div>
     <ul id="<?= e($listId) ?>" class="news-toc-list">
         <?php foreach ($articleHeadings as $heading): ?>

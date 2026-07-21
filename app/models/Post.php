@@ -306,7 +306,7 @@ class Post
     {
         if ($this->db === null) return null;
         $stmt = $this->db->prepare('
-            SELECT p.*, COALESCE(NULLIF(u.full_name, ""), NULLIF(p.author_name, "")) AS author_name
+            SELECT p.*, u.full_name AS user_full_name
             FROM posts p
             LEFT JOIN users u ON p.author_id = u.id
             WHERE p.slug = :slug AND p.status = "published"
@@ -317,9 +317,15 @@ class Post
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($post) {
-            if (empty($post['author_name'])) {
-                $post['author_name'] = 'Đội ngũ TechPilot';
-            }
+            $userFullName  = !empty($post['user_full_name']) ? trim((string)$post['user_full_name']) : '';
+            $rawAuthorName = !empty($post['author_name']) ? trim((string)$post['author_name']) : '';
+
+            $realAuthorName = $userFullName !== '' ? $userFullName : $rawAuthorName;
+            $hasRealAuthor  = ($realAuthorName !== '');
+
+            $post['has_real_author'] = $hasRealAuthor;
+            $post['author_name']     = $hasRealAuthor ? $realAuthorName : 'Đội ngũ TechPilot';
+
             if (empty($post['reading_minutes']) || $post['reading_minutes'] == 0) {
                 // Dùng regex UTF-8 để đếm từ tiếng Việt chính xác
                 $text = strip_tags($post['content'] ?? '');
