@@ -58,45 +58,48 @@ if (!function_exists('url')) {
     }
 }
 
-if (!function_exists('absoluteUrl')) {
+if (!function_exists('resolveAbsoluteUrl')) {
     /**
-     * Trả về absolute URL (scheme + host + BASE_URL) cho SEO meta tags.
-     *
-     * Ưu tiên thứ tự:
-     *   1. Constant APP_URL (ví dụ: 'https://techpilot.vn' hoặc 'https://techpilot.vn/subdir')
-     *   2. Tự detect scheme + validated host + BASE_URL subdirectory
-     *   3. Fallback localhost
-     *
-     * Không thay đổi hành vi của helper url() hiện tại.
-     *
-     * Test cases:
-     *   BASE_URL=""            → http://localhost/{path}
-     *   BASE_URL="/techpilot/public" → http://localhost/techpilot/public/{path}
-     *   APP_URL="https://techpilot.vn" → https://techpilot.vn/{path}
+     * Thuật toán tính toán absolute URL với kiểm tra validate APP_URL nghiêm ngặt.
      */
-    function absoluteUrl(string $path = ''): string
+    function resolveAbsoluteUrl(string $path = '', ?string $appUrl = null, ?string $baseUrl = null, array $server = []): string
     {
-        // ── Bước 1: Xác định base (scheme + host [+ subdir]) ────────────────
-        if (defined('APP_URL') && APP_URL !== '') {
-            // APP_URL đã chứa full origin (scheme + host + optional subdir)
-            $base = rtrim(APP_URL, '/');
+        $appUrl = is_string($appUrl) ? trim($appUrl) : '';
+        $baseUrl = is_string($baseUrl) ? trim($baseUrl) : '';
+        $validAppUrl = false;
+
+        if ($appUrl !== '') {
+            // Kiểm tra scheme http:// hoặc https://
+            if (preg_match('/^https?:\/\//i', $appUrl)) {
+                $host = parse_url($appUrl, PHP_URL_HOST);
+                if (!empty($host) && preg_match('/^[a-zA-Z0-9.:\-\[\]]+$/', $host)) {
+                    $validAppUrl = true;
+                }
+            }
+
+            if (!$validAppUrl) {
+                error_log("[TechPilot Config Warning] Invalid APP_URL configured: '{$appUrl}'. Falling back to auto-detected origin.");
+            }
+        }
+
+        if ($validAppUrl) {
+            $base = rtrim($appUrl, '/');
         } else {
             // Tự detect scheme
             $scheme = 'http';
             if (
-                (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-                (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
-                (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+                (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off') ||
+                (!empty($server['HTTP_X_FORWARDED_PROTO']) && $server['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+                (!empty($server['SERVER_PORT']) && (int)$server['SERVER_PORT'] === 443)
             ) {
                 $scheme = 'https';
             }
 
-            // Host an toàn: ưu tiên APP_HOST nếu có (set trong config production)
+            // Host an toàn: ưu tiên APP_HOST nếu có
             $rawHost = defined('APP_HOST') && APP_HOST !== ''
                 ? APP_HOST
-                : ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost');
+                : ($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? 'localhost');
 
-            // Loại bỏ ký tự không hợp lệ trong hostname (chống header injection)
             $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string) $rawHost);
             if ($host === '') {
                 $host = 'localhost';
@@ -104,17 +107,30 @@ if (!function_exists('absoluteUrl')) {
 
             $base = $scheme . '://' . $host;
 
-            // Gắn BASE_URL subdirectory nếu có (ví dụ: /techpilot/public)
-            if (defined('BASE_URL') && BASE_URL !== '') {
-                $base .= '/' . ltrim(BASE_URL, '/');
+            if ($baseUrl !== '') {
+                $base .= '/' . ltrim($baseUrl, '/');
             }
         }
 
-        // ── Bước 2: Ghép path ────────────────────────────────────────────────
         $base = rtrim($base, '/');
         $path = ltrim($path, '/');
 
         return $path === '' ? $base . '/' : $base . '/' . $path;
+    }
+}
+
+if (!function_exists('absoluteUrl')) {
+    /**
+     * Trả về absolute URL (scheme + host + BASE_URL) cho SEO meta tags.
+     */
+    function absoluteUrl(string $path = ''): string
+    {
+        return resolveAbsoluteUrl(
+            $path,
+            defined('APP_URL') ? APP_URL : null,
+            defined('BASE_URL') ? BASE_URL : null,
+            $_SERVER
+        );
     }
 }
 
