@@ -9,14 +9,14 @@
     
     /* Header Banner styling */
     .trade-in-banner {
-        background: linear-gradient(135deg, #FF3B30 0%, #C7000B 100%);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
         color: #FFFFFF;
         padding: 50px 40px;
         border-radius: var(--radius-card);
         position: relative;
         overflow: hidden;
         margin-top: 15px;
-        box-shadow: 0 10px 30px rgba(199, 0, 11, 0.15);
+        box-shadow: 0 10px 30px rgba(10, 91, 255, 0.15);
     }
     
     .trade-in-banner::before {
@@ -55,7 +55,7 @@
     
     .trade-in-title span {
         background: #FFFFFF;
-        color: #C7000B;
+        color: var(--primary);
         padding: 2px 10px;
         border-radius: 6px;
         display: inline-block;
@@ -159,8 +159,8 @@
     }
     
     .trade-in-menu-item.is-active {
-        color: var(--accent);
-        background: rgba(255, 77, 79, 0.04);
+        color: var(--primary);
+        background: rgba(10, 91, 255, 0.04);
     }
     
     .menu-icon-circle {
@@ -182,7 +182,7 @@
     }
     
     .trade-in-menu-item.is-active .menu-icon-circle {
-        background: var(--accent);
+        background: var(--primary);
         color: #FFFFFF;
     }
     
@@ -258,8 +258,8 @@
     }
     
     .category-tab-btn.is-active {
-        background: var(--accent);
-        border-color: var(--accent);
+        background: var(--primary);
+        border-color: var(--primary);
         color: #FFFFFF;
     }
     
@@ -320,8 +320,8 @@
     }
     
     .appearance-card.is-active {
-        border-color: var(--accent);
-        background: rgba(255, 77, 79, 0.04);
+        border-color: var(--primary);
+        background: rgba(10, 91, 255, 0.04);
     }
     
     .appearance-radio {
@@ -338,7 +338,7 @@
     }
     
     .appearance-card.is-active .appearance-radio {
-        border-color: var(--accent);
+        border-color: var(--primary);
     }
     
     .appearance-card.is-active .appearance-radio::after {
@@ -346,7 +346,7 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: var(--accent);
+        background: var(--primary);
     }
     
     .appearance-info h4 {
@@ -389,8 +389,8 @@
     }
     
     .checkbox-card.is-checked {
-        border-color: var(--accent);
-        background: rgba(255, 77, 79, 0.02);
+        border-color: var(--primary);
+        background: rgba(10, 91, 255, 0.02);
     }
     
     .checkbox-icon {
@@ -408,8 +408,8 @@
     }
     
     .checkbox-card.is-checked .checkbox-icon {
-        background: var(--accent);
-        border-color: var(--accent);
+        background: var(--primary);
+        border-color: var(--primary);
     }
     
     .checkbox-text {
@@ -421,7 +421,7 @@
     /* Submit actions */
     .calc-submit-btn {
         width: 100%;
-        background: var(--accent);
+        background: var(--primary);
         color: #FFFFFF;
         font-size: 14px;
         font-weight: 700;
@@ -439,8 +439,8 @@
     }
     
     .calc-submit-btn:hover {
-        background: #e04345;
-        box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
+        background: var(--primary-hover);
+        box-shadow: 0 4px 12px rgba(10, 91, 255, 0.2);
     }
     
     /* Result Block styling */
@@ -466,7 +466,7 @@
     .result-price-range {
         font-size: 32px;
         font-weight: 800;
-        color: var(--accent);
+        color: var(--primary);
         margin-bottom: 12px;
     }
     
@@ -503,7 +503,7 @@
     .bottom-trade-icon {
         width: 40px;
         height: 40px;
-        background: var(--accent);
+        background: var(--primary);
         color: #FFFFFF;
         border-radius: 8px;
         display: flex;
@@ -551,7 +551,7 @@
     }
     
     .bottom-btn-solid {
-        background: var(--accent);
+        background: var(--primary);
         color: #FFFFFF;
         padding: 10px 18px;
         border-radius: 8px;
@@ -563,7 +563,7 @@
     }
     
     .bottom-btn-solid:hover {
-        background: #e04345;
+        background: var(--primary-hover);
     }
     
     /* Mock overlay modal for Zalo */
@@ -682,7 +682,7 @@
     .step-num {
         font-size: 24px;
         font-weight: 800;
-        color: var(--accent);
+        color: var(--primary);
         margin-bottom: 12px;
         display: block;
     }
