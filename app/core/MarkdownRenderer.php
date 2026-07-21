@@ -22,24 +22,19 @@ class MarkdownRenderer
         $markdown = str_replace("\r\n", "\n", $markdown);
 
         // ── Step 1: Tokenize code fences TRƯỚC khi split ──────────────────
-        // Hỗ trợ code ở đầu/cuối doc, có/không dòng trống xung quanh.
-        // Closing ``` phải nằm trên dòng riêng (^```$).
-        // Placeholder đủ unique, không xung đột với nội dung người dùng.
+        // Placeholder dùng random bytes để không xung đột với nội dung người dùng.
+        // Bọc trong \n\n để preg_split luôn tạo block riêng biệt.
         $markdown = preg_replace_callback(
             '/^```([^\n]*)?\n(.*?)^```[ \t]*$/ms',
             function (array $matches): string {
-                $lang = preg_replace('/[^a-z0-9_+\-]/i', '', trim($matches[1]));
-                $code = $matches[2];
-                // Xoá trailing newline của code body nếu có
-                $code = rtrim($code, "\n");
-                $idx  = count($this->codeBlocks);
-                $id   = "\x02CODEBLOCK_{$idx}\x03";
-                $this->codeBlocks[$id] = [
+                $lang  = preg_replace('/[^a-z0-9_+\-]/i', '', trim($matches[1]));
+                $code  = rtrim($matches[2], "\n");
+                $token = '__TECHPILOT_CODE_' . bin2hex(random_bytes(8)) . '__';
+                $this->codeBlocks[$token] = [
                     'lang' => $lang,
                     'code' => $code,
                 ];
-                // Bọc placeholder trong \n\n để preg_split tạo block riêng
-                return "\n\n{$id}\n\n";
+                return "\n\n{$token}\n\n";
             },
             $markdown
         );
@@ -79,24 +74,22 @@ class MarkdownRenderer
         }
 
         // 1.5. Fenced Code Block placeholder
-        if (preg_match('/^\x02CODEBLOCK_\d+\x03$/', $block)) {
-            $id = $block;
-            if (isset($this->codeBlocks[$id])) {
-                $lang         = $this->codeBlocks[$id]['lang'];
-                $code         = $this->codeBlocks[$id]['code'];
-                $escapedCode  = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                $classAttr    = $lang !== ''
-                    ? ' class="language-' . htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') . '"'
-                    : '';
-                $html = '<div class="news-code-block"><pre><code' . $classAttr . '>'
-                    . $escapedCode
-                    . '</code></pre></div>';
-                $this->blocks[] = [
-                    'type' => 'code',
-                    'html' => $html,
-                ];
-                return $html;
-            }
+        // Token dạng __TECHPILOT_CODE_<hex>__ hoặc legacy \x02CODEBLOCK_N\x03
+        if (isset($this->codeBlocks[$block])) {
+            $lang         = $this->codeBlocks[$block]['lang'];
+            $code         = $this->codeBlocks[$block]['code'];
+            $escapedCode  = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $classAttr    = $lang !== ''
+                ? ' class="language-' . htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') . '"'
+                : '';
+            $html = '<div class="news-code-block"><pre><code' . $classAttr . '>'
+                . $escapedCode
+                . '</code></pre></div>';
+            $this->blocks[] = [
+                'type' => 'code',
+                'html' => $html,
+            ];
+            return $html;
         }
 
         // 2. Callout (:::info ... :::)
@@ -206,10 +199,9 @@ class MarkdownRenderer
                 . ' width="560" height="315"'
                 . ' src="https://www.youtube-nocookie.com/embed/' . $escapedId . '"'
                 . ' title="Video YouTube: ' . $escapedId . '"'
-                . ' frameborder="0"'
                 . ' loading="lazy"'
                 . ' referrerpolicy="strict-origin-when-cross-origin"'
-                . ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"'
+                . ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
                 . ' allowfullscreen'
                 . '></iframe>'
                 . '</div>';
@@ -239,18 +231,22 @@ class MarkdownRenderer
     {
         $block = trim($block);
 
-        // Cú pháp @[youtube](VIDEO_ID)
+        // Cú pháp @[youtube](VIDEO_ID) – yêu cầu đúng 11 ký tự
         if (preg_match('/^@\[youtube\]\(([a-zA-Z0-9_\-]{11})\)$/i', $block, $m)) {
             return $m[1];
         }
 
-        // URL YouTube đứng riêng
+        // URL YouTube đứng riêng – extract video ID (đúng 11 ký tự)
+        // Hỗ trợ: watch?v=, embed/, youtu.be/, v/ – playlist và timestamp OK
         if (preg_match(
-            '/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_\-]{11})(?:[&?#\s].*)?$/i',
+            '/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_\-]{11})(?:[&?#\s].*)?\/?\ *$/i',
             $block,
             $m
         )) {
-            return $m[1];
+            // Phải đúng 11 ký tự
+            if (strlen($m[1]) === 11) {
+                return $m[1];
+            }
         }
 
         return null;

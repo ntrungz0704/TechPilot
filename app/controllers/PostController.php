@@ -33,9 +33,9 @@ class PostController extends Controller
             if ($featured) {
                 $excludeFeaturedId = $featured['id'];
                 $usedHeroIds[] = $featured['id'];
-                // Nếu có featured, lấy 2 bài popular hero grid
-                $allPop = $this->postModel->getPopularRecent(4);
-                foreach ($allPop as $p) {
+                // Lấy hero popular, loại featured ID ngay tại SQL
+                $heroPool = $this->postModel->getPopularRecent(4, 30, $usedHeroIds);
+                foreach ($heroPool as $p) {
                     if (!in_array($p['id'], $usedHeroIds)) {
                         $heroPopular[] = $p;
                         $usedHeroIds[] = $p['id'];
@@ -49,14 +49,9 @@ class PostController extends Controller
         $total = $this->postModel->countAll($type, $category, $tag, $q, $excludeFeaturedId);
         $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
 
-        // Lấy bài phổ biến gần đây cho sidebar, lấy dư để trừ trùng lặp
-        $popular = $this->postModel->getPopularRecent(10);
-        $filteredPopular = [];
-        foreach ($popular as $p) {
-            if (in_array($p['id'], $usedHeroIds)) continue;
-            $filteredPopular[] = $p;
-            if (count($filteredPopular) == 4) break;
-        }
+        // Sidebar: lấy popular gần đây, loại trừ tất cả ID đã dùng ở hero
+        $popular = $this->postModel->getPopularRecent(8, 30, $usedHeroIds);
+        $filteredPopular = array_slice($popular, 0, 4); // tối đa 4 cho sidebar
 
         require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
         $commerceService = new NewsCommerceService();
