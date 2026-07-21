@@ -266,13 +266,18 @@ CREATE TABLE IF NOT EXISTS posts (
     summary VARCHAR(500) DEFAULT NULL,
     content TEXT DEFAULT NULL,
     image VARCHAR(255) DEFAULT NULL,
+    category_slug VARCHAR(60) NOT NULL DEFAULT 'cong-nghe',
+    post_type ENUM('news', 'review', 'guide', 'comparison', 'howto') NOT NULL DEFAULT 'news',
+    is_featured TINYINT(1) NOT NULL DEFAULT 0,
+    reading_minutes SMALLINT UNSIGNED DEFAULT NULL,
     views INT UNSIGNED NOT NULL DEFAULT 0,
     status ENUM('draft', 'published', 'hidden') NOT NULL DEFAULT 'published',
     published_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_posts_author FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE SET NULL,
-    INDEX idx_posts_status_time (status, published_at, created_at)
+    INDEX idx_posts_status_time (status, published_at, created_at),
+    INDEX idx_posts_editorial (status, category_slug, post_type, is_featured, published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
