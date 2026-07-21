@@ -336,11 +336,11 @@ class Post
         return $post ?: null;
     }
 
-    /** Tăng lượt xem bài viết */
+    /** Tăng lượt xem bài viết (bảo toàn updated_at không bị tự đổi theo views) */
     public function incrementViews(int $id): void
     {
         if ($this->db === null) return;
-        $stmt = $this->db->prepare('UPDATE posts SET views = views + 1 WHERE id = :id');
+        $stmt = $this->db->prepare('UPDATE posts SET views = views + 1, updated_at = updated_at WHERE id = :id');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
     }
@@ -368,6 +368,26 @@ class Post
             $text = 'bai-viet-' . time();
         }
         return $text;
+    }
+
+    /** Helper static: Xây dựng Author Schema cho JSON-LD dựa trên contract has_real_author */
+    public static function buildAuthorSchema(array $post): array
+    {
+        $hasRealAuthor = !empty($post['has_real_author']);
+        $authorName    = !empty($post['author_name']) ? trim((string)$post['author_name']) : 'Đội ngũ TechPilot';
+
+        if ($hasRealAuthor) {
+            return [
+                '@type' => 'Person',
+                'name'  => $authorName,
+            ];
+        }
+
+        return [
+            '@type' => 'Organization',
+            'name'  => 'Đội ngũ TechPilot',
+            'url'   => absoluteUrl(''),
+        ];
     }
 
     /** Helper: Check unique slug */

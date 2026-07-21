@@ -17,8 +17,8 @@ $displayAuthor = !empty($post['author_name']) ? $post['author_name'] : 'Đội n
         <strong class="news-author-name"><?= e($displayAuthor) ?></strong>
         <p class="news-author-note">
             <?= $hasRealAuthor
-                ? 'Bài viết được tổng hợp và trình bày bởi tác giả biên tập TechPilot.'
-                : 'Bài viết được tổng hợp và biên tập bởi Đội ngũ tin tức TechPilot.'
+                ? 'Bài viết bởi ' . e($displayAuthor) . '.'
+                : 'Nội dung được thực hiện bởi Đội ngũ TechPilot.'
             ?>
         </p>
     </div>

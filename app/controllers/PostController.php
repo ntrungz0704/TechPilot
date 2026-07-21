@@ -165,31 +165,15 @@ class PostController extends Controller
             ? $this->makeAbsoluteImageUrl(postImageUrl($post['image']))
             : absoluteUrl('assets/images/logo.png');
 
-        // Phân biệt Author Person vs Organization dựa trên semantic flag has_real_author
-        $hasRealAuthor = !empty($post['has_real_author']);
-        if ($hasRealAuthor) {
-            $authorSchema = [
-                '@type' => 'Person',
-                'name'  => $post['author_name'],
-            ];
-        } else {
-            $authorSchema = [
-                '@type' => 'Organization',
-                'name'  => 'Đội ngũ TechPilot',
-                'url'   => absoluteUrl(''),
-            ];
-        }
+        // Phân biệt Author Person vs Organization dựa trên helper production Post::buildAuthorSchema
+        $authorSchema = Post::buildAuthorSchema($post);
 
         $publishedTime = strtotime($post['published_at'] ?? $post['created_at'] ?? 'now');
         $publishedAt   = date('c', $publishedTime);
 
-        // Hiển thị updated_at khi có giá trị hợp lệ và khác biệt so với published_at (> 60s)
-        $hasValidUpdatedAt = !empty($post['updated_at'])
-            && (strtotime($post['updated_at']) > ($publishedTime + 60));
-
-        $modifiedAt = $hasValidUpdatedAt
-            ? date('c', strtotime($post['updated_at']))
-            : $publishedAt;
+        // Phạm vi không migration: dateModified dùng datePublished và tạm ẩn badge Cập nhật
+        $hasValidUpdatedAt = false;
+        $modifiedAt        = $publishedAt;
 
         $description = !empty($post['summary'])
             ? $post['summary']
@@ -291,7 +275,7 @@ class PostController extends Controller
             'midCtaConfig'       => $commerceConfig['mid_cta'] ?? null,
             'endCtaConfig'       => $commerceConfig['end_cta'] ?? null,
             'commerceContext'    => $commerceContext,
-            'pageStyles'         => ['assets/css/news.css?v=2.3'],
+            'pageStyles'         => ['assets/css/news.css?v=2.4'],
             'pageScripts'        => ['assets/js/news.js?v=2.3'],
         ]);
     }
