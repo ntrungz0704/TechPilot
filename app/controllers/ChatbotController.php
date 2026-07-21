@@ -12,7 +12,7 @@ class ChatbotController extends Controller
     }
 
     /**
-     * API: Trả về danh sách tất cả Laptop hoạt động để hiển thị trong các dropdown chọn so sánh
+     * API: Trả về danh sách tất cả sản phẩm hoạt động để hiển thị trong các dropdown/tìm kiếm so sánh
      */
     public function products(): void
     {
@@ -23,11 +23,11 @@ class ChatbotController extends Controller
         }
 
         try {
-            // Lấy tất cả sản phẩm thuộc danh mục Laptop Gaming (1) và Laptop Văn Phòng (2)
+            // Lấy tất cả sản phẩm đang hoạt động để phục vụ so sánh & tìm kiếm nhanh
             $stmt = $this->db->prepare(
                 "SELECT id, name, price, image, specs 
                  FROM products 
-                 WHERE category_id IN (1, 2) AND status = 'active'
+                 WHERE status = 'active'
                  ORDER BY name ASC"
             );
             $stmt->execute();
@@ -428,11 +428,17 @@ class ChatbotController extends Controller
 
             // Xác định nhãn loại sản phẩm
             $productTypeLabel = 'sản phẩm';
-            if (in_array(3, $categories)) $productTypeLabel = 'cấu hình PC / Máy tính bộ';
-            elseif (in_array(5, $categories)) $productTypeLabel = 'mẫu Màn hình (LCD)';
-            elseif (in_array(7, $categories)) $productTypeLabel = 'món Phụ kiện / Gaming Gear';
-            elseif (in_array(4, $categories)) $productTypeLabel = 'món Linh kiện PC';
-            elseif (in_array(1, $categories)) $productTypeLabel = 'mẫu Laptop';
+            if (array_intersect([1, 2], $categories)) {
+                $productTypeLabel = 'mẫu Laptop';
+            } elseif (array_intersect([3, 6], $categories)) {
+                $productTypeLabel = 'cấu hình PC / Máy tính bộ';
+            } elseif (array_intersect([5], $categories)) {
+                $productTypeLabel = 'mẫu Màn hình (LCD)';
+            } elseif (array_intersect([7, 8], $categories)) {
+                $productTypeLabel = 'món Phụ kiện / Gaming Gear';
+            } elseif (array_intersect([4, 10, 11, 12, 13, 14, 15, 16, 17, 18], $categories)) {
+                $productTypeLabel = 'món Linh kiện PC';
+            }
 
             // Chuẩn bị tin nhắn phản hồi của AI
             $aiMessage = "🤖 **TechPilot AI đề xuất cho bạn:**\n\n";
@@ -452,6 +458,7 @@ class ChatbotController extends Controller
 
             echo json_encode([
                 'success' => true,
+                'type' => 'recommendations',
                 'ai_message' => $aiMessage,
                 'recommendations' => $recommendations
             ]);
@@ -468,7 +475,7 @@ class ChatbotController extends Controller
     {
         $q = strtolower($this->removeVietnameseAccents($q));
 
-        // Kiểm tra xem người dùng có đang hỏi tìm máy theo mức giá cụ thể không (Ví dụ: "có máy 3 triệu không")
+        // 1. Kiểm tra xem người dùng có đang hỏi tìm máy theo mức giá cụ thể không (Ví dụ: "có máy 3 triệu không")
         $targetPrice = $this->extractTargetPrice($q);
         if ($targetPrice !== null) {
             $categories = $this->detectCategoryFilter($q);
@@ -527,11 +534,17 @@ class ChatbotController extends Controller
 
                 $productTypeLabel = 'sản phẩm';
                 if (!empty($categories)) {
-                    if (in_array(3, $categories)) $productTypeLabel = 'mẫu PC / Máy tính bộ';
-                    elseif (in_array(5, $categories)) $productTypeLabel = 'mẫu Màn hình (LCD)';
-                    elseif (in_array(7, $categories)) $productTypeLabel = 'món Phụ kiện / Gaming Gear';
-                    elseif (in_array(4, $categories)) $productTypeLabel = 'món Linh kiện PC';
-                    elseif (in_array(1, $categories)) $productTypeLabel = 'mẫu Laptop';
+                    if (array_intersect([1, 2], $categories)) {
+                        $productTypeLabel = 'mẫu Laptop';
+                    } elseif (array_intersect([3, 6], $categories)) {
+                        $productTypeLabel = 'mẫu PC / Máy tính bộ';
+                    } elseif (array_intersect([5], $categories)) {
+                        $productTypeLabel = 'mẫu Màn hình (LCD)';
+                    } elseif (array_intersect([7, 8], $categories)) {
+                        $productTypeLabel = 'món Phụ kiện / Gaming Gear';
+                    } else {
+                        $productTypeLabel = 'món Linh kiện PC';
+                    }
                 }
 
                 $aiMessage = "🤖 **Dạ có!** Dưới đây là danh sách 5 " . $productTypeLabel . " có mức giá gần với **" . number_format($targetPrice, 0, ',', '.') . "đ** nhất hiện đang được bán tại cửa hàng TechPilot:";
@@ -551,7 +564,184 @@ class ChatbotController extends Controller
             }
         }
 
-        // 1. Hỏi về RAM 8GB vs 16GB
+        // 2. Kiểm tra xem người dùng có đang hỏi tìm sản phẩm giá rẻ / tiết kiệm không
+        $cheapKeywords = ['re', 'gia re', 'thap', 'tiet kiem', 'ngan sach thap', 're nhat', 'binh dan', 'gia tot'];
+        $isCheapQuery = false;
+        foreach ($cheapKeywords as $kw) {
+            if (strpos($q, $kw) !== false) {
+                $isCheapQuery = true;
+                break;
+            }
+        }
+
+        if ($isCheapQuery) {
+            $categories = $this->detectCategoryFilter($q);
+
+            $sql = "SELECT p.*, b.name as brand_name, c.name as category_name 
+                    FROM products p
+                    LEFT JOIN brands b ON p.brand_id = b.id
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    WHERE p.status = 'active'";
+
+            $params = [];
+            if (!empty($categories)) {
+                $placeholders = implode(',', array_fill(0, count($categories), '?'));
+                $sql .= " AND p.category_id IN ($placeholders)";
+                $params = $categories;
+            }
+
+            $sql .= " ORDER BY p.price ASC LIMIT 5";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($products)) {
+                $recs = [];
+                foreach ($products as $p) {
+                    $specs = json_decode($p['specs'] ?? '', true) ?? [];
+
+                    $recs[] = [
+                        'id' => $p['id'],
+                        'name' => $p['name'],
+                        'price' => (float)$p['price'],
+                        'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
+                        'image' => $p['image'],
+                        'slug' => $p['slug'],
+                        'score' => 95,
+                        'specs' => [
+                            'CPU' => $specs['CPU'] ?? ($specs['cpu'] ?? 'N/A'),
+                            'RAM' => $specs['RAM'] ?? ($specs['ram'] ?? 'N/A'),
+                            'SSD' => $specs['SSD'] ?? ($specs['ssd'] ?? ($specs['Ổ cứng'] ?? ($specs['o cung'] ?? 'N/A'))),
+                            'VGA' => $specs['VGA'] ?? ($specs['vga'] ?? 'N/A')
+                        ],
+                        'reasons' => [
+                            "Mức giá siêu hời: " . number_format($p['price'], 0, ',', '.') . "đ",
+                            "Sản phẩm bán chạy trong phân khúc giá rẻ.",
+                            "Bảo hành chính hãng TechPilot."
+                        ]
+                    ];
+                }
+
+                $catLabel = 'sản phẩm';
+                if (!empty($categories)) {
+                    if (array_intersect([1, 2], $categories)) {
+                        $catLabel = 'mẫu Laptop';
+                    } elseif (array_intersect([3, 6], $categories)) {
+                        $catLabel = 'bộ PC';
+                    } elseif (array_intersect([5], $categories)) {
+                        $catLabel = 'mẫu Màn hình (LCD)';
+                    } elseif (array_intersect([7, 8], $categories)) {
+                        $catLabel = 'món Phụ kiện / Gear';
+                    } else {
+                        $catLabel = 'món Linh kiện PC';
+                    }
+                }
+
+                $aiMessage = "🤖 **Dạ, đây là các " . $catLabel . " giá rẻ, tiết kiệm nhất hiện có tại TechPilot:**";
+
+                return [
+                    'success' => true,
+                    'type' => 'recommendations',
+                    'ai_message' => $aiMessage,
+                    'recommendations' => $recs
+                ];
+            }
+        }
+
+        // 3. Các câu hỏi giao tiếp cơ bản (Greetings & FAQs)
+        
+        // Chào hỏi
+        if ($this->hasKeywords($q, ['hello', 'chao', 'hi', 'xin chao', 'halo', 'helo', 'chao ban', 'chao shop'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Xin chào! 👋 Tôi là trợ lý ảo TechPilot AI.**\n\nTôi ở đây để hỗ trợ bạn chọn máy tính, so sánh cấu hình và giải đáp mọi thắc mắc. Bạn có thể sử dụng các nút bấm nhanh bên dưới hoặc gõ câu hỏi trực tiếp nhé!"
+            ];
+        }
+
+        // Cửa hàng / Địa chỉ
+        if ($this->hasKeywords($q, ['dia chi', 'o dau', 'showroom', 'cua hang', 'diem ban', 'xem may o dau', 'toi dau mua', 'chi nhanh'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Địa chỉ cửa hàng TechPilot:**\n\n📍 **Trụ sở chính**: 123 Đường Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh.\n📞 **Hotline**: 1900.xxxx (8:00 - 21:30 hàng ngày).\n🚗 Có chỗ đỗ xe ô tô miễn phí và phòng trải nghiệm máy tính hiện đại bậc nhất. Rất hân hạnh được đón tiếp bạn!"
+            ];
+        }
+
+        // Liên hệ / SĐT
+        if ($this->hasKeywords($q, ['sdt', 'so dien thoai', 'hotline', 'lien he', 'facebook', 'zalo', 'lh', 'fanpage', 'email'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Thông tin liên hệ của TechPilot:**\n\n• **Hotline hỗ trợ**: 1900.xxxx\n• **Hotline kỹ thuật**: 0909.xxx.xxx\n• **Zalo OA**: TechPilot Việt Nam\n• **Fanpage**: facebook.com/techpilot.store\n• **Email**: contact@techpilot.vn\n\n👉 Bạn cần hỗ trợ gấp có thể gọi hotline để được phục vụ ngay nhé!"
+            ];
+        }
+
+        // Giờ làm việc
+        if ($this->hasKeywords($q, ['mo cua', 'gio lam viec', 'dong cua', 'thoi gian lam viec', 'may gio'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Thời gian làm việc của TechPilot:**\n\n⏰ **Giờ mở cửa**: 08:00 - 21:30 hàng ngày (kể cả Thứ Bảy, Chủ Nhật và các ngày lễ).\n👉 Phòng kỹ thuật và bảo hành làm việc từ 08:30 - 18:00 (Thứ Hai đến Thứ Bảy)."
+            ];
+        }
+
+        // Giao hàng / Ship
+        if ($this->hasKeywords($q, ['ship', 'giao hang', 'van chuyen', 'cod', 'phi ship', 'co ship khong'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Chính sách giao hàng tại TechPilot:**\n\n🚀 **Nội thành TP.HCM**: Giao hỏa tốc trong vòng 2 giờ đối với các đơn hàng linh kiện, PC, Laptop có sẵn.\n🚚 **Toàn quốc**: Giao hàng tận nơi qua GHTK, Viettel Post từ 2 - 4 ngày làm việc.\n💰 **Phí ship**: Miễn phí vận chuyển toàn quốc cho đơn hàng từ 5.000.000đ trở lên. Hỗ trợ đồng kiểm trước khi nhận hàng và thanh toán (COD)."
+            ];
+        }
+
+        // Thanh toán / Trả góp
+        if ($this->hasKeywords($q, ['thanh toan', 'tra gop', 'chuyen khoan', 'tien mat', 'quet the', 'atm', 'visa'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Các phương thức thanh toán hỗ trợ tại TechPilot:**\n\n1. **Tiền mặt** trực tiếp tại cửa hàng hoặc thanh toán COD khi nhận hàng.\n2. **Chuyển khoản ngân hàng** nhanh qua mã QR.\n3. **Quẹt thẻ**: Hỗ trợ thẻ ATM nội địa, Visa, Mastercard, JCB.\n4. **Trả góp 0%** lãi suất qua thẻ tín dụng (hỗ trợ hơn 25 ngân hàng liên kết) hoặc trả góp qua công ty tài chính (HD Saison, MCredit) chỉ cần CCCD."
+            ];
+        }
+
+        // Bảo hành / Đổi trả
+        if ($this->hasKeywords($q, ['bao hanh', 'doi tra', 'loi thi sao', 'hu thi sao', 'loi san pham'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Chính sách bảo hành và đổi trả tại TechPilot:**\n\n• **Bảo hành chính hãng**: Tất cả sản phẩm Laptop, PC, Linh kiện đều được bảo hành chính hãng từ 12 - 36 tháng theo tiêu chuẩn nhà sản xuất.\n• **Đổi trả 1-đổi-1**: Đổi mới miễn phí trong vòng 7 ngày đầu nếu có lỗi phần cứng từ nhà sản xuất.\n• **Hỗ trợ trọn đời**: Miễn phí cài đặt phần mềm cơ bản, vệ sinh máy định kỳ trong 1 năm đầu mua sản phẩm."
+            ];
+        }
+
+        // Nguồn gốc sản phẩm
+        if ($this->hasKeywords($q, ['chinh hang', 'nguon goc', 'hang fake', 'nhai', 'moi hay cu', 'new', 'cu', 'second hand', 'xach tay'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Cam kết nguồn gốc sản phẩm tại TechPilot:**\n\n• **100% Chính hãng**: TechPilot cam kết chỉ phân phối hàng chính hãng, đầy đủ hóa đơn VAT, chứng từ CO/CQ từ nhà sản xuất.\n• **Tình trạng sản phẩm**: Tất cả sản phẩm bán ra đều là hàng mới 100% nguyên seal box (trừ trường hợp các dòng máy demo trưng bày được thanh lý sẽ có ghi chú rõ ràng).\n❌ **Nói không với hàng dựng, hàng giả, hàng kém chất lượng.**"
+            ];
+        }
+
+        // Khuyến mãi
+        if ($this->hasKeywords($q, ['khuyen mai', 'giam gia', 'uu dai', 'voucher', 'quatang', 'qua tang'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Chương trình khuyến mãi hiện tại của TechPilot:**\n\n🎁 **Ưu đãi mua PC/Laptop**:\n• Tặng balo thời trang + chuột gaming cao cấp.\n• Voucher giảm giá 10% khi mua kèm phụ kiện (chuột, bàn phím, màn hình).\n• Tặng gói vệ sinh máy miễn phí trọn đời.\n🎓 **Đặc quyền sinh viên**: Giảm ngay thêm 300.000đ - 500.000đ (áp dụng kèm thẻ sinh viên còn hiệu lực)."
+            ];
+        }
+
+        // Nhóm hàng kinh doanh
+        if ($this->hasKeywords($q, ['ban nhung gi', 'ban gi', 'kinh doanh gi', 'co san pham nao', 'co ban nhung gi'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Các mặt hàng kinh doanh tại TechPilot:**\n\n💻 **Laptop**: Laptop Gaming, Laptop Văn phòng, Macbook.\n🖥️ **PC**: PC Build sẵn chuyên Gaming, Đồ họa, Máy tính đồng bộ văn phòng.\n⚙️ **Linh kiện PC**: CPU, Mainboard, RAM, VGA, SSD/HDD, Nguồn (PSU), Case, Tản nhiệt.\n📺 **Màn hình**: Màn hình gaming tần số quét cao, màn hình đồ họa màu chuẩn, màn hình văn phòng.\n🖱️ **Gaming Gear & Phụ kiện**: Bàn phím cơ, chuột không dây, tai nghe, loa, bàn ghế gaming.\n\n👉 Bạn cần tư vấn nhóm hàng nào cụ thể không ạ?"
+            ];
+        }
+
+        // 4. Hỏi về RAM 8GB vs 16GB
         if (strpos($q, 'ram') !== false && (strpos($q, '8g') !== false && strpos($q, '16g') !== false || strpos($q, 'khac gi') !== false || strpos($q, 'so sanh') !== false)) {
             return [
                 'success' => true,
@@ -570,7 +760,7 @@ class ChatbotController extends Controller
             ];
         }
 
-        // 2. CPU i3 học lập trình được không?
+        // 5. CPU i3 học lập trình được không?
         if ((strpos($q, 'i3') !== false || strpos($q, 'core i3') !== false) && (strpos($q, 'lap trinh') !== false || strpos($q, 'code') !== false || strpos($q, 'hoc') !== false)) {
             return [
                 'success' => true,
@@ -588,7 +778,7 @@ class ChatbotController extends Controller
             ];
         }
 
-        // 3. i3 vs i7 khác nhau thế nào
+        // 6. i3 vs i7 khác nhau thế nào
         if (strpos($q, 'i3') !== false && strpos($q, 'i7') !== false && (strpos($q, 'so sanh') !== false || strpos($q, 'khac') !== false)) {
             return [
                 'success' => true,
@@ -605,7 +795,7 @@ class ChatbotController extends Controller
             ];
         }
 
-        // 4. Máy này chơi Valorant được không? / Game esport
+        // 7. Máy này chơi Valorant được không? / Game esport
         if (strpos($q, 'valorant') !== false || strpos($q, 'lien minh') !== false || strpos($q, 'lol') !== false || strpos($q, 'csgo') !== false || strpos($q, 'fifa') !== false || strpos($q, 'fo4') !== false) {
             return [
                 'success' => true,
@@ -621,12 +811,12 @@ class ChatbotController extends Controller
             ];
         }
 
-        // 5. Laptop dùng được bao lâu? Tuổi thọ máy
+        // 8. Laptop dùng được bao lâu? Tuổi thọ máy
         if (strpos($q, 'dung duoc bao lau') !== false || strpos($q, 'ben') !== false || strpos($q, 'tuoi tho') !== false) {
             return [
                 'success' => true,
                 'type' => 'text',
-                'message' => "🤖 **Tuổi thọ trung bình của laptop:**\n\n" .
+                'message' => "🤖 **Tuọc thọ trung bình của laptop:**\n\n" .
                              "• **Từ 4 - 6 năm**:\n" .
                              "  Nếu bạn chỉ sử dụng cho các công việc học tập, soạn thảo văn bản, và văn phòng cơ bản. Giữ máy sạch sẽ và vệ sinh tra keo tản nhiệt định kỳ mỗi năm một lần.\n\n" .
                              "• **Từ 3 năm**:\n" .
@@ -635,16 +825,7 @@ class ChatbotController extends Controller
             ];
         }
 
-        // 6. Chào hỏi
-        if (strpos($q, 'hello') !== false || strpos($q, 'chao') !== false || strpos($q, 'hi') !== false || strpos($q, 'xin chao') !== false) {
-            return [
-                'success' => true,
-                'type' => 'text',
-                'message' => "🤖 **Xin chào! 👋 Tôi là trợ lý ảo TechPilot AI.**\n\nTôi ở đây để hỗ trợ bạn chọn máy tính, so sánh cấu hình và giải đáp mọi thắc mắc. Bạn có thể sử dụng các nút bấm nhanh bên dưới hoặc gõ câu hỏi trực tiếp nhé!"
-            ];
-        }
-
-        // 7. Muốn mua laptop
+        // 9. Muốn mua laptop
         if (strpos($q, 'muon mua') !== false || strpos($q, 'tu van') !== false || strpos($q, 'laptop nao') !== false) {
             return [
                 'success' => true,
@@ -692,24 +873,55 @@ class ChatbotController extends Controller
     {
         $text = strtolower($this->removeVietnameseAccents($text));
         
-        // 1. PC build / Máy tính bộ / Case máy tính / Bộ máy tính
+        // 1. Linh kiện chi tiết PC
+        if (strpos($text, 'cpu') !== false || strpos($text, 'chip') !== false) {
+            return [10];
+        }
+        if (strpos($text, 'mainboard') !== false || strpos($text, 'bo mach') !== false || strpos($text, 'main') !== false) {
+            return [11];
+        }
+        if (strpos($text, 'ram') !== false) {
+            return [12];
+        }
+        if (strpos($text, 'vga') !== false || strpos($text, 'card do hoa') !== false || strpos($text, 'card roi') !== false || strpos($text, 'gpu') !== false) {
+            return [13];
+        }
+        if (strpos($text, 'ssd') !== false) {
+            return [14];
+        }
+        if (strpos($text, 'hdd') !== false) {
+            return [15];
+        }
+        if (strpos($text, 'o cung') !== false) {
+            return [14, 15];
+        }
+        if (strpos($text, 'nguon') !== false || strpos($text, 'psu') !== false) {
+            return [16];
+        }
+        if (strpos($text, 'case') !== false || strpos($text, 'vo may') !== false) {
+            return [17];
+        }
+        if (strpos($text, 'tan nhiet') !== false || strpos($text, 'quat chip') !== false || strpos($text, 'tan nuoc') !== false) {
+            return [18];
+        }
+
+        // 2. PC build / Máy tính bộ / Thùng máy / Cây PC
         if (strpos($text, 'pc') !== false 
             || strpos($text, 'may tinh bo') !== false 
             || strpos($text, 'de ban') !== false 
-            || strpos($text, 'case') !== false 
-            || strpos($text, 'cay pc') !== false 
+            || strpos($text, 'cay pc') !== false
             || strpos($text, 'thung may') !== false) {
             return [3, 6];
         }
         
-        // 2. Màn hình / LCD / Monitor
+        // 3. Màn hình / LCD / Monitor
         if (strpos($text, 'man hinh') !== false 
             || strpos($text, 'lcd') !== false 
             || strpos($text, 'monitor') !== false) {
             return [5];
         }
         
-        // 3. Accessories / Gaming Gear / Phụ kiện / Bàn phím / Chuột / Tai nghe / Gear / Loa
+        // 4. Accessories / Gaming Gear / Phụ kiện
         if (strpos($text, 'phu kien') !== false 
             || strpos($text, 'gear') !== false 
             || strpos($text, 'ban phim') !== false 
@@ -722,24 +934,17 @@ class ChatbotController extends Controller
             return [7, 8];
         }
         
-        // 4. Components / Linh kiện / CPU / GPU / VGA / RAM / SSD / Mainboard
-        if (strpos($text, 'linh kien') !== false 
-            || strpos($text, 'cpu') !== false 
-            || strpos($text, 'gpu') !== false 
-            || strpos($text, 'vga') !== false 
-            || strpos($text, 'mainboard') !== false 
-            || strpos($text, 'bo mach') !== false 
-            || strpos($text, 'ram') !== false 
-            || strpos($text, 'ssd') !== false 
-            || strpos($text, 'nguon may') !== false 
-            || strpos($text, 'o cung') !== false) {
-            return [4];
+        // 5. Linh kiện PC nói chung
+        if (strpos($text, 'linh kien') !== false) {
+            return [4, 10, 11, 12, 13, 14, 15, 16, 17, 18];
         }
         
-        // 5. Laptop / Máy tính xách tay
+        // 6. Laptop / Máy tính xách tay
         if (strpos($text, 'laptop') !== false 
             || strpos($text, 'xach tay') !== false 
-            || strpos($text, 'lap top') !== false) {
+            || strpos($text, 'lap top') !== false
+            || strpos($text, 'lapptop') !== false
+            || strpos($text, 'lapptopp') !== false) {
             return [1, 2];
         }
         
@@ -764,5 +969,18 @@ class ChatbotController extends Controller
             $str = preg_replace("/($uni)/iu", $nonUnicode, $str);
         }
         return $str;
+    }
+
+    /**
+     * Helper kiểm tra xem chuỗi có chứa từ khóa nào trong danh sách không
+     */
+    private function hasKeywords(string $text, array $keywords): bool
+    {
+        foreach ($keywords as $keyword) {
+            if (strpos($text, $keyword) !== false) {
+                return true;
+            }
+        }
+        return false;
     }
 }

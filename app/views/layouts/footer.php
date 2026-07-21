@@ -711,19 +711,142 @@
             gap: 12px;
             width: 100%;
         }
-        .tp-compare-selects {
+        .tp-compare-slots-wrapper {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
+            margin-bottom: 4px;
         }
-        .tp-compare-selects select {
+        .tp-compare-slot {
+            background: var(--surface-card, #fff);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 150px;
+            transition: all 0.2s ease;
+        }
+        .tp-compare-slot.drag-over {
+            border-color: var(--primary);
+            background: rgba(10, 91, 255, 0.08);
+            transform: scale(1.02);
+        }
+        .tp-compare-slot-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 10px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .tp-compare-slot-placeholder i {
+            font-size: 24px;
+            margin-bottom: 6px;
+            color: var(--primary);
+        }
+        .tp-compare-slot-selected {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
             width: 100%;
-            padding: 8px;
+            position: relative;
+        }
+        .tp-compare-slot-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 6px;
+            border-radius: 4px;
+        }
+        .tp-compare-slot-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: -webkit-box;
+            max-height: 32px;
+            overflow: hidden;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+        .tp-compare-slot-clear {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #EF4444;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            line-height: 18px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+        .tp-compare-search-box {
+            width: 100%;
+            margin-top: 8px;
+            position: relative;
+        }
+        .tp-compare-search-input {
+            width: 100%;
+            padding: 6px 8px;
             border-radius: 6px;
             border: 1px solid var(--border);
-            font-size: 11px;
+            font-size: 10px;
             background: var(--surface-card);
             color: var(--text-primary);
+        }
+        .tp-compare-suggestions {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 120px;
+            overflow-y: auto;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            z-index: 100;
+            margin-bottom: 4px;
+        }
+        .tp-compare-suggestion-item {
+            padding: 6px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+            text-align: left;
+        }
+        .tp-compare-suggestion-item:hover {
+            background: rgba(10, 91, 255, 0.08);
+            color: var(--primary);
+        }
+        .tp-chatbot-launcher.drag-active {
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 0 0 20px rgba(10, 91, 255, 0.6);
+            background: var(--primary-hover);
+        }
+        .tp-chatbot-window.drag-active {
+            border: 2px dashed var(--primary) !important;
+            box-shadow: 0 0 30px rgba(10, 91, 255, 0.4);
         }
         .tp-compare-btn {
             width: 100%;
@@ -848,7 +971,9 @@
             border-color: var(--primary);
             background: rgba(10, 91, 255, 0.1);
         }
-        .dark-mode .tp-compare-selects select {
+        .dark-mode .tp-compare-slot,
+        .dark-mode .tp-compare-search-input,
+        .dark-mode .tp-compare-suggestions {
             background: #1E293B;
             border-color: #334155;
             color: #F8FAFC;
@@ -920,6 +1045,117 @@
                 priority: ''
             }
         };
+
+        // Global Drag and Drop and Autocomplete Setup
+        document.addEventListener('dragstart', (e) => {
+            const card = e.target.closest('.product-card');
+            if (card) {
+                const id = card.querySelector('input[name="product_id"]')?.value || card.dataset.id;
+                const name = card.querySelector('.product-card__name')?.innerText.trim() || card.dataset.name;
+                const image = card.querySelector('.product-card__image')?.getAttribute('src') || card.dataset.image;
+                
+                const dragData = {
+                    id: id,
+                    name: name,
+                    image: image
+                };
+                
+                e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+                e.dataTransfer.effectAllowed = 'copy';
+                
+                const windowEl = document.getElementById('tpChatbotWindow');
+                const launcherEl = document.getElementById('tpChatbotLauncher');
+                if (windowEl) windowEl.classList.add('drag-active');
+                if (launcherEl) launcherEl.classList.add('drag-active');
+            }
+        });
+
+        document.addEventListener('dragend', () => {
+            const windowEl = document.getElementById('tpChatbotWindow');
+            const launcherEl = document.getElementById('tpChatbotLauncher');
+            if (windowEl) windowEl.classList.remove('drag-active');
+            if (launcherEl) launcherEl.classList.remove('drag-active');
+            
+            document.querySelectorAll('.tp-compare-slot').forEach(slot => {
+                slot.classList.remove('drag-over');
+            });
+        });
+
+        // MutationObserver to automatically make all product cards draggable
+        const cardObserver = new MutationObserver(() => {
+            document.querySelectorAll('.product-card:not([draggable])').forEach(card => {
+                card.setAttribute('draggable', 'true');
+            });
+        });
+        cardObserver.observe(document.body, { childList: true, subtree: true });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.product-card').forEach(card => {
+                card.setAttribute('draggable', 'true');
+            });
+            
+            // Set up launcher drop handler
+            const launcher = document.getElementById('tpChatbotLauncher');
+            if (launcher) {
+                launcher.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+                launcher.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    try {
+                        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                        if (data && data.id) {
+                            if (!chatbotOpen) {
+                                toggleChatbot();
+                            }
+                            startCompareFlow();
+                            setCompareSlot('left', data);
+                        }
+                    } catch(err) {}
+                });
+            }
+
+            // Set up window drop handler
+            const chatWindow = document.getElementById('tpChatbotWindow');
+            if (chatWindow) {
+                chatWindow.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+                chatWindow.addEventListener('drop', (e) => {
+                    const leftVal = document.getElementById('compare_left_val');
+                    const rightVal = document.getElementById('compare_right_val');
+                    if (leftVal || rightVal) { // Compare mode active
+                        if (!e.target.closest('.tp-compare-slot')) {
+                            e.preventDefault();
+                            try {
+                                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                                if (data && data.id) {
+                                    if (!leftVal.value) {
+                                        setCompareSlot('left', data);
+                                    } else if (!rightVal.value) {
+                                        setCompareSlot('right', data);
+                                    } else {
+                                        setCompareSlot('left', data);
+                                    }
+                                }
+                            } catch(err) {}
+                        }
+                    }
+                });
+            }
+        });
+
+        // Close search suggestions on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.tp-compare-search-box')) {
+                document.querySelectorAll('.tp-compare-suggestions').forEach(box => {
+                    box.innerHTML = '';
+                    box.style.display = 'none';
+                });
+            }
+        });
 
         // Toggle Chat Window
         function toggleChatbot() {
@@ -1222,39 +1458,185 @@
         // CHỨC NĂNG 2: AI SO SÁNH SẢN PHẨM
         // ==========================================
         function startCompareFlow() {
-            renderBotMessage("Vui lòng chọn 2 chiếc Laptop cần so sánh cấu hình:");
+            renderBotMessage("Vui lòng kéo thả 2 sản phẩm từ trang web vào đây, hoặc gõ tìm kiếm bên dưới để so sánh:");
 
             const msgBox = document.getElementById('tpChatbotMessages');
             const container = document.createElement('div');
             container.className = 'tp-compare-container';
 
-            // Tạo dropdown 1 & 2
-            let optionsHtml = '<option value="">-- Chọn sản phẩm --</option>';
-            chatbotProducts.forEach(p => {
-                optionsHtml += `<option value="${p.id}">${p.name} (${p.price_formatted})</option>`;
-            });
-
             container.innerHTML = `
-                <div class="tp-compare-selects">
-                    <select id="compare_left">${optionsHtml}</select>
-                    <select id="compare_right">${optionsHtml}</select>
+                <div class="tp-compare-slots-wrapper">
+                    <!-- Slot Left -->
+                    <div class="tp-compare-slot" id="compare_slot_left" data-side="left">
+                        <div class="tp-compare-slot-placeholder">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p style="margin: 0; padding: 0 4px;">Kéo thả SP 1 vào đây</p>
+                        </div>
+                        <div class="tp-compare-slot-selected" style="display:none;">
+                            <button type="button" class="tp-compare-slot-clear" onclick="clearCompareSlot('left')">&times;</button>
+                            <img class="tp-compare-slot-img" src="" alt="">
+                            <span class="tp-compare-slot-name">Tên sản phẩm</span>
+                        </div>
+                        <div class="tp-compare-search-box">
+                            <input type="text" class="tp-compare-search-input" id="search_left" placeholder="Hoặc gõ tìm kiếm..." oninput="handleCompareSearch(event, 'left')">
+                            <div class="tp-compare-suggestions" id="suggestions_left" style="display:none;"></div>
+                        </div>
+                        <input type="hidden" id="compare_left_val" value="">
+                    </div>
+
+                    <!-- Slot Right -->
+                    <div class="tp-compare-slot" id="compare_slot_right" data-side="right">
+                        <div class="tp-compare-slot-placeholder">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p style="margin: 0; padding: 0 4px;">Kéo thả SP 2 vào đây</p>
+                        </div>
+                        <div class="tp-compare-slot-selected" style="display:none;">
+                            <button type="button" class="tp-compare-slot-clear" onclick="clearCompareSlot('right')">&times;</button>
+                            <img class="tp-compare-slot-img" src="" alt="">
+                            <span class="tp-compare-slot-name">Tên sản phẩm</span>
+                        </div>
+                        <div class="tp-compare-search-box">
+                            <input type="text" class="tp-compare-search-input" id="search_right" placeholder="Hoặc gõ tìm kiếm..." oninput="handleCompareSearch(event, 'right')">
+                            <div class="tp-compare-suggestions" id="suggestions_right" style="display:none;"></div>
+                        </div>
+                        <input type="hidden" id="compare_right_val" value="">
+                    </div>
                 </div>
                 <button type="button" class="tp-compare-btn" onclick="submitCompareFlow()">So sánh cấu hình</button>
             `;
             msgBox.appendChild(container);
+
+            // Đăng ký sự kiện kéo thả cho các slot
+            container.querySelectorAll('.tp-compare-slot').forEach(slot => {
+                const side = slot.dataset.side;
+                
+                slot.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    slot.classList.add('drag-over');
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+                
+                slot.addEventListener('dragleave', () => {
+                    slot.classList.remove('drag-over');
+                });
+                
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    slot.classList.remove('drag-over');
+                    try {
+                        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                        if (data && data.id) {
+                            setCompareSlot(side, data);
+                        }
+                    } catch(err) {
+                        console.error("Drop error:", err);
+                    }
+                });
+            });
+
             scrollChatToBottom();
         }
 
+        // Autocomplete search handler
+        window.handleCompareSearch = function(event, side) {
+            const query = event.target.value.toLowerCase().trim();
+            const suggestionsBox = document.getElementById(`suggestions_${side}`);
+            
+            if (query.length < 2) {
+                suggestionsBox.innerHTML = '';
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+            
+            const matches = chatbotProducts.filter(p => p.name.toLowerCase().includes(query)).slice(0, 5);
+            suggestionsBox.innerHTML = '';
+            
+            if (matches.length === 0) {
+                const item = document.createElement('div');
+                item.style.padding = '8px';
+                item.style.fontSize = '10px';
+                item.style.color = 'var(--text-secondary)';
+                item.innerText = 'Không tìm thấy sản phẩm';
+                suggestionsBox.appendChild(item);
+                suggestionsBox.style.display = 'block';
+                return;
+            }
+            
+            matches.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'tp-compare-suggestion-item';
+                item.innerText = `${p.name} (${p.price_formatted})`;
+                item.addEventListener('click', () => {
+                    const pData = {
+                        id: p.id,
+                        name: p.name,
+                        image: p.image,
+                        price: p.price_formatted,
+                        slug: p.slug
+                    };
+                    setCompareSlot(side, pData);
+                    suggestionsBox.innerHTML = '';
+                    suggestionsBox.style.display = 'none';
+                    const searchInput = document.getElementById(`search_${side}`);
+                    if (searchInput) searchInput.value = '';
+                });
+                suggestionsBox.appendChild(item);
+            });
+            suggestionsBox.style.display = 'block';
+        }
+
+        // Set comparison product slot values
+        window.setCompareSlot = function(side, data) {
+            const slot = document.getElementById(`compare_slot_${side}`);
+            if (!slot) return;
+            
+            const placeholder = slot.querySelector('.tp-compare-slot-placeholder');
+            const selected = slot.querySelector('.tp-compare-slot-selected');
+            const imgEl = slot.querySelector('.tp-compare-slot-img');
+            const nameEl = slot.querySelector('.tp-compare-slot-name');
+            const inputHidden = document.getElementById(`compare_${side}_val`);
+            
+            inputHidden.value = data.id;
+            
+            let imgUrl = data.image;
+            if (imgUrl && !imgUrl.startsWith('http') && !imgUrl.startsWith('/') && !imgUrl.includes('public/')) {
+                imgUrl = `<?= url('public/uploads/products/') ?>` + imgUrl;
+            } else if (!imgUrl) {
+                imgUrl = `<?= url('public/assets/images/laptop-gaming.jpg') ?>`;
+            }
+            
+            imgEl.src = imgUrl;
+            nameEl.innerText = data.name;
+            
+            placeholder.style.display = 'none';
+            selected.style.display = 'flex';
+        }
+
+        // Clear comparison product slot values
+        window.clearCompareSlot = function(side) {
+            const slot = document.getElementById(`compare_slot_${side}`);
+            if (!slot) return;
+            
+            const placeholder = slot.querySelector('.tp-compare-slot-placeholder');
+            const selected = slot.querySelector('.tp-compare-slot-selected');
+            const inputHidden = document.getElementById(`compare_${side}_val`);
+            const searchInput = document.getElementById(`search_${side}`);
+            
+            inputHidden.value = '';
+            if (searchInput) searchInput.value = '';
+            placeholder.style.display = 'flex';
+            selected.style.display = 'none';
+        }
+
         function submitCompareFlow() {
-            const leftId = document.getElementById('compare_left').value;
-            const rightId = document.getElementById('compare_right').value;
+            const leftId = document.getElementById('compare_left_val').value;
+            const rightId = document.getElementById('compare_right_val').value;
 
             if (!leftId || !rightId) {
                 alert("Vui lòng chọn đầy đủ 2 sản phẩm!");
                 return;
             }
 
-            // Đóng băng nút so sánh
             const compareBtn = document.querySelector('.tp-compare-btn');
             if (compareBtn) compareBtn.disabled = true;
 
