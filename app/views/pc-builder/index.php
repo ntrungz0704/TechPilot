@@ -1,10 +1,15 @@
 <!-- CSS riêng cho trang Build PC nhằm đảm bảo giao diện lung linh, premium -->
 <style>
     .pc-builder-container {
-        max-width: 1200px;
+        max-width: 1440px;
         margin: 40px auto;
-        padding: 0 15px;
+        padding: 0 40px;
         font-family: 'Inter', sans-serif;
+    }
+    @media (max-width: 768px) {
+        .pc-builder-container {
+            padding: 0 20px;
+        }
     }
     .pc-builder-header {
         text-align: center;
@@ -793,7 +798,7 @@
                     const psuPlaceholder = document.getElementById('psu-analysis-placeholder');
                     const psuContent = document.getElementById('psu-analysis-content');
                     
-                    if (cpuId === 0) {
+                    if (cpuId === 0 && gpuId === 0) {
                         psuPlaceholder.style.display = 'block';
                         psuContent.style.display = 'none';
                     } else {

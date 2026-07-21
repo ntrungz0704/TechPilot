@@ -47,7 +47,7 @@ $products = $products ?? [];
                 <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
                 <div class="price-display">
                     <span>0đ</span>
-                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? formatPrice($maxPrice) : '50 triệu đ' ?></span>
+                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? number_format($maxPrice / 1000000, 0) . ' triệu đ' : '50 triệu đ' ?></span>
                 </div>
             </div>
         </div>
