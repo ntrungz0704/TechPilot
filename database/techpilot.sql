@@ -379,6 +379,8 @@ CREATE TABLE `posts` (
   `content` text DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `views` int(10) unsigned NOT NULL DEFAULT 0,
+  `category_slug` varchar(255) DEFAULT NULL,
+  `post_type` varchar(255) DEFAULT NULL,
   `status` enum('draft','published','hidden') NOT NULL DEFAULT 'published',
   `is_featured` tinyint(1) NOT NULL DEFAULT 0,
   `published_at` datetime DEFAULT NULL,
@@ -398,7 +400,7 @@ CREATE TABLE `posts` (
 
 LOCK TABLES `posts` WRITE;
 /*!40000 ALTER TABLE `posts` DISABLE KEYS */;
-INSERT INTO `posts` VALUES (1,NULL,'Đánh giá chi tiết Intel Core Ultra 9 285K: Bước tiến hay bước lùi?','danh-gia-chi-tiet-intel-core-ultra-9-285k','Intel Core Ultra 9 285K mang đến một kiến trúc hoàn toàn mới, loại bỏ siêu phân luồng (Hyper-Threading).','<p>Nội dung chi tiết đánh giá...</p>','tin-tuc-1.jpg',100,'published',0,'2026-07-21 11:00:01','2026-07-21 04:00:01','2026-07-21 04:00:01'),(2,NULL,'Hướng dẫn chọn mua SSD NVMe PCIe 4.0 tốt nhất năm 2026','huong-dan-chon-mua-ssd-nvme-pcie-4-0-tot-nhat','Năm 2026, SSD PCIe 4.0 đã trở thành tiêu chuẩn chung với mức giá cực kỳ dễ chịu.','<p>Nội dung chi tiết mua SSD...</p>','tin-tuc-2.jpg',100,'published',0,'2026-07-21 11:00:01','2026-07-21 04:00:01','2026-07-21 04:00:01'),(3,NULL,'NVIDIA RTX 50 Series chính thức lộ diện: Bước nhảy vọt về AI và Ray Tracing','nvidia-rtx-50-series-chinh-thuc-lo-dien','Thế hệ card đồ họa mới nhất của NVIDIA - RTX 50 Series sử dụng kiến trúc Blackwell.','<p>Nội dung chi tiết RTX 50...</p>','tin-tuc-3.jpg',100,'published',0,'2026-07-21 11:00:01','2026-07-21 04:00:01','2026-07-21 04:00:01');
+INSERT INTO `posts` VALUES (1,NULL,'Đánh giá chi tiết Intel Core Ultra 9 285K: Bước tiến hay bước lùi?','danh-gia-chi-tiet-intel-core-ultra-9-285k','Intel Core Ultra 9 285K mang đến một kiến trúc hoàn toàn mới, loại bỏ siêu phân luồng (Hyper-Threading).','<p>Nội dung chi tiết đánh giá...</p>','tin-tuc-1.jpg',100,'pc-linh-kien','review','published',0,'2026-07-21 11:00:01','2026-07-21 04:00:01','2026-07-21 05:36:55'),(2,NULL,'Hướng dẫn chọn mua SSD NVMe PCIe 4.0 tốt nhất năm 2026','huong-dan-chon-mua-ssd-nvme-pcie-4-0-tot-nhat','Năm 2026, SSD PCIe 4.0 đã trở thành tiêu chuẩn chung với mức giá cực kỳ dễ chịu.','<p>Nội dung chi tiết mua SSD...</p>','tin-tuc-2.jpg',110,'pc-linh-kien','guide','published',0,'2026-07-21 11:00:01','2026-07-21 04:00:01','2026-07-21 05:36:55'),(3,NULL,'NVIDIA RTX 50 Series chính thức lộ diện: Bước nhảy vọt về AI và Ray Tracing','nvidia-rtx-50-series-chinh-thuc-lo-dien','Thế hệ card đồ họa mới nhất của NVIDIA - RTX 50 Series sử dụng kiến trúc Blackwell.','<p>Nội dung chi tiết RTX 50...</p>','tin-tuc-3.jpg',100,'pc-linh-kien','news','published',0,'2026-07-21 11:00:01','2026-07-21 04:00:01','2026-07-21 05:36:55');
 /*!40000 ALTER TABLE `posts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -594,4 +596,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-21 12:09:53
+-- Dump completed on 2026-07-21 12:37:01
