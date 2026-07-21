@@ -1246,12 +1246,14 @@ html.dark-mode .logo-text span {
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1.4;
-    height: 40px;
+    min-height: 40px;
+    height: auto;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     margin-bottom: 8px;
+    word-break: break-word;
 }
 
 .product-card__price {
