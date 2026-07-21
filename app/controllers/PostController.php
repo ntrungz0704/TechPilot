@@ -18,23 +18,27 @@ class PostController extends Controller
         $type     = isset($_GET['type']) ? trim($_GET['type']) : '';
         $category = isset($_GET['category']) ? trim($_GET['category']) : '';
         $tag      = isset($_GET['tag']) ? trim($_GET['tag']) : '';
+        $q        = isset($_GET['q']) ? trim(mb_substr($_GET['q'], 0, 150)) : '';
         $limit    = 6;
         $offset   = ($page - 1) * $limit;
 
         $featured = null;
         $heroPopular = [];
+        $usedHeroIds = [];
         $excludeFeaturedId = null;
 
         // Chỉ hiển thị Featured / Hero Grid khi ở trang 1 và không có bộ lọc nào
-        if ($page === 1 && empty($type) && empty($category) && empty($tag)) {
+        if ($page === 1 && empty($type) && empty($category) && empty($tag) && empty($q)) {
             $featured = $this->postModel->getFeatured();
             if ($featured) {
                 $excludeFeaturedId = $featured['id'];
+                $usedHeroIds[] = $featured['id'];
                 // Nếu có featured, lấy 2 bài popular hero grid
-                $allPop = $this->postModel->getPopular(3);
+                $allPop = $this->postModel->getPopular(4);
                 foreach ($allPop as $p) {
-                    if ($p['id'] !== $featured['id']) {
+                    if (!in_array($p['id'], $usedHeroIds)) {
                         $heroPopular[] = $p;
+                        $usedHeroIds[] = $p['id'];
                     }
                     if (count($heroPopular) == 2) break;
                 }
@@ -42,15 +46,16 @@ class PostController extends Controller
         }
 
         // countAll và getAll dùng cùng bộ điều kiện và excludeId
-        $total = $this->postModel->countAll($type, $category, $tag, $excludeFeaturedId);
-        $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $excludeFeaturedId);
+        $total = $this->postModel->countAll($type, $category, $tag, $q, $excludeFeaturedId);
+        $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
 
-        $popular = $this->postModel->getPopular(5);
+        // Lấy bài phổ biến cho sidebar, lấy dư (ví dụ 10) để trừ trùng lặp
+        $popular = $this->postModel->getPopular(10);
         $filteredPopular = [];
         foreach ($popular as $p) {
-            if ($featured && $p['id'] === $featured['id']) continue;
+            if (in_array($p['id'], $usedHeroIds)) continue;
             $filteredPopular[] = $p;
-            if (count($filteredPopular) == 4) break; // chỉ lấy 4 bài popular sidebar
+            if (count($filteredPopular) == 4) break; // chỉ lấy tối đa 4 bài popular sidebar
         }
 
         require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
@@ -67,6 +72,13 @@ class PostController extends Controller
         $this->render('post/index', [
             'pageTitle'       => 'Tin tức công nghệ',
             'title'           => 'Tin tức công nghệ',
+            'metaDescription' => 'Cập nhật tin tức công nghệ, đánh giá sản phẩm, thủ thuật và hướng dẫn chuyên sâu.',
+            'canonicalUrl'    => url('post'),
+            'ogType'          => 'website',
+            'ogTitle'         => 'Tin tức công nghệ - TechPilot',
+            'ogDescription'   => 'Cập nhật tin tức công nghệ, đánh giá sản phẩm, thủ thuật và hướng dẫn chuyên sâu.',
+            'ogUrl'           => url('post'),
+            'twitterCard'     => 'summary',
             'posts'           => $posts,
             'featured'        => $featured,
             'heroPopular'     => $heroPopular,
@@ -76,6 +88,7 @@ class PostController extends Controller
             'currentType'     => $type,
             'currentCategory' => $category,
             'currentTag'      => $tag,
+            'currentQ'        => $q,
             'commerceContext' => $commerceContext,
             'pageStyles'      => ['assets/css/news.css?v=1.2'],
         ]);
@@ -145,9 +158,70 @@ class PostController extends Controller
             static fn (array $heading): bool => (int)($heading['level'] ?? 0) === 2
         ));
 
+        $canonicalUrl = url('post/detail/' . $post['slug']);
+        $imageUrl = !empty($post['image']) ? postImageUrl($post['image']) : url('assets/images/logo.png');
+        $authorName = $post['author_name'] ?? 'TechPilot';
+        $publishedAt = date('c', strtotime($post['published_at'] ?? $post['created_at'] ?? 'now'));
+        $description = $post['summary'] ?? ('Đọc bài viết ' . $post['title'] . ' tại TechPilot.');
+        
+        $articleSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Article',
+            'headline' => $post['title'],
+            'description' => $description,
+            'image' => [$imageUrl],
+            'datePublished' => $publishedAt,
+            'dateModified' => $publishedAt,
+            'author' => [
+                '@type' => 'Person',
+                'name' => $authorName
+            ],
+            'publisher' => [
+                '@type' => 'Organization',
+                'name' => 'TechPilot'
+            ],
+            'mainEntityOfPage' => $canonicalUrl
+        ];
+        
+        $breadcrumbSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                [
+                    '@type' => 'ListItem',
+                    'position' => 1,
+                    'name' => 'Trang chủ',
+                    'item' => url('')
+                ],
+                [
+                    '@type' => 'ListItem',
+                    'position' => 2,
+                    'name' => 'Tin tức công nghệ',
+                    'item' => url('post')
+                ],
+                [
+                    '@type' => 'ListItem',
+                    'position' => 3,
+                    'name' => $post['title'],
+                    'item' => $canonicalUrl
+                ]
+            ]
+        ];
+
+        $structuredData = json_encode([$articleSchema, $breadcrumbSchema], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
         $this->render('post/detail', [
             'pageTitle'        => $post['title'],
             'title'            => $post['title'] . ' - TechPilot News',
+            'metaDescription'  => $description,
+            'canonicalUrl'     => $canonicalUrl,
+            'ogType'           => 'article',
+            'ogTitle'          => $post['title'],
+            'ogDescription'    => $description,
+            'ogUrl'            => $canonicalUrl,
+            'ogImage'          => $imageUrl,
+            'twitterCard'      => 'summary_large_image',
+            'structuredData'   => $structuredData,
             'post'             => $post,
             'related'          => $related,
             'renderedContent'  => $renderedContent,

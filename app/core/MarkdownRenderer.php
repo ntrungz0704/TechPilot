@@ -5,14 +5,26 @@ class MarkdownRenderer
     private array $headings = [];
     private array $blocks = [];
     private array $usedHeadingIds = [];
+    private array $codeBlocks = [];
 
     public function render(string $markdown): array
     {
         $this->headings = [];
         $this->blocks = [];
         $this->usedHeadingIds = [];
+        $this->codeBlocks = [];
 
         $markdown = str_replace("\r\n", "\n", $markdown);
+
+        // Extract fenced code blocks and replace with placeholder
+        $markdown = preg_replace_callback('/^```(.*?)?\n(.*?)\n```/ms', function($matches) {
+            $id = '%%CODEBLOCK_' . count($this->codeBlocks) . '%%';
+            $this->codeBlocks[$id] = [
+                'lang' => trim($matches[1]),
+                'code' => $matches[2]
+            ];
+            return $id;
+        }, $markdown);
         // Split by 2 or more newlines to get blocks
         $rawBlocks = preg_split('/\n{2,}/', trim($markdown));
 
@@ -47,12 +59,65 @@ class MarkdownRenderer
             return $html;
         }
 
+        // 1.5. Fenced Code Block
+        if (preg_match('/^%%CODEBLOCK_\d+%%$/', $block, $matches)) {
+            $id = $matches[0];
+            if (isset($this->codeBlocks[$id])) {
+                $lang = $this->codeBlocks[$id]['lang'];
+                $code = $this->codeBlocks[$id]['code'];
+                $escapedCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+                $classAttr = $lang ? ' class="language-' . htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') . '"' : '';
+                $html = '<div class="news-code-block"><pre><code' . $classAttr . '>' . $escapedCode . '</code></pre></div>';
+                $this->blocks[] = [
+                    'type' => 'code',
+                    'html' => $html,
+                ];
+                return $html;
+            }
+        }
+
         // 2. Callout (:::info ... :::)
         if (preg_match('/^:::info[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
             $content = trim($matches[1]);
             $html = '<div class="callout callout-info">' . $this->renderInline($content) . '</div>';
             $this->blocks[] = [
                 'type' => 'callout',
+                'html' => $html,
+            ];
+            return $html;
+        }
+
+        // 2.1. Pros Block (:::pros ... :::)
+        if (preg_match('/^:::pros[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
+            $content = trim($matches[1]);
+            // Re-render internal content as blocks? No, just as list or inline.
+            // But usually pros/cons contain a list. Let's just process the inner text for lists.
+            $innerHtml = '';
+            if (preg_match('/^[-*]\s+/m', $content)) {
+                $innerHtml = $this->renderList($content, 'ul');
+            } else {
+                $innerHtml = '<p>' . $this->renderInline($content) . '</p>';
+            }
+            $html = '<div class="pros-cons-block pros-block"><h4><i class="fa-solid fa-check-circle" style="color: var(--news-green);"></i> Ưu điểm</h4>' . $innerHtml . '</div>';
+            $this->blocks[] = [
+                'type' => 'pros',
+                'html' => $html,
+            ];
+            return $html;
+        }
+
+        // 2.2. Cons Block (:::cons ... :::)
+        if (preg_match('/^:::cons[\r\n]+(.*?)[\r\n]+:::$/s', $block, $matches)) {
+            $content = trim($matches[1]);
+            $innerHtml = '';
+            if (preg_match('/^[-*]\s+/m', $content)) {
+                $innerHtml = $this->renderList($content, 'ul');
+            } else {
+                $innerHtml = '<p>' . $this->renderInline($content) . '</p>';
+            }
+            $html = '<div class="pros-cons-block cons-block"><h4><i class="fa-solid fa-xmark-circle" style="color: var(--news-red);"></i> Nhược điểm</h4>' . $innerHtml . '</div>';
+            $this->blocks[] = [
+                'type' => 'cons',
                 'html' => $html,
             ];
             return $html;
@@ -115,6 +180,18 @@ class MarkdownRenderer
                     'html' => $html,
                 ];
             }
+            return $html;
+        }
+
+        // 7.5. YouTube Embed Block (Standalone link or @[youtube](ID))
+        if (preg_match('/^\s*(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*)?\s*$/i', $block, $matches)
+            || preg_match('/^\s*@\[youtube\]\(([a-zA-Z0-9_-]{11})\)\s*$/i', $block, $matches)) {
+            $videoId = $matches[1];
+            $html = '<div class="youtube-embed-wrapper"><iframe width="560" height="315" src="https://www.youtube.com/embed/' . $videoId . '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+            $this->blocks[] = [
+                'type' => 'youtube',
+                'html' => $html,
+            ];
             return $html;
         }
 

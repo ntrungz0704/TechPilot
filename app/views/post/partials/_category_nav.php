@@ -82,8 +82,8 @@ $topics = [
         <p class="news-intro-desc">Khám phá các bài đánh giá sản phẩm chuyên sâu, tư vấn chọn mua tối ưu và tin tức công nghệ mới nhất từ đội ngũ TechPilot.</p>
     </header>
 
-    <!-- Tầng 1: Content Category Cards -->
-    <nav class="news-content-categories" aria-label="Loại nội dung">
+    <!-- Tầng 1: Content Category Cards (Nay đã chuyển sang Tabs/Pills gọn nhẹ) -->
+    <nav class="news-type-pills" aria-label="Loại nội dung">
         <?php foreach ($contentTypes as $typeKey => $info): ?>
             <?php
             $isActive = ($currentType === $typeKey);
@@ -98,16 +98,11 @@ $topics = [
             ?>
             <a
                 href="<?= $linkUrl ?>"
-                class="news-category-card <?= $isActive ? 'is-active' : '' ?>"
+                class="news-type-pill <?= $isActive ? 'is-active' : '' ?>"
                 <?= $isActive ? 'aria-current="page"' : '' ?>
             >
-                <div class="news-category-card__icon">
-                    <i class="<?= e($info['icon']) ?>" aria-hidden="true"></i>
-                </div>
-                <div class="news-category-card__info">
-                    <span class="news-category-card__title"><?= e($info['title']) ?></span>
-                    <span class="news-category-card__sub"><?= e($info['subtitle']) ?></span>
-                </div>
+                <i class="<?= e($info['icon']) ?>" aria-hidden="true"></i>
+                <span><?= e($info['title']) ?></span>
             </a>
         <?php endforeach; ?>
     </nav>

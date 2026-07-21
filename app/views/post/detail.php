@@ -22,6 +22,11 @@ if (!$post) return;
     <span aria-current="page"><?= e($post['title']) ?></span>
 </section>
 
+<!-- Reading Progress Bar -->
+<div class="news-reading-progress">
+    <div class="news-reading-progress-bar" id="readingProgressBar"></div>
+</div>
+
 <!-- ===== CHI TIẾT BÀI VIẾT ===== -->
 <section class="container news-page">
     <div class="news-layout">
