@@ -33,6 +33,18 @@ class PcCompatibilityService
             $fans = array_merge($fans, $build['fans']);
         }
 
+        // Nếu chưa chọn cả CPU và GPU thì chưa thể tính toán đáng tin cậy
+        if (!$cpu && !$gpu) {
+            return [
+                'estimated_peak_w' => 0,
+                'recommended_psu_w' => 0,
+                'gpu_minimum_psu_w' => 0,
+                'cpu_peak_w' => 0,
+                'gpu_load_w' => 0,
+                'details' => []
+            ];
+        }
+
         // 1. CPU Peak Power
         $cpuSpecs = $cpu ? (json_decode($cpu['specs'] ?? '', true) ?: []) : [];
         $cpuPeak = 0;
