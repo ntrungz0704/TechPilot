@@ -99,6 +99,8 @@ $router->get('/admin/posts/edit/{id}', 'AdminPostController@edit');
 $router->post('/admin/posts/update/{id}', 'AdminPostController@update');
 $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
 
+// Static frontend page: Thu cũ đổi mới máy cũ
+$router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
 // PC Builder Routes
 $router->get('/build-pc', 'PcBuilderController@index');
 $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
