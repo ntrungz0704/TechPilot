@@ -183,8 +183,6 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         </a>
                     <?php endif; ?>
                 </div>
-<<<<<<< HEAD
-                
                 <ul class="main-nav__links">
                     <li><a href="<?= url('/') ?>" class="is-active">Trang chủ</a></li>
                     <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>">PC Gaming</a></li>
@@ -197,8 +195,6 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                    <li><a href="<?= url('home/search') ?>" class="text-hot">Khuyến mãi <span class="dot-hot"></span></a></li>
                    <li><a href="<?= url('post') ?>">Tin công nghệ</a></li>
                 </ul>
-=======
->>>>>>> 9a8c81847400160acb1e33fe441d6165d4fb946a
             </div>
 
             <!-- 2.5. Mobile Search and Quick Categories (Display: None on Desktop) -->
