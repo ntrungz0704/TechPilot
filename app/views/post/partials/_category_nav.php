@@ -74,11 +74,7 @@ $topics = [
     <!-- Intro Header & Search Form -->
     <header class="news-intro-header">
         <div class="news-intro-text">
-            <span class="news-intro-eyebrow">
-                <i class="fa-solid fa-newspaper" aria-hidden="true"></i> TechPilot Editorial
-            </span>
             <h1 class="news-intro-title">Tin Tức & Điểm Tin Công Nghệ</h1>
-            <p class="news-intro-desc">Khám phá các bài đánh giá sản phẩm chuyên sâu, tư vấn chọn mua tối ưu và tin tức công nghệ mới nhất từ đội ngũ TechPilot.</p>
         </div>
 
         <!-- Header Search Form (sử dụng RAW variables) -->
