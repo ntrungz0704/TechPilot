@@ -3,3 +3,4 @@
 .DS_Store
 Thumbs.db
 config/.db_sync_state.json
+scratch/
