@@ -36,7 +36,7 @@ class ChatbotController extends Controller
             // Parse specs
             foreach ($products as &$p) {
                 $p['price_formatted'] = number_format($p['price'], 0, ',', '.') . 'đ';
-                $p['specs_decoded'] = json_decode($p['specs'], true) ?? [];
+                $p['specs_decoded'] = json_decode($p['specs'] ?? '', true) ?? [];
             }
 
             echo json_encode(['success' => true, 'data' => $products]);
@@ -101,8 +101,8 @@ class ChatbotController extends Controller
             }
 
             // Decode specs JSON
-            $leftSpecs = json_decode($leftProduct['specs'], true) ?? [];
-            $rightSpecs = json_decode($rightProduct['specs'], true) ?? [];
+            $leftSpecs = json_decode($leftProduct['specs'] ?? '', true) ?? [];
+            $rightSpecs = json_decode($rightProduct['specs'] ?? '', true) ?? [];
 
             // Helper chấm điểm sao ước tính cho game, office, đồ họa dựa trên cấu hình
             $getScores = function(array $specs, float $price) {
@@ -263,7 +263,7 @@ class ChatbotController extends Controller
 
             $scoredLaptops = [];
             foreach ($laptops as $laptop) {
-                $specs = json_decode($laptop['specs'], true) ?? [];
+                $specs = json_decode($laptop['specs'] ?? '', true) ?? [];
                 $price = (float)$laptop['price'];
                 
                 $score = 100.0;
@@ -464,7 +464,7 @@ class ChatbotController extends Controller
             if (!empty($products)) {
                 $recs = [];
                 foreach ($products as $p) {
-                    $specs = json_decode($p['specs'], true) ?? [];
+                    $specs = json_decode($p['specs'] ?? '', true) ?? [];
                     // Tính độ phù hợp dựa trên khoảng cách giá lệch (càng gần càng cao, tối đa 98%)
                     $priceDiff = abs($p['price'] - $targetPrice);
                     $score = 98 - (int)($priceDiff / 150000); 
@@ -653,19 +653,12 @@ class ChatbotController extends Controller
             'd' => 'đ',
             'e' => 'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
             'i' => 'í|ì|ỉ|ĩ|ị',
-            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ệ|ơ|ớ|ờ|ở|ỡ|ợ',
+            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
             'u' => 'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
             'y' => 'ý|ỳ|ỷ|ỹ|ỵ',
-            'A' => 'Á|À|Ả|Ã|Ạ|Ă|Ắ|Ằ|Ẳ|Ẵ|Ặ|Â|Ấ|Ầ|Ẩ|Ẫ|Ậ',
-            'D' => 'Đ',
-            'E' => 'É|È|Ẻ|Ẽ|Ẹ|Ê|Ế|Ề|Ể|Ễ|Ệ',
-            'I' => 'Í|Ì|R|Ĩ|Ị',
-            'O' => 'Ó|Ò|Ỏ|Õ|Ọ|Ô|Ố|Ồ|Ổ|Ỗ|Ộ|Ơ|Ớ|Ờ|Ở|Ỡ|Ợ',
-            'U' => 'Ú|Ù|Ủ|Ũ|Ụ|Ư|Ứ|Ừ|Ử|Ữ|Ự',
-            'Y' => 'Ý|Ỳ|Ỷ|Ỹ|Ỵ',
         ];
         foreach ($unicode as $nonUnicode => $uni) {
-            $str = preg_replace("/($uni)/i", $nonUnicode, $str);
+            $str = preg_replace("/($uni)/iu", $nonUnicode, $str);
         }
         return $str;
     }
