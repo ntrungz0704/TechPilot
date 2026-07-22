@@ -56,10 +56,13 @@ jobs:
 
       - name: Import Database Fixture Data
         run: |
+          if [ -f "database/schema.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < database/schema.sql
+          elif [ -f "database/techpilot.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < database/techpilot.sql
+          fi
           if [ -f "tests/fixtures/catalog_ci.sql" ]; then
             mysql -h 127.0.0.1 -u root techpilot < tests/fixtures/catalog_ci.sql
-          elif [ -f "database/schema.sql" ]; then
-            mysql -h 127.0.0.1 -u root techpilot < database/schema.sql
           fi
 
       - name: Run PHP Integration Tests
