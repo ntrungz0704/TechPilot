@@ -1,6 +1,13 @@
 <div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Chỉnh sửa bài viết</h3>
     
+    <?php if (!empty($error)): ?>
+        <div class="alert alert--danger" role="alert" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background-color: #FEE2E2; color: #991B1B; border: 1px solid #F87171; font-weight: 500;">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i>
+            <?= e($error) ?>
+        </div>
+    <?php endif; ?>
+
     <form method="post" action="<?= url('admin/posts/update/' . $post['id']) ?>" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <input type="hidden" name="current_image" value="<?= e($post['image']) ?>">
