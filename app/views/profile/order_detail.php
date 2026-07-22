@@ -30,8 +30,8 @@
                     <div>
                         <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Thông tin người nhận</h4>
                         <p style="margin: 0; font-weight: 600; font-size: 15px;"><?= e($order['customer_name']) ?></p>
-                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e($order['phone']) ?></p>
-                        <?php if (!empty($order['email'])): ?><p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e($order['email']) ?></p><?php endif; ?>
+                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e(formatPhone($order['phone'])) ?></p>
+                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e($order['email']) ?></p>
                     </div>
                     <div>
                         <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Địa chỉ giao hàng</h4>

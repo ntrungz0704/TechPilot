@@ -36,8 +36,9 @@ class AdminPostController extends Controller
         $stmt->execute();
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $this->renderAdmin('posts/index', [
-            'title' => 'Quản lý bài viết',
+        $this->renderAdmin('admin/posts/index', [
+            'pageTitle' => 'Quản lý bài viết',
+            'activeMenu' => 'posts',
             'posts' => $posts,
             'currentPage' => $page,
             'totalPages' => ceil($total / $limit)
@@ -47,8 +48,9 @@ class AdminPostController extends Controller
     public function create()
     {
         $this->requireAdmin();
-        $this->renderAdmin('posts/create', [
-            'title' => 'Thêm bài viết mới'
+        $this->renderAdmin('admin/posts/create', [
+            'pageTitle' => 'Thêm bài viết mới',
+            'activeMenu' => 'posts'
         ]);
     }
 
@@ -110,8 +112,9 @@ class AdminPostController extends Controller
                 exit;
 
             } catch (Exception $e) {
-                $this->renderAdmin('posts/create', [
-                    'title' => 'Thêm bài viết mới',
+                $this->renderAdmin('admin/posts/create', [
+                    'pageTitle' => 'Thêm bài viết mới',
+                    'activeMenu' => 'posts',
                     'error' => $e->getMessage()
                 ]);
             }
@@ -132,8 +135,9 @@ class AdminPostController extends Controller
             exit;
         }
 
-        $this->renderAdmin('posts/edit', [
-            'title' => 'Chỉnh sửa bài viết',
+        $this->renderAdmin('admin/posts/edit', [
+            'pageTitle' => 'Chỉnh sửa bài viết',
+            'activeMenu' => 'posts',
             'post' => $post
         ]);
     }
