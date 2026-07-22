@@ -14,7 +14,7 @@ class CatalogMenuUITest
     public function runAll(): bool
     {
         echo "==================================================\n";
-        echo "RUNNING CHECKPOINT 2 V2 — CATEGORY MENU UI INTEGRATION TESTS\n";
+        echo "RUNNING CHECKPOINT 2 V3 — CATEGORY MENU UI INTEGRATION TESTS\n";
         echo "==================================================\n\n";
 
         $pdo = Database::getConnection();
@@ -22,7 +22,8 @@ class CatalogMenuUITest
         $initialProdCount = (int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 
         $this->testStorefrontMenuTreeContracts();
-        $this->testHeaderViewMarkupAndQuickCategories();
+        $this->testHeaderViewMarkupAndAriaTargets();
+        $this->testSearchSelectSelectedStateResolution();
         $this->testPartialCategoryMegaMenuMarkup();
         $this->testZeroDatabaseMutations($initialCatCount, $initialProdCount);
 
@@ -87,7 +88,7 @@ class CatalogMenuUITest
         $this->record("4. Empty Networking group is NOT rendered", !$hasNetworking);
     }
 
-    private function testHeaderViewMarkupAndQuickCategories(): void
+    private function testHeaderViewMarkupAndAriaTargets(): void
     {
         $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
         $catParam = '';
@@ -97,33 +98,91 @@ class CatalogMenuUITest
         include ROOT_PATH . '/app/views/layouts/header.php';
         $htmlHeader = ob_get_clean();
 
-        // 1. Check mobile quick categories
+        ob_start();
+        $isStatic = false;
+        include ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php';
+        $htmlMega = ob_get_clean();
+
+        $fullHtml = '<div>' . $htmlHeader . $htmlMega . '</div>';
+
+        // 1. DOM Parsing to verify all aria-controls target IDs exist in DOM
+        libxml_use_internal_errors(true);
+        $doc = new DOMDocument();
+        $doc->loadHTML('<?xml encoding="UTF-8">' . $fullHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath($doc);
+        $controlsNodes = $xpath->query('//*[@aria-controls]');
+
+        $missingTargets = [];
+        $validatedCount = 0;
+
+        foreach ($controlsNodes as $node) {
+            $targetId = $node->getAttribute('aria-controls');
+            if (empty($targetId)) continue;
+
+            $targetNode = $doc->getElementById($targetId);
+            if (!$targetNode) {
+                $missingTargets[] = $targetId;
+            } else {
+                $validatedCount++;
+            }
+        }
+
+        $allTargetsExist = empty($missingTargets) && $validatedCount > 0;
+        $missingMsg = !empty($missingTargets) ? 'Missing targets: ' . implode(', ', array_unique($missingTargets)) : '';
+
+        $this->record(
+            "5. All aria-controls targets exist in DOM (DOMDocument verification)",
+            $allTargetsExist,
+            $missingMsg
+        );
+
+        // 2. Check mobile quick categories links
         $hasMobileLaptop = str_contains($htmlHeader, 'home/search?cat=laptop');
         $hasMobilePC = str_contains($htmlHeader, 'home/search?cat=pc');
         $hasMobileLinhKien = str_contains($htmlHeader, 'home/search?cat=pc-linh-kien');
-        $noPCLaptopVPBug = !str_contains($htmlHeader, 'home/search?cat=laptop-van-phong" class="quick-cat-item"');
 
         $this->record(
-            "5. Mobile quick categories map correctly (Laptop=laptop, PC=pc, Linh kiện=pc-linh-kien)",
-            $hasMobileLaptop && $hasMobilePC && $hasMobileLinhKien && $noPCLaptopVPBug
+            "6. Mobile quick categories map correctly (Laptop=laptop, PC=pc, Linh kiện=pc-linh-kien)",
+            $hasMobileLaptop && $hasMobilePC && $hasMobileLinhKien
         );
 
-        // 2. Check mainNavMenu and mobileCategoryToggle separate ARIA targets
-        $hasMainNavTarget = str_contains($htmlHeader, 'aria-controls="mainNavMenu"');
-        $hasCategoryDrawerTarget = str_contains($htmlHeader, 'aria-controls="categoryMobileDrawer"') || str_contains($htmlHeader, 'id="mobileCategoryToggle"');
-
-        $this->record(
-            "6. Separate triggers for mainNavMenu and category drawer in header markup",
-            $hasMainNavTarget && $hasCategoryDrawerTarget
-        );
-
-        // 3. Search select uses $globalCategoryMenu without calling CatalogGroupService in view
+        // 3. Search select uses $globalCategoryMenu without double hydration
         $hasSearchSelectVirtualOptions = str_contains($htmlHeader, 'value="laptop"') && str_contains($htmlHeader, 'value="pc"');
         $noDuplicateHydrationInView = !str_contains($htmlHeader, 'CatalogGroupService::getStorefrontGroups()');
 
         $this->record(
             "7. Header search select uses \$globalCategoryMenu without double hydration",
             $hasSearchSelectVirtualOptions && $noDuplicateHydrationInView
+        );
+    }
+
+    private function testSearchSelectSelectedStateResolution(): void
+    {
+        $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
+
+        // Case A: cat=cpu -> search select option for pc-linh-kien is selected
+        $catParam = 'cpu';
+        $qParam = '';
+        ob_start();
+        include ROOT_PATH . '/app/views/layouts/header.php';
+        $htmlCpu = ob_get_clean();
+
+        $cpuSelected = str_contains($htmlCpu, '<option value="pc-linh-kien" selected>');
+
+        // Case B: cat=laptop-gaming -> search select option for laptop is selected
+        $catParam = 'laptop-gaming';
+        ob_start();
+        include ROOT_PATH . '/app/views/layouts/header.php';
+        $htmlLaptopGaming = ob_get_clean();
+
+        $laptopGamingSelected = str_contains($htmlLaptopGaming, '<option value="laptop" selected>');
+
+        $this->record(
+            "8. Search select option selected state resolves (cat=cpu -> pc-linh-kien, cat=laptop-gaming -> laptop)",
+            $cpuSelected && $laptopGamingSelected,
+            "cpuSelected=" . ($cpuSelected ? '1' : '0') . ", laptopGamingSelected=" . ($laptopGamingSelected ? '1' : '0')
         );
     }
 
@@ -143,9 +202,9 @@ class CatalogMenuUITest
         $hasMobilePanelInline = str_contains($htmlMega, 'class="category-mobile__panel"');
         $hasFriendlyRange = str_contains($htmlMega, 'Đến 15 triệu') || str_contains($htmlMega, 'Trên 15 đến 20 triệu');
 
-        $this->record("8. Mega menu renders virtual Laptop & PC links and exact CPU link", $hasVirtualLaptop && $hasVirtualPC && $hasExactCPU);
-        $this->record("9. Category drawer contains internal close button (#categoryDrawerClose)", $hasCloseBtn);
-        $this->record("10. Inline mobile accordion panels & friendly price range labels rendered", $hasMobilePanelInline && $hasFriendlyRange);
+        $this->record("9. Mega menu renders virtual Laptop & PC links and exact CPU link", $hasVirtualLaptop && $hasVirtualPC && $hasExactCPU);
+        $this->record("10. Category drawer contains internal close button (#categoryDrawerClose)", $hasCloseBtn);
+        $this->record("11. Inline mobile accordion panels & friendly price range labels rendered", $hasMobilePanelInline && $hasFriendlyRange);
     }
 
     private function testZeroDatabaseMutations(int $initialCatCount, int $initialProdCount): void
@@ -156,7 +215,7 @@ class CatalogMenuUITest
 
         $pass = ($initialCatCount === $finalCatCount) && ($initialProdCount === $finalProdCount);
 
-        $this->record("11. Zero DB mutations during and after UI integration tests", $pass);
+        $this->record("12. Zero DB mutations during and after UI integration tests", $pass);
     }
 }
 

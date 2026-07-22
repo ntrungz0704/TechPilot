@@ -6,9 +6,9 @@ if (defined('BASE_URL') && BASE_URL !== '' && strpos($currentPath, BASE_URL) ===
 }
 $currentPath = trim($currentPath, '/');
 
-$qParam = $_GET['q'] ?? '';
-$catParam = $_GET['cat'] ?? '';
-$promoParam = $_GET['promo'] ?? '';
+$qParam = $qParam ?? $_GET['q'] ?? '';
+$catParam = $catParam ?? $_GET['cat'] ?? '';
+$promoParam = $promoParam ?? $_GET['promo'] ?? '';
 
 $activeMenu = '';
 if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/index') {
@@ -114,7 +114,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     </button>
 
                     <!-- Mobile Category Toggle (ONLY opens category drawer) -->
-                    <button class="mobile-category-toggle" id="mobileCategoryToggle" type="button" aria-label="Mở danh mục sản phẩm" aria-expanded="false" aria-controls="categoryMobileDrawer">
+                    <button class="mobile-category-toggle" id="mobileCategoryToggle" type="button" aria-label="Mở danh mục sản phẩm" aria-expanded="false" aria-controls="categoryMegaDropdown">
                         <i class="fa-solid fa-layer-group"></i>
                     </button>
 
@@ -141,10 +141,11 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         <option value="">Tất cả danh mục</option>
                         <?php
                         $menuTree = $globalCategoryMenu ?? [];
+                        $selectedGroupKey = !empty($catParam) ? (CatalogGroupService::resolveParentGroupKey($catParam) ?? $catParam) : '';
                         foreach ($menuTree as $group):
                             $vSlug = $group['slug'];
                             $vName = $group['name'];
-                            $isSelected = ($catParam === $vSlug);
+                            $isSelected = ($selectedGroupKey === $vSlug);
                         ?>
                             <option value="<?= e($vSlug) ?>" <?= $isSelected ? 'selected' : '' ?>><?= e($vName) ?></option>
                         <?php endforeach; ?>
@@ -287,7 +288,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     <i class="fa-solid fa-gamepad"></i>
                     <span>Gaming Gear</span>
                 </a>
-                <button type="button" class="quick-cat-item" id="mobileQuickCatAll" aria-label="Mở tất cả danh mục">
+                <button type="button" class="quick-cat-item" id="mobileQuickCatAll" aria-label="Mở tất cả danh mục" aria-expanded="false" aria-controls="categoryMegaDropdown">
                     <i class="fa-solid fa-list"></i>
                     <span>Tất cả</span>
                 </button>

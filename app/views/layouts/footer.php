@@ -109,7 +109,7 @@
                 <i class="fa-solid fa-house"></i>
                 <span>Trang chủ</span>
             </a>
-            <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavCats" style="background: none; border: none; cursor: pointer; color: inherit;">
+            <button type="button" class="mobile-bottom-nav__item" id="mobileBottomNavCats" style="background: none; border: none; cursor: pointer; color: inherit;" aria-expanded="false" aria-controls="categoryMegaDropdown">
                 <i class="fa-solid fa-list"></i>
                 <span>Danh mục</span>
             </button>
@@ -135,24 +135,6 @@
         <script src="<?= url($script) ?>"></script>
     <?php endforeach; ?>
     <script>
-        // Xử lý menu hamburger và drawer menu trên Mobile
-        const mainNav = document.querySelector('.main-nav');
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const mobileDrawerClose = document.getElementById('mobileDrawerClose');
-        const bottomNavCats = document.getElementById('mobileBottomNavCats');
-
-        function openMenu() {
-            mainNav?.classList.add('is-active');
-        }
-
-        function closeMenu() {
-            mainNav?.classList.remove('is-active');
-        }
-
-        mobileMenuToggle?.addEventListener('click', openMenu);
-        mobileDrawerClose?.addEventListener('click', closeMenu);
-        bottomNavCats?.addEventListener('click', openMenu);
-
         // Bấm "Tìm kiếm" ở bottom nav -> cuộn lên đầu & focus vào search bar di động
         document.getElementById('mobileBottomNavSearch')?.addEventListener('click', function() {
             window.scrollTo({ top: 0, behavior: 'smooth' });

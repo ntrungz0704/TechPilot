@@ -442,14 +442,13 @@ html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
         top: 0 !important;
         left: -100% !important;
         width: 85% !important;
-        max-width: 320px !important;
+        max-width: 340px !important;
         height: 100vh !important;
-        margin-top: 0 !important;
-        padding: 0 !important;
         z-index: 1050 !important;
-        transition: left 0.3s ease !important;
+        transition: left 0.3s ease, visibility 0.3s ease !important;
         background: #ffffff !important;
-        display: block !important;
+        visibility: hidden;
+        pointer-events: none;
     }
 
     html.dark-mode .category-dropdown,
@@ -457,13 +456,10 @@ html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
         background: #1e293b !important;
     }
 
-    .category-dropdown[hidden],
-    .category-dropdown.is-static[hidden] {
-        display: block !important;
-    }
-
     .category-dropdown.is-mobile-open {
         left: 0 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
         box-shadow: 4px 0 25px rgba(0, 0, 0, 0.25) !important;
     }
 

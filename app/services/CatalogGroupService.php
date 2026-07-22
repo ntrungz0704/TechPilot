@@ -174,6 +174,30 @@ class CatalogGroupService
     }
 
     /**
+     * Resolver API: Tìm key của Virtual Group cha (bao gồm cả trường hợp exact source slug như cpu, laptop-gaming)
+     */
+    public static function resolveParentGroupKey(string $slugOrAlias): ?string
+    {
+        $input = strtolower(trim($slugOrAlias));
+        if ($input === '') {
+            return null;
+        }
+
+        $direct = self::resolveGroupKey($input);
+        if ($direct !== null) {
+            return $direct;
+        }
+
+        foreach (self::$groupDefinitions as $key => $def) {
+            if (in_array($input, $def['source_slugs'], true)) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * 2. Resolver API: Chuyển đổi slug/alias thành danh sách source_slugs hợp lệ cho SQL query
      */
     public static function resolveSourceSlugs(string $slugOrAlias): array
