@@ -258,6 +258,45 @@ class ChatbotController extends Controller
                 ];
             }
 
+            // 1. KIỂM TRA XEM CÓ PHẢI HỎI ĐÁP / THẢO LUẬN VỀ SẢN PHẨM ĐÃ XUẤT HIỆN
+            $rawLower = strtolower($this->removeVietnameseAccents($queryText));
+            $isProductDiscussion = false;
+            $discussedProduct = null;
+
+            // Tìm mã số sản phẩm (ví dụ: "model 14", "san pham 14", "may 14" hoặc chỉ đơn giản là số "14")
+            if (preg_match('/(?:model|mau|sp|san pham|id|so|chiec|cai)?\s*(\d+)/i', $rawLower, $numMatches)) {
+                $productId = (int)$numMatches[1];
+                try {
+                    $stmt = $this->db->prepare("SELECT * FROM products WHERE id = ? AND status = 'active'");
+                    $stmt->execute([$productId]);
+                    $discussedProduct = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($discussedProduct) {
+                        $isProductDiscussion = true;
+                    }
+                } catch (Exception $e) {}
+            }
+
+            // Nếu là thảo luận sản phẩm cụ thể, chuyển sang Gemini trả lời trực tiếp mà không đi qua khảo sát
+            if ($isProductDiscussion && $discussedProduct) {
+                require_once ROOT_PATH . '/app/services/GeminiService.php';
+                $specs = json_decode($discussedProduct['specs'] ?? '{}', true) ?: [];
+                $specsStr = implode(', ', array_map(function($k, $v) { return "$k: $v"; }, array_keys($specs), $specs));
+                
+                $productPrompt = "Bạn là TechPilot AI Advisor. Khách hàng đang hỏi về sản phẩm: {$discussedProduct['name']} (Giá: " . number_format($discussedProduct['price'], 0, ',', '.') . "đ. Cấu hình: $specsStr).\n" .
+                                  "Câu hỏi của khách: \"$queryText\"\n\n" .
+                                  "Hãy trả lời tự nhiên, thân thiện và chính xác về sản phẩm này (giải thích tại sao đắt/rẻ, có ưu điểm gì, chiến game tốt không...). Gọi khách là 'bạn', xưng 'mình'. Trả lời ngắn gọn 2-3 câu.";
+                
+                try {
+                    $answer = GeminiService::callGemini($productPrompt, ['type' => 'product_chat', 'product' => $discussedProduct]);
+                    echo json_encode([
+                        'success' => true,
+                        'type' => 'text',
+                        'message' => $answer
+                    ]);
+                    exit;
+                } catch (Exception $e) {}
+            }
+
             $response = $this->handleNaturalLanguage($queryText);
             if ($response !== null) {
                 echo json_encode($response);
@@ -269,7 +308,6 @@ class ChatbotController extends Controller
             require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
 
             // 1. Phân tích để cập nhật thông tin trong session từ câu trả lời mới của khách
-            $contextBefore = $_SESSION['chatbot_context'];
             
             // Tìm số tiền có trong câu hỏi (Ví dụ: "15 triệu", "15tr", "10 triệu")
             if (preg_match('/(\d+)\s*(triệu|trieu|tr)/ui', $queryText, $matches)) {
@@ -279,7 +317,6 @@ class ChatbotController extends Controller
             }
 
             // Phân tích loại máy
-            $rawLower = strtolower($this->removeVietnameseAccents($queryText));
             if (strpos($rawLower, 'laptop') !== false || strpos($rawLower, 'may xach tay') !== false) {
                 $_SESSION['chatbot_context']['device_type'] = 'Laptop';
             } elseif (strpos($rawLower, 'pc') !== false || strpos($rawLower, 'may ban') !== false || strpos($rawLower, 'may tinh bo') !== false) {
@@ -348,6 +385,17 @@ class ChatbotController extends Controller
                 }
             } catch (Exception $e) {}
 
+            // Đếm số lượng thông tin quan trọng đã biết
+            $knownFieldsCount = 0;
+            if ($_SESSION['chatbot_context']['budget'] !== 'Chưa biết') $knownFieldsCount++;
+            if ($_SESSION['chatbot_context']['device_type'] !== 'Chưa biết') $knownFieldsCount++;
+            if ($_SESSION['chatbot_context']['purpose'] !== 'Chưa biết') $knownFieldsCount++;
+            if ($_SESSION['chatbot_context']['software'] !== 'Chưa biết') $knownFieldsCount++;
+            if ($_SESSION['chatbot_context']['priority'] !== 'Chưa biết') $knownFieldsCount++;
+
+            // Yêu cầu có ít nhất 3 câu trả lời / 3 thông tin thu thập được trước khi đề xuất máy
+            $forceAskMore = ($knownFieldsCount < 3);
+
             // Tạo system prompt chỉ định vai trò tư vấn tự nhiên bám sát luồng thông tin
             $promptText = "Bạn là TechPilot AI Advisor - Một chuyên viên tư vấn laptop và PC thân thiện, lịch sự và chuyên nghiệp.\n" .
                           "Nhiệm vụ của bạn là trò chuyện tự nhiên với khách hàng để tìm ra sản phẩm phù hợp nhất.\n\n" .
@@ -363,23 +411,28 @@ class ChatbotController extends Controller
                           "2. Nếu Ngân sách đã biết nhưng chưa biết Loại máy (Laptop hay PC) -> Hãy hỏi Laptop hay PC.\n" .
                           "3. Nếu Loại máy đã biết nhưng chưa biết Mục đích sử dụng -> Hãy hỏi mục đích (Học tập, Lập trình, Đồ họa, Chơi game...)\n" .
                           "4. Nếu Mục đích đã biết nhưng chưa biết Phần mềm -> Hãy hỏi các phần mềm cụ thể hay dùng (VS Code, Photoshop, AutoCAD...).\n" .
-                          "5. Nếu Phần mềm đã biết nhưng chưa biết Ưu tiên -> Hãy hỏi xem khách ưu tiên gì hơn (Hiệu năng, độ nhẹ, pin lâu, tiết kiệm...).\n" .
-                          "6. Nếu ĐÃ ĐỦ THÔNG TIN -> Tiến hành đề xuất tối đa 3 sản phẩm phù hợp nhất trong danh sách bên dưới kèm lý do kết luận cụ thể.\n\n" .
-                          "=== QUY TẮC PHẢN HỒI QUAN TRỌNG ===\n" .
+                          "5. Nếu Phần mềm đã biết nhưng chưa biết Ưu tiên -> Hãy hỏi xem khách ưu tiên gì hơn (Hiệu năng, độ nhẹ, pin lâu, tiết kiệm...).\n";
+
+            if ($forceAskMore) {
+                $promptText .= "CHÚ Ý ĐẶC BIỆT: Bạn đang có ít thông tin ($knownFieldsCount/5 trường). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC ĐỀ XUẤT SẢN PHẨM vào lúc này. Không thêm tag RECOMMENDED_IDS. Hãy tiếp tục hỏi câu tiếp theo thật tự nhiên.\n\n";
+            } else {
+                $promptText .= "6. Nếu ĐÃ ĐỦ THÔNG TIN (từ 3 thông tin trở lên) -> Tiến hành đề xuất tối đa 3 sản phẩm phù hợp nhất trong danh sách bên dưới kèm lý do kết luận cụ thể.\n\n";
+            }
+
+            $promptText .= "=== QUY TẮC PHẢN HỒI QUAN TRỌNG ===\n" .
                           "- Gọi khách là 'bạn', xưng 'mình'.\n" .
                           "- Trả lời ngắn gọn, tự nhiên như nhân viên cửa hàng thực tế, tuyệt đối KHÔNG trả lời máy móc hay dùng các câu 'Dựa trên thông tin...', 'Tôi là AI...'\n" .
                           "- Mỗi lượt chat CHỈ HỎI ĐÚNG 1 CÂU quan trọng nhất còn thiếu. Không hỏi dồn dập nhiều câu cùng lúc.\n" .
                           "- Luôn phản hồi/dẫn dắt câu trả lời trước của khách trước khi đặt câu hỏi tiếp theo (ví dụ: 'Cảm ơn bạn. Với tầm giá này mình có khá nhiều lựa chọn...', 'Đã rõ, lập trình thì Android Studio khá nặng...').\n" .
-                          "- Nếu đã đủ dữ liệu tư vấn, hãy gợi ý sản phẩm thật và ghi thẻ [RECOMMENDED_IDS: x, y, z] ở dòng cuối cùng.\n\n" .
+                          "- Nếu đã đủ dữ liệu tư vấn (và không bị buộc hỏi thêm), hãy gợi ý sản phẩm thật và ghi thẻ [RECOMMENDED_IDS: x, y, z] ở dòng cuối cùng.\n\n" .
                           $productsContext . "\n" .
                           "Tin nhắn mới nhất của khách hàng: \"$queryText\"";
 
             try {
                 $answer = GeminiService::callGemini($promptText, ['type' => 'general']);
                 
-                // Đồng bộ ngược lại nếu AI phát hiện thông tin khác
-                // Kiểm tra xem có đề xuất sản phẩm nào không
-                if (preg_match('/\[RECOMMENDED_IDS:\s*([\d\s,]+)\]/', $answer, $matches)) {
+                // Kiểm tra xem có đề xuất sản phẩm nào không (chỉ chấp nhận khi không bị bắt buộc hỏi tiếp)
+                if (!$forceAskMore && preg_match('/\[RECOMMENDED_IDS:\s*([\d\s,]+)\]/', $answer, $matches)) {
                     $rawIds = explode(',', $matches[1]);
                     $recommendedIds = array_map('intval', array_map('trim', $rawIds));
                     
@@ -425,11 +478,14 @@ class ChatbotController extends Controller
                     }
                 }
 
+                // Loại bỏ thẻ RECOMMENDED_IDS nếu AI lỡ viết ra khi chưa đủ 3 câu
+                $cleanAnswer = preg_replace('/\[RECOMMENDED_IDS:\s*[\d\s,]+\]/', '', $answer);
+
                 // Không có đề xuất sản phẩm cụ thể, trả về tin nhắn text bình thường
                 echo json_encode([
                     'success' => true,
                     'type' => 'text',
-                    'message' => $answer
+                    'message' => trim($cleanAnswer)
                 ]);
             } catch (Exception $e) {
                 echo json_encode([
