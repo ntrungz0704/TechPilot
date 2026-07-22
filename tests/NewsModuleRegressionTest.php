@@ -16,6 +16,7 @@ if (!defined('BASE_URL')) {
 require_once ROOT_PATH . '/app/core/helpers.php';
 require_once ROOT_PATH . '/app/core/MarkdownRenderer.php';
 require_once ROOT_PATH . '/app/models/Post.php';
+require_once ROOT_PATH . '/app/controllers/PostController.php';
 
 class NewsModuleRegressionTest
 {
@@ -68,6 +69,34 @@ class NewsModuleRegressionTest
     {
         echo "--- 1. Testing Pagination Normalization ---\n";
 
+        // Intercept any PHP warnings/notices as exceptions
+        set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
+            throw new ErrorException($message, 0, $severity, $file, $line);
+        });
+
+        try {
+            // Test production PostController::normalizeRequestedPage method
+            $arrayCases = [
+                ['input' => ['1'], 'expected' => 1, 'name' => 'page[]=1 array input'],
+                ['input' => ['key' => '2'], 'expected' => 1, 'name' => 'page[key]=1 array input'],
+                ['input' => null, 'expected' => 1, 'name' => 'null page input'],
+                ['input' => 5, 'expected' => 5, 'name' => 'integer 5 input'],
+                ['input' => '3', 'expected' => 3, 'name' => 'string "3" input'],
+                ['input' => '-10', 'expected' => 1, 'name' => 'negative string "-10" input'],
+            ];
+
+            foreach ($arrayCases as $case) {
+                $res = PostController::normalizeRequestedPage($case['input']);
+                $this->assert(
+                    $res === $case['expected'],
+                    "PostController::normalizeRequestedPage {$case['name']} => {$case['expected']}",
+                    "Got {$res}"
+                );
+            }
+        } finally {
+            restore_error_handler();
+        }
+
         // Case A: Normal page clamp when total > 0
         $limit = 6;
         $total = 15; // 3 total pages
@@ -84,8 +113,8 @@ class NewsModuleRegressionTest
         ];
 
         foreach ($pageCases as $idx => $case) {
-            $rawPage = (int)($case['input']);
-            $page    = max(1, $rawPage);
+            $rawPage = PostController::normalizeRequestedPage($case['input']);
+            $page    = $rawPage;
             if ($total > 0) {
                 $page = min($page, $totalPages);
             }

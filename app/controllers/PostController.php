@@ -12,9 +12,21 @@ class PostController extends Controller
         $this->postModel = new Post();
     }
 
+    /**
+     * Chuẩn hóa trang được yêu cầu an toàn, chống warning Array to int conversion khi page là mảng.
+     */
+    public static function normalizeRequestedPage(mixed $rawPage): int
+    {
+        if (!is_scalar($rawPage)) {
+            return 1;
+        }
+
+        return max(1, (int)$rawPage);
+    }
+
     public function index()
     {
-        $page     = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $page     = self::normalizeRequestedPage($_GET['page'] ?? 1);
         $rawType  = $_GET['type'] ?? '';
         $type     = is_string($rawType) ? trim($rawType) : '';
         $rawCat   = $_GET['category'] ?? '';
