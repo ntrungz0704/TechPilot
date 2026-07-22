@@ -6,11 +6,10 @@ on:
       - feature/hieu-news
       - main
     paths:
-      - 'app/controllers/PostController.php'
-      - 'app/models/Post.php'
-      - 'app/core/MarkdownRenderer.php'
-      - 'app/views/post/**'
+      - 'app/**'
       - 'config/**'
+      - 'database/**'
+      - 'scripts/**'
       - 'public/assets/css/news.css'
       - 'public/assets/js/news.js'
       - 'tests/**'
@@ -19,11 +18,10 @@ on:
     branches:
       - main
     paths:
-      - 'app/controllers/PostController.php'
-      - 'app/models/Post.php'
-      - 'app/core/MarkdownRenderer.php'
-      - 'app/views/post/**'
+      - 'app/**'
       - 'config/**'
+      - 'database/**'
+      - 'scripts/**'
       - 'public/assets/css/news.css'
       - 'public/assets/js/news.js'
       - 'tests/**'
@@ -47,7 +45,7 @@ jobs:
 
       - name: PHP Syntax Lint
         run: |
-          find app config tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          find app config scripts tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Run MarkdownRenderer Test
         run: php tests/MarkdownRendererTest.php
@@ -60,6 +58,9 @@ jobs:
 
       - name: Run News Module Regression Test
         run: php tests/NewsModuleRegressionTest.php
+
+      - name: Run Admin Post Validation Test
+        run: php tests/AdminPostValidationTest.php
 
   db-integration:
     name: Database Search & Persistence Integration Test
@@ -107,6 +108,21 @@ jobs:
       - name: Import Database Schema
         run: |
           mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/schema.sql
+
+      - name: Run Database Runtime Safety Test
+        run: php tests/DatabaseRuntimeSafetyTest.php
+
+      - name: Run Non-Destructive Migrations
+        run: php scripts/database/migrate.php
+
+      - name: Run Safe News Seeder Dry-Run
+        run: php scripts/database/seed-news.php --dry-run
+
+      - name: Run Safe News Seeder Seeding
+        run: php scripts/database/seed-news.php --repair-placeholders
+
+      - name: Run Seeder Safety Integration Test
+        run: php tests/SeederSafetyIntegrationTest.php
 
       - name: Run Author Cases Database Test
         run: php tests/test_author_cases.php
