@@ -8,7 +8,6 @@ class CatalogGroupService
 {
     /**
      * Contract định nghĩa 7 Virtual Catalog Groups cố định.
-     * Nguồn sự thật duy nhất (Single Source of Truth) cho source_slugs & aliases.
      */
     private static array $groupDefinitions = [
         'laptop' => [
@@ -17,8 +16,7 @@ class CatalogGroupService
             'virtual_slug'    => 'laptop',
             'icon'            => 'fa-solid fa-laptop',
             'source_slugs'    => ['laptop-gaming', 'laptop-van-phong'],
-            'aliases'         => ['laptop', 'laptop-gaming', 'laptop-van-phong', 'may-tinh-xach-tay', 'lap'],
-            'keyword_aliases' => ['laptop', 'laptop gaming', 'laptop van phong', 'laptop văn phòng', 'máy tính xách tay', 'may tinh xach tay', 'lap'],
+            'group_aliases'   => ['laptop', 'may-tinh-xach-tay', 'lap'],
         ],
         'pc' => [
             'key'             => 'pc',
@@ -26,8 +24,7 @@ class CatalogGroupService
             'virtual_slug'    => 'pc',
             'icon'            => 'fa-solid fa-desktop',
             'source_slugs'    => ['pc-build-san', 'may-tinh-bo'],
-            'aliases'         => ['pc', 'pc-build-san', 'may-tinh-bo', 'pc-gaming', 'pc-van-phong', 'may-bo', 'may-tinh-de-ban'],
-            'keyword_aliases' => ['pc', 'máy tính để bàn', 'may tinh de ban', 'máy bộ', 'may bo', 'pc build sẵn', 'pc build san'],
+            'group_aliases'   => ['pc', 'pc-gaming', 'pc-van-phong', 'may-bo', 'may-tinh-de-ban'],
         ],
         'pc-linh-kien' => [
             'key'             => 'pc-linh-kien',
@@ -35,8 +32,7 @@ class CatalogGroupService
             'virtual_slug'    => 'pc-linh-kien',
             'icon'            => 'fa-solid fa-microchip',
             'source_slugs'    => ['pc-linh-kien', 'cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'],
-            'aliases'         => ['pc-linh-kien', 'linh-kien-pc', 'linh-kien', 'cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'],
-            'keyword_aliases' => ['linh kiện', 'linh kien', 'linh kiện pc', 'linh kien pc'],
+            'group_aliases'   => ['pc-linh-kien', 'linh-kien-pc', 'linh-kien'],
         ],
         'man-hinh' => [
             'key'             => 'man-hinh',
@@ -44,8 +40,7 @@ class CatalogGroupService
             'virtual_slug'    => 'man-hinh',
             'icon'            => 'fa-solid fa-tv',
             'source_slugs'    => ['man-hinh'],
-            'aliases'         => ['man-hinh', 'monitor'],
-            'keyword_aliases' => ['màn hình', 'man hinh', 'monitor'],
+            'group_aliases'   => ['man-hinh', 'monitor'],
         ],
         'gaming-gear' => [
             'key'             => 'gaming-gear',
@@ -53,8 +48,7 @@ class CatalogGroupService
             'virtual_slug'    => 'gaming-gear',
             'icon'            => 'fa-solid fa-gamepad',
             'source_slugs'    => ['gaming-gear'],
-            'aliases'         => ['gaming-gear', 'gear'],
-            'keyword_aliases' => ['gaming gear', 'gear'],
+            'group_aliases'   => ['gaming-gear', 'gear'],
         ],
         'office-gear' => [
             'key'             => 'office-gear',
@@ -62,8 +56,7 @@ class CatalogGroupService
             'virtual_slug'    => 'office-gear',
             'icon'            => 'fa-solid fa-print',
             'source_slugs'    => ['office-gear'],
-            'aliases'         => ['office-gear', 'thiet-bi-van-phong'],
-            'keyword_aliases' => ['thiết bị văn phòng', 'thiet bi van phong', 'văn phòng', 'van phong'],
+            'group_aliases'   => ['office-gear', 'thiet-bi-van-phong'],
         ],
         'networking' => [
             'key'             => 'networking',
@@ -71,9 +64,70 @@ class CatalogGroupService
             'virtual_slug'    => 'networking',
             'icon'            => 'fa-solid fa-wifi',
             'source_slugs'    => ['networking'],
-            'aliases'         => ['networking', 'thiet-bi-mang'],
-            'keyword_aliases' => ['thiết bị mạng', 'thiet bi mang', 'mạng', 'mang'],
+            'group_aliases'   => ['networking', 'thiet-bi-mang'],
         ],
+    ];
+
+    /**
+     * Map keyword search cố định có target riêng (Single Source of Truth)
+     */
+    private static array $keywordAliasMap = [
+        'laptop'            => ['laptop-gaming', 'laptop-van-phong'],
+        'laptop gaming'     => ['laptop-gaming'],
+        'laptop van phong'  => ['laptop-van-phong'],
+        'laptop văn phòng'  => ['laptop-van-phong'],
+        'máy tính xách tay' => ['laptop-gaming', 'laptop-van-phong'],
+        'may tinh xach tay' => ['laptop-gaming', 'laptop-van-phong'],
+        'lap'               => ['laptop-gaming', 'laptop-van-phong'],
+
+        'pc'                => ['pc-build-san', 'may-tinh-bo'],
+        'pc build sẵn'      => ['pc-build-san'],
+        'pc build san'      => ['pc-build-san'],
+        'máy bộ'            => ['pc-build-san', 'may-tinh-bo'],
+        'may bo'            => ['pc-build-san', 'may-tinh-bo'],
+        'máy tính để bàn'   => ['pc-build-san', 'may-tinh-bo'],
+        'may tinh de ban'   => ['pc-build-san', 'may-tinh-bo'],
+
+        'linh kiện'         => ['pc-linh-kien', 'cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'],
+        'linh kien'         => ['pc-linh-kien', 'cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'],
+        'linh kiện pc'      => ['pc-linh-kien', 'cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'],
+        'linh kien pc'      => ['pc-linh-kien', 'cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'],
+
+        'cpu'               => ['cpu'],
+        'mainboard'         => ['mainboard'],
+        'main'              => ['mainboard'],
+        'ram'               => ['ram'],
+        'vga'               => ['vga'],
+        'card màn hình'     => ['vga'],
+        'card man hinh'     => ['vga'],
+        'card đồ họa'       => ['vga'],
+        'card do hoa'       => ['vga'],
+        'ssd'               => ['ssd'],
+        'hdd'               => ['hdd'],
+        'psu'               => ['psu'],
+        'nguồn'             => ['psu'],
+        'nguon'             => ['psu'],
+        'case'              => ['case'],
+        'vỏ máy'            => ['case'],
+        'tản nhiệt'         => ['tan-nhiet'],
+        'tan nhiet'         => ['tan-nhiet'],
+
+        'màn hình'          => ['man-hinh'],
+        'man hinh'          => ['man-hinh'],
+        'monitor'           => ['man-hinh'],
+
+        'gaming gear'       => ['gaming-gear'],
+        'gear'              => ['gaming-gear'],
+
+        'thiết bị văn phòng'=> ['office-gear'],
+        'thiet bi van phong'=> ['office-gear'],
+        'văn phòng'         => ['office-gear'],
+        'van phong'         => ['office-gear'],
+
+        'thiết bị mạng'     => ['networking'],
+        'thiet bi mang'     => ['networking'],
+        'mạng'              => ['networking'],
+        'mang'              => ['networking'],
     ];
 
     /** Connection Provider Seam cho testing / DI */
@@ -88,7 +142,7 @@ class CatalogGroupService
     }
 
     /**
-     * Lấy PDO connection (thông qua provider hoăc mặc định từ Database)
+     * Lấy PDO connection
      */
     private static function getConnection(): ?PDO
     {
@@ -101,7 +155,7 @@ class CatalogGroupService
     }
 
     /**
-     * 1. Resolver API: Tìm key của Virtual Group từ slug hoặc alias bất kỳ
+     * 1. Resolver API: Tìm key của Virtual Group nếu slugOrAlias khớp virtual_slug/key/group_alias
      */
     public static function resolveGroupKey(string $slugOrAlias): ?string
     {
@@ -110,14 +164,16 @@ class CatalogGroupService
             return null;
         }
 
+        // Ưu tiên 1: Exact virtual_slug hoặc key
         foreach (self::$groupDefinitions as $key => $def) {
-            if (
-                $key === $input ||
-                $def['virtual_slug'] === $input ||
-                in_array($input, $def['source_slugs'], true) ||
-                in_array($input, $def['aliases'], true) ||
-                in_array($input, $def['keyword_aliases'], true)
-            ) {
+            if ($key === $input || $def['virtual_slug'] === $input) {
+                return $key;
+            }
+        }
+
+        // Ưu tiên 2: Group-level route alias (như lap, may-tinh-xach-tay, linh-kien, linh-kien-pc)
+        foreach (self::$groupDefinitions as $key => $def) {
+            if (in_array($input, $def['group_aliases'], true)) {
                 return $key;
             }
         }
@@ -127,6 +183,12 @@ class CatalogGroupService
 
     /**
      * 2. Resolver API: Chuyển đổi slug/alias thành danh sách source_slugs hợp lệ cho SQL query
+     *
+     * Ưu tiên resolution:
+     * 1. Exact virtual_slug / key -> expand cả group. (vd: 'laptop', 'pc', 'pc-linh-kien')
+     * 2. Group-level route alias -> expand cả group. (vd: 'lap', 'may-tinh-xach-tay', 'linh-kien')
+     * 3. Exact source_slug -> CHỈ trả chính source slug đó! (vd: 'laptop-gaming', 'cpu', 'vga', 'ram')
+     * 4. Unknown slug -> trả [$slugOrAlias]
      */
     public static function resolveSourceSlugs(string $slugOrAlias): array
     {
@@ -135,12 +197,20 @@ class CatalogGroupService
             return [];
         }
 
+        // Ưu tiên 1 & 2: Virtual Group Slug / Key / Group Alias (vd: 'laptop', 'pc', 'pc-linh-kien', 'linh-kien')
         $groupKey = self::resolveGroupKey($input);
         if ($groupKey !== null && isset(self::$groupDefinitions[$groupKey])) {
             return self::$groupDefinitions[$groupKey]['source_slugs'];
         }
 
-        // Nếu không khớp group nào, giữ nguyên slug truyền vào
+        // Ưu tiên 3: Exact source_slug -> CHỈ trả chính source slug đó!
+        foreach (self::$groupDefinitions as $def) {
+            if (in_array($input, $def['source_slugs'], true)) {
+                return [$input];
+            }
+        }
+
+        // Ưu tiên 4: Unknown slug -> giữ nguyên
         return [$input];
     }
 
@@ -155,20 +225,33 @@ class CatalogGroupService
 
     /**
      * 4. Resolver API: Lấy Tên hiển thị chuẩn (Human-readable Display Name)
+     * - Virtual root slug ('laptop', 'pc', 'pc-linh-kien') -> Tên Virtual Group ('Laptop', 'PC & Build PC', 'Linh kiện PC')
+     * - Exact source slug ('laptop-gaming', 'cpu', 'ram') -> Tên category cụ thể ('Laptop Gaming', 'CPU', 'RAM')
      */
     public static function getDisplayName(string $slugOrAlias): string
     {
-        $groupKey = self::resolveGroupKey($slugOrAlias);
-        if ($groupKey !== null && isset(self::$groupDefinitions[$groupKey])) {
+        $input = strtolower(trim($slugOrAlias));
+        if ($input === '') {
+            return '';
+        }
+
+        // Nếu khớp Virtual Group Slug hoặc Key chính thức (laptop, pc, pc-linh-kien, office-gear, networking, v.v.)
+        if (isset(self::$groupDefinitions[$input])) {
+            return self::$groupDefinitions[$input]['name'];
+        }
+
+        // Nếu là group alias thuần túy (không phải là single source slug)
+        $groupKey = self::resolveGroupKey($input);
+        if ($groupKey !== null && !self::isExactSourceSlug($input)) {
             return self::$groupDefinitions[$groupKey]['name'];
         }
 
-        // Fallback tên nếu là danh mục đơn từ DB
+        // Với exact source slug hoặc category slug khác, tra cứu tên category thật từ DB
         $db = self::getConnection();
         if ($db !== null) {
             try {
                 $stmt = $db->prepare("SELECT name FROM categories WHERE slug = :slug AND status = 'active'");
-                $stmt->execute([':slug' => $slugOrAlias]);
+                $stmt->execute([':slug' => $input]);
                 $catName = $stmt->fetchColumn();
                 if ($catName) {
                     return $catName;
@@ -176,22 +259,32 @@ class CatalogGroupService
             } catch (Exception $e) {}
         }
 
-        return ucfirst(str_replace('-', ' ', $slugOrAlias));
+        return ucfirst(str_replace('-', ' ', $input));
     }
 
     /**
-     * Tra cứu tất cả keyword aliases để phục vụ Product search mapping
+     * Kiểm tra xem 1 slug có phải là exact source_slug cụ thể hay không
+     */
+    private static function isExactSourceSlug(string $slug): bool
+    {
+        foreach (self::$groupDefinitions as $def) {
+            // pc-linh-kien vừa là virtual_slug vừa là parent slug -> phải được ưu tiên như virtual group
+            if ($slug === 'pc-linh-kien') {
+                return false;
+            }
+            if (in_array($slug, $def['source_slugs'], true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Trả về mảng map keyword search có target riêng
      */
     public static function getKeywordAliasMap(): array
     {
-        $map = [];
-        foreach (self::$groupDefinitions as $def) {
-            $sourceSlugs = $def['source_slugs'];
-            foreach ($def['keyword_aliases'] as $kw) {
-                $map[$kw] = $sourceSlugs;
-            }
-        }
-        return $map;
+        return self::$keywordAliasMap;
     }
 
     /**
@@ -205,7 +298,6 @@ class CatalogGroupService
         }
 
         try {
-            // Lấy danh mục active và map slug -> id linh hoạt
             $stmtCats = $db->query("SELECT id, parent_id, name, slug, status FROM categories WHERE status = 'active'");
             $allCats = $stmtCats->fetchAll(PDO::FETCH_ASSOC);
 
@@ -213,7 +305,6 @@ class CatalogGroupService
                 return self::getFallbackGroups();
             }
 
-            // Lấy sản phẩm active thuộc các category active
             $stmtProds = $db->query("
                 SELECT p.id, p.category_id, p.price, p.sale_price, b.id as brand_id, b.name as brand_name, b.slug as brand_slug
                 FROM products p
@@ -265,17 +356,13 @@ class CatalogGroupService
     {
         $sourceSlugs = $def['source_slugs'];
 
-        // Map động source_slugs thành source_category_ids từ DB
         $sourceCatIds = [];
-        $catMap = [];
         foreach ($allCats as $cat) {
-            $catMap[$cat['id']] = $cat;
             if (in_array($cat['slug'], $sourceSlugs, true)) {
                 $sourceCatIds[] = (int)$cat['id'];
             }
         }
 
-        // Lọc sản phẩm thuộc các source_category_ids
         $groupProds = array_filter($allProds, function ($p) use ($sourceCatIds) {
             return in_array((int)$p['category_id'], $sourceCatIds, true);
         });
@@ -283,7 +370,6 @@ class CatalogGroupService
         $productCount = count($groupProds);
         $status = ($productCount > 0) ? 'ready' : 'not_ready';
 
-        // Lấy thương hiệu duy nhất
         $brandMap = [];
         foreach ($groupProds as $p) {
             if (!empty($p['brand_name']) && !empty($p['brand_slug'])) {
@@ -300,7 +386,6 @@ class CatalogGroupService
         ksort($brandMap);
         $brands = array_values($brandMap);
 
-        // Lấy subgroups thực sự có sản phẩm (>0)
         $subgroups = [];
         foreach ($allCats as $cat) {
             $catId = (int)$cat['id'];
@@ -318,7 +403,6 @@ class CatalogGroupService
             }
         }
 
-        // Mức giá effective
         $effectivePrices = array_map(function ($p) {
             $sale = (float)($p['sale_price'] ?? 0);
             $orig = (float)($p['price'] ?? 0);
@@ -344,12 +428,12 @@ class CatalogGroupService
         return [
             'key'                     => $def['key'],
             'name'                    => $def['name'],
-            'canonical_slug'           => $def['virtual_slug'], // Virtual slug làm link đại diện duy nhất
+            'canonical_slug'           => $def['virtual_slug'],
             'virtual_slug'            => $def['virtual_slug'],
             'icon'                    => $def['icon'],
             'source_category_ids'     => array_values(array_unique($sourceCatIds)),
             'source_slugs'            => $sourceSlugs,
-            'aliases'                 => $def['aliases'],
+            'aliases'                 => $def['group_aliases'],
             'status'                  => $status,
             'product_count'           => $productCount,
             'subgroups'               => $subgroups,
@@ -361,9 +445,6 @@ class CatalogGroupService
         ];
     }
 
-    /**
-     * Tạo mảng khoảng giá linh hoạt theo nhóm
-     */
     private static function generatePriceRanges(string $groupKey, ?float $minPrice, ?float $maxPrice): array
     {
         if ($minPrice === null || $maxPrice === null) {
@@ -403,10 +484,6 @@ class CatalogGroupService
         ];
     }
 
-    /**
-     * Fallback Contract an toàn khi database unavailable.
-     * KHÔNG group nào có status = ready khi DB ngắt kết nối.
-     */
     public static function getFallbackGroups(): array
     {
         $fallback = [];
@@ -419,8 +496,8 @@ class CatalogGroupService
                 'icon'                    => $def['icon'],
                 'source_category_ids'     => [],
                 'source_slugs'            => $def['source_slugs'],
-                'aliases'                 => $def['aliases'],
-                'status'                  => 'unavailable', // Không bao giờ trả ready khi DB unavailable
+                'aliases'                 => $def['group_aliases'],
+                'status'                  => 'unavailable',
                 'product_count'          => 0,
                 'subgroups'              => [],
                 'brands'                 => [],

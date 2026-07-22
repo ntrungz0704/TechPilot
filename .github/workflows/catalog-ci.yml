@@ -43,15 +43,12 @@ jobs:
           php -l app/controllers/HomeController.php
           php -l tests/CatalogGroupTest.php
 
-      - name: Import Database Schema & Seed Data
+      - name: Import Database Fixture Data
         run: |
-          if [ -f "database/schema.sql" ]; then
+          if [ -f "tests/fixtures/catalog_ci.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < tests/fixtures/catalog_ci.sql
+          elif [ -f "database/schema.sql" ]; then
             mysql -h 127.0.0.1 -u root techpilot < database/schema.sql
-          elif [ -f "schema.sql" ]; then
-            mysql -h 127.0.0.1 -u root techpilot < schema.sql
-          fi
-          if [ -f "database/seeds.sql" ]; then
-            mysql -h 127.0.0.1 -u root techpilot < database/seeds.sql
           fi
 
       - name: Run Catalog Group Integration Tests

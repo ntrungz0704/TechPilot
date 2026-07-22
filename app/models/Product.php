@@ -1283,7 +1283,7 @@ class Product
         bool $inStockOnly = false,
         bool $promoOnly = false
     ): array {
-        $conditions = ["p.status = 'active'"];
+        $conditions = ["p.status = 'active'", "c.status = 'active'"];
         $params = [];
 
         require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
