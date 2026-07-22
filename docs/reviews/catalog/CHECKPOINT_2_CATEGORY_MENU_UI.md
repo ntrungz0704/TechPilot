@@ -51,13 +51,14 @@ Báo cáo Checkpoint 2 V2 trình bày toàn bộ kết quả sửa đổi **Tác
 | Tiêu chí CI | Giá trị xác minh thực tế |
 | :--- | :--- |
 | **Workflow Name** | `Catalog Virtual Routing & Contract CI` |
-| **Run ID** | `29954728767` / `29954910283` |
-| **Commit SHA** | `e16daa1` / Code V2 Final SHA |
+| **Run ID** | `29958779778` |
+| **Job ID** | `89054421472` |
+| **Commit SHA** | `fae5be7` / `76c3a7d` / `2245b72` / `5239732` / `b3ee943` |
 | **Branch** | `feature/hieu-news` |
 | **Status** | `completed` |
 | **Conclusion** | `success` |
-| **Duration** | `39s` - `45s` |
-| **Job Steps Executed** | 1. Checkout Repository<br>2. Setup PHP 8.3 & Node.js 20<br>3. Install NPM Dependencies (`puppeteer`)<br>4. PHP Lint Check (8 files: services, models, controllers, views, tests)<br>5. Import Database Fixture Data (`tests/fixtures/catalog_ci.sql`) <br>6. Run PHP Integration Tests (`CatalogGroupTest.php`, `CatalogMenuUITest.php`)<br>7. Run Browser UI & Accessibility Audit Suite (`browser_ui_test.js`) |
+| **Duration** | `1m3s` |
+| **Job Steps Executed** | 1. Checkout Repository<br>2. Setup PHP 8.3 & Node.js 20<br>3. Install NPM Dependencies (`puppeteer`)<br>4. PHP Lint Check (8 files: services, models, controllers, views, tests)<br>5. Import Database Fixture Data (`database/schema.sql` + `tests/fixtures/catalog_ci.sql`) <br>6. Run PHP Integration Tests (`CatalogGroupTest.php`, `CatalogMenuUITest.php`)<br>7. Run Browser UI & Accessibility Audit Suite (`browser_ui_test.js`) |
 
 ---
 
