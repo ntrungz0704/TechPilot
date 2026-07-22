@@ -8,7 +8,7 @@ if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', dirname(__DIR__));
 }
 require_once ROOT_PATH . '/config/database.php';
-require_once ROOT_PATH . '/scripts/database/seed-news.php'; // Defines isPlaceholderPostContent function
+require_once ROOT_PATH . '/app/models/Post.php';
 
 class SeederSafetyIntegrationTest
 {
@@ -98,7 +98,7 @@ class SeederSafetyIntegrationTest
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($existing) {
-            $isPlaceholder = isPlaceholderPostContent($existing['content']);
+            $isPlaceholder = Post::isPlaceholderContent($existing['content']);
             $this->assert(!$isPlaceholder, "Seeded article with length >= 100 is NOT identified as placeholder");
             $this->assert((int)$existing['len'] >= 100, "Article content length is >= 100 chars (Actual: {$existing['len']})");
         } else {
@@ -111,11 +111,11 @@ class SeederSafetyIntegrationTest
         echo "\n--- 3. Testing Placeholder Content Repair Detection ---\n";
 
         $placeholderContent = "<p>Nội dung chi tiết đánh giá...</p>";
-        $isPlaceholder = isPlaceholderPostContent($placeholderContent);
+        $isPlaceholder = Post::isPlaceholderContent($placeholderContent);
         $this->assert($isPlaceholder, "Short placeholder string identified as placeholder needing repair");
 
         $emptyContent = "";
-        $this->assert(isPlaceholderPostContent($emptyContent), "Empty string identified as placeholder needing repair");
+        $this->assert(Post::isPlaceholderContent($emptyContent), "Empty string identified as placeholder needing repair");
     }
 }
 
