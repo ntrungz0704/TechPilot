@@ -1441,7 +1441,7 @@
                             : baseUrl + '/public/assets/images/products/' + item.image))
                     : baseUrl + '/public/assets/images/laptop-gaming.jpg';
                 card.innerHTML = `
-                    <img class="tp-rec-img" src="${imgSrc}" onerror="this.src='${baseUrl}/public/assets/images/laptop-gaming.jpg'">`
+                    <img class="tp-rec-img" src="${imgSrc}" onerror="this.src='${baseUrl}/public/assets/images/laptop-gaming.jpg'">
                     <div class="tp-rec-info">
                         <h5>${item.name}</h5>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
