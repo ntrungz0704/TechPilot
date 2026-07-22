@@ -22,6 +22,20 @@ if (!function_exists('mb_substr')) {
 }
 
 
+if (!function_exists('formatPhone')) {
+    function formatPhone(string $phone): string
+    {
+        $phone = trim($phone);
+        if (strpos($phone, '0') === 0) {
+            return '+84' . substr($phone, 1);
+        }
+        if (strpos($phone, '+84') !== 0 && $phone !== '') {
+            return '+84' . $phone;
+        }
+        return $phone;
+    }
+}
+
 if (!function_exists('formatPrice')) {
     function formatPrice($price): string
     {

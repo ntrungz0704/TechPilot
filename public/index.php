@@ -24,6 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $router = new Router();
+
+// Auth Routes
+$router->get('/auth/forgot', 'AuthController@forgot');
+$router->post('/auth/forgot', 'AuthController@forgot');
+$router->get('/auth/reset', 'AuthController@reset');
+$router->post('/auth/reset', 'AuthController@reset');
+
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
 $router->post('/product/review', 'ProductController@review');
 $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
@@ -32,6 +39,9 @@ $router->post('/profile/delete_address', 'ProfileController@delete_address');
 $router->post('/profile/repay', 'ProfileController@repay');
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
+
+// API Notifications
+$router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
@@ -113,5 +123,8 @@ $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 // News Routes
 $router->get('/tin-tuc', 'NewsController@index');
 $router->get('/tin-tuc/{slug}', 'NewsController@show');
+$router->get('/post', 'PostController@index');
+$router->get('/post/detail/{slug}', 'PostController@detail');
+$router->get('/post/{slug}', 'PostController@detail');
 
 $router->dispatch($url);
