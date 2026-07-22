@@ -36,6 +36,7 @@ class NewsModuleRegressionTest
         $this->testSearchRelevanceAndLikeEscaping();
         $this->testAuthorAndJsonLdSchema();
         $this->testTocAndMarkdownSecurity();
+        $this->testPublishedContentValidation();
 
         echo "\n════════════════════════════════════════════════════════\n";
         echo "Regression Test Results: {$this->passed} passed, {$this->failed} failed\n";
@@ -259,6 +260,32 @@ class NewsModuleRegressionTest
         $this->assert(!str_contains($html, "href=\"javascript:"), "Executable javascript: URL is stripped");
         $this->assert(isset($result['quickSummaryHtml']), "Rendered output contains quickSummaryHtml key");
         $this->assert(isset($result['sourcesHtml']), "Rendered output contains sourcesHtml key");
+    }
+
+    private function testPublishedContentValidation(): void
+    {
+        echo "\n--- 7. Testing Published Post Content Validation ---\n";
+
+        // Empty content for published post
+        $v1 = Post::validatePublishedContent('', 'published');
+        $this->assert(!$v1['valid'], "Empty content is invalid for published status");
+
+        // Short content (< 100 chars)
+        $v2 = Post::validatePublishedContent('Nội dung quá ngắn', 'published');
+        $this->assert(!$v2['valid'], "Short content (< 100 chars) is invalid for published status");
+
+        // Placeholder content
+        $v3 = Post::validatePublishedContent('<p>Nội dung chi tiết đánh giá...</p>', 'published');
+        $this->assert(!$v3['valid'], "Placeholder content is invalid for published status");
+
+        // Valid rich content
+        $richContent = ":::summary\n- Tóm tắt bài viết\n:::\n\n## 1. Giới thiệu\n\n" . str_repeat("Nội dung bài viết thử nghiệm đầy đủ chuẩn SEO. ", 15);
+        $v4 = Post::validatePublishedContent($richContent, 'published');
+        $this->assert($v4['valid'], "Rich markdown content (>= 100 chars) is valid for published status");
+
+        // Draft status allows empty/short content
+        $v5 = Post::validatePublishedContent('', 'draft');
+        $this->assert($v5['valid'], "Draft status allows empty content");
     }
 }
 
