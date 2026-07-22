@@ -68,8 +68,13 @@ class AdminPostController extends Controller
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
                 
-                if (empty($title) || empty($content)) {
-                    throw new Exception('Vui lòng nhập đầy đủ tiêu đề và nội dung');
+                if (empty($title)) {
+                    throw new Exception('Vui lòng nhập tiêu đề bài viết');
+                }
+
+                $validation = Post::validatePublishedContent($content, $status);
+                if (!$validation['valid']) {
+                    throw new Exception(implode(' ', $validation['errors']));
                 }
 
                 $image = null;
@@ -93,7 +98,7 @@ class AdminPostController extends Controller
                 
                 $stmt = $db->prepare($sql);
                 $stmt->execute([
-                    ':author_id' => $_SESSION['user']['id'],
+                    ':author_id' => $_SESSION['user']['id'] ?? null,
                     ':title' => $title,
                     ':slug' => $slug,
                     ':summary' => $summary,
@@ -115,7 +120,17 @@ class AdminPostController extends Controller
                 $this->renderAdmin('admin/posts/create', [
                     'pageTitle' => 'Thêm bài viết mới',
                     'activeMenu' => 'posts',
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'post' => [
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ]
                 ]);
             }
         }
@@ -166,14 +181,18 @@ class AdminPostController extends Controller
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
 
-                if (empty($title) || empty($content)) {
-                    throw new Exception('Vui lòng nhập đầy đủ tiêu đề và nội dung');
+                if (empty($title)) {
+                    throw new Exception('Vui lòng nhập tiêu đề bài viết');
+                }
+
+                $validation = Post::validatePublishedContent($content, $status);
+                if (!$validation['valid']) {
+                    throw new Exception(implode(' ', $validation['errors']));
                 }
 
                 $image = $post['image'];
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                     if ($image) {
-                        // Xoá ảnh cũ nếu tồn tại (tìm cả posts/ lẫn news/ cho backward compat)
                         $oldPaths = [
                             ROOT_PATH . '/public/assets/images/posts/' . basename($image),
                             ROOT_PATH . '/public/assets/images/news/' . basename($image),
@@ -185,14 +204,11 @@ class AdminPostController extends Controller
                     $image = UploadService::uploadImage($_FILES['image'], 'posts');
                 }
 
-                // Không tự động đổi slug khi edit để tránh hỏng SEO (chỉ đổi nếu explicit update slug form - tạm bỏ qua)
                 $slug = $post['slug']; 
 
                 $publishedAt = $post['published_at'];
                 if ($status === 'published' && empty($publishedAt)) {
                     $publishedAt = date('Y-m-d H:i:s');
-                } elseif ($status !== 'published') {
-                    // Tùy chọn: clear published_at nếu unpublish. Ở đây giữ nguyên cho history.
                 }
 
                 $sql = 'UPDATE posts SET 
@@ -228,9 +244,22 @@ class AdminPostController extends Controller
                 exit;
 
             } catch (Exception $e) {
-                $_SESSION['error'] = $e->getMessage();
-                header('Location: ' . url('admin/posts/edit/' . $id));
-                exit;
+                $this->renderAdmin('admin/posts/edit', [
+                    'pageTitle' => 'Chỉnh sửa bài viết',
+                    'activeMenu' => 'posts',
+                    'error' => $e->getMessage(),
+                    'post' => array_merge($post ?? [], [
+                        'id' => $id,
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ])
+                ]);
             }
         }
     }
