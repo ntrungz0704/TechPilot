@@ -1,6 +1,13 @@
 <div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Viết bài viết mới</h3>
     
+    <?php if (!empty($error)): ?>
+        <div class="alert alert--danger" role="alert" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background-color: #FEE2E2; color: #991B1B; border: 1px solid #F87171; font-weight: 500;">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i>
+            <?= e($error) ?>
+        </div>
+    <?php endif; ?>
+
     <form method="post" action="<?= url('admin/posts/store') ?>" enctype="multipart/form-data">
         <?= csrf_field() ?>
         
