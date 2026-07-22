@@ -974,24 +974,21 @@ class Product
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE c.slug = :slug OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug)
+                     WHERE c.slug = :slug_direct OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug_parent)
                      ORDER BY p.id DESC LIMIT :limit'
                 );
-                $stmt->bindValue(':slug', $slug);
+                $stmt->bindValue(':slug_direct', $slug);
+                $stmt->bindValue(':slug_parent', $slug);
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
-            } catch (Exception $e) {}
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                error_log("getByCategorySlug error for slug '$slug': " . $e->getMessage());
+                return [];
+            }
         }
 
-        $samples = array_filter(self::getSampleProducts(), fn($p) => ($p['category_slug'] ?? '') === $slug);
-        if (empty($samples)) {
-            return array_slice(self::getSampleProducts(), 0, $limit);
-        }
-        return array_slice(array_values($samples), 0, $limit);
+        return [];
     }
 
     /** Lấy 1 sản phẩm theo id */
@@ -1278,18 +1275,24 @@ class Product
             'laptop văn phòng'  => ['laptop-van-phong'],
             'máy tính xách tay' => ['laptop-gaming', 'laptop-van-phong'],
             'may tinh xach tay' => ['laptop-gaming', 'laptop-van-phong'],
-            'máy tính để bàn'   => ['pc-build-san'],
-            'may tinh de ban'   => ['pc-build-san'],
+            'máy tính để bàn'   => ['pc-build-san', 'may-tinh-bo'],
+            'may tinh de ban'   => ['pc-build-san', 'may-tinh-bo'],
             'gaming gear'       => ['gaming-gear'],
-            'linh kiện'         => ['linh-kien-pc'],
-            'linh kien'         => ['linh-kien-pc'],
+            'linh kiện'         => ['pc-linh-kien'],
+            'linh kien'         => ['pc-linh-kien'],
+            'linh kiện pc'      => ['pc-linh-kien'],
+            'linh kien pc'      => ['pc-linh-kien'],
             'màn hình'          => ['man-hinh'],
             'man hinh'          => ['man-hinh'],
             'laptop'            => ['laptop-gaming', 'laptop-van-phong'],
-            'máy bộ'            => ['pc-build-san'],
-            'may bo'            => ['pc-build-san'],
+            'máy bộ'            => ['pc-build-san', 'may-tinh-bo'],
+            'may bo'            => ['pc-build-san', 'may-tinh-bo'],
             'lap'               => ['laptop-gaming', 'laptop-van-phong'],
-            'pc'                => ['pc-build-san'],
+            'pc'                => ['pc-build-san', 'may-tinh-bo'],
+            'thiết bị văn phòng'=> ['office-gear'],
+            'thiet bi van phong'=> ['office-gear'],
+            'thiết bị mạng'     => ['networking'],
+            'thiet bi mang'     => ['networking'],
             'cpu'               => ['cpu'],
             'mainboard'         => ['mainboard'],
             'main'              => ['mainboard'],

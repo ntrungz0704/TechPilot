@@ -1,86 +1,70 @@
 <?php
 
-class CategoryMenuService {
-    public static function getActiveMenuTree() {
-        require_once ROOT_PATH . '/config/database.php';
-        $db = Database::getConnection();
-        
-        if ($db === null) {
-            return []; // Return empty menu tree if database is unavailable
-        }
+require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
 
-        // 1. Get main categories (parent_id IS NULL)
-        $stmt = $db->query("SELECT id, name, slug, icon FROM categories WHERE status = 'active' AND parent_id IS NULL ORDER BY sort_order ASC, name ASC");
-        $mainCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // 2. Get sub categories
-        $stmt = $db->query("SELECT id, parent_id, name, slug FROM categories WHERE status = 'active' AND parent_id IS NOT NULL ORDER BY sort_order ASC, name ASC");
-        $subCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // 3. Get active products with category_id, brand name, brand slug
-        $stmt = $db->query("
-            SELECT p.category_id, b.name as brand_name, b.slug as brand_slug
-            FROM products p
-            LEFT JOIN brands b ON p.brand_id = b.id
-            WHERE p.status = 'active'
-        ");
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $menuTree = [];
-        
-        foreach ($mainCategories as $cat) {
-            $catId = $cat['id'];
-            $catBrands = [];
-            $hasProducts = false;
-            
-            foreach ($products as $p) {
-                if ($p['category_id'] == $catId) {
-                    $hasProducts = true;
+class CategoryMenuService
+{
+    /**
+     * Lấy mảng cây danh mục cho Storefront Mega Menu dựa trên CatalogGroupService
+     */
+    public static function getActiveMenuTree(): array
+    {
+        try {
+            $storefrontGroups = CatalogGroupService::getStorefrontGroups();
+            $menuTree = [];
+
+            foreach ($storefrontGroups as $group) {
+                // Bỏ qua các nhóm không có sản phẩm hoặc chưa sẵn sàng
+                if (($group['product_count'] ?? 0) <= 0 || ($group['status'] ?? 'not_ready') !== 'ready') {
+                    continue;
                 }
-                if ($p['category_id'] == $catId && !empty($p['brand_name'])) {
-                    $catBrands[$p['brand_name']] = $p['brand_slug'];
+
+                $megaColumns = [];
+
+                // 1. Sub-categories (Danh mục con thực sự có sản phẩm)
+                if (!empty($group['subgroups'])) {
+                    $subs = [];
+                    foreach ($group['subgroups'] as $sub) {
+                        $subs[] = [
+                            'name' => $sub['name'],
+                            'slug' => $sub['slug'],
+                        ];
+                    }
+                    if (!empty($subs)) {
+                        $megaColumns['Danh mục con'] = $subs;
+                    }
                 }
-            }
-            
-            if (!$hasProducts) {
-                continue; // Skip categories without products
-            }
-            
-            $megaColumns = [];
-            
-            // Sub-categories
-            $subs = [];
-            foreach ($subCategories as $sub) {
-                if ($sub['parent_id'] == $catId) {
-                    $subs[] = ['name' => $sub['name'], 'slug' => $sub['slug']];
+
+                // 2. Brands (Thương hiệu thực sự có sản phẩm trong nhóm)
+                if (!empty($group['brands'])) {
+                    $formattedBrands = [];
+                    foreach ($group['brands'] as $b) {
+                        $formattedBrands[] = [
+                            'name'  => $b['name'],
+                            'query' => $b['query'],
+                        ];
+                    }
+                    $megaColumns['Thương hiệu'] = $formattedBrands;
                 }
-            }
-            if (!empty($subs)) {
-                $megaColumns['Danh mục con'] = $subs;
-            }
-            
-            // Brands
-            if (!empty($catBrands)) {
-                $formattedBrands = [];
-                ksort($catBrands); // Sort by brand name
-                foreach ($catBrands as $bName => $bSlug) {
-                    $formattedBrands[] = ['name' => $bName, 'query' => 'brand=' . urlencode($bSlug)];
+
+                // 3. Price Ranges (Khoảng giá được tối ưu hóa cho từng nhóm)
+                if (!empty($group['price_ranges'])) {
+                    $megaColumns['Mức giá'] = $group['price_ranges'];
                 }
-                $megaColumns['Thương hiệu'] = $formattedBrands;
+
+                $menuTree[] = [
+                    'id'           => $group['key'],
+                    'name'         => $group['name'],
+                    'slug'         => $group['canonical_slug'],
+                    'icon'         => $group['icon'],
+                    'mega_columns' => $megaColumns,
+                ];
             }
-            
-            // Price Ranges
-            $megaColumns['Mức giá'] = [
-                ['name' => 'Dưới 15 triệu', 'query' => 'min_price=0&max_price=15000000'],
-                ['name' => 'Từ 15 - 20 triệu', 'query' => 'min_price=15000000&max_price=20000000'],
-                ['name' => 'Từ 20 - 30 triệu', 'query' => 'min_price=20000000&max_price=30000000'],
-                ['name' => 'Trên 30 triệu', 'query' => 'min_price=30000000']
-            ];
-            
-            $cat['mega_columns'] = $megaColumns;
-            $menuTree[] = $cat;
+
+            return $menuTree;
+        } catch (Exception $e) {
+            error_log('CategoryMenuService error: ' . $e->getMessage());
+            return []; // Graceful fallback
         }
-        
-        return $menuTree;
     }
 }
