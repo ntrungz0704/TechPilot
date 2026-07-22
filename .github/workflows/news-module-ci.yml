@@ -109,20 +109,20 @@ jobs:
         run: |
           mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/schema.sql
 
+      - name: Run Non-Destructive Migrations
+        run: php scripts/database/migrate.php
+
       - name: Run Database Runtime Safety Test
         run: php tests/DatabaseRuntimeSafetyTest.php
 
-      - name: Run Non-Destructive Migrations
-        run: php scripts/database/migrate.php
+      - name: Run Seeder Safety Integration Test
+        run: php tests/SeederSafetyIntegrationTest.php
 
       - name: Run Safe News Seeder Dry-Run
         run: php scripts/database/seed-news.php --dry-run
 
       - name: Run Safe News Seeder Seeding
         run: php scripts/database/seed-news.php --repair-placeholders
-
-      - name: Run Seeder Safety Integration Test
-        run: php tests/SeederSafetyIntegrationTest.php
 
       - name: Run Author Cases Database Test
         run: php tests/test_author_cases.php
