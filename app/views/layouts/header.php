@@ -46,6 +46,41 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <?php if (isset($metaDescription)): ?>
         <meta name="description" content="<?= e($metaDescription) ?>">
     <?php endif; ?>
+    <?php if (isset($canonicalUrl)): ?>
+        <link rel="canonical" href="<?= e($canonicalUrl) ?>">
+    <?php endif; ?>
+    <?php if (isset($ogType)): ?>
+        <meta property="og:type" content="<?= e($ogType) ?>">
+    <?php endif; ?>
+    <?php if (isset($ogTitle)): ?>
+        <meta property="og:title" content="<?= e($ogTitle) ?>">
+    <?php endif; ?>
+    <?php if (isset($ogDescription)): ?>
+        <meta property="og:description" content="<?= e($ogDescription) ?>">
+    <?php endif; ?>
+    <?php if (isset($ogUrl)): ?>
+        <meta property="og:url" content="<?= e($ogUrl) ?>">
+    <?php endif; ?>
+    <?php if (isset($ogImage)): ?>
+        <meta property="og:image" content="<?= e($ogImage) ?>">
+    <?php endif; ?>
+    <?php if (isset($twitterCard)): ?>
+        <meta name="twitter:card" content="<?= e($twitterCard) ?>">
+    <?php endif; ?>
+    <?php if (!empty($twitterTitle)): ?>
+        <meta name="twitter:title" content="<?= e($twitterTitle) ?>">
+    <?php endif; ?>
+    <?php if (!empty($twitterDescription)): ?>
+        <meta name="twitter:description" content="<?= e($twitterDescription) ?>">
+    <?php endif; ?>
+    <?php if (!empty($twitterImage)): ?>
+        <meta name="twitter:image" content="<?= e($twitterImage) ?>">
+    <?php endif; ?>
+    <?php if (!empty($structuredData)): ?>
+        <script type="application/ld+json">
+<?= $structuredData ?>
+        </script>
+    <?php endif; ?>
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">

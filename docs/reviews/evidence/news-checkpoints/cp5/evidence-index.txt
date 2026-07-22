@@ -1,0 +1,57 @@
+TechPilot News Module - Complete Evidence Inventory Index
+===================================================================================
+
+1. Checkpoint 1 Evidence Directory (docs/reviews/evidence/news-checkpoints/cp1/)
+   - 01-rich-detail-desktop.png
+   - 02-rich-detail-mobile.png
+   - 03-empty-fallback-desktop.png
+   - 04-empty-fallback-mobile.png
+   - browser-qa-matrix.txt
+   - console-summary.txt
+   - network-summary.txt
+   - test-summary.txt
+
+2. Checkpoint 4 Admin & Image Lifecycle Evidence Directory (docs/reviews/evidence/news-checkpoints/cp4/)
+   - 01-create-published-invalid.png
+   - 02-create-draft-empty.png
+   - 03-edit-published-invalid.png
+   - 04-edit-old-image-preserved.png
+   - 05-edit-image-replacement-success.png
+   - 06-edit-image-upload-failure.png
+   - 07-edit-image-db-failure.png
+   - browser-qa-matrix.txt
+   - console-summary.txt
+   - network-summary.txt
+   - image-lifecycle-qa.txt
+   - test-summary.txt
+
+3. Final Public News UI Evidence Directory (docs/reviews/evidence/news-final-gate/)
+   - 01-index-mobile-390x844.png
+   - 02-index-desktop-1440x900.png
+   - 03-search-mobile-390x844.png
+   - 04-search-desktop-1440x900.png
+   - 05-detail-mobile-390x844.png
+   - 06-detail-desktop-1440x900.png
+   - 07-empty-state-mobile-390x844.png
+   - 08-pagination-page999-desktop.png
+   - 09-dark-mode-mobile.png
+   - 10-dark-mode-desktop.png
+   - browser-qa-matrix.txt
+   - console-summary.txt
+   - network-summary.txt
+   - db-integration.txt
+   - php-tests.txt
+   - ci-fix-local-tests.txt
+
+4. Historical Corrective Evidence Directory (docs/reviews/evidence/news-corrective/)
+   *Note: Supporting historical baseline evidence, not primary final acceptance source.*
+   - browser-qa-matrix.txt
+   - console-summary.txt
+   - db-integration-output.txt
+   - network-summary.txt
+   - php-test-output.txt
+
+5. Checkpoint 5 Final Summary Directory (docs/reviews/evidence/news-checkpoints/cp5/)
+   - final-regression-summary.txt
+   - final-ci-summary.txt
+   - evidence-index.txt

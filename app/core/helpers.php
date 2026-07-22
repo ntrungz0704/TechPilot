@@ -72,6 +72,82 @@ if (!function_exists('url')) {
     }
 }
 
+if (!function_exists('resolveAbsoluteUrl')) {
+    /**
+     * Thuật toán tính toán absolute URL với kiểm tra validate APP_URL nghiêm ngặt.
+     */
+    function resolveAbsoluteUrl(string $path = '', ?string $appUrl = null, ?string $baseUrl = null, array $server = []): string
+    {
+        $appUrl = is_string($appUrl) ? trim($appUrl) : '';
+        $baseUrl = is_string($baseUrl) ? trim($baseUrl) : '';
+        $validAppUrl = false;
+
+        if ($appUrl !== '') {
+            // Kiểm tra scheme http:// hoặc https://
+            if (preg_match('/^https?:\/\//i', $appUrl)) {
+                $host = parse_url($appUrl, PHP_URL_HOST);
+                if (!empty($host) && preg_match('/^[a-zA-Z0-9.:\-\[\]]+$/', $host)) {
+                    $validAppUrl = true;
+                }
+            }
+
+            if (!$validAppUrl) {
+                error_log("[TechPilot Config Warning] Invalid APP_URL configured: '{$appUrl}'. Falling back to auto-detected origin.");
+            }
+        }
+
+        if ($validAppUrl) {
+            $base = rtrim($appUrl, '/');
+        } else {
+            // Tự detect scheme
+            $scheme = 'http';
+            if (
+                (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off') ||
+                (!empty($server['HTTP_X_FORWARDED_PROTO']) && $server['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+                (!empty($server['SERVER_PORT']) && (int)$server['SERVER_PORT'] === 443)
+            ) {
+                $scheme = 'https';
+            }
+
+            // Host an toàn: ưu tiên APP_HOST nếu có
+            $rawHost = defined('APP_HOST') && APP_HOST !== ''
+                ? APP_HOST
+                : ($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? 'localhost');
+
+            $host = preg_replace('/[^a-zA-Z0-9.:\-\[\]]/', '', (string) $rawHost);
+            if ($host === '') {
+                $host = 'localhost';
+            }
+
+            $base = $scheme . '://' . $host;
+
+            if ($baseUrl !== '') {
+                $base .= '/' . ltrim($baseUrl, '/');
+            }
+        }
+
+        $base = rtrim($base, '/');
+        $path = ltrim($path, '/');
+
+        return $path === '' ? $base . '/' : $base . '/' . $path;
+    }
+}
+
+if (!function_exists('absoluteUrl')) {
+    /**
+     * Trả về absolute URL (scheme + host + BASE_URL) cho SEO meta tags.
+     */
+    function absoluteUrl(string $path = ''): string
+    {
+        return resolveAbsoluteUrl(
+            $path,
+            defined('APP_URL') ? APP_URL : null,
+            defined('BASE_URL') ? BASE_URL : null,
+            $_SERVER
+        );
+    }
+}
+
 if (!function_exists('productImageUrl')) {
     function productImageUrl(?string $image = '', ?string $productType = ''): string
     {

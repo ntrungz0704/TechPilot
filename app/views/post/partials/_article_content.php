@@ -7,6 +7,8 @@
  * - $articleBlocks (array)
  * - $articleWordCount (int)
  * - $articleH2Count (int)
+ * - $quickSummaryHtml (string)
+ * - $sourcesHtml (string)
  * - $postType (string)
  * - $categorySlug (string)
  * - $midCtaConfig (array|null)
@@ -18,6 +20,8 @@ $articleHeadings  = is_array($articleHeadings ?? null) ? $articleHeadings : [];
 $articleBlocks    = is_array($articleBlocks ?? null) ? $articleBlocks : [];
 $articleWordCount = max(0, (int)($articleWordCount ?? 0));
 $articleH2Count   = max(0, (int)($articleH2Count ?? 0));
+$quickSummaryHtml = (string)($quickSummaryHtml ?? '');
+$sourcesHtml      = (string)($sourcesHtml ?? '');
 $postType         = strtolower(trim((string)($postType ?? '')));
 $categorySlug     = strtolower(trim((string)($categorySlug ?? '')));
 $midCtaConfig     = $midCtaConfig ?? null;
@@ -99,29 +103,27 @@ if (!empty($articleBlocks)) {
 ?>
 
 <div class="news-detail-content">
-    
-    <!-- Step 6 & 7: Table of Contents (Threshold: $articleH2Count >= 3) -->
-    <?php if ($articleH2Count >= 3 && !empty($articleHeadings)): ?>
-        <nav class="news-toc" aria-labelledby="articleTocTitle">
-            <div class="news-toc-header">
-                <strong id="articleTocTitle">Nội dung bài viết</strong>
-                <button type="button" class="news-toc-toggle" aria-expanded="false" aria-controls="articleTocList" aria-label="Thu gọn/Mở rộng mục lục">
-                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                </button>
-            </div>
-            <ul id="articleTocList" class="news-toc-list">
-                <?php foreach ($articleHeadings as $heading): ?>
-                    <li class="news-toc-item news-toc-level-<?= (int)$heading['level'] ?>">
-                        <a href="#<?= e($heading['id']) ?>"><?= e($heading['text']) ?></a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </nav>
+
+    <!-- Quick Summary (nếu có) -->
+    <?php if (!empty($quickSummaryHtml)): ?>
+        <?= $quickSummaryHtml ?>
     <?php endif; ?>
 
+    <!-- Table of Contents (Mobile Accordion, Threshold: $articleH2Count >= 3) -->
+    <?php if ($articleH2Count >= 3 && !empty($articleHeadings)): ?>
+        <div class="news-mobile-toc-wrapper">
+            <?php
+            $tocVariant = 'mobile';
+            $tocIdPrefix = 'mobile-toc';
+            require __DIR__ . '/_article_toc.php';
+            ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Body Bài viết -->
     <?= $renderedBodyHtml ?>
 
-    <!-- End CTA (Allowed for review, guide, comparison, howto) -->
+    <!-- End CTA (Allowed for review, guide, comparison, howto - đứng trước Sources và Author Box) -->
     <?php if (!empty($endCtaConfig)): ?>
         <?php
         $ctaConfig = $endCtaConfig;
@@ -129,4 +131,14 @@ if (!empty($articleBlocks)) {
         require __DIR__ . '/_article_cta.php';
         ?>
     <?php endif; ?>
+
+    <!-- Sources / Nguồn tham khảo (nếu có) -->
+    <?php if (!empty($sourcesHtml)): ?>
+        <?= $sourcesHtml ?>
+    <?php endif; ?>
+
+    <!-- Khối tác giả (Author Box) -->
+    <?php require __DIR__ . '/_author_box.php'; ?>
+
 </div>
+
