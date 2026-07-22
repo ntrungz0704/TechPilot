@@ -161,6 +161,16 @@ class Post
     }
 
 
+    /** Helper escape ký tự đặc biệt cho câu lệnh LIKE với ESCAPE '!' */
+    public function escapeLikeTerm(string $value): string
+    {
+        return strtr($value, [
+            '!' => '!!',
+            '%' => '!%',
+            '_' => '!_',
+        ]);
+    }
+
     /** Build where clause cho filter type, category và legacy tag, bao gồm cả từ khóa tìm kiếm (q) */
     private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', string $q = '', array &$params = []): string
     {
@@ -201,12 +211,16 @@ class Post
             }
         }
 
-        if (!empty($q)) {
-            $escapedQ = addcslashes($q, '%_\\');
-            $sql .= ' AND (title LIKE :kw1 ESCAPE "\\" OR summary LIKE :kw2 ESCAPE "\\" OR content LIKE :kw3 ESCAPE "\\")';
-            $params[':kw1'] = '%' . $escapedQ . '%';
-            $params[':kw2'] = '%' . $escapedQ . '%';
-            $params[':kw3'] = '%' . $escapedQ . '%';
+        if ($q !== '') {
+            $escapedQ = $this->escapeLikeTerm($q);
+            $sql .= " AND (
+                title LIKE :filter_title ESCAPE '!'
+                OR summary LIKE :filter_summary ESCAPE '!'
+                OR content LIKE :filter_content ESCAPE '!'
+            )";
+            $params[':filter_title']   = '%' . $escapedQ . '%';
+            $params[':filter_summary'] = '%' . $escapedQ . '%';
+            $params[':filter_content'] = '%' . $escapedQ . '%';
         }
 
         return $sql;
@@ -250,23 +264,23 @@ class Post
         $relSelect = '';
         $relOrder  = '';
 
-        if (!empty($q)) {
-            $escapedQ = addcslashes($q, '%_\\');
-            $relSelect = ', (CASE
-                WHEN title = :q_exact THEN 100
-                WHEN title LIKE :q_prefix ESCAPE "\\" THEN 80
-                WHEN title LIKE :q_title ESCAPE "\\" THEN 60
-                WHEN summary LIKE :q_summary ESCAPE "\\" THEN 30
-                WHEN content LIKE :q_content ESCAPE "\\" THEN 10
+        if ($q !== '') {
+            $escapedQ = $this->escapeLikeTerm($q);
+            $relSelect = ", (CASE
+                WHEN title = :rank_exact THEN 100
+                WHEN title LIKE :rank_prefix ESCAPE '!' THEN 80
+                WHEN title LIKE :rank_title ESCAPE '!' THEN 60
+                WHEN summary LIKE :rank_summary ESCAPE '!' THEN 30
+                WHEN content LIKE :rank_content ESCAPE '!' THEN 10
                 ELSE 0
-            END) AS relevance_score';
+            END) AS relevance_score";
             $relOrder = 'relevance_score DESC, ';
 
-            $params[':q_exact']   = $q;
-            $params[':q_prefix']  = $escapedQ . '%';
-            $params[':q_title']   = '%' . $escapedQ . '%';
-            $params[':q_summary'] = '%' . $escapedQ . '%';
-            $params[':q_content'] = '%' . $escapedQ . '%';
+            $params[':rank_exact']   = $q;
+            $params[':rank_prefix']  = $escapedQ . '%';
+            $params[':rank_title']   = '%' . $escapedQ . '%';
+            $params[':rank_summary'] = '%' . $escapedQ . '%';
+            $params[':rank_content'] = '%' . $escapedQ . '%';
         }
 
         $sql = 'SELECT *' . $relSelect . ' FROM posts WHERE status = "published"' . $filterWhere;
