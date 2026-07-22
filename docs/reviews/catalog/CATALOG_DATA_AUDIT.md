@@ -1,11 +1,12 @@
-# CHECKPOINT 0 — CATALOG DATA AUDIT REPORT (V3 FINAL)
+# CHECKPOINT 0 — CATALOG DATA AUDIT REPORT (V4 FINAL)
 **Dự án:** TechPilot  
-**Thời điểm Audit (Timestamp):** 2026-07-23T00:45:00+07:00  
+**Thời điểm Audit (Timestamp):** 2026-07-23T01:00:00+07:00  
 **Database Audit Target:** CSDL `techpilot` (bảng `categories`, `products`, `brands`)  
 **Main Branch SHA:** `7a148b8fc776fe9d19a2d1027758abbf226b6410`  
 **Checkpoint 0 Initial SHA:** `b03c2ec580e0367e7d194d7e0fa9dde57db871e9`  
 **Checkpoint 0 V2 SHA:** `fc331bd`  
-**Trạng thái Audit:** ĐÃ HOÀN THIỆN BẰNG CHỨNG TÁI TẠO (REPRODUCIBLE EVIDENCE FINALIZE)  
+**Checkpoint 0 V3 SHA:** `a7cd7bb`  
+**Trạng thái Audit:** ĐÃ HOÀN THIỆN & SANITIZE BẰNG CHỨNG TÁI TẠO (FINALIZED & SANITIZED)  
 
 ---
 
@@ -25,7 +26,7 @@ Báo cáo này thực hiện kiểm kê dữ liệu thời gian thực (Runtime 
 | Tiêu chí | Trạng thái thực tế |
 | :--- | :--- |
 | **Branch hiện tại** | `feature/hieu-news` |
-| **Trạng thái Working Tree** | Clean (sau commit V2 `fc331bd`) |
+| **Trạng thái Working Tree** | Clean (sau commit V3 `a7cd7bb`) |
 | **So sánh với `main`** | Có 23 file khác biệt (tin tức, header refactoring, style.css, catalog audit docs) |
 
 ### Tệp thuộc Header/Category khác biệt so với `main`:
@@ -70,7 +71,7 @@ Tổng số danh mục trong DB: **18 categories** (9 danh mục cấp 1 parent_
 
 ### 3.2 Thống kê Sản phẩm & Giá Effective (Min, Median, Max) theo Category
 
-*Ghi chú:* Giá effective được tính bằng công thức `COALESCE(NULLIF(sale_price, 0), price)`. Median được tính chính xác thông qua MySQL 8 CTE Window Function.
+*Ghi chú:* Giá effective được tính bằng công thức `COALESCE(NULLIF(sale_price, 0), price)`. Median được tính chính xác thông qua MySQL 8 CTE Window Function. Dòng Tổng hiển thị **Global Median Effective Price** toàn bộ 620 sản phẩm active.
 
 | Category ID | Tên Category | Tổng SP | Active | Draft | Inactive | Min Price Effective | Median Price Effective | Max Price Effective | Số Brand |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -92,7 +93,7 @@ Tổng số danh mục trong DB: **18 categories** (9 danh mục cấp 1 parent_
 | 16 | Nguồn (PSU) *(Child of 4)* | 50 | 50 | 0 | 0 | 1.517.000đ | 2.154.500đ | 2.733.000đ | 5 |
 | 17 | Case *(Child of 4)* | 50 | 50 | 0 | 0 | 1.309.000đ | 1.616.000đ | 1.990.000đ | 5 |
 | 18 | Tản nhiệt *(Child of 4)* | 45 | 45 | 0 | 0 | 150.000đ | 862.000đ | 2.500.000đ | 4 *(5 SP brand_id NULL)* |
-| **Tổng** | | **620** | **620** | **0** | **0** | **150.000đ** | **2.401.000đ** | **20.497.000đ** | |
+| **Tổng** | | **620** | **620** | **0** | **0** | **150.000đ** | **3.121.000đ** *(Global Median)* | **20.497.000đ** | |
 
 ---
 
@@ -257,7 +258,7 @@ $globalCategoryMenu + $globalCategories
 
 ---
 
-## 7. Đề Xuất Virtual Group Mapping & Bang Giá Median Effective (7 Nhóm Catalog Phê Duyệt)
+## 7. Đề Xuất Virtual Group Mapping & Bảng Giá Median Effective (7 Nhóm Catalog Phê Duyệt)
 
 Dựa trên dữ liệu CSDL runtime thực tế và câu lệnh MySQL 8 CTE Window Function, quy tắc nhận diện, số lượng sản phẩm khớp thực tế và thống kê giá Effective (`COALESCE(NULLIF(sale_price, 0), price)`) của từng nhóm được xác định như sau:
 
@@ -275,14 +276,14 @@ Dựa trên dữ liệu CSDL runtime thực tế và câu lệnh MySQL 8 CTE Win
 
 ## 8. Bằng Chứng Audit Tái Tạo Nguyên Văn (Reproducible Raw Evidence)
 
-### 8.1 Raw HTTP Headers Response (`curl -I`)
+### 8.1 Raw HTTP HEAD Health Check (`curl -I`)
 
 ```http
 HTTP/1.1 200 OK
 Date: Wed, 22 Jul 2026 17:45:39 GMT
 Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 PHP/8.3.26
 X-Powered-By: PHP/8.3.26
-Set-Cookie: PHPSESSID=fve82han2gcr6hpeqtf51kgmlh; path=/; HttpOnly; SameSite=Lax
+Set-Cookie: PHPSESSID=[REDACTED]; path=/; HttpOnly; SameSite=Lax
 Expires: Thu, 19 Nov 1981 08:52:00 GMT
 Cache-Control: no-store, no-cache, must-revalidate
 Pragma: no-cache
@@ -558,6 +559,47 @@ Array
 
 ---
 
+### 8.5 Raw SQL Window Function & Output: Global Median Effective Price (620 Active Products)
+
+#### Câu lệnh SQL CTE:
+```sql
+WITH priced AS (
+    SELECT
+        COALESCE(NULLIF(sale_price, 0), price) AS effective_price
+    FROM products
+    WHERE status = 'active'
+),
+ranked AS (
+    SELECT
+        effective_price,
+        ROW_NUMBER() OVER (ORDER BY effective_price) AS rn,
+        COUNT(*) OVER () AS cnt
+    FROM priced
+)
+SELECT
+    COUNT(*) AS selected_middle_rows,
+    AVG(effective_price) AS global_median_effective_price
+FROM ranked
+WHERE rn IN (
+    FLOOR((cnt + 1) / 2),
+    FLOOR((cnt + 2) / 2)
+);
+```
+
+#### Raw SQL Array Output Nguyên Văn:
+```php
+Array
+(
+    [0] => Array
+        (
+            [selected_middle_rows] => 2
+            [global_median_effective_price] => 3121000.0000
+        )
+)
+```
+
+---
+
 ## 9. Danh Sách Files Dự Kiến Sửa ở Checkpoint Tiếp Theo
 
 Ở Checkpoint 1 (Service Layer & Route Mapping) và Checkpoint 2 (UI Integration):
@@ -591,9 +633,11 @@ Array
 
 ---
 
-### Xác nhận hoàn tất Checkpoint 0 (V3):
+### Xác nhận hoàn tất Checkpoint 0 (V4):
 - [x] Không sửa giao diện / production code.
 - [x] Không sửa CSDL / không chạy migration.
 - [x] Không thay đổi product/category records.
-- [x] Bổ sung đầy đủ SQL CTE Window Function Median & Raw Outputs nguyên văn.
-- [x] Đã cập nhật 100% Markdown links tương đối từ vị trí `docs/reviews/catalog/CATALOG_DATA_AUDIT.md`.
+- [x] Đã sanitize `PHPSESSID=[REDACTED]` trong raw HTTP evidence.
+- [x] Đã thực thi SQL CTE Global Median tính chính xác **3.121.000đ** cho dòng Tổng 620 sản phẩm.
+- [x] Đã cập nhật tiêu đề thành `Raw HTTP HEAD Health Check (curl -I)`.
+- [x] Giữ nguyên toàn bộ các kết luận kỹ thuật đã được xác minh.
