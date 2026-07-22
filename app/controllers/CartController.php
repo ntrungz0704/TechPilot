@@ -10,9 +10,25 @@ class CartController extends Controller
         return Database::getConnection();
     }
 
+    private function hasValidUser(array $user, PDO $db): bool
+    {
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0) return false;
+        $stmt = $db->prepare("SELECT id FROM users WHERE id = :id AND status = 'active' LIMIT 1");
+        $stmt->execute([':id' => $userId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    private function clearStaleLogin(): void
+    {
+        unset($_SESSION['user'], $_SESSION['cart']);
+        flash('error', 'Phiên đăng nhập cũ không còn hợp lệ. Vui lòng đăng nhập hoặc đăng ký lại tài khoản.');
+        $this->redirect('auth/login');
+    }
+
     private function getOrCreateCartId(int $userId, PDO $db): int
     {
-        $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' LIMIT 1");
+        $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1");
         $stmt->execute([':user_id' => $userId]);
         $cart = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -64,6 +80,10 @@ class CartController extends Controller
         }
 
         $db = $this->getDbConnection();
+        if ($db && !$this->hasValidUser($user, $db)) {
+            $this->clearStaleLogin();
+            return;
+        }
         if ($db) {
             $this->syncCartSession((int)$user['id'], $db);
         }
@@ -85,6 +105,7 @@ class CartController extends Controller
             'subtotal' => $subtotal,
             'shipping' => 0.0,
             'total' => $subtotal,
+            'flashes' => pullFlashes(),
         ]);
     }
 
@@ -113,6 +134,10 @@ class CartController extends Controller
             $this->redirect('cart');
             return;
         }
+        if (!$this->hasValidUser($user, $db)) {
+            $this->clearStaleLogin();
+            return;
+        }
 
         $productModel = $this->model('Product');
         $product = null;
@@ -133,32 +158,31 @@ class CartController extends Controller
         $productId = (int)$product['id'];
         $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
 
-        // Kiểm tra số lượng tồn kho hiện tại trong giỏ hàng
-        $stmt = $db->prepare("SELECT quantity FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id LIMIT 1");
-        $stmt->execute([':cart_id' => $cartId, ':product_id' => $productId]);
-        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $db->beginTransaction();
+            $stmt = $db->prepare('SELECT quantity FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id FOR UPDATE');
+            $stmt->execute([':cart_id' => $cartId, ':product_id' => $productId]);
+            $currentQty = (int)($stmt->fetchColumn() ?: 0);
+            $newQty = $currentQty + $quantity;
 
-        $newQty = $quantity;
-        if ($existing) {
-            $newQty += (int)$existing['quantity'];
-        }
+            if ($newQty > $stock) {
+                throw new RuntimeException('Số lượng sản phẩm trong giỏ vượt quá tồn kho (' . $stock . ' sản phẩm).');
+            }
 
-        if ($newQty > $stock) {
-            flash('error', 'Số lượng sản phẩm trong giỏ hàng vượt quá số lượng tồn kho (' . $stock . ' sản phẩm).');
+            $stmt = $db->prepare(
+                'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (:cart_id, :product_id, :qty)
+                 ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), updated_at = CURRENT_TIMESTAMP'
+            );
+            $stmt->execute([':cart_id'=>$cartId, ':product_id'=>$productId, ':qty'=>$newQty]);
+            $db->commit();
+            $this->syncCartSession((int)$user['id'], $db);
+            flash('success', 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.');
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            flash('error', $e->getMessage());
             $this->redirect('cart');
             return;
         }
-
-        if ($existing) {
-            $stmt = $db->prepare("UPDATE cart_items SET quantity = :qty WHERE cart_id = :cart_id AND product_id = :product_id");
-            $stmt->execute([':qty' => $newQty, ':cart_id' => $cartId, ':product_id' => $productId]);
-        } else {
-            $stmt = $db->prepare("INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (:cart_id, :product_id, :qty)");
-            $stmt->execute([':cart_id' => $cartId, ':product_id' => $productId, ':qty' => $newQty]);
-        }
-
-        $this->syncCartSession((int)$user['id'], $db);
-
         if (isset($_GET['buynow']) && $_GET['buynow'] == '1') {
             $this->redirect('checkout');
         } else {
@@ -185,6 +209,10 @@ class CartController extends Controller
         $db = $this->getDbConnection();
         if (!$db || $productId <= 0) {
             $this->redirect('cart');
+            return;
+        }
+        if (!$this->hasValidUser($user, $db)) {
+            $this->clearStaleLogin();
             return;
         }
 
@@ -226,6 +254,10 @@ class CartController extends Controller
         $productId = (int)($_POST['product_id'] ?? 0);
 
         $db = $this->getDbConnection();
+        if ($db && !$this->hasValidUser($user, $db)) {
+            $this->clearStaleLogin();
+            return;
+        }
         if ($db && $productId > 0) {
             $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
             $stmt = $db->prepare("DELETE FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id");

@@ -216,6 +216,14 @@ $savedAddresses = $savedAddresses ?? [];
         padding: 30px;
     }
 
+    .checkout-summary {
+        position: sticky;
+        top: 165px;
+        max-height: calc(100vh - 185px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
     .checkout-card h1 {
         font-size: 24px;
         color: var(--text-primary);
@@ -311,6 +319,12 @@ $savedAddresses = $savedAddresses ?? [];
     @media (max-width: 992px) {
         .checkout-page {
             grid-template-columns: 1fr;
+        }
+
+        .checkout-summary {
+            position: static;
+            max-height: none;
+            overflow: visible;
         }
     }
 </style>
