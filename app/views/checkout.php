@@ -38,11 +38,35 @@ $total = $total ?? 0;
             </div>
             <div class="form-group">
                 <label>Phương thức thanh toán</label>
-                <select name="payment_method">
-                    <option value="COD">Thanh toán khi nhận hàng (COD)</option>
-                    <option value="BankTransfer">Chuyển khoản ngân hàng 24/7</option>
-                    <option value="QR">Quét mã QR Code</option>
-                </select>
+
+                <div class="payment-methods">
+                    <label class="payment-label">
+                        <input
+                            type="radio"
+                            name="payment_method"
+                            value="COD"
+                            checked
+                            class="payment-radio">
+
+                        <span class="payment-text">
+                            <i class="fa-solid fa-truck-fast"></i>
+                            Thanh toán khi nhận hàng (COD)
+                        </span>
+                    </label>
+
+                    <label class="payment-label">
+                        <input
+                            type="radio"
+                            name="payment_method"
+                            value="VNPAY"
+                            class="payment-radio">
+
+                        <span class="payment-text">
+                            <i class="fa-solid fa-credit-card"></i>
+                            Thanh toán Online (VNPAY)
+                        </span>
+                    </label>
+                </div>
             </div>
             <div class="form-group">
                 <label>Ghi chú đơn hàng (Không bắt buộc)</label>
@@ -81,68 +105,68 @@ $total = $total ?? 0;
 </section>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const applyBtn = document.getElementById('applyCouponBtn');
-    const couponInput = document.getElementById('couponInput');
-    const couponMsg = document.getElementById('couponMsg');
-    const discountRow = document.getElementById('discountRow');
-    const discountValue = document.getElementById('discountValue');
-    const totalValue = document.getElementById('totalValue');
+    document.addEventListener('DOMContentLoaded', function() {
+        const applyBtn = document.getElementById('applyCouponBtn');
+        const couponInput = document.getElementById('couponInput');
+        const couponMsg = document.getElementById('couponMsg');
+        const discountRow = document.getElementById('discountRow');
+        const discountValue = document.getElementById('discountValue');
+        const totalValue = document.getElementById('totalValue');
 
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function() {
-            const code = couponInput.value.trim();
-            if (code === '') {
-                showMsg('Vui lòng nhập mã giảm giá.', 'error');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('coupon_code', code);
-            formData.append('subtotal', '<?= (float)$subtotal ?>');
-            formData.append('csrf_token', '<?= csrf_token() ?>');
-
-            applyBtn.disabled = true;
-            applyBtn.innerText = 'Đang áp dụng...';
-
-            fetch('<?= url("checkout/apply_coupon") ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                applyBtn.disabled = false;
-                applyBtn.innerText = 'Áp dụng';
-
-                if (data.success) {
-                    showMsg(data.message, 'success');
-                    discountRow.style.display = 'flex';
-                    discountValue.innerText = data.discount_formatted;
-                    totalValue.innerText = data.new_total_formatted;
-                } else {
-                    showMsg(data.message, 'error');
-                    discountRow.style.display = 'none';
-                    totalValue.innerText = '<?= formatPrice($total) ?>';
+        if (applyBtn) {
+            applyBtn.addEventListener('click', function() {
+                const code = couponInput.value.trim();
+                if (code === '') {
+                    showMsg('Vui lòng nhập mã giảm giá.', 'error');
+                    return;
                 }
-            })
-            .catch(err => {
-                applyBtn.disabled = false;
-                applyBtn.innerText = 'Áp dụng';
-                showMsg('Lỗi kết nối máy chủ.', 'error');
-            });
-        });
-    }
 
-    function showMsg(text, type) {
-        couponMsg.style.display = 'block';
-        couponMsg.innerText = text;
-        if (type === 'success') {
-            couponMsg.style.color = 'var(--success)';
-        } else {
-            couponMsg.style.color = '#EF4444';
+                const formData = new FormData();
+                formData.append('coupon_code', code);
+                formData.append('subtotal', '<?= (float)$subtotal ?>');
+                formData.append('csrf_token', '<?= csrf_token() ?>');
+
+                applyBtn.disabled = true;
+                applyBtn.innerText = 'Đang áp dụng...';
+
+                fetch('<?= url("checkout/apply_coupon") ?>', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        applyBtn.disabled = false;
+                        applyBtn.innerText = 'Áp dụng';
+
+                        if (data.success) {
+                            showMsg(data.message, 'success');
+                            discountRow.style.display = 'flex';
+                            discountValue.innerText = data.discount_formatted;
+                            totalValue.innerText = data.new_total_formatted;
+                        } else {
+                            showMsg(data.message, 'error');
+                            discountRow.style.display = 'none';
+                            totalValue.innerText = '<?= formatPrice($total) ?>';
+                        }
+                    })
+                    .catch(err => {
+                        applyBtn.disabled = false;
+                        applyBtn.innerText = 'Áp dụng';
+                        showMsg('Lỗi kết nối máy chủ.', 'error');
+                    });
+            });
         }
-    }
-});
+
+        function showMsg(text, type) {
+            couponMsg.style.display = 'block';
+            couponMsg.innerText = text;
+            if (type === 'success') {
+                couponMsg.style.color = 'var(--success)';
+            } else {
+                couponMsg.style.color = '#EF4444';
+            }
+        }
+    });
 </script>
 
 <style>

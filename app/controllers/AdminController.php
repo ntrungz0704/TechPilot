@@ -20,7 +20,7 @@ class AdminController extends Controller
 
         if ($db) {
             // Tổng số khách hàng
-            $stats['total_users'] = (int)$db->query('SELECT COUNT(*) FROM users WHERE role_id = 2')->fetchColumn();
+            $stats['total_users'] = (int)$db->query('SELECT COUNT(*) FROM users WHERE role = \'customer\'')->fetchColumn();
             
             // Tổng số sản phẩm
             $stats['total_products'] = (int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn();
@@ -32,7 +32,7 @@ class AdminController extends Controller
             $stats['total_revenue'] = (float)$db->query('SELECT SUM(total_amount) FROM orders WHERE status = \'completed\'')->fetchColumn();
 
             // Sản phẩm tồn kho thấp (< 10)
-            $stmt = $db->prepare('SELECT id, name, price, stock FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5');
+            $stmt = $db->prepare('SELECT id, name, price, stock, image FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5');
             $stmt->execute();
             $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

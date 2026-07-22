@@ -5,6 +5,15 @@
  */
 
 if (session_status() === PHP_SESSION_NONE) {
+    $isSecure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $isSecure,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
 if (empty($_SESSION['csrf_token'])) {
@@ -19,6 +28,14 @@ $scriptDir = rtrim($scriptDir, '/');
 
 if ($scriptDir === '/' || $scriptDir === '\\') {
     $scriptDir = '';
+}
+
+// Nếu truy cập từ root (không qua thư mục public) trong môi trường Apache/XAMPP/Laragon,
+// ta cần bổ sung /public vào BASE_URL để các assets và link chạy đúng.
+if ($scriptDir !== '' && substr($scriptDir, -7) !== '/public' && $scriptDir !== '/public') {
+    if (is_dir(dirname(__DIR__) . '/public')) {
+        $scriptDir .= '/public';
+    }
 }
 
 define('BASE_URL', $scriptDir);

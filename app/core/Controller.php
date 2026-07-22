@@ -5,6 +5,27 @@
 
 class Controller
 {
+    public function __construct()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Auto-login if session is empty but remember_me cookie exists
+        if (empty($_SESSION['user']) && !empty($_COOKIE['remember_techpilot'])) {
+            $userModel = $this->model('User');
+            $user = $userModel->findByRememberToken($_COOKIE['remember_techpilot']);
+            if ($user && ($user['status'] ?? 'active') === 'active') {
+                session_regenerate_id(true);
+                $_SESSION['user'] = [
+                    'id' => $user['id'],
+                    'full_name' => $user['full_name'],
+                    'email' => $user['email'],
+                    'role' => $user['role']
+                ];
+            }
+        }
+    }
     /**
      * Render 1 view, có thể bọc trong layout chung (header/footer)
      */
@@ -19,6 +40,13 @@ class Controller
 
         if ($useLayout) {
             // Lấy danh mục chung cho header (MVC Standard)
+            require_once ROOT_PATH . '/app/services/CategoryMenuService.php';
+            try {
+                $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
+            } catch (Exception $e) {
+                $globalCategoryMenu = []; // Graceful fallback
+            }
+            
             require_once ROOT_PATH . '/config/database.php';
             $db = Database::getConnection();
             $globalCategories = [];
@@ -71,7 +99,7 @@ class Controller
     protected function requireAdmin(): array
     {
         $user = $this->requireAuth();
-        if ((int)($user['role_id'] ?? 0) !== 1) {
+        if (($user['role'] ?? '') !== 'admin') {
             http_response_code(403);
             die('<h1>403 Forbidden</h1><p>Bạn không có quyền truy cập trang này.</p>');
         }

@@ -54,13 +54,15 @@
                                     <?= $cp['status'] === 'active' ? 'Hoạt động' : 'Tạm khoá' ?>
                                 </span>
                             </td>
-                            <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center;">
-                                <a href="<?= url('admin/coupons/edit/' . $cp['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                
-                                <form method="post" action="<?= url('admin/coupons/delete/' . $cp['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá mã giảm giá này?');" style="margin: 0;">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                </form>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
+                                    <a href="<?= url('admin/coupons/edit/' . $cp['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
+                                    
+                                    <form method="post" action="<?= url('admin/coupons/delete/' . $cp['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá mã giảm giá này?');" style="margin: 0;">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

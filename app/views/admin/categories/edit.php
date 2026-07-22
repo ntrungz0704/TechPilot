@@ -1,4 +1,4 @@
-<div class="card" style="max-width: 600px; margin: 0 auto 30px;">
+<div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Chỉnh sửa danh mục</h3>
     
     <form method="post" action="<?= url('admin/categories/update/' . $category['id']) ?>">
@@ -17,6 +17,26 @@
         <div class="form-group">
             <label for="description">Mô tả danh mục</label>
             <textarea name="description" id="description" class="form-control" rows="4"><?= e($category['description']) ?></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="parent_id">Danh mục cha</label>
+            <select name="parent_id" id="parent_id" class="form-control">
+                <option value="">-- Là danh mục gốc (Không có cha) --</option>
+                <?php foreach ($categories ?? [] as $c): ?>
+                    <option value="<?= $c['id'] ?>" <?= ($category['parent_id'] == $c['id']) ? 'selected' : '' ?>><?= e($c['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="icon">Icon class (VD: fa-solid fa-laptop)</label>
+            <input type="text" name="icon" id="icon" class="form-control" value="<?= e($category['icon'] ?? '') ?>">
+        </div>
+
+        <div class="form-group">
+            <label for="image">Ảnh danh mục (đường dẫn hoặc tên file)</label>
+            <input type="text" name="image" id="image" class="form-control" value="<?= e($category['image'] ?? '') ?>">
         </div>
 
         <div class="form-group">

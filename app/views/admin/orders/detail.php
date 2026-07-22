@@ -22,11 +22,7 @@
                     <?php foreach ($items as $item): ?>
                         <tr>
                             <td>
-                                <?php if (!empty($item['product_image'])): ?>
-                                    <img src="<?= url('assets/images/' . e($item['product_image'])) ?>" alt="<?= e($item['product_name']) ?>" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px;">
-                                <?php else: ?>
-                                    <div style="width: 40px; height: 40px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #9CA3AF;">No img</div>
-                                <?php endif; ?>
+                                <img src="<?= e(productImageUrl($item['product_image'] ?? '', $item['product_name'] ?? '')) ?>" alt="<?= e($item['product_name'] ?? '') ?>" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body);">
                             </td>
                             <td>
                                 <strong style="font-size: 13.5px;"><?= e($item['product_name'] ?? 'Sản phẩm đã bị xoá') ?></strong>
@@ -66,7 +62,7 @@
             <h3 class="card-title">Thông tin giao hàng</h3>
             <div style="font-size: 14px; display: flex; flex-direction: column; gap: 12px; line-height: 1.5;">
                 <p><strong>Người nhận:</strong> <?= e($order['customer_name']) ?></p>
-                <p><strong>Số điện thoại:</strong> <?= e($order['phone']) ?></p>
+                <p><strong>Số điện thoại:</strong> <?= e(formatPhone($order['phone'])) ?></p>
                 <?php if (!empty($order['email'])): ?>
                     <p><strong>Email:</strong> <?= e($order['email']) ?></p>
                 <?php endif; ?>
