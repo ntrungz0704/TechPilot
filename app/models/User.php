@@ -165,4 +165,40 @@ class User
             ':id'        => $id
         ]);
     }
+
+    /** Cập nhật remember_token */
+    public function updateRememberToken(int $id, ?string $token): bool
+    {
+        if ($this->useFallback) return true;
+        $stmt = $this->db->prepare('UPDATE users SET remember_token = :token WHERE id = :id');
+        return $stmt->execute([':token' => $token, ':id' => $id]);
+    }
+
+    /** Tìm user qua remember_token */
+    public function findByRememberToken(string $token): array|false
+    {
+        if ($this->useFallback) return false;
+        $stmt = $this->db->prepare('SELECT * FROM users WHERE remember_token = :token LIMIT 1');
+        $stmt->bindValue(':token', $token);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
+    /** Lưu reset_token cho email */
+    public function setResetToken(string $email, string $token, string $expiry): bool
+    {
+        if ($this->useFallback) return true;
+        $stmt = $this->db->prepare('UPDATE users SET reset_token = :token, reset_token_expiry = :expiry WHERE email = :email');
+        return $stmt->execute([':token' => $token, ':expiry' => $expiry, ':email' => $email]);
+    }
+
+    /** Tìm user qua reset_token hợp lệ */
+    public function findByResetToken(string $token): array|false
+    {
+        if ($this->useFallback) return false;
+        $stmt = $this->db->prepare('SELECT * FROM users WHERE reset_token = :token AND reset_token_expiry > NOW() LIMIT 1');
+        $stmt->bindValue(':token', $token);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
 }

@@ -89,7 +89,8 @@
 
     <!-- Adaptive Bottom Nav / Fixed Buy Bar for Mobile (Display: None on Desktop) -->
     <?php 
-    $isProductDetail = (strpos($_SERVER['REQUEST_URI'], '/product/detail/') !== false);
+    $reqUri = $_SERVER['REQUEST_URI'] ?? '';
+    $isProductDetail = (strpos($reqUri, '/product/detail/') !== false);
     if ($isProductDetail && !empty($product)): 
     ?>
         <div class="mobile-fixed-buy-bar">
