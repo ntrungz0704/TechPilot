@@ -2,9 +2,9 @@
     <h3 class="card-title">Viết bài viết mới</h3>
     
     <?php if (!empty($error)): ?>
-        <div class="alert alert--danger" role="alert" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background-color: #FEE2E2; color: #991B1B; border: 1px solid #F87171; font-weight: 500;">
-            <i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i>
-            <?= e($error) ?>
+        <div class="alert alert--danger" role="alert">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span><?= e($error) ?></span>
         </div>
     <?php endif; ?>
 
@@ -13,7 +13,10 @@
         
         <div class="form-group">
             <label for="title">Tiêu đề bài viết <span style="color: red;">*</span></label>
-            <input type="text" name="title" id="title" class="form-control" value="<?= e($post['title'] ?? '') ?>" placeholder="Ví dụ: Top 5 laptop văn phòng đáng mua nhất năm 2026" required>
+            <input type="text" name="title" id="title" class="form-control <?= !empty($errors['title']) ? 'form-control--invalid' : '' ?>" value="<?= e($post['title'] ?? '') ?>" placeholder="Ví dụ: Top 5 laptop văn phòng đáng mua nhất năm 2026" <?= !empty($errors['title']) ? 'aria-invalid="true" aria-describedby="title-error"' : '' ?> required>
+            <?php if (!empty($errors['title'])): ?>
+                <small id="title-error" class="form-error"><?= e($errors['title']) ?></small>
+            <?php endif; ?>
         </div>
 
         <div class="form-group" style="border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background-color: #F9FAFB;">
@@ -29,7 +32,10 @@
 
         <div class="form-group">
             <label for="content">Nội dung chi tiết bài viết (Hỗ trợ Markdown)</label>
-            <textarea name="content" id="content" class="form-control" rows="14" placeholder="Nhập nội dung bài viết bằng Markdown...&#10;Ví dụ:&#10;## 1. Tổng quan sản phẩm&#10;Nội dung mô tả...&#10;&#10;:::info&#10;Thông tin lưu ý quan trọng&#10;:::"><?= e($post['content'] ?? '') ?></textarea>
+            <textarea name="content" id="content" class="form-control <?= !empty($errors['content']) ? 'form-control--invalid' : '' ?>" rows="14" placeholder="Nhập nội dung bài viết bằng Markdown...&#10;Ví dụ:&#10;## 1. Tổng quan sản phẩm&#10;Nội dung mô tả...&#10;&#10;:::info&#10;Thông tin lưu ý quan trọng&#10;:::" <?= !empty($errors['content']) ? 'aria-invalid="true" aria-describedby="content-error"' : '' ?>><?= e($post['content'] ?? '') ?></textarea>
+            <?php if (!empty($errors['content'])): ?>
+                <small id="content-error" class="form-error"><?= e($errors['content']) ?></small>
+            <?php endif; ?>
             <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Hỗ trợ: ## Heading 2, ### Heading 3, - Danh sách, > Blockquote, | Table |, :::info Callout :::</small>
         </div>
 
