@@ -967,28 +967,50 @@ class Product
     /** Lấy sản phẩm theo slug danh mục (hỗ trợ cả danh mục con) */
     public function getByCategorySlug(string $slug, int $limit = 6): array
     {
-        if ($this->db !== null) {
-            try {
-                $stmt = $this->db->prepare(
-                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
-                     FROM products p
-                     JOIN categories c ON p.category_id = c.id
-                     LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE c.slug = :slug_direct OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug_parent)
-                     ORDER BY p.id DESC LIMIT :limit'
-                );
-                $stmt->bindValue(':slug_direct', $slug);
-                $stmt->bindValue(':slug_parent', $slug);
-                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-                $stmt->execute();
-                return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (Exception $e) {
-                error_log("getByCategorySlug error for slug '$slug': " . $e->getMessage());
-                return [];
-            }
+        if ($this->db === null) {
+            return [];
         }
 
-        return [];
+        try {
+            require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+            $sourceSlugs = CatalogGroupService::resolveSourceSlugs($slug);
+
+            if (count($sourceSlugs) > 1) {
+                $inClause = implode(',', array_fill(0, count($sourceSlugs), '?'));
+                $sql = "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
+                        FROM products p
+                        JOIN categories c ON p.category_id = c.id
+                        LEFT JOIN brands b ON p.brand_id = b.id
+                        WHERE p.status = 'active' AND c.status = 'active' AND c.slug IN ($inClause)
+                        ORDER BY p.id DESC LIMIT ?";
+                $stmt = $this->db->prepare($sql);
+                $idx = 1;
+                foreach ($sourceSlugs as $sSlug) {
+                    $stmt->bindValue($idx++, $sSlug);
+                }
+                $stmt->bindValue($idx, $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            $stmt = $this->db->prepare(
+                "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
+                 FROM products p
+                 JOIN categories c ON p.category_id = c.id
+                 LEFT JOIN brands b ON p.brand_id = b.id
+                 WHERE p.status = 'active' AND c.status = 'active' 
+                   AND (c.slug = :slug_direct OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug_parent AND status = 'active'))
+                 ORDER BY p.id DESC LIMIT :limit"
+            );
+            $stmt->bindValue(':slug_direct', $slug);
+            $stmt->bindValue(':slug_parent', $slug);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("getByCategorySlug error for slug '$slug': " . $e->getMessage());
+            return [];
+        }
     }
 
     /** Lấy 1 sản phẩm theo id */
@@ -1264,54 +1286,14 @@ class Product
         $conditions = ["p.status = 'active'"];
         $params = [];
 
-        // 1. Phân loại từ khóa theo bí danh danh mục (Category Aliases)
+        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+
+        // 1. Phân loại từ khóa theo bí danh danh mục từ CatalogGroupService (Single Source of Truth)
         $normalized = $this->normalizeSearchKeyword($keyword);
         $normalizedNoAccent = $this->removeVietnameseAccents($normalized);
 
         $matchedCategorySlugs = [];
-        $aliases = [
-            'laptop gaming'     => ['laptop-gaming'],
-            'laptop van phong'  => ['laptop-van-phong'],
-            'laptop văn phòng'  => ['laptop-van-phong'],
-            'máy tính xách tay' => ['laptop-gaming', 'laptop-van-phong'],
-            'may tinh xach tay' => ['laptop-gaming', 'laptop-van-phong'],
-            'máy tính để bàn'   => ['pc-build-san', 'may-tinh-bo'],
-            'may tinh de ban'   => ['pc-build-san', 'may-tinh-bo'],
-            'gaming gear'       => ['gaming-gear'],
-            'linh kiện'         => ['pc-linh-kien'],
-            'linh kien'         => ['pc-linh-kien'],
-            'linh kiện pc'      => ['pc-linh-kien'],
-            'linh kien pc'      => ['pc-linh-kien'],
-            'màn hình'          => ['man-hinh'],
-            'man hinh'          => ['man-hinh'],
-            'laptop'            => ['laptop-gaming', 'laptop-van-phong'],
-            'máy bộ'            => ['pc-build-san', 'may-tinh-bo'],
-            'may bo'            => ['pc-build-san', 'may-tinh-bo'],
-            'lap'               => ['laptop-gaming', 'laptop-van-phong'],
-            'pc'                => ['pc-build-san', 'may-tinh-bo'],
-            'thiết bị văn phòng'=> ['office-gear'],
-            'thiet bi van phong'=> ['office-gear'],
-            'thiết bị mạng'     => ['networking'],
-            'thiet bi mang'     => ['networking'],
-            'cpu'               => ['cpu'],
-            'mainboard'         => ['mainboard'],
-            'main'              => ['mainboard'],
-            'ram'               => ['ram'],
-            'vga'               => ['vga'],
-            'card màn hình'     => ['vga'],
-            'card man hinh'     => ['vga'],
-            'card đồ họa'       => ['vga'],
-            'card do hoa'       => ['vga'],
-            'ssd'               => ['ssd'],
-            'hdd'               => ['hdd'],
-            'psu'               => ['psu'],
-            'nguồn'             => ['psu'],
-            'nguon'             => ['psu'],
-            'case'              => ['case'],
-            'vỏ máy'            => ['case'],
-            'tản nhiệt'         => ['tan-nhiet'],
-            'tan nhiet'         => ['tan-nhiet']
-        ];
+        $aliases = CatalogGroupService::getKeywordAliasMap();
 
         // Sắp xếp alias dài hơn lên trước
         uksort($aliases, function($a, $b) {
@@ -1343,8 +1325,8 @@ class Product
         $remainingKeyword = trim(preg_replace('/\s+/u', ' ', $remainingKeyword));
         $matchedCategorySlugs = array_unique($matchedCategorySlugs);
 
-        // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL
-        $urlSlugs = !empty($categorySlug) ? [$categorySlug] : [];
+        // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL (thông qua CatalogGroupService::resolveSourceSlugs)
+        $urlSlugs = !empty($categorySlug) ? CatalogGroupService::resolveSourceSlugs($categorySlug) : [];
         $hasCategoryConstraint = !empty($categorySlug) || !empty($matchedCategorySlugs);
 
         if ($hasCategoryConstraint) {

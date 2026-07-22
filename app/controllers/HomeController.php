@@ -71,27 +71,18 @@ class HomeController extends Controller
             $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
         );
 
+        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+
         $pageTitle = 'Kết quả tìm kiếm';
         if ($promoOnly) {
             $pageTitle = 'Sản phẩm đang Khuyến mãi';
         } elseif (!empty($keyword) && !empty($categorySlug)) {
-            $categoryName = '';
-            foreach ($productModel->getCategories() as $cat) {
-                if ($cat['slug'] === $categorySlug) {
-                    $categoryName = $cat['name'];
-                    break;
-                }
-            }
-            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . ($categoryName ?: $categorySlug);
+            $categoryName = CatalogGroupService::getDisplayName($categorySlug);
+            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . $categoryName;
         } elseif (!empty($keyword)) {
             $pageTitle = 'Tìm kiếm: ' . $keyword;
         } elseif (!empty($categorySlug)) {
-            foreach ($productModel->getCategories() as $cat) {
-                if ($cat['slug'] === $categorySlug) {
-                    $pageTitle = $cat['name'];
-                    break;
-                }
-            }
+            $pageTitle = CatalogGroupService::getDisplayName($categorySlug);
         }
 
         $this->render('home/search', [
