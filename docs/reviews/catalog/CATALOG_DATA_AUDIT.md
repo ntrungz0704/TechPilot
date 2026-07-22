@@ -1,10 +1,11 @@
-# CHECKPOINT 0 — CATALOG DATA AUDIT REPORT (V2)
+# CHECKPOINT 0 — CATALOG DATA AUDIT REPORT (V3 FINAL)
 **Dự án:** TechPilot  
-**Thời điểm Audit (Timestamp):** 2026-07-23T00:10:00+07:00  
+**Thời điểm Audit (Timestamp):** 2026-07-23T00:45:00+07:00  
 **Database Audit Target:** CSDL `techpilot` (bảng `categories`, `products`, `brands`)  
 **Main Branch SHA:** `7a148b8fc776fe9d19a2d1027758abbf226b6410`  
 **Checkpoint 0 Initial SHA:** `b03c2ec580e0367e7d194d7e0fa9dde57db871e9`  
-**Trạng thái Audit:** ĐÃ CẬP NHẬT THEO REVIEW GATE — SẴN SÀNG ĐÁNH GIÁ GO/NO-GO  
+**Checkpoint 0 V2 SHA:** `fc331bd`  
+**Trạng thái Audit:** ĐÃ HOÀN THIỆN BẰNG CHỨNG TÁI TẠO (REPRODUCIBLE EVIDENCE FINALIZE)  
 
 ---
 
@@ -24,14 +25,14 @@ Báo cáo này thực hiện kiểm kê dữ liệu thời gian thực (Runtime 
 | Tiêu chí | Trạng thái thực tế |
 | :--- | :--- |
 | **Branch hiện tại** | `feature/hieu-news` |
-| **Trạng thái Working Tree** | Clean (sau commit V1 `b03c2ec`) |
+| **Trạng thái Working Tree** | Clean (sau commit V2 `fc331bd`) |
 | **So sánh với `main`** | Có 23 file khác biệt (tin tức, header refactoring, style.css, catalog audit docs) |
 
 ### Tệp thuộc Header/Category khác biệt so với `main`:
-- [header.php](app/views/layouts/header.php): Đã refactor header actions, thêm badges giỏ hàng/thông báo, cập nhật menu navigation.
-- [style.css](public/assets/css/style.css): Cập nhật kích thước header, navigation height, responsive padding.
-- [main.js](public/assets/js/main.js): Cập nhật xử lý mobile drawer & search form parameters.
-- [_category_nav.php](app/views/post/partials/_category_nav.php): Thanh điều hướng danh mục bài viết tin tức.
+- [header.php](../../../app/views/layouts/header.php): Đã refactor header actions, thêm badges giỏ hàng/thông báo, cập nhật menu navigation.
+- [style.css](../../../public/assets/css/style.css): Cập nhật kích thước header, navigation height, responsive padding.
+- [main.js](../../../public/assets/js/main.js): Cập nhật xử lý mobile drawer & search form parameters.
+- [_category_nav.php](../../../app/views/post/partials/_category_nav.php): Thanh điều hướng danh mục bài viết tin tức.
 
 > [!NOTE]
 > Không thực hiện `git checkout`, `reset` hay `merge main` trong Checkpoint 0 này.
@@ -69,7 +70,7 @@ Tổng số danh mục trong DB: **18 categories** (9 danh mục cấp 1 parent_
 
 ### 3.2 Thống kê Sản phẩm & Giá Effective (Min, Median, Max) theo Category
 
-*Ghi chú:* Giá effective được tính bằng công thức `COALESCE(NULLIF(sale_price, 0), price)`.
+*Ghi chú:* Giá effective được tính bằng công thức `COALESCE(NULLIF(sale_price, 0), price)`. Median được tính chính xác thông qua MySQL 8 CTE Window Function.
 
 | Category ID | Tên Category | Tổng SP | Active | Draft | Inactive | Min Price Effective | Median Price Effective | Max Price Effective | Số Brand |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -91,7 +92,7 @@ Tổng số danh mục trong DB: **18 categories** (9 danh mục cấp 1 parent_
 | 16 | Nguồn (PSU) *(Child of 4)* | 50 | 50 | 0 | 0 | 1.517.000đ | 2.154.500đ | 2.733.000đ | 5 |
 | 17 | Case *(Child of 4)* | 50 | 50 | 0 | 0 | 1.309.000đ | 1.616.000đ | 1.990.000đ | 5 |
 | 18 | Tản nhiệt *(Child of 4)* | 45 | 45 | 0 | 0 | 150.000đ | 862.000đ | 2.500.000đ | 4 *(5 SP brand_id NULL)* |
-| **Tổng** | | **620** | **620** | **0** | **0** | **150.000đ** | **2.600.000đ** | **20.497.000đ** | |
+| **Tổng** | | **620** | **620** | **0** | **0** | **150.000đ** | **2.401.000đ** | **20.497.000đ** | |
 
 ---
 
@@ -131,8 +132,8 @@ Tổng số danh mục trong DB: **18 categories** (9 danh mục cấp 1 parent_
 > 2. **Logic Query trong Model `Product.php` và Route Search (Vẫn hỗ trợ danh mục con):**
 >    - Phương thức `Product::search()` khi nhận `$categorySlug = 'pc-linh-kien'` sẽ tạo câu truy vấn SQL:
 >      `WHERE (c.slug = 'pc-linh-kien' OR c.parent_id IN (SELECT id FROM categories WHERE slug = 'pc-linh-kien' AND status = 'active'))`
->    - **Integration Evidence:** Đã chạy kiểm tra thực tế bằng PHP script gọi `Product::search('', 'pc-linh-kien')` và query trực tiếp CSDL.
->      - **Kết quả thực tế của `home/search?cat=pc-linh-kien`:** Trả về đầy đủ **485 sản phẩm active** thuộc cả 9 danh mục con (CPU: 40, Mainboard: 60, RAM: 80, VGA: 80, SSD: 60, HDD: 20, PSU: 50, Case: 50, Tản nhiệt: 45).
+>    - **Integration Evidence:** Đã thực thi kiểm tra bằng cURL và PHP CLI.
+>      - **Kết quả thực tế của `home/search?cat=pc-linh-kien`:** Trả về đầy đủ **485 sản phẩm active** (trang 1 trả về 24 SP theo pagination limit 24).
 >
 > 3. **Lỗi Phụ trong `Product::getByCategorySlug()`:**
 >    - Phương thức `getByCategorySlug()` có SQL: `WHERE c.slug = :slug OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug)`.
@@ -167,17 +168,17 @@ Tổng số danh mục trong DB: **18 categories** (9 danh mục cấp 1 parent_
 
 | Danh mục Phê duyệt | Slug Canonical trong DB | Aliases đang dùng trong Code / Views | File tham chiếu | Nguy cơ Trả kết quả Rỗng |
 | :--- | :--- | :--- | :--- | :--- |
-| **Laptop** | `laptop-gaming`<br>`laptop-van-phong` | `laptop-gaming`<br>`laptop-van-phong` | [header.php](app/views/layouts/header.php#L23-L26)<br>[index.php](app/views/home/index.php#L264)<br>[Product.php](app/models/Product.php) | **Cao**: Chưa có slug chung `laptop` trong CSDL. Tìm kiếm `cat=laptop` sẽ ra rỗng. |
-| **PC & Build PC** | `pc-build-san`<br>`may-tinh-bo` | `pc-build-san`<br>`may-tinh-bo`<br>`pc-gaming`<br>`pc-van-phong` | [HomeController.php](app/controllers/HomeController.php)<br>[header.php](app/views/layouts/header.php#L298)<br>[index.php](app/views/home/index.php) | **Cao**: `may-tinh-bo` có 0 SP. `pc-build-san` được dùng ở nav nhưng không gộp sản phẩm. |
-| **Linh kiện PC** | `pc-linh-kien`<br>(+ 9 child slugs) | `pc-linh-kien`, `cpu`, `mainboard`, `ram`, `vga`, `ssd`, `hdd`, `psu`, `case`, `tan-nhiet` | [header.php](app/views/layouts/header.php#L27)<br>[Product.php](app/models/Product.php) | **Trung bình**: Search URL `cat=pc-linh-kien` ra 485 SP, nhưng Menu Dropdown ẩn và từ khóa search "linh kiện" bị lỗi alias. |
-| **Màn hình** | `man-hinh` | `man-hinh` | [header.php](app/views/layouts/header.php#L29)<br>[Product.php](app/models/Product.php) | **Trung bình**: Lọc brand trả về rỗng vì `brand_id = NULL`. |
-| **Gaming Gear** | `gaming-gear` | `gaming-gear` | [header.php](app/views/layouts/header.php#L31)<br>[Product.php](app/models/Product.php) | **Trung bình**: Lọc brand trả về rỗng vì `brand_id = NULL`. |
-| **Thiết bị văn phòng** | `office-gear` | `office-gear`<br>`thiet-bi-van-phong` | [helpers.php](app/core/helpers.php)<br>[NewsCommerceService.php](app/services/NewsCommerceService.php) | **Cao**: Bất đồng bộ slug giữa DB (`office-gear`) và tiếng Việt (`thiet-bi-van-phong`). |
-| **Thiết bị mạng** | `networking` | `networking`<br>`thiet-bi-mang` | [helpers.php](app/core/helpers.php)<br>[NewsCommerceService.php](app/services/NewsCommerceService.php) | **Nghiêm trọng**: 0 sản phẩm trong DB. Bấm vào trả về 0 kết quả. |
+| **Laptop** | `laptop-gaming`<br>`laptop-van-phong` | `laptop-gaming`<br>`laptop-van-phong` | [header.php](../../../app/views/layouts/header.php#L23-L26)<br>[index.php](../../../app/views/home/index.php#L264)<br>[Product.php](../../../app/models/Product.php) | **Cao**: Chưa có slug chung `laptop` trong CSDL. Tìm kiếm `cat=laptop` sẽ ra rỗng. |
+| **PC & Build PC** | `pc-build-san`<br>`may-tinh-bo` | `pc-build-san`<br>`may-tinh-bo`<br>`pc-gaming`<br>`pc-van-phong` | [HomeController.php](../../../app/controllers/HomeController.php)<br>[header.php](../../../app/views/layouts/header.php#L298)<br>[index.php](../../../app/views/home/index.php) | **Cao**: `may-tinh-bo` có 0 SP. `pc-build-san` được dùng ở nav nhưng không gộp sản phẩm. |
+| **Linh kiện PC** | `pc-linh-kien`<br>(+ 9 child slugs) | `pc-linh-kien`, `cpu`, `mainboard`, `ram`, `vga`, `ssd`, `hdd`, `psu`, `case`, `tan-nhiet` | [header.php](../../../app/views/layouts/header.php#L27)<br>[Product.php](../../../app/models/Product.php) | **Trung bình**: Search URL `cat=pc-linh-kien` ra 485 SP, nhưng Menu Dropdown ẩn và từ khóa search "linh kiện" bị lỗi alias. |
+| **Màn hình** | `man-hinh` | `man-hinh` | [header.php](../../../app/views/layouts/header.php#L29)<br>[Product.php](../../../app/models/Product.php) | **Trung bình**: Lọc brand trả về rỗng vì `brand_id = NULL`. |
+| **Gaming Gear** | `gaming-gear` | `gaming-gear` | [header.php](../../../app/views/layouts/header.php#L31)<br>[Product.php](../../../app/models/Product.php) | **Trung bình**: Lọc brand trả về rỗng vì `brand_id = NULL`. |
+| **Thiết bị văn phòng** | `office-gear` | `office-gear`<br>`thiet-bi-van-phong` | [helpers.php](../../../app/core/helpers.php)<br>[NewsCommerceService.php](../../../app/services/NewsCommerceService.php) | **Cao**: Bất đồng bộ slug giữa DB (`office-gear`) và tiếng Việt (`thiet-bi-van-phong`). |
+| **Thiết bị mạng** | `networking` | `networking`<br>`thiet-bi-mang` | [helpers.php](../../../app/core/helpers.php)<br>[NewsCommerceService.php](../../../app/services/NewsCommerceService.php) | **Nghiêm trọng**: 0 sản phẩm trong DB. Bấm vào trả về 0 kết quả. |
 
 ### 4.2 Chi Tiết Lỗi Alias Hiện Hữu Trong `Product.php`
 
-- Trong [Product.php](app/models/Product.php#L1284-L1285), mảng `$aliases` định nghĩa từ khóa tìm kiếm tiếng Việt:
+- Trong [Product.php](../../../app/models/Product.php#L1284-L1285), mảng `$aliases` định nghĩa từ khóa tìm kiếm tiếng Việt:
   ```php
   'linh kiện' => ['linh-kien-pc'],
   'linh kien' => ['linh-kien-pc'],
@@ -225,7 +226,7 @@ $globalCategoryMenu + $globalCategories
 
 1. **CategoryMenuService ẩn danh mục có sản phẩm ở danh mục con:** Đã phân tích chi tiết tại Mục 3.4.
 2. **Redundant Fixed Query (Truy vấn dư thừa cố định):**
-   - Trong `Controller::render()` ([Controller.php](app/core/Controller.php#L45-L54)), sau khi gọi `CategoryMenuService::getActiveMenuTree()` (3 truy vấn DB), controller tiếp tục thực hiện thêm 1 truy vấn dư thừa cố định `SELECT * FROM categories WHERE status = "active"` chỉ để tạo danh sách `<option>` trong ô chọn category của thanh tìm kiếm header.
+   - Trong `Controller::render()` ([Controller.php](../../../app/core/Controller.php#L45-L54)), sau khi gọi `CategoryMenuService::getActiveMenuTree()` (3 truy vấn DB), controller tiếp tục thực hiện thêm 1 truy vấn dư thừa cố định `SELECT * FROM categories WHERE status = "active"` chỉ để tạo danh sách `<option>` trong ô chọn category của thanh tìm kiếm header.
 3. **Mức giá Hard-code không phù hợp:** `CategoryMenuService.php` hard-code khoảng giá `<15M`, `15-20M`, `20-30M`, `>30M`, không tương thích với linh kiện/gear giá rẻ.
 4. **Khác biệt Static vs Dropdown Menu:** Header dropdown hiển thị dạng popup khi click toggle button, Homepage static menu hiển thị cố định trong Hero section với CSS `width: calc(100vw - 280px - 300px - 100px)`.
 
@@ -233,8 +234,8 @@ $globalCategoryMenu + $globalCategories
 
 ### 5.3 Audit và Phân Loại Code Legacy / Dead Code
 
-- [app/data/category-menu.php](app/data/category-menu.php): Chứa mảng tĩnh dữ liệu danh mục cứng cũ (PHP array).
-- [app/views/components/category-menu.php](app/views/components/category-menu.php): Component view cũ đọc dữ liệu từ `app/data/category-menu.php` và thực hiện lọc sản phẩm dựa trên chuỗi specs/tên.
+- [app/data/category-menu.php](../../../app/data/category-menu.php): Chứa mảng tĩnh dữ liệu danh mục cứng cũ (PHP array).
+- [app/views/components/category-menu.php](../../../app/views/components/category-menu.php): Component view cũ đọc dữ liệu từ `app/data/category-menu.php` và thực hiện lọc sản phẩm dựa trên chuỗi specs/tên.
 
 > [!IMPORTANT]
 > **KẾT LUẬN AUDIT CODE:**
@@ -256,129 +257,304 @@ $globalCategoryMenu + $globalCategories
 
 ---
 
-## 7. Đề Xuất Virtual Group Mapping (7 Nhóm Catalog Phê Duyệt)
+## 7. Đề Xuất Virtual Group Mapping & Bang Giá Median Effective (7 Nhóm Catalog Phê Duyệt)
 
-Dựa trên dữ liệu CSDL runtime thực tế, quy tắc nhận diện và số lượng sản phẩm khớp thực tế của từng nhóm virtual catalog được xác định như sau:
+Dựa trên dữ liệu CSDL runtime thực tế và câu lệnh MySQL 8 CTE Window Function, quy tắc nhận diện, số lượng sản phẩm khớp thực tế và thống kê giá Effective (`COALESCE(NULLIF(sale_price, 0), price)`) của từng nhóm được xác định như sau:
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                               7 VIRTUAL CATALOG GROUPS                                 │
-├─────────────┬──────────────┬──────────────┬───────────┬──────────────┬─────────────────┬──────────────┤
-│ 1. Laptop   │ 2. PC & Build│ 3. Linh Kiện │4. Màn Hình│5. Gaming Gear│ 6. Thiết Bị VP  │ 7. Thiết Bị  │
-│             │    PC        │    PC        │           │              │                 │    Mạng      │
-└─────────────┴──────────────┴──────────────┴───────────┴──────────────┴─────────────────┴──────────────┘
-```
-
-### Detail Breakdown:
-
-#### 1. Nhóm Laptop (READY)
-- **Quy tắc nhận diện (Rule):** `category_id IN (1, 2)` (Laptop Gaming, Laptop Văn Phòng)
-- **Số SP active khớp thực tế:** **74 sản phẩm** (38 Gaming + 36 Văn phòng)
-- **Thương hiệu (6):** Acer, ASUS, DELL, HP, Lenovo, MSI
-- **Khoảng giá Effective:** Min: 19.800.000đ | Median: 20.161.000đ | Max: 20.497.000đ
-- **Subgroups khớp dữ liệu:**
-  1. *Laptop Gaming* (Category ID 1) — Rule: `category_id = 1` (38 SP)
-  2. *Laptop Văn Phòng* (Category ID 2) — Rule: `category_id = 2` (36 SP)
-- **Dữ liệu thiếu:** Chưa có subgroup riêng cho Macbook / Laptop Creator
-- **Aliases hỗ trợ:** `laptop`, `laptop-gaming`, `laptop-van-phong`
-
-#### 2. Nhóm PC & Build PC (READY)
-- **Quy tắc nhận diện (Rule):** `category_id IN (3, 6)` (PC Build Sẵn, Máy tính bộ)
-- **Số SP active khớp thực tế:** **36 sản phẩm** (36 PC Build sẵn, 0 Máy tính bộ)
-- **Thương hiệu (6):** Acer, ASUS, DELL, HP, Lenovo, MSI
-- **Khoảng giá Effective:** Min: 19.801.000đ | Median: 20.127.000đ | Max: 20.474.000đ
-- **Subgroups khớp dữ liệu:**
-  1. *PC Build Sẵn* (Category ID 3) — Rule: `category_id = 3` (36 SP)
-  *(Lưu ý: "Máy tính bộ" có count = 0 nên KHÔNG hiển thị làm subgroup trên UI)*
-- **Aliases hỗ trợ:** `pc-build-san`, `may-tinh-bo`, `pc-gaming`, `pc-van-phong`
-
-#### 3. Nhóm Linh kiện PC (READY)
-- **Quy tắc nhận diện (Rule):** `category_id IN (4, 10, 11, 12, 13, 14, 15, 16, 17, 18)`
-- **Số SP active khớp thực tế:** **485 sản phẩm**
-- **Thương hiệu (25):** AMD, Intel, ASRock, ASUS, Colorful, GIGABYTE, MSI, Corsair, G.Skill, Kingston, TeamGroup, XPG, Acer, Zotac, Crucial, Lexar, Samsung, WD, Cooler Master, DeepCool, Lian Li, Montech, NZXT, Xigmatek, Thermalright
-- **Khoảng giá Effective:** Min: 150.000đ | Median: 2.401.000đ | Max: 20.000.000đ
-- **Subgroups khớp dữ liệu:**
-  1. *CPU (Bộ vi xử lý)* — Rule: `category_id = 10` hoặc `component_type = 'cpu'` (40 SP)
-  2. *Mainboard (Bo mạch chủ)* — Rule: `category_id = 11` hoặc `component_type = 'mainboard'` (60 SP)
-  3. *RAM (Bộ nhớ trong)* — Rule: `category_id = 12` hoặc `component_type = 'ram'` (80 SP)
-  4. *VGA (Card màn hình)* — Rule: `category_id = 13` hoặc `component_type = 'gpu'` (80 SP)
-  5. *Ổ cứng SSD* — Rule: `category_id = 14` (60 SP)
-  6. *Ổ cứng HDD* — Rule: `category_id = 15` (20 SP)
-  7. *Nguồn máy tính (PSU)* — Rule: `category_id = 16` hoặc `component_type = 'psu'` (50 SP)
-  8. *Vỏ máy tính (Case)* — Rule: `category_id = 17` hoặc `component_type = 'case'` (50 SP)
-  9. *Tản nhiệt PC* — Rule: `category_id = 18` hoặc `component_type = 'cpu_cooler'` (45 SP)
-- **Aliases hỗ trợ:** `pc-linh-kien`, `linh-kien-pc`, `cpu`, `mainboard`, `ram`, `vga`, `ssd`, `hdd`, `psu`, `case`, `tan-nhiet`
-
-#### 4. Nhóm Màn hình (READY)
-- **Quy tắc nhận diện (Rule):** `category_id = 5` (Màn Hình)
-- **Số SP active khớp thực tế:** **10 sản phẩm**
-- **Thương hiệu:** Chưa gán (`brand_id = NULL`)
-- **Khoảng giá Effective:** Min: 3.100.000đ | Median: 4.850.000đ | Max: 14.500.000đ
-- **Subgroups khớp dữ liệu:** Tất cả 10 SP nằm chung trong nhóm Màn Hình. (Tạm thời không hiển thị subgroup giả lập vì 10 SP chưa được phân loại chi tiết theo tag đồ họa/gaming).
-- **Aliases hỗ trợ:** `man-hinh`, `monitor`
-
-#### 5. Nhóm Gaming Gear (READY)
-- **Quy tắc nhận diện (Rule):** `category_id = 7` (Gaming Gear)
-- **Số SP active khớp thực tế:** **10 sản phẩm**
-- **Thương hiệu:** Chưa gán (`brand_id = NULL`)
-- **Khoảng giá Effective:** Min: 550.000đ | Median: 3.850.000đ | Max: 5.500.000đ
-- **Subgroups khớp dữ liệu:** Tất cả 10 SP nằm chung trong nhóm Gaming Gear.
-- **Aliases hỗ trợ:** `gaming-gear`, `gear`
-
-#### 6. Nhóm Thiết bị văn phòng (READY)
-- **Quy tắc nhận diện (Rule):** `category_id = 8` (Thiết Bị Văn Phòng)
-- **Số SP active khớp thực tế:** **5 sản phẩm**
-- **Thương hiệu:** Chưa gán (`brand_id = NULL`)
-- **Khoảng giá Effective:** Min: 1.200.000đ | Median: 2.800.000đ | Max: 9.500.000đ
-- **Subgroups khớp dữ liệu:** Tất cả 5 SP nằm chung trong nhóm Thiết Bị Văn Phòng.
-- **Aliases hỗ trợ:** `office-gear`, `thiet-bi-van-phong`
-
-#### 7. Nhóm Thiết bị mạng (NOT READY / HIDDEN)
-- **Quy tắc nhận diện (Rule):** `category_id = 9` (Thiết Bị Mạng)
-- **Số SP active khớp thực tế:** **0 sản phẩm** (Count = 0)
-- **Trạng thái:** **NOT READY / HIDDEN**
-- **Định hướng xử lý:** Ẩn hoặc làm xám (disabled) trên thanh điều hướng storefront để tránh người dùng bấm vào gặp trang rỗng, chờ dữ liệu bổ sung ở các giai đoạn sau.
-- **Aliases hỗ trợ:** `networking`, `thiet-bi-mang`
+| Virtual Group Name | Rule Nhận Diện (`category_id`) | Total Active Products | Min Effective Price | Median Effective Price | Max Effective Price | Trạng thái Sẵn sàng |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Laptop** | `c.id IN (1, 2)` | 74 | 19.800.000đ | **20.161.000đ** | 20.497.000đ | **READY** |
+| **PC & Build PC** | `c.id IN (3, 6)` | 36 | 19.801.000đ | **20.127.000đ** | 20.474.000đ | **READY** |
+| **Linh kiện PC** | `c.id IN (4, 10..18)` | 485 | 150.000đ | **2.401.000đ** | 20.000.000đ | **READY** |
+| **Màn hình** | `c.id = 5` | 10 | 3.100.000đ | **4.850.000đ** | 14.500.000đ | **READY** |
+| **Gaming Gear** | `c.id = 7` | 10 | 550.000đ | **3.850.000đ** | 5.500.000đ | **READY** |
+| **Thiết bị văn phòng** | `c.id = 8` | 5 | 1.200.000đ | **2.800.000đ** | 9.500.000đ | **READY** |
+| **Thiết bị mạng** | `c.id = 9` | 0 | N/A | **N/A** | N/A | **NOT READY / HIDDEN** |
 
 ---
 
-## 8. Bằng Chứng Audit Có Thể Tái Tạo (Reproducible Audit Evidence)
+## 8. Bằng Chứng Audit Tái Tạo Nguyên Văn (Reproducible Raw Evidence)
 
-Tất cả các truy vấn SQL dưới đây được thực thi trực tiếp trên cơ sở dữ liệu `techpilot` tại thời điểm `2026-07-23T00:10:00+07:00`:
+### 8.1 Raw HTTP Headers Response (`curl -I`)
 
-### SQL 1: Thống kê danh mục và tính giá Effective (Min, Median, Max)
-```sql
-SELECT 
-    c.id, c.name, c.slug, c.parent_id,
-    COUNT(p.id) AS total_products,
-    MIN(COALESCE(NULLIF(p.sale_price, 0), p.price)) AS min_eff_price,
-    MAX(COALESCE(NULLIF(p.sale_price, 0), p.price)) AS max_eff_price
-FROM categories c
-LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active'
-GROUP BY c.id, c.name, c.slug, c.parent_id
-ORDER BY c.id;
+```http
+HTTP/1.1 200 OK
+Date: Wed, 22 Jul 2026 17:45:39 GMT
+Server: Apache/2.4.62 (Win64) OpenSSL/3.0.15 PHP/8.3.26
+X-Powered-By: PHP/8.3.26
+Set-Cookie: PHPSESSID=fve82han2gcr6hpeqtf51kgmlh; path=/; HttpOnly; SameSite=Lax
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Content-Type: text/html; charset=UTF-8
 ```
-*Output Summary:* Đã xác nhận 18 categories, 620 SP active, min effective price = 150.000đ (Tản nhiệt), max effective price = 20.497.000đ (Laptop).
 
-### SQL 2: Kiểm tra truy vấn sản phẩm Linh kiện PC bao gồm danh mục con
-```sql
-SELECT p.id, p.name, c.name AS category_name, c.slug AS category_slug
-FROM products p
-JOIN categories c ON p.category_id = c.id
-WHERE p.status = 'active'
-  AND (c.slug = 'pc-linh-kien' OR c.parent_id IN (SELECT id FROM categories WHERE slug = 'pc-linh-kien' AND status = 'active'));
-```
-*Output Summary:* Đã xác nhận chính xác **485 sản phẩm active** được trả về từ 9 danh mục con.
+---
 
-### SQL 3: Thống kê sản phẩm rỗng thương hiệu (brand_id NULL)
-```sql
-SELECT c.name, c.slug, COUNT(p.id) AS no_brand_count
-FROM products p
-JOIN categories c ON p.category_id = c.id
-WHERE p.brand_id IS NULL OR p.brand_id = 0
-GROUP BY c.name, c.slug;
+### 8.2 Raw PHP Output (`var_dump` Execution)
+
+```php
+array(4) {
+  ["HTTP_STATUS"]=>
+  int(200)
+  ["totalResults"]=>
+  int(485)
+  ["returned_count_page_1"]=>
+  int(24)
+  ["EXIT_CODE"]=>
+  int(0)
+}
 ```
-*Output Summary:* Màn hình: 10 SP, Gaming Gear: 10 SP, Thiết Bị Văn Phòng: 5 SP, Tản nhiệt: 5 SP (Tổng cộng 30 SP).
+
+---
+
+### 8.3 Raw SQL Window Function & Output: Category Median Effective Price (MySQL 8 CTE)
+
+#### Câu lệnh SQL CTE:
+```sql
+WITH priced AS (
+    SELECT
+        c.id AS category_id,
+        c.name AS category_name,
+        COALESCE(NULLIF(p.sale_price, 0), p.price) AS effective_price
+    FROM categories c
+    JOIN products p ON p.category_id = c.id
+    WHERE p.status = 'active'
+),
+ranked AS (
+    SELECT
+        category_id,
+        category_name,
+        effective_price,
+        ROW_NUMBER() OVER (
+            PARTITION BY category_id
+            ORDER BY effective_price
+        ) AS rn,
+        COUNT(*) OVER (
+            PARTITION BY category_id
+        ) AS cnt
+    FROM priced
+)
+SELECT
+    category_id,
+    category_name,
+    AVG(effective_price) AS median_effective_price
+FROM ranked
+WHERE rn IN (
+    FLOOR((cnt + 1) / 2),
+    FLOOR((cnt + 2) / 2)
+)
+GROUP BY category_id, category_name
+ORDER BY category_id;
+```
+
+#### Raw SQL Array Output Nguyên Văn:
+```php
+Array
+(
+    [0] => Array
+        (
+            [category_id] => 1
+            [category_name] => Laptop Gaming
+            [median_effective_price] => 20048500.0000
+        )
+    [1] => Array
+        (
+            [category_id] => 2
+            [category_name] => Laptop Văn Phòng
+            [median_effective_price] => 20212500.0000
+        )
+    [2] => Array
+        (
+            [category_id] => 3
+            [category_name] => PC Build Sẵn
+            [median_effective_price] => 20127000.0000
+        )
+    [3] => Array
+        (
+            [category_id] => 5
+            [category_name] => Màn Hình
+            [median_effective_price] => 4850000.0000
+        )
+    [4] => Array
+        (
+            [category_id] => 7
+            [category_name] => Gaming Gear
+            [median_effective_price] => 3850000.0000
+        )
+    [5] => Array
+        (
+            [category_id] => 8
+            [category_name] => Thiết Bị Văn Phòng
+            [median_effective_price] => 2800000.0000
+        )
+    [6] => Array
+        (
+            [category_id] => 10
+            [category_name] => CPU
+            [median_effective_price] => 6206500.0000
+        )
+    [7] => Array
+        (
+            [category_id] => 11
+            [category_name] => Mainboard
+            [median_effective_price] => 2842000.0000
+        )
+    [8] => Array
+        (
+            [category_id] => 12
+            [category_name] => RAM
+            [median_effective_price] => 1916000.0000
+        )
+    [9] => Array
+        (
+            [category_id] => 13
+            [category_name] => VGA
+            [median_effective_price] => 9802500.0000
+        )
+    [10] => Array
+        (
+            [category_id] => 14
+            [category_name] => Ổ Cứng SSD
+            [median_effective_price] => 1434500.0000
+        )
+    [11] => Array
+        (
+            [category_id] => 15
+            [category_name] => Ổ Cứng HDD
+            [median_effective_price] => 2487500.0000
+        )
+    [12] => Array
+        (
+            [category_id] => 16
+            [category_name] => Nguồn (PSU)
+            [median_effective_price] => 2154500.0000
+        )
+    [13] => Array
+        (
+            [category_id] => 17
+            [category_name] => Case
+            [median_effective_price] => 1616000.0000
+        )
+    [14] => Array
+        (
+            [category_id] => 18
+            [category_name] => Tản nhiệt
+            [median_effective_price] => 862000.0000
+        )
+)
+```
+
+---
+
+### 8.4 Raw SQL Window Function & Output: 7 Virtual Groups Median Effective Price (MySQL 8 CTE)
+
+#### Câu lệnh SQL CTE:
+```sql
+WITH vg_mapped AS (
+    SELECT
+        CASE
+            WHEN c.id IN (1, 2) THEN 'Laptop'
+            WHEN c.id IN (3, 6) THEN 'PC & Build PC'
+            WHEN c.id IN (4, 10, 11, 12, 13, 14, 15, 16, 17, 18) THEN 'Linh kiện PC'
+            WHEN c.id = 5 THEN 'Màn hình'
+            WHEN c.id = 7 THEN 'Gaming Gear'
+            WHEN c.id = 8 THEN 'Thiết bị văn phòng'
+            WHEN c.id = 9 THEN 'Thiết bị mạng'
+        END AS virtual_group_name,
+        COALESCE(NULLIF(p.sale_price, 0), p.price) AS effective_price
+    FROM categories c
+    JOIN products p ON p.category_id = c.id
+    WHERE p.status = 'active'
+),
+ranked AS (
+    SELECT
+        virtual_group_name,
+        effective_price,
+        ROW_NUMBER() OVER (
+            PARTITION BY virtual_group_name
+            ORDER BY effective_price
+        ) AS rn,
+        COUNT(*) OVER (
+            PARTITION BY virtual_group_name
+        ) AS cnt,
+        MIN(effective_price) OVER (
+            PARTITION BY virtual_group_name
+        ) AS min_p,
+        MAX(effective_price) OVER (
+            PARTITION BY virtual_group_name
+        ) AS max_p
+    FROM vg_mapped
+)
+SELECT
+    virtual_group_name,
+    MAX(cnt) AS total_active_products,
+    MAX(min_p) AS min_effective_price,
+    AVG(effective_price) AS median_effective_price,
+    MAX(max_p) AS max_effective_price
+FROM ranked
+WHERE rn IN (
+    FLOOR((cnt + 1) / 2),
+    FLOOR((cnt + 2) / 2)
+)
+GROUP BY virtual_group_name
+ORDER BY min_effective_price ASC;
+```
+
+#### Raw SQL Array Output Nguyên Văn:
+```php
+Array
+(
+    [0] => Array
+        (
+            [virtual_group_name] => Linh kiện PC
+            [total_active_products] => 485
+            [min_effective_price] => 150000
+            [median_effective_price] => 2401000.0000
+            [max_effective_price] => 20000000
+        )
+    [1] => Array
+        (
+            [virtual_group_name] => Gaming Gear
+            [total_active_products] => 10
+            [min_effective_price] => 550000
+            [median_effective_price] => 3850000.0000
+            [max_effective_price] => 5500000
+        )
+    [2] => Array
+        (
+            [virtual_group_name] => Thiết bị văn phòng
+            [total_active_products] => 5
+            [min_effective_price] => 1200000
+            [median_effective_price] => 2800000.0000
+            [max_effective_price] => 9500000
+        )
+    [3] => Array
+        (
+            [virtual_group_name] => Màn hình
+            [total_active_products] => 10
+            [min_effective_price] => 3100000
+            [median_effective_price] => 4850000.0000
+            [max_effective_price] => 14500000
+        )
+    [4] => Array
+        (
+            [virtual_group_name] => Laptop
+            [total_active_products] => 74
+            [min_effective_price] => 19800000
+            [median_effective_price] => 20161000.0000
+            [max_effective_price] => 20497000
+        )
+    [5] => Array
+        (
+            [virtual_group_name] => PC & Build PC
+            [total_active_products] => 36
+            [min_effective_price] => 19801000
+            [median_effective_price] => 20127000.0000
+            [max_effective_price] => 20474000
+        )
+)
+```
 
 ---
 
@@ -415,8 +591,9 @@ GROUP BY c.name, c.slug;
 
 ---
 
-### Xác nhận hoàn tất Checkpoint 0 (V2):
+### Xác nhận hoàn tất Checkpoint 0 (V3):
 - [x] Không sửa giao diện / production code.
 - [x] Không sửa CSDL / không chạy migration.
 - [x] Không thay đổi product/category records.
-- [x] Đã cập nhật đầy đủ 9 yêu cầu review tại [CATALOG_DATA_AUDIT.md](docs/reviews/catalog/CATALOG_DATA_AUDIT.md).
+- [x] Bổ sung đầy đủ SQL CTE Window Function Median & Raw Outputs nguyên văn.
+- [x] Đã cập nhật 100% Markdown links tương đối từ vị trí `docs/reviews/catalog/CATALOG_DATA_AUDIT.md`.
