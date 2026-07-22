@@ -496,8 +496,9 @@ html.dark-mode .logo-text span {
     border-radius: var(--radius-elem, 12px);
     white-space: nowrap;
     color: var(--text-primary);
-    background-color: var(--surface-muted);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: none;
+    outline: none;
     font-size: 13px;
     font-weight: 500;
     text-decoration: none;
@@ -505,7 +506,8 @@ html.dark-mode .logo-text span {
     position: relative;
     user-select: none;
     box-sizing: border-box;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .header-action__icon,
@@ -534,45 +536,58 @@ html.dark-mode .logo-text span {
     flex-shrink: 0;
 }
 
-/* Interactive States: Hover */
+/* Interactive States: Hover (Soft Background Tint, Zero Border) */
 .header-action:hover,
 .header-actions__item:hover {
     color: var(--primary);
-    background-color: rgba(10, 91, 255, 0.08);
-    border-color: rgba(10, 91, 255, 0.25);
+    background: rgba(10, 91, 255, 0.08);
+    border: none;
 }
 
 html.dark-mode .header-action:hover,
 html.dark-mode .header-actions__item:hover {
-    color: var(--primary);
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
 }
 
-/* Focus-visible for keyboard accessibility */
+/* Focus-visible: Soft external box-shadow only for keyboard accessibility */
+.header-action:focus,
+.header-actions__item:focus {
+    outline: none;
+    border: none;
+}
+
 .header-action:focus-visible,
 .header-actions__item:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
+    outline: none;
+    border: none;
+    box-shadow: 0 0 0 3px rgba(10, 91, 255, 0.3);
 }
 
-/* Active / Current Page State */
+html.dark-mode .header-action:focus-visible,
+html.dark-mode .header-actions__item:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.35);
+}
+
+/* Active / Current Page State (Seamless Highlight without Border) */
 .header-action.is-active,
 .header-action[aria-current="page"],
 .header-actions__item.is-active {
     color: var(--primary);
-    border-color: var(--primary);
-    background-color: rgba(10, 91, 255, 0.1);
+    background: rgba(10, 91, 255, 0.12);
     font-weight: 600;
+    border: none;
 }
 
 html.dark-mode .header-action.is-active,
 html.dark-mode .header-action[aria-current="page"] {
-    background-color: rgba(10, 91, 255, 0.2);
-    border-color: var(--primary);
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.14);
+    border: none;
 }
 
-/* 1. Theme Toggle Button (Icon-Only, 44x44px) */
+/* 1. Theme Toggle Button (Icon-Only, 44x44px, No Border) */
 .header-action--theme,
 .header-actions__item.theme-toggle {
     width: 44px;
@@ -580,6 +595,7 @@ html.dark-mode .header-action[aria-current="page"] {
     height: 44px;
     padding: 0;
     justify-content: center;
+    border: none;
 }
 
 /* 2. Wishlist Active State */
@@ -587,27 +603,34 @@ html.dark-mode .header-action[aria-current="page"] {
     color: #EF4444;
 }
 
-/* 3. Cart Action (Highlighted Visual Priority) */
+/* 3. Cart Action (Highlighted Priority with Background Only, No Border) */
 .header-action--cart,
 .header-actions__cart {
-    background-color: rgba(10, 91, 255, 0.06);
-    border: 1px solid rgba(10, 91, 255, 0.18);
+    background: rgba(10, 91, 255, 0.08);
+    border: none;
     color: var(--primary);
     font-weight: 600;
 }
 
 html.dark-mode .header-action--cart,
 html.dark-mode .header-actions__cart {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
     color: var(--text-primary);
 }
 
 .header-action--cart:hover,
 .header-actions__cart:hover {
-    background-color: var(--primary);
+    background: rgba(10, 91, 255, 0.16);
+    color: var(--primary);
+    border: none;
+}
+
+html.dark-mode .header-action--cart:hover,
+html.dark-mode .header-actions__cart:hover {
+    background: rgba(255, 255, 255, 0.14);
     color: #FFFFFF;
-    border-color: var(--primary);
+    border: none;
 }
 
 /* Badges (Cart & Notification) */
@@ -628,7 +651,6 @@ html.dark-mode .header-actions__cart {
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    border: 2px solid var(--surface-card);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     line-height: 1;
     z-index: 2;
@@ -3771,6 +3793,18 @@ body {
         min-height: 38px !important;
         padding: 0 !important;
         border-radius: 10px !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .header-action--cart,
+    .header-actions__cart {
+        background: rgba(10, 91, 255, 0.08) !important;
+    }
+
+    html.dark-mode .header-action--cart,
+    html.dark-mode .header-actions__cart {
+        background: rgba(255, 255, 255, 0.08) !important;
     }
 
     .header-action__label {
