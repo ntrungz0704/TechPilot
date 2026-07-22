@@ -15,7 +15,7 @@ class HomeController extends Controller
             'pageTitle'              => 'Trang chủ - TechPilot',
             'categories'             => $productModel->getCategories(),
             'flashSale'              => $productModel->getFlashSale(6),
-            
+
             // Các danh mục sản phẩm lớn ở trang chủ
             'laptopGaming'           => $productModel->getByCategorySlug('laptop-gaming', 6),
             'laptopVanPhong'         => $productModel->getByCategorySlug('laptop-van-phong', 6),
@@ -174,6 +174,13 @@ class HomeController extends Controller
         }, $all);
 
         echo json_encode($products);
+    }
+
+    public function trade_in(): void
+    {
+        $this->render('home/trade_in', [
+            'pageTitle' => 'Thu cũ đổi mới máy cũ - TechPilot'
+        ]);
     }
 
     public function notFound(): void

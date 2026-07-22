@@ -32,7 +32,7 @@ if (!class_exists('Database')) {
         private const HOST    = '127.0.0.1';
         private const DBNAME  = 'techpilot';
         private const USER    = 'root';
-        private const PASS    = '123456';
+        private const PASS    = 'a1032004km';
         private const CHARSET = 'utf8mb4';
 
         public static function getConnection(): ?PDO
