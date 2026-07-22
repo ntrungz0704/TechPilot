@@ -2,6 +2,7 @@
 require_once ROOT_PATH . '/app/core/Controller.php';
 require_once ROOT_PATH . '/app/models/Post.php';
 require_once ROOT_PATH . '/app/services/UploadService.php';
+require_once ROOT_PATH . '/app/services/PostPublishingValidator.php';
 
 class AdminPostController extends Controller
 {
@@ -58,6 +59,26 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $validation = PostPublishingValidator::validate($_POST);
+            if (!$validation['valid']) {
+                $this->renderAdmin('admin/posts/create', [
+                    'pageTitle' => 'Thêm bài viết mới',
+                    'activeMenu' => 'posts',
+                    'errors' => $validation['errors'],
+                    'post' => [
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ]
+                ]);
+                return;
+            }
+
             try {
                 $title = trim($_POST['title'] ?? '');
                 $summary = trim($_POST['summary'] ?? '');
@@ -67,15 +88,6 @@ class AdminPostController extends Controller
                 $postType = $_POST['post_type'] ?? 'news';
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
-                
-                if (empty($title)) {
-                    throw new Exception('Vui lòng nhập tiêu đề bài viết');
-                }
-
-                $validation = Post::validatePublishedContent($content, $status);
-                if (!$validation['valid']) {
-                    throw new Exception(implode(' ', $validation['errors']));
-                }
 
                 $image = null;
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
@@ -161,17 +173,40 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getConnection();
+            $stmt = $db->prepare('SELECT * FROM posts WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $post = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$post) {
+                $_SESSION['error'] = 'Không tìm thấy bài viết';
+                header('Location: ' . url('admin/posts'));
+                exit;
+            }
+
+            $validation = PostPublishingValidator::validate($_POST);
+            if (!$validation['valid']) {
+                $this->renderAdmin('admin/posts/edit', [
+                    'pageTitle' => 'Chỉnh sửa bài viết',
+                    'activeMenu' => 'posts',
+                    'errors' => $validation['errors'],
+                    'post' => array_merge($post, [
+                        'id' => $id,
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ])
+                ]);
+                return;
+            }
+
+            $newImage = null;
             try {
-                $db = Database::getConnection();
-                
-                $stmt = $db->prepare('SELECT * FROM posts WHERE id = :id');
-                $stmt->execute([':id' => $id]);
-                $post = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                if (!$post) {
-                    throw new Exception('Không tìm thấy bài viết');
-                }
-
                 $title = trim($_POST['title'] ?? '');
                 $summary = trim($_POST['summary'] ?? '');
                 $content = trim($_POST['content'] ?? '');
@@ -181,30 +216,11 @@ class AdminPostController extends Controller
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
 
-                if (empty($title)) {
-                    throw new Exception('Vui lòng nhập tiêu đề bài viết');
-                }
-
-                $validation = Post::validatePublishedContent($content, $status);
-                if (!$validation['valid']) {
-                    throw new Exception(implode(' ', $validation['errors']));
-                }
-
-                $image = $post['image'];
+                $imageToSave = $post['image'];
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                    if ($image) {
-                        $oldPaths = [
-                            ROOT_PATH . '/public/assets/images/posts/' . basename($image),
-                            ROOT_PATH . '/public/assets/images/news/' . basename($image),
-                        ];
-                        foreach ($oldPaths as $oldPath) {
-                            if (file_exists($oldPath)) { @unlink($oldPath); break; }
-                        }
-                    }
-                    $image = UploadService::uploadImage($_FILES['image'], 'posts');
+                    $newImage = UploadService::uploadImage($_FILES['image'], 'posts');
+                    $imageToSave = $newImage;
                 }
-
-                $slug = $post['slug']; 
 
                 $publishedAt = $post['published_at'];
                 if ($status === 'published' && empty($publishedAt)) {
@@ -229,7 +245,7 @@ class AdminPostController extends Controller
                     ':title' => $title,
                     ':summary' => $summary,
                     ':content' => $content,
-                    ':image' => $image,
+                    ':image' => $imageToSave,
                     ':status' => $status,
                     ':category_slug' => $categorySlug,
                     ':post_type' => $postType,
@@ -239,16 +255,26 @@ class AdminPostController extends Controller
                     ':id' => $id
                 ]);
 
+                // Delete old image ONLY after DB update succeeds
+                if ($newImage && !empty($post['image']) && $post['image'] !== $newImage) {
+                    UploadService::deleteImage($post['image'], 'posts');
+                }
+
                 $_SESSION['success'] = 'Cập nhật bài viết thành công';
                 header('Location: ' . url('admin/posts'));
                 exit;
 
             } catch (Exception $e) {
+                // If DB update failed after uploading new image, clean up new image
+                if ($newImage) {
+                    UploadService::deleteImage($newImage, 'posts');
+                }
+
                 $this->renderAdmin('admin/posts/edit', [
                     'pageTitle' => 'Chỉnh sửa bài viết',
                     'activeMenu' => 'posts',
                     'error' => $e->getMessage(),
-                    'post' => array_merge($post ?? [], [
+                    'post' => array_merge($post, [
                         'id' => $id,
                         'title' => $_POST['title'] ?? '',
                         'summary' => $_POST['summary'] ?? '',

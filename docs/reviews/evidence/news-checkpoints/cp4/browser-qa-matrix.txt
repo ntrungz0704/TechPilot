@@ -1,0 +1,26 @@
+TechPilot News Module - Checkpoint 4 Browser QA Test Matrix
+===================================================================================
+
+TC01: Admin Create Post - Published with Empty Content
+Result: PASS
+Details: Validation fails before side effects. errors['content'] rendered under textarea. Form input state preserved. Zero DB rows inserted.
+
+TC02: Admin Create Post - Draft with Empty Content
+Result: PASS
+Details: Validation succeeds for draft status. Post saved to database as draft. Success notification rendered.
+
+TC03: Admin Edit Post - Published with Short Content
+Result: PASS
+Details: Validation fails for content < 100 chars. errors['content'] rendered. Database row content and status unchanged.
+
+TC04: Admin Edit Post - Old Image Preservation on Failed Validation
+Result: PASS
+Details: Form validation fails before image upload/unlink. Existing image thumbnail remains rendered on UI and original file remains intact on disk.
+
+TC05: Admin Form UX - Field-Level Errors & Accessibility
+Result: PASS
+Details: .form-control--invalid class applied to invalid fields. aria-invalid="true" and aria-describedby pointing to field error elements present.
+
+TC06: Console & Network Cleanliness
+Result: PASS
+Details: Zero JavaScript console errors. Zero HTTP 500 server errors. HTTP 200 OK responses with proper error messages rendered.
