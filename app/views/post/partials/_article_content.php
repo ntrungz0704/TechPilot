@@ -102,55 +102,43 @@ if (!empty($articleBlocks)) {
 }
 ?>
 
-$isContentEmpty = empty(trim((string)($post['content'] ?? ''))) && empty(trim((string)$renderedContent));
-?>
-
 <div class="news-detail-content">
 
-    <?php if ($isContentEmpty): ?>
-        <div class="news-detail__empty-notice alert alert--warning" style="margin: 20px 0; padding: 25px; border-radius: 8px; background-color: rgba(234, 179, 8, 0.1); border: 1px solid var(--warning, #eab308); color: var(--text-primary); text-align: center;">
-            <i class="fa-solid fa-file-circle-exclamation" style="font-size: 2rem; color: #eab308; margin-bottom: 10px; display: block;" aria-hidden="true"></i>
-            <h3 style="margin-bottom: 8px; font-size: 1.1rem; font-weight: 600;">Nội dung bài viết chưa sẵn sàng</h3>
-            <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">Bài viết này hiện chưa có nội dung chi tiết hoặc đang trong quá trình cập nhật từ biên tập viên.</p>
-        </div>
-    <?php else: ?>
-
-        <!-- Quick Summary (nếu có) -->
-        <?php if (!empty($quickSummaryHtml)): ?>
-            <?= $quickSummaryHtml ?>
-        <?php endif; ?>
-        
-        <!-- Table of Contents (Mobile Accordion, Threshold: $articleH2Count >= 3) -->
-        <?php if ($articleH2Count >= 3 && !empty($articleHeadings)): ?>
-            <div class="news-mobile-toc-wrapper">
-                <?php
-                $tocVariant = 'mobile';
-                $tocIdPrefix = 'mobile-toc';
-                require __DIR__ . '/_article_toc.php';
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Body Bài viết -->
-        <?= $renderedBodyHtml ?>
-
-        <!-- End CTA (Allowed for review, guide, comparison, howto - đứng trước Sources và Author Box) -->
-        <?php if (!empty($endCtaConfig)): ?>
-            <?php
-            $ctaConfig = $endCtaConfig;
-            $placement = 'end-article';
-            require __DIR__ . '/_article_cta.php';
-            ?>
-        <?php endif; ?>
-
-        <!-- Sources / Nguồn tham khảo (nếu có) -->
-        <?php if (!empty($sourcesHtml)): ?>
-            <?= $sourcesHtml ?>
-        <?php endif; ?>
-
-        <!-- Khối tác giả (Author Box) -->
-        <?php require __DIR__ . '/_author_box.php'; ?>
-
+    <!-- Quick Summary (nếu có) -->
+    <?php if (!empty($quickSummaryHtml)): ?>
+        <?= $quickSummaryHtml ?>
     <?php endif; ?>
+
+    <!-- Table of Contents (Mobile Accordion, Threshold: $articleH2Count >= 3) -->
+    <?php if ($articleH2Count >= 3 && !empty($articleHeadings)): ?>
+        <div class="news-mobile-toc-wrapper">
+            <?php
+            $tocVariant = 'mobile';
+            $tocIdPrefix = 'mobile-toc';
+            require __DIR__ . '/_article_toc.php';
+            ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Body Bài viết -->
+    <?= $renderedBodyHtml ?>
+
+    <!-- End CTA (Allowed for review, guide, comparison, howto - đứng trước Sources và Author Box) -->
+    <?php if (!empty($endCtaConfig)): ?>
+        <?php
+        $ctaConfig = $endCtaConfig;
+        $placement = 'end-article';
+        require __DIR__ . '/_article_cta.php';
+        ?>
+    <?php endif; ?>
+
+    <!-- Sources / Nguồn tham khảo (nếu có) -->
+    <?php if (!empty($sourcesHtml)): ?>
+        <?= $sourcesHtml ?>
+    <?php endif; ?>
+
+    <!-- Khối tác giả (Author Box) -->
+    <?php require __DIR__ . '/_author_box.php'; ?>
+
 </div>
 

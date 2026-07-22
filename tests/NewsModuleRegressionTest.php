@@ -37,6 +37,7 @@ class NewsModuleRegressionTest
         $this->testAuthorAndJsonLdSchema();
         $this->testTocAndMarkdownSecurity();
         $this->testPublishedContentValidation();
+        $this->testEmptyArticleFallbackRuntime();
 
         echo "\n════════════════════════════════════════════════════════\n";
         echo "Regression Test Results: {$this->passed} passed, {$this->failed} failed\n";
@@ -286,6 +287,31 @@ class NewsModuleRegressionTest
         // Draft status allows empty/short content
         $v5 = Post::validatePublishedContent('', 'draft');
         $this->assert($v5['valid'], "Draft status allows empty content");
+    }
+
+    private function testEmptyArticleFallbackRuntime(): void
+    {
+        echo "\n--- 8. Testing Empty Article Fallback Runtime & Source Contracts ---\n";
+
+        // Production helper testing
+        $this->assert(!PostController::hasRenderableArticleContent(''), "empty string => false");
+        $this->assert(!PostController::hasRenderableArticleContent("   \n\t  "), "whitespace => false");
+        $this->assert(!PostController::hasRenderableArticleContent('<p></p><div class="foo"></div>'), "empty HTML tags => false");
+        $this->assert(!PostController::hasRenderableArticleContent('<br><br>'), "<br><br> => false");
+        $this->assert(PostController::hasRenderableArticleContent('<p>Nội dung thử nghiệm</p>'), "normal paragraph => true");
+        $this->assert(PostController::hasRenderableArticleContent('<h2>Tiêu đề</h2><p>Nội dung</p>'), "heading + paragraph => true");
+        $this->assert(PostController::hasRenderableArticleContent('&lt;p&gt;Text&lt;/p&gt;'), "escaped visible text => true");
+
+        // Source contract checks
+        $detailCode = file_get_contents(ROOT_PATH . '/app/views/post/detail.php');
+        $articleContentCode = file_get_contents(ROOT_PATH . '/app/views/post/partials/_article_content.php');
+
+        $this->assert(str_contains($detailCode, 'article-content-empty'), "detail.php contains article-content-empty class");
+        $this->assert(str_contains($detailCode, 'if (!empty($hasArticleContent)):'), "detail.php includes _article_content only when hasArticleContent is truthy");
+        $this->assert(str_contains($detailCode, '!empty($hasArticleContent) && $articleH2Count >= 3'), "desktop TOC in detail.php checks hasArticleContent");
+
+        $this->assert(!str_contains($articleContentCode, '$isContentEmpty ='), '_article_content.php does NOT contain $isContentEmpty =');
+        $this->assert(!str_contains($articleContentCode, 'style="'), "_article_content.php contains zero inline style attributes");
     }
 }
 

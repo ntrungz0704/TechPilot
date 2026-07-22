@@ -80,7 +80,22 @@ if (!$post) return;
             <?php endif; ?>
 
             <!-- Nội dung bài viết -->
-            <?php require __DIR__ . '/partials/_article_content.php'; ?>
+            <?php if (!empty($hasArticleContent)): ?>
+                <?php require __DIR__ . '/partials/_article_content.php'; ?>
+            <?php else: ?>
+                <section class="article-content-empty" role="status">
+                    <div class="article-content-empty__icon" aria-hidden="true">
+                        <i class="fa-regular fa-file-lines"></i>
+                    </div>
+
+                    <h2>Nội dung đang được cập nhật</h2>
+
+                    <p>
+                        Bài viết này hiện chưa có nội dung chi tiết.
+                        Bạn có thể quay lại sau hoặc xem các bài viết liên quan.
+                    </p>
+                </section>
+            <?php endif; ?>
 
             <!-- Footer: Chia sẻ + Quay lại -->
             <div class="news-detail-footer">
@@ -103,7 +118,7 @@ if (!$post) return;
         <aside class="news-sidebar" aria-label="Nội dung liên quan">
 
             <!-- Box 0: TOC Sidebar Sticky (Desktop) -->
-            <?php if ($articleH2Count >= 3 && !empty($articleHeadings)): ?>
+            <?php if (!empty($hasArticleContent) && $articleH2Count >= 3 && !empty($articleHeadings)): ?>
             <div class="news-sidebar-widget news-sidebar-toc-widget">
                 <?php
                 $tocVariant = 'desktop';
