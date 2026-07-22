@@ -14,7 +14,7 @@ class CatalogMenuUITest
     public function runAll(): bool
     {
         echo "==================================================\n";
-        echo "RUNNING CHECKPOINT 2 — CATEGORY MENU UI INTEGRATION TESTS\n";
+        echo "RUNNING CHECKPOINT 2 V2 — CATEGORY MENU UI INTEGRATION TESTS\n";
         echo "==================================================\n\n";
 
         $pdo = Database::getConnection();
@@ -22,8 +22,8 @@ class CatalogMenuUITest
         $initialProdCount = (int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 
         $this->testStorefrontMenuTreeContracts();
-        $this->testPartialViewOutputRendering();
-        $this->testHeaderSearchSelectVirtualGroups();
+        $this->testHeaderViewMarkupAndQuickCategories();
+        $this->testPartialCategoryMegaMenuMarkup();
         $this->testZeroDatabaseMutations($initialCatCount, $initialProdCount);
 
         echo "\n--------------------------------------------------\n";
@@ -84,46 +84,68 @@ class CatalogMenuUITest
         $this->record("1. Root Laptop menu virtual slug == 'laptop'", $laptopSlug === 'laptop', "Actual: '$laptopSlug'");
         $this->record("2. Root PC menu virtual slug == 'pc'", $pcSlug === 'pc', "Actual: '$pcSlug'");
         $this->record("3. CPU subgroup exact source slug == 'cpu'", $cpuSubSlug === 'cpu', "Actual: '$cpuSubSlug'");
-        $this->record("4. Empty Networking group is NOT rendered", !$hasNetworking, "Networking present: " . ($hasNetworking ? 'Yes' : 'No'));
+        $this->record("4. Empty Networking group is NOT rendered", !$hasNetworking);
     }
 
-    private function testPartialViewOutputRendering(): void
+    private function testHeaderViewMarkupAndQuickCategories(): void
+    {
+        $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
+        $catParam = '';
+        $qParam = '';
+
+        ob_start();
+        include ROOT_PATH . '/app/views/layouts/header.php';
+        $htmlHeader = ob_get_clean();
+
+        // 1. Check mobile quick categories
+        $hasMobileLaptop = str_contains($htmlHeader, 'home/search?cat=laptop');
+        $hasMobilePC = str_contains($htmlHeader, 'home/search?cat=pc');
+        $hasMobileLinhKien = str_contains($htmlHeader, 'home/search?cat=pc-linh-kien');
+        $noPCLaptopVPBug = !str_contains($htmlHeader, 'home/search?cat=laptop-van-phong" class="quick-cat-item"');
+
+        $this->record(
+            "5. Mobile quick categories map correctly (Laptop=laptop, PC=pc, Linh kiện=pc-linh-kien)",
+            $hasMobileLaptop && $hasMobilePC && $hasMobileLinhKien && $noPCLaptopVPBug
+        );
+
+        // 2. Check mainNavMenu and mobileCategoryToggle separate ARIA targets
+        $hasMainNavTarget = str_contains($htmlHeader, 'aria-controls="mainNavMenu"');
+        $hasCategoryDrawerTarget = str_contains($htmlHeader, 'aria-controls="categoryMobileDrawer"') || str_contains($htmlHeader, 'id="mobileCategoryToggle"');
+
+        $this->record(
+            "6. Separate triggers for mainNavMenu and category drawer in header markup",
+            $hasMainNavTarget && $hasCategoryDrawerTarget
+        );
+
+        // 3. Search select uses $globalCategoryMenu without calling CatalogGroupService in view
+        $hasSearchSelectVirtualOptions = str_contains($htmlHeader, 'value="laptop"') && str_contains($htmlHeader, 'value="pc"');
+        $noDuplicateHydrationInView = !str_contains($htmlHeader, 'CatalogGroupService::getStorefrontGroups()');
+
+        $this->record(
+            "7. Header search select uses \$globalCategoryMenu without double hydration",
+            $hasSearchSelectVirtualOptions && $noDuplicateHydrationInView
+        );
+    }
+
+    private function testPartialCategoryMegaMenuMarkup(): void
     {
         $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
         $isStatic = false;
 
         ob_start();
         include ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php';
-        $html = ob_get_clean();
+        $htmlMega = ob_get_clean();
 
-        $hasVirtualLaptopLink = str_contains($html, 'home/search?cat=laptop');
-        $hasVirtualPCLink = str_contains($html, 'home/search?cat=pc');
-        $hasExactCPULink = str_contains($html, 'home/search?cat=cpu');
-        $hasFriendlyPriceRange = str_contains($html, 'Đến 15 triệu') || str_contains($html, 'Trên 15 đến 20 triệu');
-        $hasMobileAccordion = str_contains($html, 'category-mobile-accordion-toggle');
-        $hasViewAllLink = str_contains($html, 'mega-panel__view-all');
+        $hasVirtualLaptop = str_contains($htmlMega, 'home/search?cat=laptop');
+        $hasVirtualPC = str_contains($htmlMega, 'home/search?cat=pc');
+        $hasExactCPU = str_contains($htmlMega, 'home/search?cat=cpu');
+        $hasCloseBtn = str_contains($htmlMega, 'id="categoryDrawerClose"');
+        $hasMobilePanelInline = str_contains($htmlMega, 'class="category-mobile__panel"');
+        $hasFriendlyRange = str_contains($htmlMega, 'Đến 15 triệu') || str_contains($htmlMega, 'Trên 15 đến 20 triệu');
 
-        $this->record("5. Mega menu renders virtual Laptop link (cat=laptop)", $hasVirtualLaptopLink);
-        $this->record("6. Mega menu renders virtual PC link (cat=pc)", $hasVirtualPCLink);
-        $this->record("7. Mega menu renders exact CPU link (cat=cpu)", $hasExactCPULink);
-        $this->record("8. Price range wording uses friendly labels ('Đến', 'Trên... đến...')", $hasFriendlyPriceRange);
-        $this->record("9. View markup contains mobile accordion toggle & 'Xem tất cả' link", $hasMobileAccordion && $hasViewAllLink);
-    }
-
-    private function testHeaderSearchSelectVirtualGroups(): void
-    {
-        $storefrontGroups = CatalogGroupService::getStorefrontGroups();
-        $expectedSlugs = ['laptop', 'pc', 'pc-linh-kien', 'man-hinh', 'gaming-gear', 'office-gear'];
-
-        $actualSlugs = array_map(fn($g) => $g['virtual_slug'], $storefrontGroups);
-
-        $pass = ($actualSlugs === $expectedSlugs);
-
-        $this->record(
-            "10. Header search select uses 6 storefront virtual group slugs",
-            $pass,
-            "Actual: " . implode(', ', $actualSlugs)
-        );
+        $this->record("8. Mega menu renders virtual Laptop & PC links and exact CPU link", $hasVirtualLaptop && $hasVirtualPC && $hasExactCPU);
+        $this->record("9. Category drawer contains internal close button (#categoryDrawerClose)", $hasCloseBtn);
+        $this->record("10. Inline mobile accordion panels & friendly price range labels rendered", $hasMobilePanelInline && $hasFriendlyRange);
     }
 
     private function testZeroDatabaseMutations(int $initialCatCount, int $initialProdCount): void

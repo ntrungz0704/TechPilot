@@ -20,11 +20,11 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 } elseif ($currentPath === 'home/search') {
     if ($promoParam === '1') {
         $activeMenu = 'promo';
-    } elseif ($catParam === 'laptop-gaming') {
-        $activeMenu = 'laptop-gaming';
-    } elseif ($catParam === 'laptop-van-phong') {
-        $activeMenu = 'laptop-van-phong';
-    } elseif ($catParam === 'pc-linh-kien') {
+    } elseif (in_array($catParam, ['laptop', 'laptop-gaming', 'laptop-van-phong'], true)) {
+        $activeMenu = 'laptop';
+    } elseif (in_array($catParam, ['pc', 'pc-build-san', 'may-tinh-bo'], true)) {
+        $activeMenu = 'pc';
+    } elseif ($catParam === 'pc-linh-kien' || in_array($catParam, ['cpu', 'mainboard', 'ram', 'vga', 'ssd', 'hdd', 'psu', 'case', 'tan-nhiet'], true)) {
         $activeMenu = 'pc-linh-kien';
     } elseif ($catParam === 'man-hinh') {
         $activeMenu = 'man-hinh';
@@ -37,7 +37,6 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 ?>
 <!DOCTYPE html>
 <html lang="vi">
-
 
 <head>
     <meta charset="UTF-8">
@@ -109,9 +108,14 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
             <div class="container site-header__inner">
                 <!-- Group trái: Logo & Danh mục -->
                 <div class="header-left-group">
-                    <!-- Hamburger menu toggle for mobile -->
-                    <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Menu Toggle">
+                    <!-- Hamburger menu toggle for mobile (ONLY opens main navigation) -->
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Mở menu chính" aria-expanded="false" aria-controls="mainNavMenu">
                         <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <!-- Mobile Category Toggle (ONLY opens category drawer) -->
+                    <button class="mobile-category-toggle" id="mobileCategoryToggle" type="button" aria-label="Mở danh mục sản phẩm" aria-expanded="false" aria-controls="categoryMobileDrawer">
+                        <i class="fa-solid fa-layer-group"></i>
                     </button>
 
                     <!-- Logo Thương hiệu -->
@@ -122,7 +126,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         </div>
                     </a>
 
-                    <!-- Nút Danh mục sản phẩm -->
+                    <!-- Nút Danh mục sản phẩm (Desktop) -->
                     <button type="button" class="category-toggle desktop-only-link" id="categoryMenuToggle" aria-expanded="false" aria-controls="categoryMegaDropdown">
                         <i class="fa-solid fa-layer-group"></i>
                         <span class="desktop-only-link">Danh mục</span>
@@ -130,18 +134,17 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     </button>
                 </div>
 
-                <!-- Search Bar với Category Dropdown -->
+                <!-- Search Bar với Category Dropdown (Không re-hydrate DB, dùng $globalCategoryMenu đã có) -->
                 <form class="search-bar" action="<?= url('home/search') ?>" method="get" id="headerSearchForm" onsubmit="return cleanSearchParams(this)">
                     <input type="text" name="q" placeholder="Bạn muốn mua gì hôm nay? Đang giảm giá 50%..." value="<?= e($qParam) ?>" required>
                     <select name="cat" class="search-bar__select" aria-label="Chọn danh mục tìm kiếm">
                         <option value="">Tất cả danh mục</option>
                         <?php
-                        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
-                        $storefrontGroups = CatalogGroupService::getStorefrontGroups();
-                        foreach ($storefrontGroups as $group):
-                            $vSlug = $group['virtual_slug'];
+                        $menuTree = $globalCategoryMenu ?? [];
+                        foreach ($menuTree as $group):
+                            $vSlug = $group['slug'];
                             $vName = $group['name'];
-                            $isSelected = ($catParam === $vSlug) || in_array($catParam, $group['source_slugs'], true);
+                            $isSelected = ($catParam === $vSlug);
                         ?>
                             <option value="<?= e($vSlug) ?>" <?= $isSelected ? 'selected' : '' ?>><?= e($vName) ?></option>
                         <?php endforeach; ?>
@@ -181,7 +184,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         <span class="header-actions__label header-action__label">Giỏ hàng</span>
                     </a>
 
-                    <!-- 3. Đăng nhập / Tài khoản + Thông báo (nếu đã đăng nhập) -->
+                    <!-- 3. Đăng nhập / Tài khoản + Thông báo -->
                     <?php if ($u = currentUser()): ?>
                         <?php
                         $unreadNotificationsCount = 0;
@@ -193,14 +196,12 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                                 $stmt->execute([':user_id' => $u['id']]);
                                 $unreadNotificationsCount = (int)$stmt->fetchColumn();
                             }
-                        } catch (Exception $e) {
-                            // Fail silently
-                        }
+                        } catch (Exception $e) {}
                         $isNotifActive = (strpos($currentPath, 'notifications') !== false);
                         $isAccountActive = (strpos($currentPath, 'profile') !== false && !$isNotifActive && !$isWishlistActive);
                         ?>
 
-                        <!-- Thông báo (chỉ khi đã đăng nhập) -->
+                        <!-- Thông báo -->
                         <a href="<?= url('profile/notifications') ?>" 
                            class="header-actions__item header-action header-action--notifications header-actions__notifications <?= $isNotifActive ? 'is-active' : '' ?>"
                            <?= $isNotifActive ? 'aria-current="page"' : '' ?>
@@ -215,7 +216,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                             <span class="header-actions__label header-action__label">Thông báo</span>
                         </a>
 
-                        <!-- Tài khoản (Dropdown) -->
+                        <!-- Tài khoản -->
                         <div class="header-actions__item header-action header-action--account dropdown header-actions__account <?= $isAccountActive ? 'is-active' : '' ?>" 
                              tabindex="0" 
                              role="button" 
@@ -245,7 +246,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         </a>
                     <?php endif; ?>
 
-                    <!-- 4. Theme Switch (Icon-only, luôn ở cuối) -->
+                    <!-- 4. Theme Switch -->
                     <button type="button" 
                             class="header-actions__item theme-toggle" 
                             id="themeToggle" 
@@ -258,7 +259,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 
             </div>
 
-            <!-- 2.5. Mobile Search and Quick Categories (Display: None on Desktop) -->
+            <!-- 2.5. Mobile Search and Quick Categories -->
             <div class="mobile-search-container">
                 <form class="mobile-search-bar" action="<?= url('home/search') ?>" method="get">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -266,11 +267,11 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                 </form>
             </div>
             <div class="mobile-quick-categories">
-                <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="quick-cat-item">
+                <a href="<?= url('home/search?cat=laptop') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-laptop"></i>
                     <span>Laptop</span>
                 </a>
-                <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="quick-cat-item">
+                <a href="<?= url('home/search?cat=pc') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-desktop"></i>
                     <span>PC</span>
                 </a>
@@ -286,22 +287,22 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     <i class="fa-solid fa-gamepad"></i>
                     <span>Gaming Gear</span>
                 </a>
-                <a href="<?= url('home/search?promo=1') ?>" class="quick-cat-item text-hot">
-                    <i class="fa-solid fa-fire"></i>
-                    <span>Khuyến mãi</span>
-                </a>
+                <button type="button" class="quick-cat-item" id="mobileQuickCatAll" aria-label="Mở tất cả danh mục">
+                    <i class="fa-solid fa-list"></i>
+                    <span>Tất cả</span>
+                </button>
             </div>
 
-            <!-- 3. Navigation Menu -->
-            <nav class="main-nav">
-                <button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Đóng Menu">
+            <!-- 3. Navigation Menu (Main Nav ONLY) -->
+            <nav class="main-nav" id="mainNavMenu">
+                <button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Đóng Menu chính">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
                 <div class="container main-nav__inner">
                     <ul class="main-nav__links">
                         <li><a href="<?= url('/') ?>" class="<?= $activeMenu === 'home' ? 'is-active' : '' ?>">Trang chủ</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-build-san') ?>" class="<?= $activeMenu === 'pc-build-san' ? 'is-active' : '' ?>">PC Gaming</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="<?= $activeMenu === 'laptop-van-phong' ? 'is-active' : '' ?>">Laptop</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc') ?>" class="<?= $activeMenu === 'pc' ? 'is-active' : '' ?>">PC Gaming</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop') ?>" class="<?= $activeMenu === 'laptop' ? 'is-active' : '' ?>">Laptop</a></li>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="<?= $activeMenu === 'pc-linh-kien' ? 'is-active' : '' ?>">Linh kiện PC</a></li>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>" class="<?= $activeMenu === 'man-hinh' ? 'is-active' : '' ?>">Màn hình</a></li>
                         <li class="desktop-only-link"><a href="<?= url('build-pc') ?>" class="<?= $activeMenu === 'build-pc' ? 'is-active' : '' ?>" style="color: #FACC15; font-weight: 700;"><i class="fa-solid fa-screwdriver-wrench" style="margin-right: 4px;"></i> Xây dựng cấu hình</a></li>
@@ -314,10 +315,8 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
             </nav>
 
 
-            <!-- 4. Category Mega Menu Dropdown -->
-            <?php if ($activeMenu !== 'home'): ?>
-                <?php require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; ?>
-            <?php endif; ?>
+            <!-- 4. Category Mega Menu Dropdown (Desktop & Dedicated Mobile Category Drawer) -->
+            <?php require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; ?>
         </header>
     </div> <!-- Close commerce-header-stack -->
 

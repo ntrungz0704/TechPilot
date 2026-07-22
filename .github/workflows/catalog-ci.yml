@@ -35,13 +35,24 @@ jobs:
           php-version: '8.3'
           extensions: pdo, pdo_mysql
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install NPM Dependencies for Browser Tests
+        run: npm ci || npm install
+
       - name: PHP Lint Check (Syntax Error Audit)
         run: |
           php -l app/services/CatalogGroupService.php
           php -l app/services/CategoryMenuService.php
           php -l app/models/Product.php
           php -l app/controllers/HomeController.php
+          php -l app/views/layouts/header.php
+          php -l app/views/layouts/partials/category-mega-menu.php
           php -l tests/CatalogGroupTest.php
+          php -l tests/CatalogMenuUITest.php
 
       - name: Import Database Fixture Data
         run: |
@@ -51,9 +62,19 @@ jobs:
             mysql -h 127.0.0.1 -u root techpilot < database/schema.sql
           fi
 
-      - name: Run Catalog Group Integration Tests
+      - name: Run PHP Integration Tests
         run: |
           php tests/CatalogGroupTest.php
+          php tests/CatalogMenuUITest.php
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: techpilot
+          DB_USER: root
+          DB_PASS: ""
+
+      - name: Run Browser UI & Accessibility Audit Suite
+        run: |
+          node tests/browser_ui_test.js
         env:
           DB_HOST: 127.0.0.1
           DB_NAME: techpilot
