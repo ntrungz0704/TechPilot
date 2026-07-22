@@ -79,6 +79,7 @@ class AdminPostController extends Controller
                 return;
             }
 
+            $uploadedImage = null;
             try {
                 $title = trim($_POST['title'] ?? '');
                 $summary = trim($_POST['summary'] ?? '');
@@ -89,9 +90,8 @@ class AdminPostController extends Controller
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
 
-                $image = null;
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                    $image = UploadService::uploadImage($_FILES['image'], 'posts');
+                    $uploadedImage = UploadService::uploadImage($_FILES['image'], 'posts');
                 }
 
                 $slug = Post::slugify($title);
@@ -115,7 +115,7 @@ class AdminPostController extends Controller
                     ':slug' => $slug,
                     ':summary' => $summary,
                     ':content' => $content,
-                    ':image' => $image,
+                    ':image' => $uploadedImage,
                     ':status' => $status,
                     ':category_slug' => $categorySlug,
                     ':post_type' => $postType,
@@ -128,7 +128,11 @@ class AdminPostController extends Controller
                 header('Location: ' . url('admin/posts'));
                 exit;
 
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
+                if ($uploadedImage) {
+                    UploadService::deleteImage($uploadedImage, 'posts');
+                }
+
                 $this->renderAdmin('admin/posts/create', [
                     'pageTitle' => 'Thêm bài viết mới',
                     'activeMenu' => 'posts',
@@ -255,17 +259,8 @@ class AdminPostController extends Controller
                     ':id' => $id
                 ]);
 
-                // Delete old image ONLY after DB update succeeds
-                if ($newImage && !empty($post['image']) && $post['image'] !== $newImage) {
-                    UploadService::deleteImage($post['image'], 'posts');
-                }
-
-                $_SESSION['success'] = 'Cập nhật bài viết thành công';
-                header('Location: ' . url('admin/posts'));
-                exit;
-
-            } catch (Exception $e) {
-                // If DB update failed after uploading new image, clean up new image
+            } catch (Throwable $e) {
+                // If upload or DB update failed, cleanup $newImage if created
                 if ($newImage) {
                     UploadService::deleteImage($newImage, 'posts');
                 }
@@ -286,7 +281,21 @@ class AdminPostController extends Controller
                         'reading_minutes' => $_POST['reading_minutes'] ?? '',
                     ])
                 ]);
+                return;
             }
+
+            // DB update succeeded! Best-effort delete old image OUTSIDE main try/catch block
+            if ($newImage && !empty($post['image']) && $post['image'] !== $newImage) {
+                try {
+                    UploadService::deleteImage($post['image'], 'posts');
+                } catch (Throwable $cleanupError) {
+                    error_log('Failed to delete old post image: ' . $cleanupError->getMessage());
+                }
+            }
+
+            $_SESSION['success'] = 'Cập nhật bài viết thành công';
+            header('Location: ' . url('admin/posts'));
+            exit;
         }
     }
 
@@ -294,21 +303,25 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getConnection();
-            
-            $stmt = $db->prepare('SELECT image FROM posts WHERE id = :id');
-            $stmt->execute([':id' => $id]);
-            $post = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($post) {
-                if ($post['image']) {
-                    UploadService::deleteImage($post['image'], 'news');
-                }
+            try {
+                $db = Database::getConnection();
                 
-                $stmt = $db->prepare('DELETE FROM posts WHERE id = :id');
+                $stmt = $db->prepare('SELECT image FROM posts WHERE id = :id');
                 $stmt->execute([':id' => $id]);
-                
-                $_SESSION['success'] = 'Đã xóa bài viết';
+                $post = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($post) {
+                    if ($post['image']) {
+                        UploadService::deleteImage($post['image'], 'posts');
+                    }
+
+                    $stmt = $db->prepare('DELETE FROM posts WHERE id = :id');
+                    $stmt->execute([':id' => $id]);
+
+                    $_SESSION['success'] = 'Đã xóa bài viết';
+                }
+            } catch (Throwable $e) {
+                $_SESSION['error'] = 'Không thể xóa bài viết: ' . $e->getMessage();
             }
             
             header('Location: ' . url('admin/posts'));
