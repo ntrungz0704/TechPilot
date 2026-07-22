@@ -1431,17 +1431,27 @@
                 });
 
                 card.innerHTML = `
-                    <img class="tp-rec-img" src="<?= url('public/uploads/products/') ?>${item.image}" onerror="this.src='<?= url('public/assets/images/laptop-gaming.jpg') ?>'">
+                    <img class="tp-rec-img" src="<?= url('assets/images/') ?>${item.image}" onerror="this.src=' public/assets/images/laptop-gaming.jpg'">
                     <div class="tp-rec-info">
                         <h5>${item.name}</h5>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
                             <span class="tp-rec-price">${item.price_formatted}</span>
-                            <span class="tp-rec-score">Phù hợp ${item.score}%</span>
+                            <span class="tp-rec-score" style="background-color:#D1FAE5; color:#065F46; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">Fit ${item.score}%</span>
                         </div>
                         <ul class="tp-rec-reasons">${reasonsHtml}</ul>
-                        <a href="<?= url('product/detail/') ?>${item.slug}" class="tp-rec-link" target="_blank">
-                            Xem chi tiết <i class="fa-solid fa-circle-arrow-right"></i>
-                        </a>
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                            <a href="<?= url('product/detail/') ?>${item.slug}" class="tp-rec-link" target="_blank" style="text-align: center; text-decoration: none; padding: 6px; font-size: 11px; background-color: #F1F5F9; color: #1E293B; border-radius: 4px; font-weight:600; display: block;">
+                                Xem chi tiết <i class="fa-solid fa-circle-arrow-right"></i>
+                            </a>
+                            <form method="post" action="<?= url('cart/add') ?>" style="margin: 0; padding: 0; background: none; border: none; box-shadow: none;">
+                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                                <input type="hidden" name="product_id" value="${item.id}">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="tp-rec-link" style="width: 100%; border: none; background-color: var(--primary); color: #FFFFFF; font-weight: 700; cursor: pointer; border-radius: 4px; padding: 6px; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box;">
+                                    <i class="fa-solid fa-cart-shopping"></i> Thêm giỏ hàng
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 `;
                 container.appendChild(card);

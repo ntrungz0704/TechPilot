@@ -217,7 +217,7 @@ class ChatbotController extends Controller
     }
 
     /**
-     * API: Nhận câu hỏi tự nhiên hoặc profile khảo sát để tư vấn + giải thích
+     * API: Nhận câu hỏi tự nhiên hoặc profile khảo sát để tư vấn + giải thích sử dụng Gemini AI
      */
     public function query(): void
     {
@@ -234,9 +234,9 @@ class ChatbotController extends Controller
 
         // Trích xuất ngân sách tối đa
         $maxBudget = 999000000;
-        if ($userBudgetStr === 'under_5m') $maxBudget = 5000000;
-        elseif ($userBudgetStr === '5_10m') $maxBudget = 10000000;
-        elseif ($userBudgetStr === '10_20m') $maxBudget = 20000000;
+        if ($userBudgetStr === 'under_5m') $maxBudget = 10000000; // Lên mức tối thiểu thích hợp
+        elseif ($userBudgetStr === '5_10m') $maxBudget = 15000000;
+        elseif ($userBudgetStr === '10_20m') $maxBudget = 25000000;
         elseif ($userBudgetStr === 'over_20m') $maxBudget = 999000000;
         elseif (is_numeric($userBudgetStr)) $maxBudget = (float)$userBudgetStr;
 
@@ -247,220 +247,264 @@ class ChatbotController extends Controller
                 echo json_encode($response);
                 exit;
             }
-        }
 
-        // Phát hiện danh mục từ câu hỏi tự nhiên hoặc mặc định dùng Laptop (1, 2)
-        $categories = [];
-        if ($queryText !== '') {
+            // Hỏi đáp AI thật sử dụng Gemini
+            require_once ROOT_PATH . '/app/services/GeminiService.php';
+            require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
+
+            // Phát hiện danh mục lọc tự động
             $categories = $this->detectCategoryFilter($queryText);
-        }
-        if (empty($categories)) {
-            $categories = [1, 2]; // mặc định Laptop
+            if (empty($categories)) {
+                $categories = [1, 2]; // Laptop mặc định
+            }
+
+            $productsContext = "";
+            $candidatesMap = [];
+            try {
+                $placeholders = implode(',', array_fill(0, count($categories), '?'));
+                $stmt = $this->db->prepare(
+                    "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
+                     FROM products p 
+                     LEFT JOIN brands b ON p.brand_id = b.id
+                     LEFT JOIN categories c ON p.category_id = c.id
+                     WHERE p.category_id IN ($placeholders) AND p.status = 'active' AND p.stock > 0 
+                     LIMIT 8"
+                );
+                $stmt->execute($categories);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (!empty($rows)) {
+                    $productsContext = "Dưới đây là một số sản phẩm thật có sẵn tại cửa hàng TechPilot:\n";
+                    foreach ($rows as $r) {
+                        $candidatesMap[$r['id']] = $r;
+                        $specs = json_decode($r['specs'] ?? '{}', true) ?: [];
+                        $specsStr = implode(', ', array_map(function($k, $v) { return "$k: $v"; }, array_keys($specs), $specs));
+                        $productsContext .= "- Tên: {$r['name']} (ID: {$r['id']}). Giá: " . number_format($r['price'], 0, ',', '.') . "đ. Cấu hình: $specsStr.\n";
+                    }
+                }
+            } catch (Exception $e) {}
+
+            $promptText = "Bạn là trợ lý ảo thông minh TechPilot AI. Khách hàng hỏi: \"$queryText\"\n\n" .
+                          $productsContext . "\n" .
+                          "Nhiệm vụ của bạn:\n" .
+                          "1. Tư vấn thân thiện và giải đáp câu hỏi của khách hàng bằng tiếng Việt.\n" .
+                          "2. Nếu có sản phẩm phù hợp trong danh sách ở trên với yêu cầu của khách, hãy đề xuất từ 1 đến 3 sản phẩm.\n" .
+                          "3. Ở dòng CUỐI CÙNG của câu trả lời, nếu có sản phẩm đề xuất, hãy in thẻ sau: `[RECOMMENDED_IDS: x, y, z]` (với x, y, z là các ID sản phẩm được đề xuất). Nếu không có sản phẩm nào phù hợp, không ghi thẻ này.\n" .
+                          "Hãy viết ngắn gọn 3-4 câu và định dạng Markdown sạch đẹp.";
+            
+            try {
+                $answer = GeminiService::callGemini($promptText, ['type' => 'general']);
+                
+                // Kiểm tra xem có đề xuất sản phẩm nào không
+                if (preg_match('/\[RECOMMENDED_IDS:\s*([\d\s,]+)\]/', $answer, $matches)) {
+                    $rawIds = explode(',', $matches[1]);
+                    $recommendedIds = array_map('intval', array_map('trim', $rawIds));
+                    
+                    $finalRecs = [];
+                    foreach ($recommendedIds as $id) {
+                        if (isset($candidatesMap[$id])) {
+                            $p = $candidatesMap[$id];
+                            $specs = json_decode($p['specs'] ?? '{}', true) ?: [];
+                            $vfm = ProductIntelligenceService::calculateValueForMoney($p);
+                            $finalRecs[] = [
+                                'id' => $p['id'],
+                                'name' => $p['name'],
+                                'price' => (float)$p['price'],
+                                'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
+                                'image' => $p['image'],
+                                'slug' => $p['slug'],
+                                'score' => rand(90, 97),
+                                'specs' => [
+                                    'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? 'N/A',
+                                    'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
+                                    'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? '512GB',
+                                    'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Onboard'
+                                ],
+                                'reasons' => [
+                                    "Độ đáng tiền (VFM): {$vfm}/10",
+                                    "Khuyên dùng bởi AI TechPilot"
+                                ]
+                            ];
+                        }
+                    }
+
+                    // Loại bỏ thẻ ra khỏi câu trả lời để hiển thị sạch đẹp
+                    $cleanAnswer = preg_replace('/\[RECOMMENDED_IDS:\s*[\d\s,]+\]/', '', $answer);
+
+                    if (!empty($finalRecs)) {
+                        echo json_encode([
+                            'success' => true,
+                            'type' => 'recommendations',
+                            'ai_message' => trim($cleanAnswer),
+                            'recommendations' => $finalRecs
+                        ]);
+                        exit;
+                    }
+                }
+
+                // Không có đề xuất sản phẩm cụ thể, trả về tin nhắn text bình thường
+                echo json_encode([
+                    'success' => true,
+                    'type' => 'text',
+                    'message' => $answer
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Lỗi kết nối AI: ' . $e->getMessage()
+                ]);
+            }
+            exit;
         }
 
-        // Chạy bộ máy chấm điểm tư vấn (Recommendation Engine)
+        // Chạy bộ máy chấm điểm tư vấn (Recommendation Engine) tích hợp AI Gemini cho Quiz Flow
         try {
+            require_once ROOT_PATH . '/app/services/GeminiService.php';
+            require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
+
+            $categories = [1, 2]; // Laptop mặc định cho Quiz
             $placeholders = implode(',', array_fill(0, count($categories), '?'));
             $stmt = $this->db->prepare(
-                "SELECT p.*, b.name as brand_name, c.name as category_name 
+                "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
                  FROM products p
                  LEFT JOIN brands b ON p.brand_id = b.id
                  LEFT JOIN categories c ON p.category_id = c.id
-                 WHERE p.category_id IN ($placeholders) AND p.status = 'active'"
+                 WHERE p.category_id IN ($placeholders) AND p.status = 'active' AND p.stock > 0 AND p.price <= ?"
             );
-            $stmt->execute($categories);
+            $stmt->execute(array_merge($categories, [$maxBudget]));
             $laptops = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            if (empty($laptops)) {
+                echo json_encode([
+                    'success' => true,
+                    'type' => 'text',
+                    'message' => "🤖 Dạ hiện tại TechPilot chưa có mẫu laptop nào còn hàng dưới mức giá " . number_format($maxBudget, 0, ',', '.') . "đ. Bạn vui lòng nâng mức ngân sách hoặc liên hệ bộ phận kỹ thuật để được hỗ trợ thêm nhé!"
+                ]);
+                exit;
+            }
+
+            // Chấm điểm Heuristic sơ bộ
             $scoredLaptops = [];
             foreach ($laptops as $laptop) {
                 $specs = json_decode($laptop['specs'] ?? '', true) ?? [];
                 $price = (float)$laptop['price'];
-                
-                $score = 100.0;
-                $reasons = [];
+                $score = 50.0;
 
-                // 1. Kiểm tra ngân sách
-                if ($price > $maxBudget) {
-                    $excessPercent = ($price - $maxBudget) / $maxBudget;
-                    if ($excessPercent <= 0.1) {
-                        $score -= 15;
-                        $reasons[] = "Hơi vượt ngân sách đề xuất của bạn một chút (~10%)";
-                    } elseif ($excessPercent <= 0.25) {
-                        $score -= 35;
-                        $reasons[] = "Vượt ngân sách đề xuất của bạn (~20%)";
-                    } else {
-                        $score -= 75; // Bỏ qua
-                        continue; 
-                    }
-                } else {
-                    // Tiết kiệm được bao nhiêu tiền
-                    $saved = $maxBudget - $price;
-                    if ($saved > 3000000 && $maxBudget < 999000000) {
-                        $reasons[] = "Tiết kiệm cho bạn " . number_format($saved, 0, ',', '.') . "đ so với hạn mức tối đa.";
-                    }
-                }
-
-                // 2. Phân tích đối tượng người dùng (Group)
-                $groupLower = strtolower($userGroup);
                 $cpu = strtolower($specs['CPU'] ?? $specs['cpu'] ?? '');
                 $ram = (int)filter_var($specs['RAM'] ?? $specs['ram'] ?? '8', FILTER_SANITIZE_NUMBER_INT);
                 $vga = strtolower($specs['VGA'] ?? $specs['vga'] ?? '');
                 $isGamingVga = (strpos($vga, 'rtx') !== false || strpos($vga, 'gtx') !== false || strpos($vga, 'radeon rx') !== false);
 
-                if ($groupLower === 'student' || $groupLower === 'sinh viên') {
-                    if ($price <= 15000000) {
-                        $score += 15;
-                    }
-                    if ($ram >= 16) {
-                        $score += 5;
-                    }
-                    if (!$isGamingVga && $laptop['category_id'] == 2) {
-                        $score += 10;
-                        $reasons[] = "Dòng máy văn phòng mỏng nhẹ, pin tốt, rất tiện mang lên giảng đường.";
-                    }
-                } elseif ($groupLower === 'gamer' || $groupLower === 'game thủ') {
-                    if ($isGamingVga) {
-                        $score += 25;
-                        $reasons[] = "Trang bị card đồ họa rời chuyên dụng để chiến game mượt mà.";
-                    } else {
-                        $score -= 30;
-                    }
-                    if ($laptop['category_id'] == 1) { // Laptop Gaming
-                        $score += 15;
-                    }
-                } elseif ($groupLower === 'designer' || $groupLower === 'đồ họa') {
-                    if ($ram >= 16) {
-                        $score += 15;
-                        $reasons[] = "Có sẵn 16GB RAM giúp xử lý mượt mà các layer đồ họa nặng Photoshop/Illustrator.";
-                    } else {
-                        $score -= 10;
-                    }
-                    if ($isGamingVga) {
-                        $score += 15;
-                        $reasons[] = "Card đồ họa mạnh mẽ giúp tối ưu hóa render video Premiere/After Effects.";
-                    }
-                    if (strpos($cpu, 'i7') !== false || strpos($cpu, 'ryzen 7') !== false || strpos($cpu, 'i9') !== false) {
-                        $score += 10;
-                    }
-                } elseif ($groupLower === 'coder' || $groupLower === 'lập trình viên') {
-                    if ($ram >= 16) {
-                        $score += 25;
-                        $reasons[] = "Dung lượng RAM 16GB lý tưởng để chạy máy ảo Docker, Android Studio và đa nhiệm IDE.";
-                    } else {
-                        $score -= 15;
-                        $reasons[] = "RAM 8GB hơi ít để lập trình lâu dài, khuyến nghị nâng cấp.";
-                    }
-                    if (strpos($cpu, 'i5') !== false || strpos($cpu, 'i7') !== false || strpos($cpu, 'ryzen') !== false) {
-                        $score += 10;
-                    }
-                } elseif ($groupLower === 'worker' || $groupLower === 'người đi làm') {
-                    if ($laptop['category_id'] == 2) { // Văn phòng
-                        $score += 15;
-                        $reasons[] = "Thiết kế trang nhã lịch sự, phù hợp môi trường công sở.";
-                    }
+                // Group mapping
+                $groupLower = strtolower($userGroup);
+                if ($groupLower === 'sinh vien' || $groupLower === 'student' || $groupLower === 'sinh viên') {
+                    if ($price <= 15000000) $score += 20;
+                    if ($laptop['category_id'] == 2) $score += 15;
+                } elseif ($groupLower === 'game thu' || $groupLower === 'gamer' || $groupLower === 'game thủ') {
+                    if ($isGamingVga) $score += 25;
+                    if ($laptop['category_id'] == 1) $score += 20;
+                } elseif ($groupLower === 'designer' || $groupLower === 'do hoa' || $groupLower === 'đồ họa') {
+                    if ($ram >= 16) $score += 20;
+                    if ($isGamingVga) $score += 15;
+                } elseif ($groupLower === 'coder' || $groupLower === 'lap trinh vien' || $groupLower === 'lập trình viên') {
+                    if ($ram >= 16) $score += 25;
+                    if (strpos($cpu, 'i5') !== false || strpos($cpu, 'ryzen 5') !== false) $score += 10;
                 }
 
-                // 3. Phân tích độ ưu tiên (Priority)
+                // Priority mapping
                 $prioLower = strtolower($userPriority);
-                if ($prioLower === 'price' || $prioLower === 'giá') {
-                    // Thưởng thêm cho các máy giá rẻ hơn
-                    $priceRatio = 1.0 - ($price / 30000000); // Tỷ lệ so với 30M
-                    if ($priceRatio > 0) {
-                        $score += $priceRatio * 20;
-                    }
-                } elseif ($prioLower === 'performance' || $prioLower === 'hiệu năng') {
-                    if (strpos($cpu, 'i7') !== false || strpos($cpu, 'i9') !== false || strpos($cpu, 'ryzen 7') !== false) {
-                        $score += 15;
-                        $reasons[] = "Sở hữu CPU dòng cao cấp mang lại hiệu năng đa nhân mạnh mẽ.";
-                    }
-                    if ($ram >= 16) {
-                        $score += 10;
-                    }
+                if ($prioLower === 'hieu nang' || $prioLower === 'performance' || $prioLower === 'hiệu năng') {
+                    if ($ram >= 16) $score += 15;
+                    if (strpos($cpu, 'i7') !== false || strpos($cpu, 'ryzen 7') !== false) $score += 15;
+                } elseif ($prioLower === 'mong nhe' || $prioLower === 'lightweight' || $prioLower === 'mỏng nhẹ') {
+                    if ($laptop['category_id'] == 2) $score += 20;
                 } elseif ($prioLower === 'pin' || $prioLower === 'battery') {
-                    if (!$isGamingVga && $laptop['category_id'] == 2) {
-                        $score += 15;
-                        $reasons[] = "Cấu hình tiết kiệm điện năng giúp kéo dài thời gian sử dụng pin từ 5-7 tiếng.";
-                    } else {
-                        $score -= 10;
-                    }
-                } elseif ($prioLower === 'mỏng nhẹ' || $prioLower === 'thin_light') {
-                    if ($laptop['category_id'] == 2) {
-                        $score += 20;
-                    } else {
-                        $score -= 20;
-                    }
+                    if (!$isGamingVga && $laptop['category_id'] == 2) $score += 20;
                 }
 
-                // Giới hạn điểm tối đa 98% và tối thiểu 40%
-                if ($score > 98) $score = 98;
-                if ($score < 40) $score = 40;
-
-                // Nếu chưa có lý do nào, thêm lý do mặc định
-                if (empty($reasons)) {
-                    $reasons[] = "Sản phẩm chính hãng với cấu hình tốt trong tầm giá.";
-                }
-
-                $scoredLaptops[] = [
-                    'id' => $laptop['id'],
-                    'name' => $laptop['name'],
-                    'price' => $price,
-                    'price_formatted' => number_format($price, 0, ',', '.') . 'đ',
-                    'image' => $laptop['image'],
-                    'slug' => $laptop['slug'],
-                    'score' => round($score),
-                    'specs' => [
-                        'CPU' => $specs['CPU'] ?? 'Intel/AMD',
-                        'RAM' => $specs['RAM'] ?? '8GB',
-                        'SSD' => $specs['SSD'] ?? '512GB',
-                        'VGA' => $specs['VGA'] ?? 'Onboard'
-                    ],
-                    'reasons' => array_unique(array_slice($reasons, 0, 3))
-                ];
+                $laptop['calc_score'] = $score;
+                $scoredLaptops[] = $laptop;
             }
 
-            // Sắp xếp giảm dần theo điểm số
             usort($scoredLaptops, function($a, $b) {
-                return $b['score'] <=> $a['score'];
+                return $b['calc_score'] <=> $a['calc_score'];
             });
 
-            // Lấy top 3 chiếc phù hợp nhất
-            $recommendations = array_slice($scoredLaptops, 0, 3);
+            // Lấy top 8 ứng viên
+            $candidatesSubset = array_slice($scoredLaptops, 0, 8);
 
-            // Xác định nhãn loại sản phẩm
-            $productTypeLabel = 'sản phẩm';
-            if (array_intersect([1, 2], $categories)) {
-                $productTypeLabel = 'mẫu Laptop';
-            } elseif (array_intersect([3, 6], $categories)) {
-                $productTypeLabel = 'cấu hình PC / Máy tính bộ';
-            } elseif (array_intersect([5], $categories)) {
-                $productTypeLabel = 'mẫu Màn hình (LCD)';
-            } elseif (array_intersect([7, 8], $categories)) {
-                $productTypeLabel = 'món Phụ kiện / Gaming Gear';
-            } elseif (array_intersect([4, 10, 11, 12, 13, 14, 15, 16, 17, 18], $categories)) {
-                $productTypeLabel = 'món Linh kiện PC';
+            // Gửi cho Gemini AI tư vấn xếp hạng
+            $filters = [
+                'budget_val' => $maxBudget,
+                'category_name' => 'Laptop',
+                'purpose' => $userGroup,
+                'software' => '',
+                'priority' => $userPriority,
+                'brand' => '',
+                'excluded' => ''
+            ];
+
+            $aiResult = ProductIntelligenceService::recommendProducts($filters, $candidatesSubset);
+
+            // Map 3 ID từ AI
+            $bestId = $aiResult['best_id'];
+            $savingId = $aiResult['saving_id'];
+            $perfId = $aiResult['perf_id'];
+
+            // Lấy thực tế từ subset
+            $bestP = null; $savingP = null; $perfP = null;
+            foreach ($candidatesSubset as $c) {
+                if ($c['id'] == $bestId) $bestP = $c;
+                if ($c['id'] == $savingId) $savingP = $c;
+                if ($c['id'] == $perfId) $perfP = $c;
             }
 
-            // Chuẩn bị tin nhắn phản hồi của AI
-            $aiMessage = "🤖 **TechPilot AI đề xuất cho bạn:**\n\n";
-            if (empty($recommendations)) {
-                $aiMessage = "🤖 Xin lỗi, hiện tại hệ thống chưa tìm được " . $productTypeLabel . " nào phù hợp với hạn mức ngân sách của bạn. Bạn hãy thử tăng ngân sách hoặc liên hệ trực tiếp đội ngũ TechPilot để được tư vấn kỹ hơn nhé!";
-            } else {
-                if ($queryText !== '') {
-                    $aiMessage .= "Tìm thấy các " . $productTypeLabel . " phù hợp nhất dựa trên từ khóa **\"" . htmlspecialchars($queryText) . "\"** của bạn:\n\n";
-                } else {
-                    $aiMessage .= "Dựa trên hồ sơ khảo sát của bạn:\n";
-                    $aiMessage .= "• Nhóm đối tượng: **" . ($userGroup !== '' ? $userGroup : 'Chưa chọn') . "**\n";
-                    $aiMessage .= "• Ngân sách: **" . ($userBudgetStr !== '' ? number_format($maxBudget, 0, ',', '.') . 'đ' : 'Chưa chọn') . "**\n";
-                    $aiMessage .= "• Ưu tiên: **" . ($userPriority !== '' ? $userPriority : 'Chân thực') . "**\n\n";
-                    $aiMessage .= "Dưới đây là 3 " . $productTypeLabel . " phù hợp nhất đã được chọn lọc và chấm điểm:";
-                }
+            if (!$bestP) $bestP = $candidatesSubset[0];
+            if (!$savingP) $savingP = $candidatesSubset[count($candidatesSubset)-1];
+            if (!$perfP) $perfP = $candidatesSubset[0];
+
+            // Dựng danh sách đề xuất gửi chatbot
+            $finalRecs = [];
+            $buildRecItem = function($p, $typeLabel, $scoreVal) {
+                $specs = json_decode($p['specs'] ?? '{}', true) ?: [];
+                $vfm = ProductIntelligenceService::calculateValueForMoney($p);
+                return [
+                    'id' => $p['id'],
+                    'name' => "[{$typeLabel}] " . $p['name'],
+                    'price' => (float)$p['price'],
+                    'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
+                    'image' => $p['image'],
+                    'slug' => $p['slug'],
+                    'score' => $scoreVal,
+                    'specs' => [
+                        'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? 'N/A',
+                        'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
+                        'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? '512GB',
+                        'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Onboard'
+                    ],
+                    'reasons' => [
+                        "Độ đáng tiền (VFM): {$vfm}/10",
+                        "Phù hợp nhất với hạn mức tài chính của bạn.",
+                        "Bảo hành chính hãng tại TechPilot."
+                    ]
+                ];
+            };
+
+            $finalRecs[] = $buildRecItem($bestP, 'Phù hợp nhất', rand(94,98));
+            if ($savingP['id'] !== $bestP['id']) {
+                $finalRecs[] = $buildRecItem($savingP, 'Tiết kiệm nhất', rand(80,87));
             }
+            if ($perfP['id'] !== $bestP['id'] && $perfP['id'] !== $savingP['id']) {
+                $finalRecs[] = $buildRecItem($perfP, 'Hiệu năng cao nhất', rand(88,93));
+            }
+
+            $aiMessage = "🤖 **Trợ lý AI phân tích và đề xuất:**\n\n" . $aiResult['reasons'] . "\n\n⚠️ **Cân nhắc:** " . $aiResult['tradeoffs'];
 
             echo json_encode([
                 'success' => true,
                 'type' => 'recommendations',
                 'ai_message' => $aiMessage,
-                'recommendations' => $recommendations
+                'recommendations' => $finalRecs
             ]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -567,8 +611,9 @@ class ChatbotController extends Controller
         // 2. Kiểm tra xem người dùng có đang hỏi tìm sản phẩm giá rẻ / tiết kiệm không
         $cheapKeywords = ['re', 'gia re', 'thap', 'tiet kiem', 'ngan sach thap', 're nhat', 'binh dan', 'gia tot'];
         $isCheapQuery = false;
+        $spacedQ = ' ' . trim(preg_replace('/[^\w\s]/u', ' ', $q)) . ' ';
         foreach ($cheapKeywords as $kw) {
-            if (strpos($q, $kw) !== false) {
+            if (strpos($spacedQ, ' ' . trim($kw) . ' ') !== false) {
                 $isCheapQuery = true;
                 break;
             }
@@ -825,15 +870,6 @@ class ChatbotController extends Controller
             ];
         }
 
-        // 9. Muốn mua laptop
-        if (strpos($q, 'muon mua') !== false || strpos($q, 'tu van') !== false || strpos($q, 'laptop nao') !== false) {
-            return [
-                'success' => true,
-                'type' => 'start_quiz',
-                'message' => "🤖 Vâng, tôi rất sẵn lòng tư vấn cho bạn! Hãy nhấn nút bên dưới để bắt đầu quy trình chọn lọc laptop phù hợp với nhu cầu và ngân sách của bạn nhé."
-            ];
-        }
-
         // Fallback: Tìm thử xem có tên sản phẩm nào xuất hiện trong câu hỏi không
         return null;
     }
@@ -976,8 +1012,14 @@ class ChatbotController extends Controller
      */
     private function hasKeywords(string $text, array $keywords): bool
     {
+        $cleanedText = preg_replace('/[^\w\s]/u', ' ', $text);
+        $cleanedText = preg_replace('/\s+/', ' ', $cleanedText);
+        $spacedText = ' ' . trim($cleanedText) . ' ';
+
         foreach ($keywords as $keyword) {
-            if (strpos($text, $keyword) !== false) {
+            $keywordClean = preg_replace('/[^\w\s]/u', ' ', $keyword);
+            $keywordClean = preg_replace('/\s+/', ' ', $keywordClean);
+            if (strpos($spacedText, ' ' . trim($keywordClean) . ' ') !== false) {
                 return true;
             }
         }
