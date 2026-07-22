@@ -5,22 +5,41 @@
 - **Executor**: Antigravity Assistant
 - **Repository**: `https://github.com/ntrungz0704/TechPilot`
 - **Branch**: `feature/hieu-news`
-- **FINAL_GATE_BEFORE_SHA**: `7fb81d8bb462e1c16fa97881a3388e81e18f70ee`
-- **Report Generated from Branch SHA**: `7fb81d8bb462e1c16fa97881a3388e81e18f70ee`
+- **CI Fix Before SHA**: `f5445e9be62fe202db108195a7edcc55862a62b6`
+- **CI Fix Implementation SHA**: `316783ebfd917578eeef9bc126955099ebffca5a`
+- **Final Pushed SHA**: Recorded in final execution output
 - **Main SHA**: `a78389e0781b880087c09428166675d1551aa8d2`
 - **PHP Version**: `8.3.26`
 - **PDO Driver**: `mysql, sqlite`
 - **MySQL/MariaDB Version**: `9.4.0`
 - **Browser QA**: PLAYWRIGHT (Chromium 1.61.1 - 10 real PNG screenshots captured)
-- **CI Workflow**: `.github/workflows/news-module-ci.yml` (Local validation: PASS, Remote CI: CI_WORKFLOW_ADDED)
 
-## B. Scope & Corrective Changes
-1. **Input `page` Hardening**: Implemented `PostController::normalizeRequestedPage(mixed $rawPage): int` which checks `is_scalar($rawPage)` to prevent `Array to int conversion` PHP warnings when `$_GET['page']` is passed as an array (`?page[]=1` or `?page[key]=1`).
-2. **Playwright QA Screenshots**: Captured 10 real PNG screenshots under `docs/reviews/evidence/news-final-gate/` covering mobile (390x844), desktop (1440x900), search, detail, empty state, page 999 clamping, and dark mode.
-3. **GitHub Actions CI Workflow**: Added `.github/workflows/news-module-ci.yml` configured with PHP 8.3, MySQL 8.0 service container, PHP syntax linting, unit tests, regression tests, and database integration tests.
-4. **Acceptance Report Finalization**: Updated report with exact environment versions (`8.3.26`, `9.4.0`), full evidence matrix, screenshot asset paths, and zero placeholder text.
+## B. Remote GitHub Actions CI Verification
 
-## C. Page Input Hardening Contract
+- **Workflow Name**: News Module CI
+- **Workflow File**: `.github/workflows/news-module-ci.yml`
+- **Remote CI Run ID**: `29891986345`
+- **Remote CI Run Number**: `18`
+- **Remote CI Status**: `completed`
+- **Remote CI Conclusion**: `success`
+- **Remote CI Commit Checked**: `316783ebfd917578eeef9bc126955099ebffca5a`
+- **Remote CI Run URL**: `https://github.com/ntrungz0704/TechPilot/actions/runs/29891986345`
+
+### GitHub Actions Job Matrix
+
+| Job Name | Status | Conclusion | Key Verified Steps |
+| :--- | :---: | :---: | :--- |
+| `PHP Lint & Unit Regression Tests` | `completed` | `success` | PHP Syntax Lint, MarkdownRendererTest, EditorialExperienceTest, test_absolute_url, NewsModuleRegressionTest |
+| `Database Search & Persistence Integration Test` | `completed` | `success` | Setup MySQL 8.0 Container, Import Schema, Run Author Cases Database Test (`test_author_cases.php`), Run News Database Integration Test (`NewsSearchIntegrationTest.php`), Upload Artifacts |
+
+## C. Scope & Corrective Changes
+1. **CI Workflow Test Classification Fix**: Moved `tests/test_author_cases.php` out of `php-tests` job into `db-integration` job after `Import Database Schema` step, eliminating missing DB connection failures in CI.
+2. **Author Cases Test Refactoring**: Refactored `tests/test_author_cases.php` to use unique fixture IDs (`bin2hex(random_bytes(6))`), prepared statements, PDO transactions with automatic rollback (`beginTransaction`/`rollBack`), and production `Post::getBySlug()` calls.
+3. **Input `page` Hardening**: Implemented `PostController::normalizeRequestedPage(mixed $rawPage): int` which checks `is_scalar($rawPage)` to prevent `Array to int conversion` PHP warnings when `$_GET['page']` is passed as an array (`?page[]=1` or `?page[key]=1`).
+4. **Playwright QA Screenshots**: Captured 10 real PNG screenshots under `docs/reviews/evidence/news-final-gate/` covering mobile (390x844), desktop (1440x900), search, detail, empty state, page 999 clamping, and dark mode.
+5. **Acceptance Report Finalization**: Updated report with exact remote CI run ID (`29891986345`), run number (`18`), execution metadata, and zero placeholder text.
+
+## D. Page Input Hardening Contract
 ```php
 public static function normalizeRequestedPage(mixed $rawPage): int
 {
@@ -42,7 +61,7 @@ Tested cases:
 - `page[key]=1` -> `1` (0 PHP warnings / error handler intercepted)
 - `page=999` -> clamped to `$totalPages`
 
-## D. UI Evidence Table (10 Real Screenshots Captured)
+## E. UI Evidence Table (10 Real Screenshots Captured)
 
 | Route | Viewport | Result | Screenshot Asset Path | QA Type |
 | :--- | :---: | :---: | :--- | :--- |
@@ -57,7 +76,7 @@ Tested cases:
 | `/post` (Dark Mode) | 390x844 | PASS | `docs/reviews/evidence/news-final-gate/09-dark-mode-mobile.png` | PLAYWRIGHT |
 | `/post/detail/10-meo-toi-uu...` (Dark) | 1440x900 | PASS | `docs/reviews/evidence/news-final-gate/10-dark-mode-desktop.png` | PLAYWRIGHT |
 
-## E. Command & Test Execution Evidence
+## F. Command & Test Execution Evidence
 
 ```text
 Command: Get-ChildItem app,config,tests -Recurse -Filter *.php | ForEach-Object { php -l $_.FullName }
@@ -76,35 +95,29 @@ Command: php tests/test_absolute_url.php
 Exit code: 0
 Result: PASS - 9 passed, 0 failed.
 
-Command: php tests/test_author_cases.php
-Exit code: 0
-Result: PASS - 3 passed, 0 failed.
-
 Command: php tests/NewsModuleRegressionTest.php
 Exit code: 0
 Result: PASS - 42 passed, 0 failed.
 
+Command: php tests/test_author_cases.php
+Exit code: 0
+Result: PASS - 3 passed, 0 failed (Transaction Rollback: YES)
+
 Command: php tests/NewsSearchIntegrationTest.php
 Exit code: 0
-Result: PASS - 20 passed, 0 failed.
+Result: PASS - 20 passed, 0 failed (Transaction Rollback: YES)
 ```
 
-## F. Automated & Integration Test Matrix
+## G. Automated & Integration Test Matrix
 
 | Test Suite | Category | Passed | Failed | Exit Code | Evidence Path |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| `MarkdownRendererTest.php` | Unit Test | 35 | 0 | 0 | `docs/reviews/evidence/news-final-gate/php-tests.txt` |
-| `EditorialExperienceTest.php` | Unit Test | 42 | 0 | 0 | `docs/reviews/evidence/news-final-gate/php-tests.txt` |
-| `test_absolute_url.php` | Unit Test | 9 | 0 | 0 | `docs/reviews/evidence/news-final-gate/php-tests.txt` |
-| `test_author_cases.php` | Unit Test | 3 | 0 | 0 | `docs/reviews/evidence/news-final-gate/php-tests.txt` |
-| `NewsModuleRegressionTest.php` | Regression | 42 | 0 | 0 | `docs/reviews/evidence/news-final-gate/php-tests.txt` |
-| `NewsSearchIntegrationTest.php` | DB Integration | 20 | 0 | 0 | `docs/reviews/evidence/news-final-gate/db-integration.txt` |
-
-## G. GitHub Actions CI Status
-- **Workflow file**: `.github/workflows/news-module-ci.yml`
-- **Local Validation**: PASS (YAML syntax valid, lint & test commands exit 0)
-- **CI Trigger Conditions**: Push to `feature/hieu-news`, `main`, Pull Request to `main`.
-- **Jobs**: `php-tests` (PHP 8.3), `db-integration` (MySQL 8.0 container).
+| `MarkdownRendererTest.php` | Unit Test | 35 | 0 | 0 | `docs/reviews/evidence/news-final-gate/ci-fix-local-tests.txt` |
+| `EditorialExperienceTest.php` | Unit Test | 42 | 0 | 0 | `docs/reviews/evidence/news-final-gate/ci-fix-local-tests.txt` |
+| `test_absolute_url.php` | Unit Test | 9 | 0 | 0 | `docs/reviews/evidence/news-final-gate/ci-fix-local-tests.txt` |
+| `NewsModuleRegressionTest.php` | Regression | 42 | 0 | 0 | `docs/reviews/evidence/news-final-gate/ci-fix-local-tests.txt` |
+| `test_author_cases.php` | DB Integration | 3 | 0 | 0 | `docs/reviews/evidence/news-final-gate/ci-fix-local-tests.txt` |
+| `NewsSearchIntegrationTest.php` | DB Integration | 20 | 0 | 0 | `docs/reviews/evidence/news-final-gate/ci-fix-local-tests.txt` |
 
 ## H. Database Impact
 - **Schema changed**: NO
