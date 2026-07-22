@@ -1,8 +1,8 @@
 <?php
 /**
  * tests/SeederSafetyIntegrationTest.php
- * Direct PDO Integration Test Suite for NewsSeederService.
- * Validates insert, skip, repair, dry-run, metadata preservation, idempotency & transaction safety.
+ * Comprehensive Direct PDO Integration Test Suite for NewsSeederService.
+ * Validates insert, skip, repair, dry-run, metadata preservation, idempotency & transaction rollback.
  */
 
 if (!defined('ROOT_PATH')) {
@@ -16,6 +16,8 @@ class SeederSafetyIntegrationTest
 {
     private PDO $db;
     private NewsSeederService $seeder;
+    private ?int $validUserId = null;
+    private string $suffix;
     private int $passed = 0;
     private int $failed = 0;
     private array $errors = [];
@@ -29,6 +31,14 @@ class SeederSafetyIntegrationTest
         }
         $this->db = $db;
         $this->seeder = new NewsSeederService($this->db);
+        $this->suffix = bin2hex(random_bytes(6));
+
+        // Query valid user ID if present
+        $stmt = $this->db->query("SELECT id FROM users LIMIT 1");
+        $val = $stmt->fetchColumn();
+        if ($val !== false) {
+            $this->validUserId = (int)$val;
+        }
     }
 
     public function run(): void
@@ -37,17 +47,27 @@ class SeederSafetyIntegrationTest
         echo "=== TECHPILOT SEEDER SAFETY INTEGRATION TEST SUITE   ===\n";
         echo "========================================================\n\n";
 
-        $this->db->beginTransaction();
+        // 1. Transaction Rollback Test (runs on isolated connection, outside transaction)
+        $this->testTransactionRollback();
+
+        // Outer transaction for isolated fixture tests
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+        }
 
         try {
-            $this->testDirectServiceInsertMissingPost();
-            $this->testDirectServiceSkipRichContent();
-            $this->testDirectServiceSkipPlaceholderDefaultMode();
-            $this->testDirectServiceRepairPlaceholderWithFlag();
-            $this->testDirectServiceDryRunNoMutation();
-            $this->testDirectServiceIdempotency();
+            $this->testInsertMissingPost();
+            $this->testRichContentDefaultModePreserve();
+            $this->testRichContentRepairModePreserve();
+            $this->testPlaceholderContentDefaultModeSkip();
+            $this->testPlaceholderContentRepairModePreserveMetadata();
+            $this->testDryRunInsertNoMutation();
+            $this->testDryRunRepairNoMutation();
+            $this->testIdempotency();
         } finally {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
         }
 
         echo "\n════════════════════════════════════════════════════════\n";
@@ -76,23 +96,20 @@ class SeederSafetyIntegrationTest
         }
     }
 
-    private function testDirectServiceInsertMissingPost(): void
+    private function testInsertMissingPost(): void
     {
         echo "--- 1. Direct Service: Insert Missing Post ---\n";
 
-        $slug = 'test-cp3-fixture-missing-slug';
-        
-        // Cleanup fixture if exists
-        $stmt = $this->db->prepare("DELETE FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $slug]);
+        $slug = "test-cp3-insert-{$this->suffix}";
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
 
-        $seedData = [
+        $seed = [
             [
-                'title' => 'Missing Article Test Fixture',
+                'title' => 'Missing Article Title',
                 'slug' => $slug,
-                'summary' => 'Summary for missing article fixture',
-                'content' => ":::summary\n- Summary line\n:::\n\n## 1. Section Heading\n\n" . str_repeat("Dữ liệu thử nghiệm bài viết mới. ", 15),
-                'image' => 'assets/images/missing-cover.jpg',
+                'summary' => 'Missing Article Summary',
+                'content' => ":::summary\n- Summary line\n:::\n\n## 1. Section Heading\n\n" . str_repeat("Dữ liệu thử nghiệm bài viết mới. ", 10),
+                'image' => 'assets/images/missing.jpg',
                 'category_slug' => 'cong-nghe',
                 'post_type' => 'news',
                 'author_name' => 'CP3 Test Author',
@@ -103,185 +120,386 @@ class SeederSafetyIntegrationTest
             ]
         ];
 
-        $res = $this->seeder->run($seedData, false, false);
+        $res = $this->seeder->run($seed, false, false);
 
-        $this->assert($res['inserted'] === 1, "NewsSeederService reported inserted = 1");
-        $this->assert($res['repaired'] === 0, "NewsSeederService reported repaired = 0");
-        $this->assert($res['skipped_rich'] === 0, "NewsSeederService reported skipped_rich = 0");
+        $this->assert($res['inserted'] === 1, "Insert Missing: result inserted = 1");
 
         $stmt = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
         $stmt->execute([':slug' => $slug]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $this->assert((bool)$row, "Missing post inserted successfully into database");
-        $this->assert($row['title'] === 'Missing Article Test Fixture', "Inserted title matches seed");
-        $this->assert($row['status'] === 'published', "Inserted status matches seed");
+        $this->assert((bool)$row, "Insert Missing: row exists in database");
+        $this->assert($row['title'] === 'Missing Article Title', "Insert Missing: title matches seed");
+        $this->assert($row['content'] === $seed[0]['content'], "Insert Missing: content byte-for-byte matches seed");
+        $this->assert($row['slug'] === $slug, "Insert Missing: slug matches seed");
+        $this->assert($row['status'] === 'published', "Insert Missing: status matches seed");
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
 
-    private function testDirectServiceSkipRichContent(): void
+    private function testRichContentDefaultModePreserve(): void
     {
-        echo "\n--- 2. Direct Service: Skip Rich User Content ---\n";
+        echo "\n--- 2. Direct Service: Rich Content Default Mode Preserve ---\n";
 
-        $slug = 'test-cp3-fixture-rich-slug';
-        $richContent = ":::summary\n- User custom summary\n:::\n\n## 1. User Section\n\n" . str_repeat("Nội dung thật của người dùng không được ghi đè. ", 20);
+        $slug = "test-cp3-rich-default-{$this->suffix}";
+        $richContent = ":::summary\n- User custom summary\n:::\n\n## User Section\n\n" . str_repeat("Dữ liệu rich content của user 1. ", 15);
 
-        // Setup existing rich post
-        $stmt = $this->db->prepare("DELETE FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $slug]);
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
 
         $stmt = $this->db->prepare(
-            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_name, status, views, is_featured, created_at)
-             VALUES ('Tiêu đề người dùng', :slug, 'Tóm tắt người dùng', :content, 'uploads/posts/user-cover.png', 'laptop', 'review', 'Tác giả thật', 'hidden', 1234, 1, '2026-01-15 08:00:00')"
+            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_id, author_name, status, views, is_featured, created_at, published_at)
+             VALUES ('Tiêu đề người dùng 1', :slug, 'Tóm tắt 1', :content, 'uploads/posts/user-cover1.png', 'laptop', 'review', :author_id, 'User Author 1', 'hidden', 1234, 1, '2026-01-10 08:00:00', '2026-01-10 08:00:00')"
         );
-        $stmt->execute([':slug' => $slug, ':content' => $richContent]);
+        $stmt->execute([':slug' => $slug, ':content' => $richContent, ':author_id' => $this->validUserId]);
+
+        $stmtBefore = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtBefore->execute([':slug' => $slug]);
+        $before = $stmtBefore->fetch(PDO::FETCH_ASSOC);
 
         $seedAttempt = [
             [
-                'title' => 'Ghi đè tiêu đề thất bại',
+                'title' => 'Ghi đè tiêu đề 1',
                 'slug' => $slug,
-                'summary' => 'Ghi đè tóm tắt thất bại',
-                'content' => ':::summary\n- Ghi đè content thất bại\n:::\n\n## Ghi đè',
+                'summary' => 'Ghi đè tóm tắt 1',
+                'content' => ':::summary\n- Ghi đè content 1\n:::\n\n## Ghi đè 1',
                 'image' => 'assets/images/seed-cover.jpg',
                 'category_slug' => 'pc-gaming',
                 'post_type' => 'guide',
-                'author_name' => 'Seed Author Fake',
+                'author_name' => 'Fake Author 1',
                 'status' => 'published',
             ]
         ];
 
-        // Run default mode
-        $resDefault = $this->seeder->run($seedAttempt, false, false);
-        $this->assert($resDefault['skipped_rich'] === 1, "Default mode skips rich post (skipped_rich = 1)");
+        $res = $this->seeder->run($seedAttempt, false, false);
+        $this->assert($res['skipped_rich'] === 1, "Rich Default: skipped_rich = 1");
 
-        // Run repair mode
-        $resRepair = $this->seeder->run($seedAttempt, false, true);
-        $this->assert($resRepair['skipped_rich'] === 1, "Repair mode ALSO skips rich post (skipped_rich = 1)");
+        $stmtAfter = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtAfter->execute([':slug' => $slug]);
+        $after = $stmtAfter->fetch(PDO::FETCH_ASSOC);
 
-        // Check DB row integrity
-        $stmt = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $slug]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->assert($after['id'] === $before['id'], "Rich Default: id unchanged");
+        $this->assert($after['slug'] === $before['slug'], "Rich Default: slug unchanged");
+        $this->assert($after['content'] === $before['content'], "Rich Default: content unchanged");
+        $this->assert($after['image'] === $before['image'], "Rich Default: image unchanged");
+        $this->assert((int)$after['views'] === (int)$before['views'], "Rich Default: views unchanged");
+        $this->assert($after['author_id'] === $before['author_id'], "Rich Default: author_id unchanged");
+        $this->assert($after['author_name'] === $before['author_name'], "Rich Default: author_name unchanged");
+        $this->assert($after['status'] === $before['status'], "Rich Default: status unchanged");
+        $this->assert($after['created_at'] === $before['created_at'], "Rich Default: created_at unchanged");
+        $this->assert($after['published_at'] === $before['published_at'], "Rich Default: published_at unchanged");
 
-        $this->assert($row['content'] === $richContent, "Rich post content remained 100% untouched");
-        $this->assert($row['image'] === 'uploads/posts/user-cover.png', "Rich post image remained untouched");
-        $this->assert((int)$row['views'] === 1234, "Rich post views remained untouched");
-        $this->assert($row['author_name'] === 'Tác giả thật', "Rich post author_name remained untouched");
-        $this->assert($row['status'] === 'hidden', "Rich post status remained untouched");
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
 
-    private function testDirectServiceSkipPlaceholderDefaultMode(): void
+    private function testRichContentRepairModePreserve(): void
     {
-        echo "\n--- 3. Direct Service: Skip Placeholder in Default Mode ---\n";
+        echo "\n--- 3. Direct Service: Rich Content Repair Mode Preserve ---\n";
 
-        $slug = 'test-cp3-fixture-placeholder-slug';
+        $slug = "test-cp3-rich-repair-{$this->suffix}";
+        $richContent = ":::summary\n- User custom summary 2\n:::\n\n## User Section 2\n\n" . str_repeat("Dữ liệu rich content của user 2. ", 15);
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_id, author_name, status, views, is_featured, created_at, published_at)
+             VALUES ('Tiêu đề người dùng 2', :slug, 'Tóm tắt 2', :content, 'uploads/posts/user-cover2.png', 'laptop', 'review', :author_id, 'User Author 2', 'hidden', 2345, 1, '2026-01-12 08:00:00', '2026-01-12 08:00:00')"
+        );
+        $stmt->execute([':slug' => $slug, ':content' => $richContent, ':author_id' => $this->validUserId]);
+
+        $stmtBefore = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtBefore->execute([':slug' => $slug]);
+        $before = $stmtBefore->fetch(PDO::FETCH_ASSOC);
+
+        $seedAttempt = [
+            [
+                'title' => 'Ghi đè tiêu đề 2',
+                'slug' => $slug,
+                'summary' => 'Ghi đè tóm tắt 2',
+                'content' => ':::summary\n- Ghi đè content 2\n:::\n\n## Ghi đè 2',
+                'image' => 'assets/images/seed-cover.jpg',
+                'category_slug' => 'pc-gaming',
+                'post_type' => 'guide',
+                'author_name' => 'Fake Author 2',
+                'status' => 'published',
+            ]
+        ];
+
+        $res = $this->seeder->run($seedAttempt, false, true);
+        $this->assert($res['skipped_rich'] === 1, "Rich Repair: skipped_rich = 1");
+
+        $stmtAfter = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtAfter->execute([':slug' => $slug]);
+        $after = $stmtAfter->fetch(PDO::FETCH_ASSOC);
+
+        $this->assert($after['id'] === $before['id'], "Rich Repair: id unchanged");
+        $this->assert($after['slug'] === $before['slug'], "Rich Repair: slug unchanged");
+        $this->assert($after['content'] === $before['content'], "Rich Repair: content unchanged");
+        $this->assert($after['image'] === $before['image'], "Rich Repair: image unchanged");
+        $this->assert((int)$after['views'] === (int)$before['views'], "Rich Repair: views unchanged");
+        $this->assert($after['author_id'] === $before['author_id'], "Rich Repair: author_id unchanged");
+        $this->assert($after['author_name'] === $before['author_name'], "Rich Repair: author_name unchanged");
+        $this->assert($after['status'] === $before['status'], "Rich Repair: status unchanged");
+        $this->assert($after['created_at'] === $before['created_at'], "Rich Repair: created_at unchanged");
+        $this->assert($after['published_at'] === $before['published_at'], "Rich Repair: published_at unchanged");
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+    }
+
+    private function testPlaceholderContentDefaultModeSkip(): void
+    {
+        echo "\n--- 4. Direct Service: Placeholder Default Mode Skip ---\n";
+
+        $slug = "test-cp3-placeholder-default-{$this->suffix}";
         $placeholderContent = "Nội dung chi tiết đánh giá...";
 
-        $stmt = $this->db->prepare("DELETE FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $slug]);
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
 
         $stmt = $this->db->prepare(
             "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_name, status, views, created_at)
-             VALUES ('Tiêu đề placeholder', :slug, 'Tóm tắt placeholder', :content, 'uploads/posts/placeholder-custom.jpg', 'cong-nghe', 'news', 'Biên tập viên', 'draft', 55, '2026-02-01 10:00:00')"
+             VALUES ('Tiêu đề placeholder', :slug, 'Tóm tắt placeholder', :content, 'uploads/posts/ph.jpg', 'cong-nghe', 'news', 'Biên tập viên', 'draft', 55, '2026-02-01 10:00:00')"
         );
         $stmt->execute([':slug' => $slug, ':content' => $placeholderContent]);
 
-        $seedData = [
+        $seedAttempt = [
             [
                 'title' => 'Title mới đã repair',
                 'slug' => $slug,
                 'summary' => 'Summary mới đã repair',
-                'content' => ":::summary\n- Repaired summary\n:::\n\n## 1. Repaired Heading\n\n" . str_repeat("Nội dung markdown đã được repair thành công. ", 10),
-                'image' => 'assets/images/seed-cover.jpg',
-                'category_slug' => 'cong-nghe',
-                'post_type' => 'news',
+                'content' => ":::summary\n- Repaired summary\n:::\n\n## 1. Repaired Heading\n\n" . str_repeat("Nội dung markdown đã được repair. ", 10),
             ]
         ];
 
-        $resDefault = $this->seeder->run($seedData, false, false);
-        $this->assert($resDefault['skipped_placeholder'] === 1, "Default mode skips placeholder post (skipped_placeholder = 1)");
+        $res = $this->seeder->run($seedAttempt, false, false);
+        $this->assert($res['skipped_placeholder'] === 1, "Placeholder Default: skipped_placeholder = 1");
 
         $stmt = $this->db->prepare("SELECT content FROM posts WHERE slug = :slug");
         $stmt->execute([':slug' => $slug]);
         $content = $stmt->fetchColumn();
 
-        $this->assert($content === $placeholderContent, "Placeholder content NOT modified under default mode");
+        $this->assert($content === $placeholderContent, "Placeholder Default: content NOT modified");
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
 
-    private function testDirectServiceRepairPlaceholderWithFlag(): void
+    private function testPlaceholderContentRepairModePreserveMetadata(): void
     {
-        echo "\n--- 4. Direct Service: Repair Placeholder & Preserve Real Metadata ---\n";
+        echo "\n--- 5. Direct Service: Placeholder Repair Mode & Metadata Preservation ---\n";
 
-        $slug = 'test-cp3-fixture-placeholder-slug';
+        $slug = "test-cp3-placeholder-repair-{$this->suffix}";
+        $placeholderContent = "Nội dung chi tiết đánh giá...";
 
-        $seedData = [
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_id, author_name, status, views, is_featured, reading_minutes, created_at, published_at)
+             VALUES ('Tiêu đề ph gốc', :slug, 'Tóm tắt ph gốc', :content, 'uploads/posts/real-cover-ph.png', 'laptop', 'review', :author_id, 'Biên tập viên thật', 'hidden', 777, 0, 7, '2026-01-01 10:00:00', '2026-01-01 10:00:00')"
+        );
+        $stmt->execute([':slug' => $slug, ':content' => $placeholderContent, ':author_id' => $this->validUserId]);
+
+        $stmtBefore = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtBefore->execute([':slug' => $slug]);
+        $before = $stmtBefore->fetch(PDO::FETCH_ASSOC);
+
+        $seedRepaired = [
+            [
+                'title' => 'Title mới đã được repair',
+                'slug' => $slug,
+                'summary' => 'Summary mới đã được repair',
+                'content' => ":::summary\n- Summary mới đã repair\n:::\n\n## 1. Section Mới\n\n" . str_repeat("Nội dung markdown hoàn chỉnh được repair. ", 12),
+                'image' => 'assets/images/seed-fallback-cover.jpg',
+                'category_slug' => 'pc-gaming',
+                'post_type' => 'guide',
+                'author_name' => 'Seed Author Fallback',
+                'status' => 'published',
+                'reading_minutes' => 15,
+            ]
+        ];
+
+        $res = $this->seeder->run($seedRepaired, false, true);
+        $this->assert($res['repaired'] === 1, "Placeholder Repair: repaired = 1");
+
+        $stmtAfter = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtAfter->execute([':slug' => $slug]);
+        $after = $stmtAfter->fetch(PDO::FETCH_ASSOC);
+
+        $this->assert(str_contains($after['content'], 'Nội dung markdown hoàn chỉnh được repair'), "Placeholder Repair: content updated to rich seed Markdown");
+        $this->assert($after['id'] === $before['id'], "Placeholder Repair: id unchanged");
+        $this->assert($after['slug'] === $before['slug'], "Placeholder Repair: slug unchanged");
+        $this->assert($after['image'] === $before['image'], "Placeholder Repair: image unchanged ('uploads/posts/real-cover-ph.png')");
+        $this->assert((int)$after['views'] === (int)$before['views'], "Placeholder Repair: views unchanged (777)");
+        $this->assert($after['author_id'] === $before['author_id'], "Placeholder Repair: author_id unchanged");
+        $this->assert($after['author_name'] === $before['author_name'], "Placeholder Repair: author_name unchanged ('Biên tập viên thật')");
+        $this->assert($after['status'] === $before['status'], "Placeholder Repair: status unchanged ('hidden')");
+        $this->assert($after['created_at'] === $before['created_at'], "Placeholder Repair: created_at unchanged");
+        $this->assert($after['published_at'] === $before['published_at'], "Placeholder Repair: published_at unchanged");
+        $this->assert($after['category_slug'] === $before['category_slug'], "Placeholder Repair: category_slug unchanged ('laptop')");
+        $this->assert($after['post_type'] === $before['post_type'], "Placeholder Repair: post_type unchanged ('review')");
+        $this->assert((int)$after['reading_minutes'] === (int)$before['reading_minutes'], "Placeholder Repair: reading_minutes unchanged (7)");
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+    }
+
+    private function testDryRunInsertNoMutation(): void
+    {
+        echo "\n--- 6. Direct Service: Dry-Run Insert Zero Mutation ---\n";
+
+        $slug = "test-cp3-dry-insert-{$this->suffix}";
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+
+        $stmt = $this->db->query("SELECT COUNT(*) FROM posts");
+        $countBefore = (int)$stmt->fetchColumn();
+
+        $seed = [
+            [
+                'title' => 'Dry Run Missing Title',
+                'slug' => $slug,
+                'summary' => 'Dry Run Summary',
+                'content' => ':::summary\n- Dry run\n:::\n\n## Dry Run Section\n\n' . str_repeat("Dry run text. ", 10),
+            ]
+        ];
+
+        $res = $this->seeder->run($seed, true, false);
+        $this->assert($res['inserted'] === 1, "Dry-Run Insert: reported inserted = 1");
+
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+        $stmt->execute([':slug' => $slug]);
+        $rowExists = ((int)$stmt->fetchColumn() > 0);
+
+        $stmt = $this->db->query("SELECT COUNT(*) FROM posts");
+        $countAfter = (int)$stmt->fetchColumn();
+
+        $this->assert(!$rowExists, "Dry-Run Insert: row does NOT exist in database");
+        $this->assert($countBefore === $countAfter, "Dry-Run Insert: total row count unchanged");
+    }
+
+    private function testDryRunRepairNoMutation(): void
+    {
+        echo "\n--- 7. Direct Service: Dry-Run Repair Zero Mutation ---\n";
+
+        $slug = "test-cp3-dry-repair-{$this->suffix}";
+        $phContent = "Nội dung chi tiết đánh giá...";
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_name, status, views, created_at)
+             VALUES ('Dry Repair Title', :slug, 'Dry Repair Summary', :content, 'uploads/posts/dry-cover.jpg', 'cong-nghe', 'news', 'Dry Author', 'hidden', 999, '2026-02-10 10:00:00')"
+        );
+        $stmt->execute([':slug' => $slug, ':content' => $phContent]);
+
+        $stmtBefore = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtBefore->execute([':slug' => $slug]);
+        $before = $stmtBefore->fetch(PDO::FETCH_ASSOC);
+
+        $seedRepair = [
             [
                 'title' => 'Title mới đã repair',
                 'slug' => $slug,
                 'summary' => 'Summary mới đã repair',
-                'content' => ":::summary\n- Repaired summary\n:::\n\n## 1. Repaired Heading\n\n" . str_repeat("Nội dung markdown đã được repair thành công. ", 10),
-                'image' => 'assets/images/seed-cover.jpg',
-                'category_slug' => 'cong-nghe',
-                'post_type' => 'news',
-                'author_name' => 'Seed Author Fallback',
+                'content' => ":::summary\n- Repaired summary\n:::\n\n## 1. Heading\n\n" . str_repeat("Nội dung markdown đã repair. ", 10),
             ]
         ];
 
-        $resRepair = $this->seeder->run($seedData, false, true);
-        $this->assert($resRepair['repaired'] === 1, "Repair mode repairs placeholder post (repaired = 1)");
+        $res = $this->seeder->run($seedRepair, true, true);
+        $this->assert($res['repaired'] === 1, "Dry-Run Repair: reported repaired = 1");
 
-        $stmt = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $slug]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmtAfter = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmtAfter->execute([':slug' => $slug]);
+        $after = $stmtAfter->fetch(PDO::FETCH_ASSOC);
 
-        $this->assert(str_contains($row['content'], 'Nội dung markdown đã được repair thành công'), "Placeholder content updated to rich seed");
-        $this->assert($row['image'] === 'uploads/posts/placeholder-custom.jpg', "PRESERVED existing real cover image");
-        $this->assert((int)$row['views'] === 55, "PRESERVED existing views count");
-        $this->assert($row['author_name'] === 'Biên tập viên', "PRESERVED existing author_name");
-        $this->assert($row['status'] === 'draft', "PRESERVED existing status");
-        $this->assert($row['created_at'] === '2026-02-01 10:00:00', "PRESERVED existing created_at timestamp");
+        $this->assert($after['content'] === $phContent, "Dry-Run Repair: content unchanged in database");
+        $this->assert($after['image'] === $before['image'], "Dry-Run Repair: image unchanged in database");
+        $this->assert((int)$after['views'] === (int)$before['views'], "Dry-Run Repair: views unchanged in database");
+        $this->assert($after['author_name'] === $before['author_name'], "Dry-Run Repair: author_name unchanged in database");
+        $this->assert($after['status'] === $before['status'], "Dry-Run Repair: status unchanged in database");
+
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
 
-    private function testDirectServiceDryRunNoMutation(): void
+    private function testTransactionRollback(): void
     {
-        echo "\n--- 5. Direct Service: Dry-Run Mode Zero Mutation ---\n";
+        echo "\n--- 8. Direct Service: Transaction Rollback on Failure ---\n";
 
-        $stmt = $this->db->query("SELECT COUNT(*), SUM(views) FROM posts");
-        $beforeStats = $stmt->fetch(PDO::FETCH_NUM);
+        $validSlug = "test-cp3-rollback-valid-{$this->suffix}";
+        $invalidSlug = "test-cp3-rollback-invalid-{$this->suffix}";
 
-        $seedData = [
+        $isolatedDb = Database::getConnection();
+        $this->assert(!$isolatedDb->inTransaction(), "Rollback Test: isolated connection is initially not in transaction");
+
+        $isolatedDb->exec("DELETE FROM posts WHERE slug IN ('{$validSlug}', '{$invalidSlug}')");
+
+        $batch = [
             [
-                'title' => 'Dry Run New Item',
-                'slug' => 'test-cp3-fixture-dryrun-missing',
-                'summary' => 'Dry Run Summary',
-                'content' => ':::summary\n- Dry run\n:::\n\n## Heading\n\n' . str_repeat("Dry run text. ", 15),
-                'image' => 'assets/images/dryrun.jpg',
+                'title' => 'Valid Entry 1',
+                'slug' => $validSlug,
+                'summary' => 'Summary 1',
+                'content' => ":::summary\n- Summary\n:::\n\n## Heading\n\n" . str_repeat("Valid text. ", 10),
+                'image' => 'assets/images/valid.jpg',
+                'created_at' => '2026-03-01 10:00:00',
+            ],
+            [
+                'title' => 'Invalid Entry 2',
+                'slug' => $invalidSlug,
+                'summary' => 'Summary 2',
+                'content' => 'Invalid text',
+                // Invalid datetime value triggers PDOException in MySQL 8.0 strict mode
+                'created_at' => 'INVALID_DATETIME_CRASH_TRIGGER',
+            ],
+        ];
+
+        $caughtException = false;
+        try {
+            $isolatedSeeder = new NewsSeederService($isolatedDb);
+            $isolatedSeeder->run($batch, false, false);
+        } catch (Throwable $e) {
+            $caughtException = true;
+        }
+
+        $this->assert($caughtException, "Rollback Test: PDOException caught on invalid batch item");
+
+        $stmt = $isolatedDb->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+        $stmt->execute([':slug' => $validSlug]);
+        $validCount = (int)$stmt->fetchColumn();
+
+        $this->assert($validCount === 0, "Rollback Test: Entry 1 was completely rolled back (COUNT = 0)");
+        $this->assert(!$isolatedDb->inTransaction(), "Rollback Test: connection is not left in an open transaction");
+
+        $isolatedDb->exec("DELETE FROM posts WHERE slug IN ('{$validSlug}', '{$invalidSlug}')");
+    }
+
+    private function testIdempotency(): void
+    {
+        echo "\n--- 9. Direct Service: Idempotency ---\n";
+
+        $slug = "test-cp3-idempotent-{$this->suffix}";
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
+
+        $seed = [
+            [
+                'title' => 'Idempotent Test Title',
+                'slug' => $slug,
+                'summary' => 'Idempotent Test Summary',
+                'content' => ":::summary\n- Summary\n:::\n\n## Heading\n\n" . str_repeat("Idempotent content line. ", 10),
+                'image' => 'assets/images/idempotent.jpg',
+                'author_name' => 'Idempotent Author',
+                'status' => 'published',
             ]
         ];
 
-        $resDry = $this->seeder->run($seedData, true, true);
-        $this->assert($resDry['inserted'] === 1, "Dry run reports would insert = 1");
+        $res1 = $this->seeder->run($seed, false, false);
+        $this->assert($res1['inserted'] === 1, "Idempotency: Run 1 inserted = 1");
 
-        $stmt = $this->db->query("SELECT COUNT(*), SUM(views) FROM posts");
-        $afterStats = $stmt->fetch(PDO::FETCH_NUM);
+        $res2 = $this->seeder->run($seed, false, false);
+        $this->assert($res2['inserted'] === 0, "Idempotency: Run 2 inserted = 0");
+        $this->assert($res2['skipped_rich'] === 1, "Idempotency: Run 2 skipped_rich = 1");
 
-        $this->assert($beforeStats[0] === $afterStats[0], "Dry run resulted in ZERO row count changes");
-        $this->assert($beforeStats[1] === $afterStats[1], "Dry run resulted in ZERO metadata column changes");
-    }
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+        $stmt->execute([':slug' => $slug]);
+        $count = (int)$stmt->fetchColumn();
 
-    private function testDirectServiceIdempotency(): void
-    {
-        echo "\n--- 6. Direct Service: Idempotency ---\n";
+        $this->assert($count === 1, "Idempotency: COUNT(*) WHERE slug = 1 (no duplicate rows)");
 
-        $seedFile = ROOT_PATH . '/database/seeds/news_posts.php';
-        if (file_exists($seedFile)) {
-            $seedPosts = require $seedFile;
-            if (is_array($seedPosts)) {
-                $res1 = $this->seeder->run($seedPosts, false, false);
-                $res2 = $this->seeder->run($seedPosts, false, false);
-
-                $this->assert($res2['inserted'] === 0, "Second seeder run inserts ZERO duplicate posts");
-            }
-        }
+        $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
 }
 
