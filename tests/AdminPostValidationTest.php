@@ -153,6 +153,11 @@ class AdminPostValidationTest
         $this->assert($valPosInUpdate !== false && $uploadPosInUpdate !== false && $valPosInUpdate < $uploadPosInUpdate, "update() validates BEFORE UploadService::uploadImage");
         $this->assert($unlinkPosInUpdate !== false && $uploadPosInUpdate < $unlinkPosInUpdate, "update() unlinks old image ONLY AFTER DB update/upload");
 
+        // Throwable safety boundary assertions
+        $this->assert(str_contains($controllerSrc, "catch (Throwable \$e)"), "AdminPostController catches Throwable at side-effect boundaries");
+        $this->assert(str_contains($controllerSrc, "UploadService::deleteImage(\$uploadedImage, 'posts')"), "store() cleans uploaded image if DB insert fails");
+        $this->assert(str_contains($controllerSrc, "UploadService::deleteImage(\$newImage, 'posts')"), "update() cleans new uploaded image if DB update fails");
+
         // View assertions
         $this->assert(str_contains($createViewSrc, "\$errors['title']"), "create.php renders errors['title']");
         $this->assert(str_contains($createViewSrc, "\$errors['content']"), "create.php renders errors['content']");

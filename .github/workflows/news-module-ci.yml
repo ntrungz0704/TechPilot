@@ -62,6 +62,9 @@ jobs:
       - name: Run Admin Post Validation Test
         run: php tests/AdminPostValidationTest.php
 
+      - name: Run UploadService Image Lifecycle Test
+        run: php tests/UploadServiceImageLifecycleTest.php
+
   db-integration:
     name: Database Search & Persistence Integration Test
     runs-on: ubuntu-latest
