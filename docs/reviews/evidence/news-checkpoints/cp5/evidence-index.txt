@@ -44,7 +44,12 @@ TechPilot News Module - Complete Evidence Inventory Index
    - ci-fix-local-tests.txt
 
 4. Historical Corrective Evidence Directory (docs/reviews/evidence/news-corrective/)
-   - Supporting historical evidence files (pre-checkpoint baseline).
+   *Note: Supporting historical baseline evidence, not primary final acceptance source.*
+   - browser-qa-matrix.txt
+   - console-summary.txt
+   - db-integration-output.txt
+   - network-summary.txt
+   - php-test-output.txt
 
 5. Checkpoint 5 Final Summary Directory (docs/reviews/evidence/news-checkpoints/cp5/)
    - final-regression-summary.txt
