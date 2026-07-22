@@ -27,7 +27,7 @@ $order = $order ?? [];
             </div>
             <div class="detail-row">
                 <span>Số điện thoại</span>
-                <strong><?= e($order['phone'] ?? '') ?></strong>
+                <strong><?= e(formatPhone($order['phone'] ?? '')) ?></strong>
             </div>
             <div class="detail-row">
                 <span>Địa chỉ giao hàng</span>
@@ -45,7 +45,7 @@ $order = $order ?? [];
         
         <div style="margin-top: 30px; display: flex; gap: 16px; justify-content: center;">
             <a href="<?= url('/') ?>" class="btn">Tiếp tục mua sắm <i class="fa-solid fa-cart-shopping"></i></a>
-            <a href="#" class="btn btn--outline">Theo dõi đơn hàng <i class="fa-solid fa-truck"></i></a>
+            <a href="<?= url('profile/orders') ?>" class="btn btn--outline">Theo dõi đơn hàng <i class="fa-solid fa-truck"></i></a>
         </div>
     </div>
 </section>

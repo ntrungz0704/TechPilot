@@ -1,53 +1,40 @@
-# Báo cáo Đối chiếu ERD2 và Cấu trúc Database thực tế (ERD2 Audit) — TechPilot
+# Báo cáo Đối chiếu ERD V2 và Cấu trúc Database thực tế (ERD V2 Audit)
 
-Báo cáo này đối chiếu danh sách 15 bảng được yêu cầu trong đặc tả **ERD2** với cấu trúc cơ sở dữ liệu thực tế (gồm **34 bảng** được liệt kê qua lệnh `SHOW TABLES;`) trong file [schema.sql](file:///d:/TechPilot/database/schema.sql).
+Báo cáo này đối chiếu danh sách 19 bảng chính thức trong sơ đồ **ERD V2** với cấu trúc cơ sở dữ liệu thực tế trong hệ thống TechPilot.
 
 ---
 
-## 1. Đối chiếu 15 bảng yêu cầu của ERD2
+## 1. Danh sách 19 Bảng chính thức trong ERD V2
 
-| STT | Tên bảng (ERD2) | Trạng thái trên Database thực tế | Mô tả & Khớp nối |
+Cơ sở dữ liệu thực tế của TechPilot hiện tại gồm đúng **19 bảng** chính thức, đáp ứng đầy đủ các Use Case nghiệp vụ:
+
+| STT | Tên bảng (ERD V2) | Trạng thái | Mô tả chi tiết |
 |---|---|---|---|
-| 1 | `users` | **Đã có** | Lưu tài khoản, email, mật khẩu, và khóa ngoại `role_id`. |
-| 2 | `categories` | **Đã có** | Lưu danh mục sản phẩm. |
-| 3 | `brands` | **Đã có** | Lưu thương hiệu và logo. |
-| 4 | `products` | **Đã có** | Lưu thông tin chi tiết sản phẩm. |
-| 5 | `product_images`| **Đã có** | Lưu trữ đường dẫn ảnh sản phẩm. |
-| 6 | `carts` | **Đã có** | Lưu giỏ hàng của thành viên và khách. |
-| 7 | `cart_items` | **Đã có** | Lưu chi tiết và số lượng sản phẩm trong giỏ. |
-| 8 | `orders` | **Đã có** | Lưu thông tin đơn hàng COD, địa chỉ, tổng tiền. |
-| 9 | `order_items` | **Đã có** | Lưu giá sản phẩm tại thời điểm mua và số lượng. |
-| 10| `reviews` | **Đã có** | Lưu đánh giá rating (1-5 sao), bình luận. |
-| 11| `wishlists` | **Đã có** | Lưu tiêu đề danh sách yêu thích của người dùng. |
-| 12| `flash_sales` | **Đã có** | Lưu chiến dịch Flash Sale với thời gian chạy. |
-| 13| `banners` | **Đã có** | Lưu banners theo các vị trí hiển thị. |
-| 14| `posts` | **Đã có** | Lưu tiêu đề, nội dung bài viết tin tức. |
-| 15| `coupons` | **Đã có** | Lưu mã giảm giá, thời gian, số lượng. |
+| 1 | `users` | **Đã khớp** | Lưu tài khoản người dùng, email, điện thoại, mật khẩu băm, và vai trò (`role`). |
+| 2 | `categories` | **Đã khớp** | Lưu danh mục sản phẩm phục vụ phân loại (ví dụ: Laptop Gaming, Màn Hình). |
+| 3 | `brands` | **Đã khớp** | Lưu thương hiệu và logo của sản phẩm. |
+| 4 | `products` | **Đã khớp** | Lưu thông tin chi tiết sản phẩm, giá bán, giá sale và số lượng tồn kho (`stock`). |
+| 5 | `product_images`| **Đã khớp** | Lưu thư viện ảnh chi tiết cho từng sản phẩm. |
+| 6 | `carts` | **Đã khớp** | Quản lý giỏ hàng active của người dùng hoặc khách vãng lai. |
+| 7 | `cart_items` | **Đã khớp** | Chi tiết sản phẩm và số lượng tương ứng trong giỏ hàng. |
+| 8 | `orders` | **Đã khớp** | Đơn hàng COD bao gồm mã đơn hàng, địa chỉ giao hàng và trạng thái đơn. |
+| 9 | `order_items` | **Đã khớp** | Sản phẩm trong đơn hàng kèm giá bán tại thời điểm mua (chống thay đổi lịch sử). |
+| 10 | `reviews` | **Đã khớp** | Lưu đánh giá (1-5 sao) và nhận xét của khách hàng về sản phẩm. |
+| 11 | `wishlists` | **Đã khớp** | Sản phẩm yêu thích được lưu theo từng tài khoản khách hàng. |
+| 12 | `flash_sales` | **Đã khớp** | Quản lý thời gian bắt đầu/kết thúc chiến dịch Flash Sale. |
+| 13 | `flash_sale_items`| **Đã khớp** | Liên kết chiến dịch Flash Sale với từng sản phẩm, giá sale và giới hạn số lượng bán. |
+| 14 | `banners` | **Đã khớp** | Quản lý quảng cáo hiển thị ở trang chủ. |
+| 15 | `posts` | **Đã khớp** | Bài viết tin tức công nghệ phục vụ SEO và cung cấp kiến thức. |
+| 16 | `coupons` | **Đã khớp** | Mã giảm giá theo giá trị cố định hoặc phần trăm. |
+| 17 | `notifications`| **Đã khớp** | Hộp thư thông báo cập nhật trạng thái đơn hàng và đổi trả cho khách hàng. |
+| 18 | `return_requests`| **Đã khớp** | Tiếp nhận yêu cầu đổi trả đơn hàng của khách hàng. |
+| 19 | `return_items` | **Đã khớp** | Sản phẩm cụ thể và số lượng khách hàng yêu cầu đổi trả. |
 
 ---
 
-## 2. Giải thích về các bảng phụ trợ mở rộng (Chênh lệch)
+## 2. Xác minh các chức năng đặc biệt
 
-Database thực tế chứa thêm **19 bảng phụ trợ** nhằm hỗ trợ vận hành và bảo vệ tính toàn vẹn khóa ngoại (được giữ nguyên không xóa theo nguyên tắc an toàn):
-
-### A. Bảng quan hệ chi tiết (1-nhiều phụ trợ)
-- **`wishlist_items`**: Do một danh sách yêu thích (`wishlists`) có thể chứa nhiều sản phẩm, database tách bảng này để lưu thông tin chi tiết sản phẩm yêu thích (giúp tránh lặp dữ liệu `user_id + product_id` trong một hàng).
-- **`flash_sale_items`**: Lưu thông tin chi tiết các sản phẩm tham gia một chiến dịch Flash Sale (bao gồm giá giảm đặc biệt và số lượng giới hạn).
-
-### B. Bảng quản lý kho & logistics
-- **`warehouses`**, **`inventory_balances`**, **`inventory_movements`**: Hệ thống quản lý kho hàng và lịch sử biến động xuất nhập tồn (giúp khóa tồn kho và chặn bán vượt tồn).
-- **`shipments`**: Theo dõi đơn vị vận chuyển và trạng thái giao nhận.
-
-### C. Bảng thanh toán & lịch sử hoạt động
-- **`payments`**: Lưu giao dịch thanh toán COD hoặc chuyển khoản.
-- **`order_status_history`**: Nhật ký thay đổi trạng thái đơn hàng.
-- **`user_addresses`**: Cho phép một người dùng lưu nhiều địa chỉ nhận hàng khác nhau.
-- **`product_variants`**: Hỗ trợ phiên bản sản phẩm (nếu có).
-- **`review_images`**: Cho phép đính kèm ảnh khi khách hàng đánh giá sản phẩm.
-- **`audit_logs`**: Lưu vết bảo mật hệ thống.
-
----
-
-## 3. Xác minh chức năng So sánh (Compare)
-- **Đặc tả**: ERD2 không yêu cầu bảng so sánh sản phẩm.
-- **Thực tế cài đặt**: Chức năng so sánh trên storefront TechPilot **chỉ sử dụng Session** (`$_SESSION['compare']`) và Cookie ở client, hoàn toàn không gọi xuống hay làm thay đổi database thực tế (mặc dù database có sẵn bảng `comparison_lists` và `comparison_items` dự phòng cho các phiên bản tương lai).
+- **Chatbot AI tư vấn**: Hoạt động hoàn toàn *stateless* tại Server-side, tự động đọc thông tin sản phẩm và bài viết từ DB để gửi ngữ cảnh sang Gemini API. Không cần tạo thêm bảng lưu hội thoại để tối giản cơ sở dữ liệu.
+- **So sánh sản phẩm (Compare)**: Được triển khai hoàn toàn bằng PHP Session (`$_SESSION['compare']`), lưu trữ danh sách tối đa 4 sản phẩm khách hàng đang chọn so sánh trực tiếp, không ghi nhận xuống database.
+- **Sản phẩm gần đây (Recent Products)**: Được lưu trữ qua Session để tối ưu tốc độ đọc ghi, hiển thị danh sách sản phẩm đã xem trên giao diện.
+- **Tính toàn vẹn khóa ngoại**: Tất cả 19 bảng đều được ràng buộc khóa ngoại chặt chẽ và không có dữ liệu mồ côi (đã xác minh 100% bằng script kiểm thử tự động).

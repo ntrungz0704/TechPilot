@@ -63,7 +63,7 @@ class ReturnRequest
         if ($this->db === null) return [];
 
         $stmt = $this->db->prepare(
-            'SELECT r.*, o.order_number 
+            'SELECT r.*, o.order_code 
              FROM return_requests r
              JOIN orders o ON r.order_id = o.id
              WHERE r.user_id = :user_id

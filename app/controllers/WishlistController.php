@@ -25,7 +25,7 @@ class WishlistController extends Controller
             'pageTitle' => 'Sản phẩm yêu thích',
             'items' => $items,
             'flashes' => pullFlashes()
-        ]);
+        ], false);
     }
 
     public function add(): void

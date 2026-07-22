@@ -30,12 +30,20 @@ class AdminCategoryController extends Controller
         ]);
     }
 
-    /** Create form */
     public function create(): void
     {
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        $categories = [];
+        if ($db) {
+            $stmt = $db->query('SELECT id, name FROM categories WHERE parent_id IS NULL ORDER BY name ASC');
+            $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         $this->renderAdmin('admin/categories/create', [
             'pageTitle'  => 'Thêm danh mục mới',
-            'activeMenu' => 'categories'
+            'activeMenu' => 'categories',
+            'categories' => $categories
         ]);
     }
 
@@ -51,6 +59,9 @@ class AdminCategoryController extends Controller
         $description = trim($_POST['description'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $status = trim($_POST['status'] ?? 'active');
+        $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+        $icon = trim($_POST['icon'] ?? '');
+        $image = trim($_POST['image'] ?? '');
 
         if ($name === '') {
             flash('error', 'Vui lòng nhập tên danh mục.');
@@ -75,13 +86,16 @@ class AdminCategoryController extends Controller
             return;
         }
 
-        $stmt = $db->prepare('INSERT INTO categories (name, slug, description, sort_order, status) VALUES (:name, :slug, :description, :sort_order, :status)');
+        $stmt = $db->prepare('INSERT INTO categories (name, slug, description, sort_order, status, parent_id, icon, image) VALUES (:name, :slug, :description, :sort_order, :status, :parent_id, :icon, :image)');
         $success = $stmt->execute([
             ':name'        => $name,
             ':slug'        => $slug,
             ':description' => $description,
             ':sort_order'  => $sortOrder,
-            ':status'      => $status
+            ':status'      => $status,
+            ':parent_id'   => $parentId,
+            ':icon'        => $icon,
+            ':image'       => $image
         ]);
 
         if ($success) {
@@ -101,10 +115,14 @@ class AdminCategoryController extends Controller
         $db = Database::getConnection();
 
         $category = null;
+        $categories = [];
         if ($db) {
             $stmt = $db->prepare('SELECT * FROM categories WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $id]);
             $category = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $stmt2 = $db->query('SELECT id, name FROM categories WHERE parent_id IS NULL AND id != ' . $id . ' ORDER BY name ASC');
+            $categories = $stmt2->fetchAll(PDO::FETCH_ASSOC);
         }
 
         if (!$category) {
@@ -116,7 +134,8 @@ class AdminCategoryController extends Controller
         $this->renderAdmin('admin/categories/edit', [
             'pageTitle'  => 'Sửa danh mục',
             'activeMenu' => 'categories',
-            'category'   => $category
+            'category'   => $category,
+            'categories' => $categories
         ]);
     }
 
@@ -133,6 +152,9 @@ class AdminCategoryController extends Controller
         $description = trim($_POST['description'] ?? '');
         $sortOrder = (int)($_POST['sort_order'] ?? 0);
         $status = trim($_POST['status'] ?? 'active');
+        $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+        $icon = trim($_POST['icon'] ?? '');
+        $image = trim($_POST['image'] ?? '');
 
         if ($name === '') {
             flash('error', 'Vui lòng nhập tên danh mục.');
@@ -156,13 +178,16 @@ class AdminCategoryController extends Controller
             return;
         }
 
-        $stmt = $db->prepare('UPDATE categories SET name = :name, slug = :slug, description = :description, sort_order = :sort_order, status = :status WHERE id = :id');
+        $stmt = $db->prepare('UPDATE categories SET name = :name, slug = :slug, description = :description, sort_order = :sort_order, status = :status, parent_id = :parent_id, icon = :icon, image = :image WHERE id = :id');
         $success = $stmt->execute([
             ':name'        => $name,
             ':slug'        => $slug,
             ':description' => $description,
             ':sort_order'  => $sortOrder,
             ':status'      => $status,
+            ':parent_id'   => $parentId,
+            ':icon'        => $icon,
+            ':image'       => $image,
             ':id'          => $id
         ]);
 

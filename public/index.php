@@ -14,16 +14,29 @@ $url = $_GET['url'] ?? '';
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = $_POST['csrf_token'] ?? '';
-    if ($token === '' || $token !== ($_SESSION['csrf_token'] ?? '')) {
+    // Chấp nhận cả 2 tên field: csrf_token (mặc định) và _csrf (legacy)
+    $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
+    $savedToken = $_SESSION['csrf_token'] ?? '';
+    if ($token === '' || !hash_equals($savedToken, $token)) {
         http_response_code(403);
-        die('Yêu cầu không hợp lệ (CSRF Token mismatch).');
+        die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
     }
 }
 
 $router = new Router();
+
+// Auth Routes
+$router->get('/auth/forgot', 'AuthController@forgot');
+$router->post('/auth/forgot', 'AuthController@forgot');
+$router->get('/auth/reset', 'AuthController@reset');
+$router->post('/auth/reset', 'AuthController@reset');
+
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
 $router->post('/product/review', 'ProductController@review');
+$router->post('/profile/cancel_order', 'ProfileController@cancel_order');
+
+// API Notifications
+$router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
@@ -95,5 +108,32 @@ $router->post('/admin/posts/store', 'AdminPostController@store');
 $router->get('/admin/posts/edit/{id}', 'AdminPostController@edit');
 $router->post('/admin/posts/update/{id}', 'AdminPostController@update');
 $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
+
+// Static frontend page: Thu cũ đổi mới máy cũ
+$router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
+// PC Builder Routes
+$router->get('/build-pc', 'PcBuilderController@index');
+$router->get('/pc-builder/products', 'PcBuilderController@getProducts');
+$router->get('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
+$router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
+
+// News Routes
+$router->get('/tin-tuc', 'NewsController@index');
+$router->get('/tin-tuc/{slug}', 'NewsController@show');
+$router->get('/post', 'PostController@index');
+$router->get('/post/detail/{slug}', 'PostController@detail');
+$router->get('/post/{slug}', 'PostController@detail');
+
+// AI & Compare Routes
+$router->get('/compare', 'CompareController@index');
+$router->post('/compare/add', 'CompareController@add');
+$router->post('/compare/remove', 'CompareController@remove');
+$router->post('/ai/compare', 'CompareController@aiCompare');
+
+$router->get('/ai-assistant', 'AiAssistantController@index');
+$router->post('/ai/recommend', 'AiAssistantController@recommend');
+$router->post('/ai/favorite', 'AiAssistantController@saveFavorite');
+
+$router->post('/product/ai-chat', 'ProductController@chat');
 
 $router->dispatch($url);

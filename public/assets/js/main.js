@@ -6,15 +6,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     function applyTheme(isDark) {
-        document.body.classList.toggle('dark-mode', isDark);
+        document.documentElement.classList.toggle('dark-mode', isDark);
         if (themeToggle) {
             const icon = themeToggle.querySelector('i');
-            const label = themeToggle.querySelector('span');
             if (icon) {
                 icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-            }
-            if (label) {
-                label.textContent = isDark ? 'Sáng' : 'Tối';
             }
         }
     }
@@ -27,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (themeToggle) {
         themeToggle.addEventListener('click', function () {
-            const isDark = !document.body.classList.contains('dark-mode');
+            const isDark = !document.documentElement.classList.contains('dark-mode');
             applyTheme(isDark);
             localStorage.setItem('techpilot-theme', isDark ? 'dark' : 'light');
         });

@@ -4,6 +4,38 @@
  * Các hàm hỗ trợ (helper) dùng chung trong toàn bộ view
  */
 
+// Polyfills for missing mbstring extension
+if (!function_exists('mb_strtolower')) {
+    function mb_strtolower(string $string, ?string $encoding = null): string {
+        return strtolower($string);
+    }
+}
+if (!function_exists('mb_strlen')) {
+    function mb_strlen(string $string, ?string $encoding = null): int {
+        return strlen($string);
+    }
+}
+if (!function_exists('mb_substr')) {
+    function mb_substr(string $string, int $start, ?int $length = null, ?string $encoding = null): string {
+        return $length !== null ? substr($string, $start, $length) : substr($string, $start);
+    }
+}
+
+
+if (!function_exists('formatPhone')) {
+    function formatPhone(string $phone): string
+    {
+        $phone = trim($phone);
+        if (strpos($phone, '0') === 0) {
+            return '+84' . substr($phone, 1);
+        }
+        if (strpos($phone, '+84') !== 0 && $phone !== '') {
+            return '+84' . $phone;
+        }
+        return $phone;
+    }
+}
+
 if (!function_exists('formatPrice')) {
     function formatPrice($price): string
     {
@@ -41,19 +73,108 @@ if (!function_exists('url')) {
 }
 
 if (!function_exists('productImageUrl')) {
-    function productImageUrl(?string $image = ''): string
+    function productImageUrl(?string $image = '', ?string $productType = ''): string
     {
         $image = trim((string)$image);
-        $fallback = 'assets/images/laptop.png';
-
+        
+        // 1. Check if image file exists in the public directory
         if ($image !== '') {
-            $publicAssetPath = ROOT_PATH . '/public/assets/images/' . basename($image);
+            $publicAssetPath = ROOT_PATH . '/public/' . ltrim($image, '/');
             if (file_exists($publicAssetPath) && !is_dir($publicAssetPath)) {
+                return url($image);
+            }
+            
+            // Also support compatibility check with only basename
+            $legacyPath = ROOT_PATH . '/public/assets/images/' . basename($image);
+            if (file_exists($legacyPath) && !is_dir($legacyPath)) {
                 return url('assets/images/' . basename($image));
             }
+            
+            $legacyPathProducts = ROOT_PATH . '/public/assets/images/products/' . basename($image);
+            if (file_exists($legacyPathProducts) && !is_dir($legacyPathProducts)) {
+                return url('assets/images/products/' . basename($image));
+            }
+        }
+        
+        // 2. Select placeholder based on productType
+        $productType = strtolower(trim((string)$productType));
+        $phName = 'placeholder-component.webp';
+        
+        $type = 'component';
+        if (str_contains($productType, 'laptop') || str_contains($productType, 'zephyrus') || str_contains($productType, 'pavilion') || str_contains($productType, 'gram') || str_contains($productType, 'ideapad') || str_contains($productType, 'g16') || str_contains($productType, 'zenbook')) {
+            $type = 'laptop';
+        } elseif (str_contains($productType, 'pc-build') || str_contains($productType, 'pc gaming') || str_contains($productType, 'pc office') || str_contains($productType, 'workstation') || str_contains($productType, 'desktop_pc') || str_contains($productType, 'gaming_pc') || str_contains($productType, 'office_pc') || str_contains($productType, 'build-san') || str_contains($productType, 'techpilot extreme') || str_contains($productType, 'techpilot advanced') || str_contains($productType, 'techpilot basic')) {
+            $type = 'pc';
+        } elseif (str_contains($productType, 'printer') || str_contains($productType, 'máy in') || str_contains($productType, 'laserjet')) {
+            $type = 'printer';
+        } elseif (str_contains($productType, 'projector') || str_contains($productType, 'máy chiếu') || str_contains($productType, 'cc200')) {
+            $type = 'projector';
+        } elseif (str_contains($productType, 'cpu') || str_contains($productType, 'intel core') || str_contains($productType, 'ryzen') || str_contains($productType, 'ultra 5') || str_contains($productType, 'ultra 7') || str_contains($productType, 'ultra 9') || str_contains($productType, 'processor')) {
+            $type = 'cpu';
+        } elseif (str_contains($productType, 'motherboard') || str_contains($productType, 'mainboard') || str_contains($productType, 'main-board') || str_contains($productType, 'b760') || str_contains($productType, 'b660') || str_contains($productType, 'z790') || str_contains($productType, 'b650') || str_contains($productType, 'h610') || str_contains($productType, 'z690') || str_contains($productType, 'z890') || str_contains($productType, 'b450') || str_contains($productType, 'b550') || str_contains($productType, 'x670')) {
+            $type = 'motherboard';
+        } elseif (str_contains($productType, 'gpu') || str_contains($productType, 'card màn hình') || str_contains($productType, 'rtx') || str_contains($productType, 'rx 6600') || str_contains($productType, 'rx 7800') || str_contains($productType, 'gtx') || str_contains($productType, 'rx 7900') || str_contains($productType, 'radeon')) {
+            $type = 'gpu';
+        } elseif (str_contains($productType, 'ssd') || str_contains($productType, 'hdd') || str_contains($productType, 'ổ cứng') || str_contains($productType, 'samsung 990') || str_contains($productType, 'wd blue') || str_contains($productType, 'nv2') || str_contains($productType, 'samsung 980') || str_contains($productType, 'crucial p3') || str_contains($productType, 'wd-blue')) {
+            $type = 'ssd';
+        } elseif (str_contains($productType, 'ram') || str_contains($productType, 'ddr4') || str_contains($productType, 'ddr5') || str_contains($productType, 'corsair vengeance') || str_contains($productType, 'kingston fury') || str_contains($productType, 'ripjaws') || str_contains($productType, 'crucial classic') || str_contains($productType, 'trident z5')) {
+            $type = 'ram';
+        } elseif (str_contains($productType, 'psu') || str_contains($productType, 'nguồn') || str_contains($productType, 'power supply') || str_contains($productType, 'cv450') || str_contains($productType, 'rm750') || str_contains($productType, 'pf550') || str_contains($productType, 'a650bn') || str_contains($productType, 'cv650') || str_contains($productType, 'pk750d') || str_contains($productType, 'a750gl') || str_contains($productType, 'focus-gx') || str_contains($productType, 'rm850x')) {
+            $type = 'psu';
+        } elseif (str_contains($productType, 'monitor') || str_contains($productType, 'màn hình') || str_contains($productType, 'odyssey') || str_contains($productType, 'ultragear') || str_contains($productType, 'vg279') || str_contains($productType, '24gq50f')) {
+            $type = 'monitor';
+        } elseif (str_contains($productType, 'router') || str_contains($productType, 'wifi') || str_contains($productType, 'mạng') || str_contains($productType, 'networking') || str_contains($productType, 'rt-ax53u') || str_contains($productType, 'bộ phát')) {
+            $type = 'network';
+        } elseif (str_contains($productType, 'keyboard') || str_contains($productType, 'mouse') || str_contains($productType, 'headset') || str_contains($productType, 'webcam') || str_contains($productType, 'speaker') || str_contains($productType, 'bàn phím') || str_contains($productType, 'chuột') || str_contains($productType, 'tai nghe') || str_contains($productType, 'gaming-gear') || str_contains($productType, 'office-gear') || str_contains($productType, 'accessory') || str_contains($productType, 'logitech g213') || str_contains($productType, 'deathadder') || str_contains($productType, 'k70 pro')) {
+            $type = 'accessory';
         }
 
-        return url($fallback);
+        switch ($type) {
+            case 'laptop':
+                $phName = 'placeholder-laptop.webp';
+                break;
+            case 'pc':
+                $phName = 'placeholder-desktop-pc.webp';
+                break;
+            case 'printer':
+                $phName = 'placeholder-printer.webp';
+                break;
+            case 'projector':
+                $phName = 'placeholder-projector.webp';
+                break;
+            case 'cpu':
+                $phName = 'placeholder-cpu.webp';
+                break;
+            case 'motherboard':
+                $phName = 'placeholder-motherboard.webp';
+                break;
+            case 'gpu':
+                $phName = 'placeholder-gpu.webp';
+                break;
+            case 'ssd':
+                $phName = 'placeholder-ssd.webp';
+                break;
+            case 'ram':
+                $phName = 'placeholder-ram.webp';
+                break;
+            case 'psu':
+                $phName = 'placeholder-psu.webp';
+                break;
+            case 'monitor':
+                $phName = 'placeholder-monitor.webp';
+                break;
+            case 'network':
+                $phName = 'placeholder-network.webp';
+                break;
+            case 'accessory':
+                $phName = 'placeholder-accessory.webp';
+                break;
+            default:
+                $phName = 'placeholder-component.webp';
+                break;
+        }
+        
+        return url('assets/images/products/' . $phName);
     }
 }
 
@@ -131,7 +252,169 @@ if (!function_exists('csrf_token')) {
 if (!function_exists('csrf_field')) {
     function csrf_field(): string
     {
-        return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
+        return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">' . 
+               '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('verifyCsrf')) {
+    function verifyCsrf(?string $token = null): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $token = $token ?? $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
+        $saved = $_SESSION['csrf_token'] ?? '';
+        return !empty($token) && hash_equals($saved, $token);
+    }
+}
+
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        return strncmp($haystack, $needle, strlen($needle)) === 0;
+    }
+}
+
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool
+    {
+        return $needle === '' || substr($haystack, -strlen($needle)) === $needle;
+    }
+}
+
+if (!function_exists('safe_strlen')) {
+    function safe_strlen(string $str): int
+    {
+        return function_exists('mb_strlen') ? mb_strlen($str, 'UTF-8') : strlen($str);
+    }
+}
+
+if (!function_exists('safe_strtolower')) {
+    function safe_strtolower(string $str): string
+    {
+        return function_exists('mb_strtolower') ? mb_strtolower($str, 'UTF-8') : strtolower($str);
+    }
+}
+
+if (!function_exists('safe_substr')) {
+    function safe_substr(string $str, int $start, ?int $length = null): string
+    {
+        if (function_exists('mb_substr')) {
+            return mb_substr($str, $start, $length, 'UTF-8');
+        }
+        return $length !== null ? substr($str, $start, $length) : substr($str, $start);
+    }
+}
+
+if (!function_exists('normalizeSearchKeyword')) {
+    function normalizeSearchKeyword(string $keyword): string
+    {
+        $keyword = safe_strtolower(trim($keyword));
+        $keyword = preg_replace('/\s+/u', ' ', $keyword);
+        return $keyword !== null ? $keyword : '';
+    }
+}
+
+/**
+ * Tạo URL ảnh bài viết một cách thống nhất.
+ * Hỗ trợ: URL tuyệt đối, path posts/..., legacy filename, placeholder.
+ */
+if (!function_exists('postImageUrl')) {
+    function postImageUrl(?string $image): string
+    {
+        $image = trim((string)$image);
+
+        if ($image === '') {
+            return url('assets/images/products/placeholder-component.webp');
+        }
+
+        // 1. URL tuyệt đối (https:// hoặc http://)
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+            return $image;
+        }
+
+        // 2. Nếu image đã có prefix posts/ → assets/images/posts/...
+        if (str_starts_with($image, 'posts/')) {
+            $fullPath = ROOT_PATH . '/public/assets/images/' . $image;
+            if (file_exists($fullPath)) {
+                return url('assets/images/' . $image);
+            }
+        }
+
+        // 3. Thử đường dẫn posts/ (UploadService trả về dạng posts/filename.jpg)
+        $postsPath = ROOT_PATH . '/public/assets/images/posts/' . basename($image);
+        if (file_exists($postsPath)) {
+            return url('assets/images/posts/' . basename($image));
+        }
+
+        // 4. Legacy: assets/images/news/filename.jpg (ảnh seed cũ)
+        $legacyPath = ROOT_PATH . '/public/assets/images/news/' . basename($image);
+        if (file_exists($legacyPath)) {
+            return url('assets/images/news/' . basename($image));
+        }
+
+        // 5. Không tìm thấy → placeholder
+        return url('assets/images/products/placeholder-component.webp');
+    }
+}
+
+/**
+ * Trả về nhãn loại bài viết (post_type).
+ */
+if (!function_exists('postTypeLabel')) {
+    function postTypeLabel(string $postType): string
+    {
+        $labels = [
+            'news'       => 'Ra mắt & Xu hướng',
+            'review'     => 'Đánh giá & Review',
+            'guide'      => 'Tư vấn chọn mua',
+            'howto'      => 'Mẹo hay & Thủ thuật',
+            'comparison' => 'So sánh sản phẩm',
+        ];
+        return e($labels[$postType] ?? 'Tin tức');
+    }
+}
+
+/**
+ * Trả về nhãn category bài viết (category_slug).
+ */
+if (!function_exists('postCategoryLabel')) {
+    function postCategoryLabel(string $slug): string
+    {
+        $labels = [
+            'cong-nghe'         => 'Công nghệ',
+            'laptop'            => 'Laptop',
+            'pc-gaming'         => 'PC Gaming',
+            'gaming'            => 'PC Gaming',
+            'pc-linh-kien'      => 'PC & Linh kiện',
+            'man-hinh'          => 'Màn hình',
+            'gaming-gear'       => 'Gaming Gear',
+            'ai-cong-nghe-moi'  => 'AI & Công nghệ mới',
+            'ai'                => 'AI & Công nghệ mới',
+            'thu-thuat'         => 'Thủ thuật',
+        ];
+        return e($labels[$slug] ?? 'Công nghệ');
+    }
+}
+
+/**
+ * Tính số phút đọc cho văn bản tiếng Việt (đếm từ UTF-8).
+ */
+if (!function_exists('readingMinutes')) {
+    function readingMinutes(string $content): int
+    {
+        $text = strip_tags($content);
+        preg_match_all('/[\p{L}\p{N}]+/u', $text, $matches);
+        $wordCount = count($matches[0]);
+        return max(1, (int)ceil($wordCount / 200));
     }
 }
 
