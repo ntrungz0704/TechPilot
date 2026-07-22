@@ -46,9 +46,10 @@ $formatRangeName = function (string $name): string {
                 $megaColumns = $cat['mega_columns'] ?? [];
                 $hasMega = !empty($megaColumns);
                 $virtualUrl = url('home/search?cat=' . urlencode($slug));
+                $key = !empty($slug) ? $slug : $catId;
                 $prefix = $isStatic ? 'static-' : '';
-                $panelId = 'panel-' . $prefix . $catId;
-                $accordionBtnId = 'acc-btn-' . $prefix . $catId;
+                $panelId = 'panel-' . $prefix . $key;
+                $accordionBtnId = 'acc-btn-' . $prefix . $key;
                 ?>
                 <div class="category-sidebar__row" data-panel-id="<?= $panelId ?>">
                     <div class="category-sidebar__item-wrapper">
@@ -124,8 +125,9 @@ $formatRangeName = function (string $name): string {
                 $megaColumns = $cat['mega_columns'] ?? [];
                 if (empty($megaColumns)) continue;
                 $virtualUrl = url('home/search?cat=' . urlencode($slug));
+                $key = !empty($slug) ? $slug : $catId;
                 $prefix = $isStatic ? 'static-' : '';
-                $panelId = 'panel-' . $prefix . $catId;
+                $panelId = 'panel-' . $prefix . $key;
                 ?>
                 <div class="category-mega__panel" id="<?= $panelId ?>" aria-hidden="true" hidden>
                     <div class="mega-panel__header">

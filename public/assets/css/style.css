@@ -883,15 +883,20 @@ html.dark-mode .logo-text span {
         height: 100vh !important;
         background-color: var(--surface-card) !important;
         z-index: 99999 !important;
-        transition: left 0.3s ease !important;
+        transition: left 0.3s ease, visibility 0.3s ease !important;
         box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
         display: block !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
 
+    .main-nav.is-mobile-open,
     .main-nav.is-active {
         left: 0 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
     }
 
     .mobile-drawer-close {
