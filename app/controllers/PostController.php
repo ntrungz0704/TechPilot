@@ -49,13 +49,13 @@ class PostController extends Controller
                 $excludeFeaturedId = $featured['id'];
                 $usedHeroIds[] = $featured['id'];
                 // Lấy hero popular, loại featured ID ngay tại SQL
-                $heroPool = $this->postModel->getPopularRecent(4, 30, $usedHeroIds);
+                $heroPool = $this->postModel->getPopularRecent(6, 30, $usedHeroIds);
                 foreach ($heroPool as $p) {
                     if (!in_array($p['id'], $usedHeroIds)) {
                         $heroPopular[] = $p;
                         $usedHeroIds[] = $p['id'];
                     }
-                    if (count($heroPopular) == 2) break;
+                    if (count($heroPopular) == 3) break;
                 }
             }
         }
@@ -71,9 +71,9 @@ class PostController extends Controller
         $offset = ($page - 1) * $limit;
         $posts  = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
 
-        // Sidebar: lấy popular gần đây, loại trừ tất cả ID đã dùng ở hero
-        $popular = $this->postModel->getPopularRecent(8, 30, $usedHeroIds);
-        $filteredPopular = array_slice($popular, 0, 4); // tối đa 4 cho sidebar
+        // Sidebar: lấy popular gần đây, loại trừ tất cả ID đã dùng ở hero (lấy 10 bài cho sidebar cuộn)
+        $popular = $this->postModel->getPopularRecent(12, 30, $usedHeroIds);
+        $filteredPopular = array_slice($popular, 0, 10); // tối đa 10 cho sidebar cuộn
 
         require_once ROOT_PATH . '/app/services/NewsCommerceService.php';
         $commerceService = new NewsCommerceService();
@@ -116,7 +116,7 @@ class PostController extends Controller
             'currentTag'      => $tag,
             'currentQ'        => $q,
             'commerceContext' => $commerceContext,
-            'pageStyles'      => ['assets/css/news.css?v=2.2'],
+            'pageStyles'      => ['assets/css/news.css?v=3.5'],
         ]);
     }
 
@@ -139,7 +139,7 @@ class PostController extends Controller
             $post['id'],
             $post['category_slug'] ?? '',
             $post['post_type'] ?? '',
-            4
+            8
         );
 
         $postType     = strtolower(trim((string)($post['post_type'] ?? '')));
@@ -314,8 +314,8 @@ class PostController extends Controller
             'midCtaConfig'       => $commerceConfig['mid_cta'] ?? null,
             'endCtaConfig'       => $commerceConfig['end_cta'] ?? null,
             'commerceContext'    => $commerceContext,
-            'pageStyles'         => ['assets/css/news.css?v=2.4'],
-            'pageScripts'        => ['assets/js/news.js?v=2.3'],
+            'pageStyles'         => ['assets/css/news.css?v=3.5'],
+            'pageScripts'        => ['assets/js/news.js?v=3.5'],
         ]);
     }
 

@@ -4,6 +4,8 @@ class AdminController extends Controller
 {
     public function index(): void
     {
+        $this->requireAdmin();
+        
         // 1. Thống kê số lượng chung
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();

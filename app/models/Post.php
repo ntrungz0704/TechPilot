@@ -361,8 +361,8 @@ class Post
     }
 
 
-    /** Lấy bài viết liên quan dựa trên độ tương đồng */
-    public function getRelatedPosts(int $postId, string $categorySlug, string $postType, int $limit = 3): array
+    /** Lấy bài viết liên quan dựa trên độ tương đồng (hỗ trợ fallback đủ số lượng) */
+    public function getRelatedPosts(int $postId, string $categorySlug, string $postType, int $limit = 8): array
     {
         if ($this->db === null) return [];
 
@@ -387,7 +387,32 @@ class Post
         $stmt->bindValue(':postId', $postId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $related = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($related) < $limit) {
+            $needed  = $limit - count($related);
+            $exclude = array_merge([$postId], array_column($related, 'id'));
+            $ph      = implode(',', array_fill(0, count($exclude), '?'));
+
+            $sqlFallback = "
+                SELECT *, 0 as relevance_score
+                FROM posts
+                WHERE status = 'published' AND id NOT IN ({$ph})
+                ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+                LIMIT ?
+            ";
+            $stmtFb = $this->db->prepare($sqlFallback);
+            $pos = 1;
+            foreach ($exclude as $eid) {
+                $stmtFb->bindValue($pos++, (int)$eid, PDO::PARAM_INT);
+            }
+            $stmtFb->bindValue($pos, (int)$needed, PDO::PARAM_INT);
+            $stmtFb->execute();
+            $fallbacks = $stmtFb->fetchAll(PDO::FETCH_ASSOC);
+            $related = array_merge($related, $fallbacks);
+        }
+
+        return array_slice($related, 0, $limit);
     }
 
     /** Lấy chi tiết bài viết theo slug */

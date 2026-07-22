@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initArticleToc();
     initShareButton();
     initCopyLink();
+    initRelatedCarousel();
 
     /* ── Reading Progress Bar ───────────────────────────────────────────────
      * Logic đúng:
@@ -79,10 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ── Article Table of Contents – Dual TOC & Active tracking ─────────────
      * Support cả Mobile Accordion TOC & Desktop Sticky Sidebar TOC:
-     *   1. Khởi tạo toggle listener riêng cho từng TOC.
-     *   2. Lấy danh sách headings được tham chiếu bởi các TOC link.
-     *   3. Dùng 1 shared IntersectionObserver duy nhất để theo dõi viewport.
-     *   4. Cập nhật active class đồng bộ cho tất cả TOC links (querySelectorAll).
+     * 1. Khởi tạo toggle listener riêng cho từng TOC.
+     * 2. Lấy danh sách headings được tham chiếu bởi các TOC link.
+     * 3. Theo dõi cuộn trang (scroll position) để highlight chính xác 100% mục đang đọc.
      */
     function initArticleToc() {
         const tocs = document.querySelectorAll('.news-toc');
@@ -114,77 +114,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const headingEls = Array.from(headingIdSet)
             .map(id => document.getElementById(id))
-            .filter(h => h !== null);
+            .filter(h => h !== null)
+            .sort((a, b) => a.offsetTop - b.offsetTop);
 
         if (!headingEls.length) return;
 
-        // ── Bước 3: Kiểm tra IntersectionObserver support ──────────────────
-        if (!('IntersectionObserver' in window)) {
-            return;
-        }
-
-        // ── Bước 4: Shared Active tracking ─────────────────────────────────
-        const visibleSet = new Set();
-        let lastPassedHeadingId = null;
-
-        const observerOptions = {
-            rootMargin: '-80px 0px -60% 0px',
-            threshold:  0,
-        };
-
+        // ── Bước 3: Highlight TOC Active theo vị trí viewport thực tế ──────────
         function setActiveById(id) {
             document.querySelectorAll('.news-toc-item').forEach(item => item.classList.remove('is-active'));
             if (!id) return;
             const escapedId = id.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, '\\$&');
             document.querySelectorAll(`.news-toc-item a[href="#${escapedId}"]`).forEach(link => {
-                if (link.parentElement) {
-                    link.parentElement.classList.add('is-active');
+                const item = link.closest('.news-toc-item');
+                if (item) {
+                    item.classList.add('is-active');
                 }
             });
         }
 
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                const id = entry.target.id;
-                if (entry.isIntersecting) {
-                    visibleSet.add(id);
-                    lastPassedHeadingId = id;
-                } else {
-                    visibleSet.delete(id);
-                    if (entry.boundingClientRect.top < 0) {
-                        lastPassedHeadingId = id;
-                    }
-                }
-            });
+        let ticking = false;
 
-            let activeId = null;
-            for (const el of headingEls) {
-                if (visibleSet.has(el.id)) {
-                    activeId = el.id;
+        function updateActiveHeading() {
+            const topThreshold = 160; // Thượng giới cách đỉnh viewport 160px (dưới sticky header)
+            let currentId = null;
+
+            for (let i = 0; i < headingEls.length; i++) {
+                const rect = headingEls[i].getBoundingClientRect();
+                if (rect.top <= topThreshold) {
+                    currentId = headingEls[i].id;
+                } else {
                     break;
                 }
             }
 
-            if (!activeId && lastPassedHeadingId) {
-                activeId = lastPassedHeadingId;
+            // Nếu cuộn gần chạm đáy bài viết, tự động highlight mục cuối
+            const scrollBottom = window.innerHeight + window.scrollY;
+            const docHeight    = document.documentElement.scrollHeight;
+            if (scrollBottom >= docHeight - 150) {
+                if (headingEls.length > 0) {
+                    currentId = headingEls[headingEls.length - 1].id;
+                }
             }
 
-            if (activeId) {
-                setActiveById(activeId);
+            if (!currentId && headingEls.length > 0) {
+                currentId = headingEls[0].id;
             }
-        }, observerOptions);
 
-        headingEls.forEach(el => observer.observe(el));
+            setActiveById(currentId);
+            ticking = false;
+        }
+
+        function onScroll() {
+            if (!ticking) {
+                ticking = true;
+                requestAnimationFrame(updateActiveHeading);
+            }
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+
+        // Chạy ngay khi tải trang
+        updateActiveHeading();
     }
 
-    /* ── Share Button (navigator.share) ─────────────────────────────────────
-     * .share-native-btn gọi navigator.share().
-     * User cancel (AbortError) → silent, không toast.
-     * Không hỗ trợ → fallback Facebook share URL.
-     * Không giả vờ đã share nếu chỉ copy.
+    /* ── Unified Share Button ───────────────────────────────────────────────
+     * .share-unified-btn tự động copy URL bài viết, hiển thị Toast và feedback hiệu ứng nút.
+     * Trên thiết bị di động (Mobile/Tablet) sẽ mở thêm menu chia sẻ gốc (navigator.share).
      */
     function initShareButton() {
-        const shareBtns = document.querySelectorAll('.share-native-btn');
+        const shareBtns = document.querySelectorAll('.share-unified-btn, .share-native-btn, .copy-link-btn');
         if (!shareBtns.length) return;
 
         shareBtns.forEach(btn => {
@@ -192,64 +191,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 const url   = window.location.href;
                 const title = document.title;
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-                if (navigator.share) {
+                // 1. Thử gọi Web Share API trên điện thoại di động
+                if (isMobile && navigator.share) {
                     try {
                         await navigator.share({ title, url });
                         return;
                     } catch (err) {
                         if (err.name === 'AbortError') return; // User cancelled – silent
-                        // Lỗi khác → fallback tiếp
                         console.warn('[TechPilot] navigator.share error:', err);
                     }
                 }
 
-                // Fallback: mở Facebook share URL
-                const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u='
-                    + encodeURIComponent(url);
-                window.open(fbUrl, '_blank', 'noopener,noreferrer');
-            });
-        });
-    }
-
-    /* ── Copy Link Button ────────────────────────────────────────────────────
-     * .copy-link-btn LUÔN copy URL vào clipboard.
-     * Tuyệt đối không gọi navigator.share().
-     * ARIA label: "Sao chép liên kết bài viết".
-     */
-    function initCopyLink() {
-        const copyBtns = document.querySelectorAll('.copy-link-btn');
-        if (!copyBtns.length) return;
-
-        let toastTimeout = null;
-
-        copyBtns.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const url = window.location.href;
-
+                // 2. Tự động Copy link vào clipboard & hiển thị Toast + Nút Feedback
                 try {
                     if (navigator.clipboard && navigator.clipboard.writeText) {
                         await navigator.clipboard.writeText(url);
                     } else {
-                        // Fallback execCommand cho trình duyệt cũ / HTTP context
                         const input = document.createElement('input');
                         input.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0';
                         input.value = url;
                         document.body.appendChild(input);
                         input.select();
                         input.setSelectionRange(0, 99999);
-                        // eslint-disable-next-line no-restricted-syntax
                         document.execCommand('copy');
                         document.body.removeChild(input);
                     }
-                    showToast('✓ Đã sao chép liên kết!');
+
+                    showToast('✓ Đã sao chép liên kết bài viết!');
+
+                    // UI Feedback đổi icon và text tạm thời
+                    const icon = btn.querySelector('i');
+                    const textSpan = btn.querySelector('span');
+                    const originalText = textSpan ? textSpan.textContent : '';
+
+                    if (icon) icon.className = 'fa-solid fa-check';
+                    if (textSpan) textSpan.textContent = 'Đã sao chép link!';
+
+                    setTimeout(() => {
+                        if (icon) icon.className = 'fa-solid fa-share-nodes';
+                        if (textSpan && originalText) textSpan.textContent = originalText;
+                    }, 2500);
+
                 } catch (err) {
                     console.warn('[TechPilot] Copy failed:', err);
-                    showToast('Không thể sao chép – vui lòng sao chép thủ công.');
+                    showToast('Không thể sao chép – vui lòng copy link thủ công.');
                 }
             });
         });
+    }
+
+    function initCopyLink() {
+        // Sub-handler integrated into initShareButton for unified performance
+    }
 
         function showToast(message) {
             let toast = document.getElementById('newsToast');
@@ -271,5 +266,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 toast.classList.remove('show');
             }, 3000);
         }
+    }
+
+    /* ── Horizontal Related Posts Carousel (Nav Arrows + Mouse Drag Scroll) ── */
+    function initRelatedCarousel() {
+        const section = document.querySelector('.news-related-bottom-section');
+        if (!section) return;
+
+        const track   = section.querySelector('.news-related-carousel-track');
+        const prevBtn = section.querySelector('.news-carousel-prev');
+        const nextBtn = section.querySelector('.news-carousel-next');
+
+        if (!track) return;
+
+        if (prevBtn && nextBtn) {
+            prevBtn.addEventListener('click', () => {
+                const cardWidth = track.firstElementChild ? track.firstElementChild.offsetWidth + 20 : 300;
+                track.scrollBy({ left: -cardWidth * 2, behavior: 'smooth' });
+            });
+
+            nextBtn.addEventListener('click', () => {
+                const cardWidth = track.firstElementChild ? track.firstElementChild.offsetWidth + 20 : 300;
+                track.scrollBy({ left: cardWidth * 2, behavior: 'smooth' });
+            });
+        }
+
+        // Mouse Drag to Scroll
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        track.addEventListener('mousedown', (e) => {
+            isDown = true;
+            track.classList.add('is-dragging');
+            startX = e.pageX - track.offsetLeft;
+            scrollLeft = track.scrollLeft;
+        });
+
+        track.addEventListener('mouseleave', () => {
+            isDown = false;
+            track.classList.remove('is-dragging');
+        });
+
+        track.addEventListener('mouseup', () => {
+            isDown = false;
+            track.classList.remove('is-dragging');
+        });
+
+        track.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - track.offsetLeft;
+            const walk = (x - startX) * 1.8;
+            track.scrollLeft = scrollLeft - walk;
+        });
     }
 });
