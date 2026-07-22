@@ -388,13 +388,15 @@
             color: #FFFFFF;
             border: none;
             cursor: pointer;
-            z-index: 9999;
+            z-index: 100005 !important;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             box-shadow: 0 8px 24px rgba(10, 91, 255, 0.3);
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+            overflow: hidden;
+            padding: 0;
         }
         .tp-chatbot-launcher:hover {
             transform: scale(1.1);
@@ -427,7 +429,7 @@
             background: var(--surface-card, #FFFFFF);
             border: 1px solid var(--border, #E2E8F0);
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-            z-index: 9998;
+            z-index: 100004 !important;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -465,6 +467,7 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
+            overflow: hidden;
         }
         .tp-chatbot-header-info h4 {
             margin: 0;
@@ -536,6 +539,7 @@
             justify-content: center;
             font-size: 12px;
             flex-shrink: 0;
+            overflow: hidden;
         }
         .tp-message-content {
             padding: 12px 16px;
@@ -983,16 +987,16 @@
         }
 
         /* Responsive */
-        @media (max-width: 480px) {
+        @media (max-width: 575px) {
             .tp-chatbot-window {
                 width: calc(100% - 30px);
                 right: 15px;
                 left: 15px;
-                bottom: 95px;
-                height: calc(100vh - 120px);
+                bottom: 150px;
+                height: calc(100vh - 220px);
             }
             .tp-chatbot-launcher {
-                bottom: 20px;
+                bottom: 80px;
                 right: 20px;
             }
         }
@@ -1000,7 +1004,7 @@
 
     <!-- Floating Launcher Button -->
     <button type="button" class="tp-chatbot-launcher" id="tpChatbotLauncher" onclick="toggleChatbot()">
-        <i class="fa-solid fa-robot"></i>
+        <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI Avatar" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         <span class="tp-chatbot-launcher-pulse"></span>
     </button>
 
@@ -1009,7 +1013,7 @@
         <!-- Header -->
         <div class="tp-chatbot-header">
             <div class="tp-chatbot-header-left">
-                <span class="tp-chatbot-header-avatar"><i class="fa-solid fa-robot"></i></span>
+                <span class="tp-chatbot-header-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI Avatar" style="width: 100%; height: 100%; object-fit: cover;"></span>
                 <div class="tp-chatbot-header-info">
                     <h4>TechPilot AI</h4>
                     <span class="tp-chatbot-header-status"><span class="status-dot"></span> Trợ lý ảo online</span>
@@ -1196,7 +1200,7 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'tp-message bot';
             wrapper.innerHTML = `
-                <div class="tp-message-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="tp-message-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>
                 <div class="tp-message-content">${formatMarkdownText(html)}</div>
             `;
             msgBox.appendChild(wrapper);
@@ -1220,7 +1224,7 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'tp-message bot tp-typing-wrapper';
             wrapper.innerHTML = `
-                <div class="tp-message-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="tp-message-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>
                 <div class="tp-message-content">
                     <div class="tp-typing">
                         <span></span><span></span><span></span>
