@@ -20,6 +20,10 @@ const routerScript = path.join(__dirname, 'router.php');
 
     console.log(`Starting local PHP web server on 127.0.0.1:${port} with router.php...`);
     const phpServer = spawn('php', ['-S', `127.0.0.1:${port}`, routerScript], { cwd: rootDir, env: process.env });
+
+    phpServer.stdout.on('data', data => console.log(`[PHP STDOUT] ${data.toString().trim()}`));
+    phpServer.stderr.on('data', data => console.log(`[PHP STDERR] ${data.toString().trim()}`));
+
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     let browser;
@@ -50,8 +54,15 @@ const routerScript = path.join(__dirname, 'router.php');
 
         // TEST 1: Desktop 1366x768 - Closed Menu
         await page.setViewport({ width: 1366, height: 768 });
-        await page.goto(baseUrl, { waitUntil: 'networkidle2' });
-        await page.waitForSelector('#categoryMenuToggle', { timeout: 10000 });
+        try {
+            await page.goto(baseUrl, { waitUntil: 'networkidle2' });
+            await page.waitForSelector('#categoryMenuToggle', { timeout: 10000 });
+        } catch (e) {
+            console.log('FAIL navigating to home page: ' + e.message);
+            const content = await page.content();
+            console.log('HTML Content on Failure:\n' + content.slice(0, 1500));
+            throw e;
+        }
         await page.screenshot({ path: path.join(screenshotDir, 'desktop_1366_closed.png') });
         console.log('1. Captured desktop_1366_closed.png');
 
