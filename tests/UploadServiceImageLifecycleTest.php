@@ -23,6 +23,7 @@ class UploadServiceImageLifecycleTest
         $this->testSubdirectoryDeletions();
         $this->testMissingFileIdempotency();
         $this->testSecurityPathTraversalProtection();
+        $this->testCleanupReturnHandlingAndPostDeleteOrchestration();
 
         echo "\n════════════════════════════════════════════════════════\n";
         echo "UploadService Test Results: {$this->passed} passed, {$this->failed} failed\n";
@@ -123,6 +124,30 @@ class UploadServiceImageLifecycleTest
         $res3 = UploadService::deleteImage($absPath);
         $this->assert($res3 === false, "Absolute path outside base upload dir is rejected");
         $this->assert(file_exists(ROOT_PATH . '/config/app.php'), "Config app.php was NOT deleted");
+    }
+
+    private function testCleanupReturnHandlingAndPostDeleteOrchestration(): void
+    {
+        echo "\n--- 5. Testing Cleanup Return Values & Post-Delete Flow ---\n";
+
+        // Invalid path returns false
+        $resInvalid = UploadService::deleteImage('../config/database.php');
+        $this->assert($resInvalid === false, "Invalid path cleanup returns false as boolean result");
+
+        // Controller source code check for return value checking and post-delete order
+        $controllerSrc = file_get_contents(ROOT_PATH . '/app/controllers/AdminPostController.php');
+
+        $this->assert(str_contains($controllerSrc, "\$cleaned = UploadService::deleteImage"), "AdminPostController captures deleteImage return value into \$cleaned");
+        $this->assert(str_contains($controllerSrc, "if (!\$cleaned)"), "AdminPostController checks if (!\$cleaned) to log warning");
+        $this->assert(str_contains($controllerSrc, "error_log("), "AdminPostController logs warning on cleanup failure");
+
+        // Post delete order: DELETE SQL execution position BEFORE deleteImage call position in delete()
+        $deleteMethodPos = strpos($controllerSrc, 'public function delete');
+        $sqlDeletePos = strpos($controllerSrc, "DELETE FROM posts WHERE id = :id", $deleteMethodPos);
+        $fileDeletePos = strpos($controllerSrc, "UploadService::deleteImage", $deleteMethodPos);
+
+        $this->assert($deleteMethodPos !== false && $sqlDeletePos !== false && $fileDeletePos !== false, "delete() contains both DB DELETE SQL and UploadService::deleteImage");
+        $this->assert($sqlDeletePos < $fileDeletePos, "delete() executes DB DELETE query BEFORE attempting file cleanup");
     }
 }
 
