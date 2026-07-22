@@ -382,10 +382,10 @@ class SeederSafetyIntegrationTest
         $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
 
         $stmt = $this->db->prepare(
-            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_name, status, views, created_at)
-             VALUES ('Dry Repair Title', :slug, 'Dry Repair Summary', :content, 'uploads/posts/dry-cover.jpg', 'cong-nghe', 'news', 'Dry Author', 'hidden', 999, '2026-02-10 10:00:00')"
+            "INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_id, author_name, status, views, is_featured, reading_minutes, created_at, published_at)
+             VALUES ('Dry Repair Title', :slug, 'Dry Repair Summary', :content, 'uploads/posts/dry-cover.jpg', 'laptop', 'review', :author_id, 'Dry Author', 'hidden', 999, 0, 7, '2026-02-10 10:00:00', '2026-02-10 10:00:00')"
         );
-        $stmt->execute([':slug' => $slug, ':content' => $phContent]);
+        $stmt->execute([':slug' => $slug, ':content' => $phContent, ':author_id' => $this->validUserId]);
 
         $stmtBefore = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
         $stmtBefore->execute([':slug' => $slug]);
@@ -397,6 +397,12 @@ class SeederSafetyIntegrationTest
                 'slug' => $slug,
                 'summary' => 'Summary mới đã repair',
                 'content' => ":::summary\n- Repaired summary\n:::\n\n## 1. Heading\n\n" . str_repeat("Nội dung markdown đã repair. ", 10),
+                'image' => 'assets/images/seed-dry-cover.jpg',
+                'category_slug' => 'pc-gaming',
+                'post_type' => 'guide',
+                'author_name' => 'Seed Author',
+                'status' => 'published',
+                'reading_minutes' => 15,
             ]
         ];
 
@@ -407,11 +413,24 @@ class SeederSafetyIntegrationTest
         $stmtAfter->execute([':slug' => $slug]);
         $after = $stmtAfter->fetch(PDO::FETCH_ASSOC);
 
-        $this->assert($after['content'] === $phContent, "Dry-Run Repair: content unchanged in database");
+        $stmtCount = $this->db->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+        $stmtCount->execute([':slug' => $slug]);
+        $count = (int)$stmtCount->fetchColumn();
+
+        $this->assert($count === 1, "Dry-Run Repair: COUNT(*) WHERE slug = 1");
+        $this->assert($after['id'] === $before['id'], "Dry-Run Repair: id unchanged");
+        $this->assert($after['slug'] === $before['slug'], "Dry-Run Repair: slug unchanged");
+        $this->assert($after['content'] === $before['content'], "Dry-Run Repair: content unchanged in database");
         $this->assert($after['image'] === $before['image'], "Dry-Run Repair: image unchanged in database");
         $this->assert((int)$after['views'] === (int)$before['views'], "Dry-Run Repair: views unchanged in database");
+        $this->assert($after['author_id'] === $before['author_id'], "Dry-Run Repair: author_id unchanged in database");
         $this->assert($after['author_name'] === $before['author_name'], "Dry-Run Repair: author_name unchanged in database");
         $this->assert($after['status'] === $before['status'], "Dry-Run Repair: status unchanged in database");
+        $this->assert($after['created_at'] === $before['created_at'], "Dry-Run Repair: created_at unchanged in database");
+        $this->assert($after['published_at'] === $before['published_at'], "Dry-Run Repair: published_at unchanged in database");
+        $this->assert($after['category_slug'] === $before['category_slug'], "Dry-Run Repair: category_slug unchanged in database");
+        $this->assert($after['post_type'] === $before['post_type'], "Dry-Run Repair: post_type unchanged in database");
+        $this->assert((int)$after['reading_minutes'] === (int)$before['reading_minutes'], "Dry-Run Repair: reading_minutes unchanged in database");
 
         $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
@@ -426,45 +445,52 @@ class SeederSafetyIntegrationTest
         $isolatedDb = Database::getConnection();
         $this->assert(!$isolatedDb->inTransaction(), "Rollback Test: isolated connection is initially not in transaction");
 
-        $isolatedDb->exec("DELETE FROM posts WHERE slug IN ('{$validSlug}', '{$invalidSlug}')");
-
-        $batch = [
-            [
-                'title' => 'Valid Entry 1',
-                'slug' => $validSlug,
-                'summary' => 'Summary 1',
-                'content' => ":::summary\n- Summary\n:::\n\n## Heading\n\n" . str_repeat("Valid text. ", 10),
-                'image' => 'assets/images/valid.jpg',
-                'created_at' => '2026-03-01 10:00:00',
-            ],
-            [
-                'title' => 'Invalid Entry 2',
-                'slug' => $invalidSlug,
-                'summary' => 'Summary 2',
-                'content' => 'Invalid text',
-                // Invalid datetime value triggers PDOException in MySQL 8.0 strict mode
-                'created_at' => 'INVALID_DATETIME_CRASH_TRIGGER',
-            ],
-        ];
-
-        $caughtException = false;
         try {
-            $isolatedSeeder = new NewsSeederService($isolatedDb);
-            $isolatedSeeder->run($batch, false, false);
-        } catch (Throwable $e) {
-            $caughtException = true;
+            $isolatedDb->exec("DELETE FROM posts WHERE slug IN ('{$validSlug}', '{$invalidSlug}')");
+
+            $batch = [
+                [
+                    'title' => 'Valid Entry 1',
+                    'slug' => $validSlug,
+                    'summary' => 'Summary 1',
+                    'content' => ":::summary\n- Summary\n:::\n\n## Heading\n\n" . str_repeat("Valid text. ", 10),
+                    'image' => 'assets/images/valid.jpg',
+                    'created_at' => '2026-03-01 10:00:00',
+                ],
+                [
+                    'title' => 'Invalid Entry 2',
+                    'slug' => $invalidSlug,
+                    'summary' => 'Summary 2',
+                    'content' => 'Invalid text',
+                    // Invalid datetime value triggers PDOException in MySQL 8.0 strict mode
+                    'created_at' => 'INVALID_DATETIME_CRASH_TRIGGER',
+                ],
+            ];
+
+            $caughtPdoException = false;
+            try {
+                $isolatedSeeder = new NewsSeederService($isolatedDb);
+                $isolatedSeeder->run($batch, false, false);
+            } catch (PDOException $e) {
+                $caughtPdoException = true;
+            }
+
+            $this->assert($caughtPdoException === true, "Rollback Test: caughtPdoException === true");
+
+            $stmtValid = $isolatedDb->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+            $stmtValid->execute([':slug' => $validSlug]);
+            $validCount = (int)$stmtValid->fetchColumn();
+
+            $stmtInvalid = $isolatedDb->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+            $stmtInvalid->execute([':slug' => $invalidSlug]);
+            $invalidCount = (int)$stmtInvalid->fetchColumn();
+
+            $this->assert($validCount === 0, "Rollback Test: valid entry count = 0 (completely rolled back)");
+            $this->assert($invalidCount === 0, "Rollback Test: invalid entry count = 0");
+            $this->assert(!$isolatedDb->inTransaction(), "Rollback Test: connection is not left in an open transaction");
+        } finally {
+            $isolatedDb->exec("DELETE FROM posts WHERE slug IN ('{$validSlug}', '{$invalidSlug}')");
         }
-
-        $this->assert($caughtException, "Rollback Test: PDOException caught on invalid batch item");
-
-        $stmt = $isolatedDb->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $validSlug]);
-        $validCount = (int)$stmt->fetchColumn();
-
-        $this->assert($validCount === 0, "Rollback Test: Entry 1 was completely rolled back (COUNT = 0)");
-        $this->assert(!$isolatedDb->inTransaction(), "Rollback Test: connection is not left in an open transaction");
-
-        $isolatedDb->exec("DELETE FROM posts WHERE slug IN ('{$validSlug}', '{$invalidSlug}')");
     }
 
     private function testIdempotency(): void
@@ -481,23 +507,44 @@ class SeederSafetyIntegrationTest
                 'summary' => 'Idempotent Test Summary',
                 'content' => ":::summary\n- Summary\n:::\n\n## Heading\n\n" . str_repeat("Idempotent content line. ", 10),
                 'image' => 'assets/images/idempotent.jpg',
+                'category_slug' => 'laptop',
+                'post_type' => 'review',
                 'author_name' => 'Idempotent Author',
                 'status' => 'published',
+                'reading_minutes' => 5,
             ]
         ];
 
         $res1 = $this->seeder->run($seed, false, false);
         $this->assert($res1['inserted'] === 1, "Idempotency: Run 1 inserted = 1");
 
+        $stmt1 = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmt1->execute([':slug' => $slug]);
+        $rowAfterRun1 = $stmt1->fetch(PDO::FETCH_ASSOC);
+
         $res2 = $this->seeder->run($seed, false, false);
         $this->assert($res2['inserted'] === 0, "Idempotency: Run 2 inserted = 0");
         $this->assert($res2['skipped_rich'] === 1, "Idempotency: Run 2 skipped_rich = 1");
 
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
-        $stmt->execute([':slug' => $slug]);
-        $count = (int)$stmt->fetchColumn();
+        $stmt2 = $this->db->prepare("SELECT * FROM posts WHERE slug = :slug");
+        $stmt2->execute([':slug' => $slug]);
+        $rowAfterRun2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+
+        $stmtCount = $this->db->prepare("SELECT COUNT(*) FROM posts WHERE slug = :slug");
+        $stmtCount->execute([':slug' => $slug]);
+        $count = (int)$stmtCount->fetchColumn();
 
         $this->assert($count === 1, "Idempotency: COUNT(*) WHERE slug = 1 (no duplicate rows)");
+        $this->assert($rowAfterRun2['id'] === $rowAfterRun1['id'], "Idempotency: id unchanged");
+        $this->assert($rowAfterRun2['slug'] === $rowAfterRun1['slug'], "Idempotency: slug unchanged");
+        $this->assert($rowAfterRun2['content'] === $rowAfterRun1['content'], "Idempotency: content unchanged byte-for-byte");
+        $this->assert($rowAfterRun2['image'] === $rowAfterRun1['image'], "Idempotency: image unchanged");
+        $this->assert((int)$rowAfterRun2['views'] === (int)$rowAfterRun1['views'], "Idempotency: views unchanged");
+        $this->assert($rowAfterRun2['author_id'] === $rowAfterRun1['author_id'], "Idempotency: author_id unchanged");
+        $this->assert($rowAfterRun2['author_name'] === $rowAfterRun1['author_name'], "Idempotency: author_name unchanged");
+        $this->assert($rowAfterRun2['status'] === $rowAfterRun1['status'], "Idempotency: status unchanged");
+        $this->assert($rowAfterRun2['created_at'] === $rowAfterRun1['created_at'], "Idempotency: created_at unchanged");
+        $this->assert($rowAfterRun2['published_at'] === $rowAfterRun1['published_at'], "Idempotency: published_at unchanged");
 
         $this->db->exec("DELETE FROM posts WHERE slug = '{$slug}'");
     }
