@@ -243,7 +243,20 @@ class GeminiService
             return "🤖 Cảm ơn bạn đã hỏi về sản phẩm **$name**!\n\nChiếc máy này sở hữu cấu hình gồm CPU **$cpu**, RAM **$ram**, Card đồ họa **$vga**. Máy hiện đang còn hàng tại showroom TechPilot với mức giá vô cùng ưu đãi. Bạn cần hỏi thêm chi tiết nào khác về máy không?";
         }
         if ($type === 'general') {
-            // Phân tích prompt để trích xuất danh sách sản phẩm mẫu từ context database
+            // Phân tích prompt để lấy session state hiện tại
+            $budget = 'Chưa biết';
+            $deviceType = 'Chưa biết';
+            $purpose = 'Chưa biết';
+            $software = 'Chưa biết';
+            $priority = 'Chưa biết';
+
+            if (preg_match('/-\s*Ngân sách:\s*(.*)/i', $prompt, $m)) $budget = trim($m[1]);
+            if (preg_match('/-\s*Loại máy:\s*(.*)/i', $prompt, $m)) $deviceType = trim($m[1]);
+            if (preg_match('/-\s*Mục đích:\s*(.*)/i', $prompt, $m)) $purpose = trim($m[1]);
+            if (preg_match('/-\s*Phần mềm:\s*(.*)/i', $prompt, $m)) $software = trim($m[1]);
+            if (preg_match('/-\s*Ưu tiên:\s*(.*)/i', $prompt, $m)) $priority = trim($m[1]);
+
+            // Trích xuất sản phẩm thật từ CSDL trong prompt
             $lines = explode("\n", $prompt);
             $foundProducts = [];
             foreach ($lines as $line) {
@@ -257,29 +270,47 @@ class GeminiService
                 }
             }
 
-            $lowerPrompt = strtolower($prompt);
-            
+            // Kịch bản hội thoại tự nhiên của chuyên viên tư vấn TechPilot
+            if ($budget === 'Chưa biết') {
+                return "Tuyệt vời, mình rất vui được hỗ trợ bạn tìm máy! 😊 Trước tiên, để mình dễ khoanh vùng các mẫu phù hợp nhất, bạn dự kiến đầu tư khoảng bao nhiêu ngân sách cho chiếc máy này nhỉ?";
+            }
+
+            if ($deviceType === 'Chưa biết') {
+                return "Cảm ơn bạn. Với tầm giá {$budget} thì mình đang có khá nhiều lựa chọn tốt đấy. Bạn đang muốn tìm mua Laptop di động tiện lợi hay một bộ PC để bàn hiệu năng cao?";
+            }
+
+            if ($purpose === 'Chưa biết') {
+                return "Đã rõ là bạn cần {$deviceType}. Để mình chọn đúng cấu hình tối ưu, bạn mua máy này chủ yếu phục vụ nhu cầu gì nhỉ? Chơi game 🎮, lập trình 💻, thiết kế đồ họa 🎨 hay làm việc văn phòng cơ bản?";
+            }
+
+            if ($software === 'Chưa biết') {
+                $emoji = ($purpose === 'Chơi game') ? '🎮' : (($purpose === 'Lập trình') ? '💻' : '🎨');
+                return "Lựa chọn hay đấy! {$emoji} Để cấu hình chạy mượt mà nhất, bạn thường sử dụng các phần mềm hay tựa game cụ thể nào vậy?";
+            }
+
+            if ($priority === 'Chưa biết') {
+                return "Mình hiểu rồi. Với phần mềm/game bạn dùng, ngoài cấu hình ra thì bạn muốn ưu tiên yếu tố nào hơn? Cần hiệu năng tối đa ⚡, pin trâu 🔋, máy gọn nhẹ dễ mang đi 🎒 hay tiết kiệm chi phí nhất?";
+            }
+
+            // Đầy đủ thông tin -> Đề xuất sản phẩm thật kèm lý do và ID khuyến nghị
             if (!empty($foundProducts)) {
                 $recIds = [];
-                $productLines = "";
+                $recsDescription = "";
                 foreach (array_slice($foundProducts, 0, 3) as $p) {
                     $recIds[] = $p['id'];
-                    $productLines .= "• **{$p['name']}** - Giá: {$p['price']} (Cấu hình: {$p['specs']})\n";
+                    $recsDescription .= "🥇 **{$p['name']}**\n- Giá: {$p['price']}\n- Cấu hình: {$p['specs']}\n\n";
                 }
                 
-                return "🤖 Dạ cửa hàng TechPilot hiện đang sẵn hàng một số mẫu sản phẩm xịn, cấu hình khỏe và giá ưu đãi phù hợp với tìm kiếm của bạn:\n\n" . $productLines . "\nBạn có thể nhấn nút **Thêm giỏ hàng** bên dưới hoặc chọn **Xem chi tiết** để đặt mua nhé!\n\n[RECOMMENDED_IDS: " . implode(', ', $recIds) . "]";
+                return "Tuyệt vời! Sau khi tổng hợp đầy đủ nhu cầu của bạn, mình nghĩ đây là những lựa chọn phù hợp nhất:\n\n" . 
+                       $recsDescription . 
+                       "✔ Đảm bảo chạy tốt các phần mềm của bạn trong tầm giá {$budget}.\n" .
+                       "✔ Thiết kế đẹp và độ bền tối ưu.\n\n" .
+                       "Bạn thấy ưng ý mẫu nào ở trên không, hay cần mình so sánh thêm chi tiết sản phẩm nào ạ? 😊\n\n[RECOMMENDED_IDS: " . implode(', ', $recIds) . "]";
             }
 
-            if (strpos($lowerPrompt, 'man hinh') !== false) {
-                return "🤖 Dạ bên mình kinh doanh nhiều dòng màn hình máy tính xịn từ màn hình văn phòng giá rẻ đến màn hình gaming chuyên nghiệp 144Hz/240Hz cực nét. Bạn cần tìm màn hình tầm giá khoảng bao nhiêu ạ?";
-            }
-            if (strpos($lowerPrompt, 'laptop') !== false || strpos($lowerPrompt, 'may tinh') !== false) {
-                return "🤖 Dạ TechPilot chuyên cung cấp các dòng laptop chính hãng ASUS, Acer, Dell, HP, Lenovo từ văn phòng đến gaming đồ họa cao cấp. Bạn cần tư vấn máy cho học tập, làm việc hay chiến game ạ?";
-            }
-            
-            return "🤖 Dạ xin chào! Tôi là trợ lý ảo TechPilot AI. Tôi có thể hỗ trợ gì cho bạn về máy tính, laptop và phụ kiện hôm nay?";
+            return "Dạ mình hiểu rồi. Bạn cần tìm máy cấu hình tốt phục vụ các phần mềm của bạn. Hiện tại showroom TechPilot đang có sẵn khá nhiều mẫu máy chất lượng. Bạn có muốn ghé qua trực tiếp hay cần mình tư vấn tiếp ở đây ạ?";
         }
 
-        return "🤖 Xin chào! Tôi là trợ lý AI của TechPilot (Chế độ Demo). Tôi có thể giúp gì cho bạn hôm nay?";
+        return "🤖 Xin chào! Mình là trợ lý AI TechPilot. Mình có thể giúp gì cho bạn hôm nay?";
     }
 }
