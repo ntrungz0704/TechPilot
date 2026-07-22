@@ -52,10 +52,11 @@ class CategoryMenuService
                     $megaColumns['Mức giá'] = $group['price_ranges'];
                 }
 
+                // Menu link bắt buộc sử dụng virtual_slug ('laptop', 'pc', 'pc-linh-kien', v.v.)
                 $menuTree[] = [
                     'id'           => $group['key'],
                     'name'         => $group['name'],
-                    'slug'         => $group['canonical_slug'],
+                    'slug'         => $group['virtual_slug'],
                     'icon'         => $group['icon'],
                     'mega_columns' => $megaColumns,
                 ];
@@ -64,7 +65,7 @@ class CategoryMenuService
             return $menuTree;
         } catch (Exception $e) {
             error_log('CategoryMenuService error: ' . $e->getMessage());
-            return []; // Graceful fallback
+            return []; // Mảng rỗng an toàn khi DB unavailable
         }
     }
 }

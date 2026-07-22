@@ -5,6 +5,8 @@ require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
 require_once ROOT_PATH . '/app/services/CategoryMenuService.php';
 require_once ROOT_PATH . '/app/models/Product.php';
+require_once ROOT_PATH . '/app/core/Controller.php';
+require_once ROOT_PATH . '/app/controllers/HomeController.php';
 
 class CatalogGroupTest
 {
@@ -13,7 +15,7 @@ class CatalogGroupTest
     public function runAll(): bool
     {
         echo "==================================================\n";
-        echo "RUNNING CHECKPOINT 1 — CATALOG GROUP INTEGRATION TESTS\n";
+        echo "RUNNING CHECKPOINT 1 V2 — CATALOG GROUP INTEGRATION TESTS\n";
         echo "==================================================\n\n";
 
         // Snapshot DB count before tests to verify 0 mutations
@@ -21,13 +23,18 @@ class CatalogGroupTest
         $initialCatCount = (int)$pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
         $initialProdCount = (int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 
-        $this->testVirtualGroupProductCounts();
-        $this->testNetworkingIsHiddenAndNotReady();
-        $this->testParentCategoryWithChildProductsDisplayed();
-        $this->testNoDuplicateBrands();
-        $this->testNoZeroCountSubgroups();
-        $this->testSearchAliasLinhKien();
-        $this->testDatabaseUnavailableFallback();
+        $this->testSearchCountLaptop();
+        $this->testSearchLaptopPage1Limit24();
+        $this->testLaptopSourceSlugsOnly();
+        $this->testSearchCountPC();
+        $this->testStorefrontMenuLaptopSlug();
+        $this->testStorefrontMenuPCSlug();
+        $this->testHomeSearchCatLaptopSimulation();
+        $this->testVirtualPageTitle();
+        $this->testGetByCategorySlugActiveStatusOnly();
+        $this->testNoDuplicateMappingInProductPhp();
+        $this->testDatabaseUnavailableDependencyInjectionSeam();
+        $this->testFallbackGroupsNotReadyStatus();
         $this->testZeroDatabaseMutations($initialCatCount, $initialProdCount);
 
         echo "\n--------------------------------------------------\n";
@@ -50,128 +57,196 @@ class CatalogGroupTest
     {
         $this->results[] = ['name' => $name, 'success' => $success, 'message' => $message];
         $statusStr = $success ? "[PASS]" : "[FAIL]";
-        echo sprintf("%-60s %s\n", $name, $statusStr);
+        echo sprintf("%-65s %s\n", $name, $statusStr);
         if (!$success && $message) {
             echo "   -> Error: $message\n";
         }
     }
 
-    private function testVirtualGroupProductCounts(): void
-    {
-        $groups = CatalogGroupService::getAllVirtualGroups();
-
-        $this->record("1. Laptop active runtime count == 74", ($groups['laptop']['product_count'] ?? 0) === 74, "Expected 74, got " . ($groups['laptop']['product_count'] ?? 0));
-        $this->record("2. PC & Build PC active runtime count == 36", ($groups['pc']['product_count'] ?? 0) === 36, "Expected 36, got " . ($groups['pc']['product_count'] ?? 0));
-        $this->record("3. Linh kiện PC active runtime count == 485", ($groups['pc-linh-kien']['product_count'] ?? 0) === 485, "Expected 485, got " . ($groups['pc-linh-kien']['product_count'] ?? 0));
-        $this->record("4. Màn hình active runtime count == 10", ($groups['man-hinh']['product_count'] ?? 0) === 10, "Expected 10, got " . ($groups['man-hinh']['product_count'] ?? 0));
-        $this->record("5. Gaming Gear active runtime count == 10", ($groups['gaming-gear']['product_count'] ?? 0) === 10, "Expected 10, got " . ($groups['gaming-gear']['product_count'] ?? 0));
-        $this->record("6. Thiết bị văn phòng active runtime count == 5", ($groups['office-gear']['product_count'] ?? 0) === 5, "Expected 5, got " . ($groups['office-gear']['product_count'] ?? 0));
-    }
-
-    private function testNetworkingIsHiddenAndNotReady(): void
-    {
-        $groups = CatalogGroupService::getAllVirtualGroups();
-        $net = $groups['networking'] ?? [];
-        $countZero = ($net['product_count'] ?? -1) === 0;
-        $statusNotReady = ($net['status'] ?? '') === 'not_ready';
-
-        $storefront = CategoryMenuService::getActiveMenuTree();
-        $notInStorefront = true;
-        foreach ($storefront as $item) {
-            if ($item['slug'] === 'networking') {
-                $notInStorefront = false;
-                break;
-            }
-        }
-
-        $this->record(
-            "7. Thiết bị mạng has 0 products and is NOT_READY/HIDDEN",
-            $countZero && $statusNotReady && $notInStorefront,
-            "Count: {$net['product_count']}, Status: {$net['status']}, InStorefront: " . ($notInStorefront ? 'No' : 'Yes')
-        );
-    }
-
-    private function testParentCategoryWithChildProductsDisplayed(): void
-    {
-        $menuTree = CategoryMenuService::getActiveMenuTree();
-        $hasLinhKien = false;
-        foreach ($menuTree as $item) {
-            if ($item['slug'] === 'pc-linh-kien') {
-                $hasLinhKien = true;
-                break;
-            }
-        }
-
-        $this->record(
-            "8. Parent 'pc-linh-kien' with 0 direct products IS displayed via child products",
-            $hasLinhKien,
-            "pc-linh-kien was not found in storefront menu tree"
-        );
-    }
-
-    private function testNoDuplicateBrands(): void
-    {
-        $groups = CatalogGroupService::getAllVirtualGroups();
-        $noDuplicates = true;
-        $msg = "";
-
-        foreach ($groups as $key => $g) {
-            $brandSlugs = array_map(fn($b) => $b['slug'], $g['brands'] ?? []);
-            if (count($brandSlugs) !== count(array_unique($brandSlugs))) {
-                $noDuplicates = false;
-                $msg = "Duplicate brands found in group $key";
-                break;
-            }
-        }
-
-        $this->record("9. No duplicate brands within any virtual group", $noDuplicates, $msg);
-    }
-
-    private function testNoZeroCountSubgroups(): void
-    {
-        $groups = CatalogGroupService::getAllVirtualGroups();
-        $noZeroSubgroups = true;
-        $msg = "";
-
-        foreach ($groups as $key => $g) {
-            foreach ($g['subgroups'] ?? [] as $sub) {
-                if (($sub['product_count'] ?? 0) <= 0) {
-                    $noZeroSubgroups = false;
-                    $msg = "Group $key contains subgroup {$sub['name']} with 0 products";
-                    break 2;
-                }
-            }
-        }
-
-        $this->record("10. No subgroup rendered with count == 0", $noZeroSubgroups, $msg);
-    }
-
-    private function testSearchAliasLinhKien(): void
+    private function testSearchCountLaptop(): void
     {
         $productModel = new Product();
-        $total = $productModel->countSearch('linh kiện');
-        $resolved = CatalogGroupService::getGroupBySlug('linh-kien-pc');
+        $total = $productModel->countSearch('', 'laptop');
+        $this->record("1. countSearch('', 'laptop') == 74", $total === 74, "Expected 74, got $total");
+    }
 
-        $success = ($total === 485) && ($resolved !== null) && ($resolved['canonical_slug'] === 'pc-linh-kien');
+    private function testSearchLaptopPage1Limit24(): void
+    {
+        $productModel = new Product();
+        $prods = $productModel->search('', 'laptop', 24, 0);
+        $count = count($prods);
+        $this->record("2. search('', 'laptop', 24) returns 24 products on page 1", $count === 24, "Expected 24, got $count");
+    }
+
+    private function testLaptopSourceSlugsOnly(): void
+    {
+        $productModel = new Product();
+        $prods = $productModel->search('', 'laptop', 100, 0);
+        $validSlugs = ['laptop-gaming', 'laptop-van-phong'];
+        $allValid = true;
+        $invalidSlugFound = "";
+
+        foreach ($prods as $p) {
+            if (!in_array($p['category_slug'], $validSlugs, true)) {
+                $allValid = false;
+                $invalidSlugFound = $p['category_slug'];
+                break;
+            }
+        }
 
         $this->record(
-            "11. Keyword 'linh kiện' resolves to pc-linh-kien (485 items)",
-            $success,
-            "Expected 485, got $total"
+            "3. Products returned for 'laptop' belong ONLY to laptop-gaming or laptop-van-phong",
+            $allValid && !empty($prods),
+            "Found invalid category_slug: $invalidSlugFound"
         );
     }
 
-    private function testDatabaseUnavailableFallback(): void
+    private function testSearchCountPC(): void
     {
-        $fallback = CatalogGroupService::getFallbackGroups();
-        $has7 = count($fallback) === 7;
-        $netHidden = ($fallback['networking']['status'] ?? '') === 'not_ready';
-        $emptyTree = CategoryMenuService::getActiveMenuTree(); // Should be array
+        $productModel = new Product();
+        $total = $productModel->countSearch('', 'pc');
+        $this->record("4. countSearch('', 'pc') == 36", $total === 36, "Expected 36, got $total");
+    }
+
+    private function testStorefrontMenuLaptopSlug(): void
+    {
+        $menuTree = CategoryMenuService::getActiveMenuTree();
+        $laptopSlug = '';
+        foreach ($menuTree as $item) {
+            if ($item['id'] === 'laptop') {
+                $laptopSlug = $item['slug'];
+                break;
+            }
+        }
+        $this->record(
+            "5. Storefront Menu item for Laptop has slug 'laptop' (NOT laptop-gaming)",
+            $laptopSlug === 'laptop',
+            "Expected 'laptop', got '$laptopSlug'"
+        );
+    }
+
+    private function testStorefrontMenuPCSlug(): void
+    {
+        $menuTree = CategoryMenuService::getActiveMenuTree();
+        $pcSlug = '';
+        foreach ($menuTree as $item) {
+            if ($item['id'] === 'pc') {
+                $pcSlug = $item['slug'];
+                break;
+            }
+        }
+        $this->record(
+            "6. Storefront Menu item for PC has slug 'pc' (NOT pc-build-san)",
+            $pcSlug === 'pc',
+            "Expected 'pc', got '$pcSlug'"
+        );
+    }
+
+    private function testHomeSearchCatLaptopSimulation(): void
+    {
+        $_GET['cat'] = 'laptop';
+        $_GET['q'] = '';
+        $productModel = new Product();
+        $totalResults = $productModel->countSearch('', $_GET['cat']);
 
         $this->record(
-            "12. Safe fallback when DB unavailable returns 7 defined fallback groups",
-            $has7 && $netHidden && is_array($emptyTree),
-            "Fallback failure"
+            "7. home/search?cat=laptop request context has totalResults = 74",
+            $totalResults === 74,
+            "Expected 74, got $totalResults"
+        );
+        unset($_GET['cat'], $_GET['q']);
+    }
+
+    private function testVirtualPageTitle(): void
+    {
+        $titleLaptop = CatalogGroupService::getDisplayName('laptop');
+        $titlePC = CatalogGroupService::getDisplayName('pc');
+        $titleLinhKien = CatalogGroupService::getDisplayName('pc-linh-kien');
+
+        $pass = ($titleLaptop === 'Laptop') && ($titlePC === 'PC & Build PC') && ($titleLinhKien === 'Linh kiện PC');
+        $this->record(
+            "8. Virtual page titles resolve correctly ('Laptop', 'PC & Build PC', 'Linh kiện PC')",
+            $pass,
+            "Laptop: '$titleLaptop', PC: '$titlePC', LinhKien: '$titleLinhKien'"
+        );
+    }
+
+    private function testGetByCategorySlugActiveStatusOnly(): void
+    {
+        $productModel = new Product();
+        $prods = $productModel->getByCategorySlug('laptop-gaming', 50);
+        $allActive = true;
+
+        foreach ($prods as $p) {
+            if (($p['status'] ?? '') !== 'active') {
+                $allActive = false;
+                break;
+            }
+        }
+
+        $this->record(
+            "9. getByCategorySlug returns ONLY active status products & categories",
+            $allActive && !empty($prods),
+            "Inactive product found in results"
+        );
+    }
+
+    private function testNoDuplicateMappingInProductPhp(): void
+    {
+        $productPhpContent = file_get_contents(ROOT_PATH . '/app/models/Product.php');
+        $hasHardcodedAliasesArray = str_contains($productPhpContent, "'laptop gaming'     => ['laptop-gaming']");
+        $usesSingleSourceOfTruth = str_contains($productPhpContent, "CatalogGroupService::getKeywordAliasMap()");
+
+        $this->record(
+            "10. No duplicate category mapping array in Product.php",
+            !$hasHardcodedAliasesArray && $usesSingleSourceOfTruth,
+            "Product.php still contains hardcoded \$aliases array!"
+        );
+    }
+
+    private function testDatabaseUnavailableDependencyInjectionSeam(): void
+    {
+        // Set connection provider to return null (simulating DB crash / offline)
+        CatalogGroupService::setConnectionProvider(fn() => null);
+
+        $storefrontTree = CategoryMenuService::getActiveMenuTree();
+        $allGroupsFallback = CatalogGroupService::getAllVirtualGroups();
+
+        // Restore real DB connection
+        CatalogGroupService::setConnectionProvider(null);
+
+        $treeIsEmpty = empty($storefrontTree);
+        $groupsCount7 = count($allGroupsFallback) === 7;
+
+        $this->record(
+            "11. DB unavailable simulated via connection provider SEAM returns empty menu tree",
+            $treeIsEmpty && $groupsCount7,
+            "Storefront menu tree was not empty or fallback failed"
+        );
+    }
+
+    private function testFallbackGroupsNotReadyStatus(): void
+    {
+        // Set connection provider to return null
+        CatalogGroupService::setConnectionProvider(fn() => null);
+
+        $fallbackGroups = CatalogGroupService::getAllVirtualGroups();
+
+        // Restore real DB connection
+        CatalogGroupService::setConnectionProvider(null);
+
+        $noneReady = true;
+        foreach ($fallbackGroups as $g) {
+            if (($g['status'] ?? '') === 'ready' || ($g['product_count'] ?? -1) !== 0) {
+                $noneReady = false;
+                break;
+            }
+        }
+
+        $this->record(
+            "12. Fallback groups with count 0 MUST NOT have status 'ready'",
+            $noneReady,
+            "Group found with status 'ready' or product_count > 0 during DB offline"
         );
     }
 

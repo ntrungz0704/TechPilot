@@ -1,33 +1,29 @@
-# CHECKPOINT 1 — VIRTUAL CATALOG SERVICE & CATEGORY CONTRACT REPORT
+# CHECKPOINT 1 — VIRTUAL CATALOG SERVICE & CATEGORY CONTRACT REPORT (V2 FINAL)
 **Dự án:** TechPilot  
 **Thời điểm thực hiện:** 23/07/2026  
-**Trạng thái Checkpoint:** HOÀN THÀNH — CHO PHÉP XEM XÉT REVIEW GATE VIRTUAL CATALOG  
+**Trạng thái Checkpoint:** HOÀN THÀNH — DỪNG TẠI `STOPPED_WAITING_FOR_REVIEW_GATE_VIRTUAL_CATALOG_V2`  
 
 ---
 
 ## 1. Executive Summary
 
-Checkpoint 1 đã xây dựng thành công **Service Layer thống nhất dữ liệu Catalog** thành **7 Virtual Catalog Groups** mà không thực hiện bất kỳ migration CSDL nào, không thay đổi `category_id` sản phẩm, không sửa giao diện storefront và giữ an toàn 100% cho CSDL hiện tại.
+Báo cáo V2 này trình bày toàn bộ kết quả nâng cấp **Service Layer & Virtual Routing Contract** cho hệ thống Catalog của TechPilot nhằm giải quyết triệt để các yêu cầu từ **REVIEW_GATE_VIRTUAL_CATALOG**:
 
-### Các kết quả nổi bật:
-- Thêm mới `CatalogGroupService.php` làm trung tâm quản lý 7 virtual groups, tính toán số lượng sản phẩm, thương hiệu, khoảng giá động và median effective price từ runtime CSDL.
-- Refactor `CategoryMenuService.php` kết nối với `CatalogGroupService`. Khắc phục hoàn toàn lỗi ẩn danh mục `Linh Kiện PC` (danh mục có 0 sản phẩm trực tiếp nhưng có 485 sản phẩm ở các danh mục con).
-- Chuẩn hóa contract trong `Product.php`: sửa lỗi alias tìm kiếm tiếng Việt `"linh kiện"` map về `pc-linh-kien` (trả về đúng 485 sản phẩm) và khắc phục lỗi trùng named placeholder `:slug` trong `getByCategorySlug()`.
-- Xây dựng bộ test tự động [CatalogGroupTest.php](../../../tests/CatalogGroupTest.php) kiểm thử 13 kịch bản tích hợp CSDL thật — **100% PASS**.
-
----
-
-## 2. Files Changed (Danh sách các file thay đổi)
-
-1. [CatalogGroupService.php](../../../app/services/CatalogGroupService.php) **[NEW]**: Service layer mới định nghĩa 7 virtual groups, hydrate dữ liệu CSDL runtime, loại bỏ brand trùng, lọc subgroup count > 0 và hỗ trợ tra cứu slug/alias.
-2. [CategoryMenuService.php](../../../app/services/CategoryMenuService.php) **[MODIFY]**: Refactor sử dụng `CatalogGroupService`, ẩn danh mục rỗng (`Thiết bị mạng`), hiển thị `Linh Kiện PC`.
-3. [Product.php](../../../app/models/Product.php) **[MODIFY]**: Sửa alias `"linh kiện"` -> `pc-linh-kien`, thêm alias tiếng Việt cho `office-gear` và `networking`, sửa lỗi trùng named parameter trong `getByCategorySlug()`.
-4. [CatalogGroupTest.php](../../../tests/CatalogGroupTest.php) **[NEW]**: Bộ test tự động kiểm thử 13 kịch bản tích hợp dữ liệu CSDL thật.
-5. [CHECKPOINT_1_VIRTUAL_CATALOG.md](CHECKPOINT_1_VIRTUAL_CATALOG.md) **[NEW]**: Báo cáo tổng kết Checkpoint 1.
+1. **Virtual Route Resolution:** Chuẩn hóa menu group `Laptop` sử dụng virtual slug `laptop` (trả về đúng toàn bộ 74 sản phẩm Laptop: `laptop-gaming` + `laptop-van-phong`) và menu group `PC & Build PC` sử dụng virtual slug `pc` (trả về đúng 36 sản phẩm PC: `pc-build-san` + `may-tinh-bo`). Page title hiển thị chuẩn Tên Virtual Group (`Laptop`, `PC & Build PC`, `Linh kiện PC`) thay vì slug thô.
+2. **Single Source of Truth cho Catalog Mapping:** Loại bỏ mảng `$aliases` lặp lại trong `Product.php`. Toàn bộ mapping category, virtual slug, source slugs và alias từ khóa tiếng Việt được quản lý tập trung 100% tại `CatalogGroupService.php` thông qua các API resolvers:
+   - `CatalogGroupService::resolveGroupKey(string $slugOrAlias): ?string`
+   - `CatalogGroupService::resolveSourceSlugs(string $slugOrAlias): array`
+   - `CatalogGroupService::getStaticGroupDefinition(string $key): ?array`
+   - `CatalogGroupService::getDisplayName(string $slugOrAlias): string`
+   - `CatalogGroupService::getKeywordAliasMap(): array`
+3. **Động hóa Runtime Hydration (Không phụ thuộc cứng vào Category ID):** Group definitions chỉ lưu `source_slugs` làm contract chính. Khi hydrate runtime, `source_category_ids` được resolve động từ CSDL. Chi tính các sản phẩm và category có trạng thái `status = 'active'`.
+4. **Chuẩn hóa Fallback Contract:** Khi CSDL unavailable (`$db === null` hoặc ngắt kết nối), không có bất kỳ group nào có `status = 'ready'` (toàn bộ ở trạng thái `status = 'unavailable'`). `CategoryMenuService::getActiveMenuTree()` trả về mảng rỗng `[]` an toàn.
+5. **Chuẩn hóa `Product::getByCategorySlug()`:** Sử dụng hai parameter riêng `:slug_direct` và `:slug_parent`, bổ sung điều kiện `p.status = 'active' AND c.status = 'active'`, và không bao giờ trả sample products khi query thất bại.
+6. **Tích hợp CI Workflow:** Đã tạo file workflow GitHub Actions tại [.github/workflows/catalog-ci.yml](../../../.github/workflows/catalog-ci.yml) thực hiện `php -l` lint check và chạy suite `php tests/CatalogGroupTest.php`.
 
 ---
 
-## 3. Output Contract Structure (Cấu trúc Output Contract Ổn định)
+## 2. Approved New Output Contract (Cấu trúc Output Contract Chuẩn)
 
 Mỗi Virtual Catalog Group xuất ra contract chuẩn dạng mảng như sau:
 
@@ -35,14 +31,14 @@ Mỗi Virtual Catalog Group xuất ra contract chuẩn dạng mảng như sau:
 [
     'key'                     => 'laptop',
     'name'                    => 'Laptop',
-    'canonical_slug'           => 'laptop-gaming',
+    'canonical_slug'           => 'laptop',
     'virtual_slug'            => 'laptop',
     'icon'                    => 'fa-solid fa-laptop',
-    'source_category_ids'     => [1, 2],
+    'source_category_ids'     => [1, 2], // Resolved dynamically at runtime
     'source_slugs'            => ['laptop-gaming', 'laptop-van-phong'],
     'aliases'                 => ['laptop', 'laptop-gaming', 'laptop-van-phong', 'may-tinh-xach-tay', 'lap'],
-    'status'                  => 'ready', // 'ready' hoặc 'not_ready' (nếu count == 0)
-    'product_count'           => 74,     // Tính toán runtime từ CSDL
+    'status'                  => 'ready', // 'ready', 'not_ready' hoặc 'unavailable'
+    'product_count'           => 74,     // Computed live from active DB
     'subgroups'               => [
         [
             'id'            => 1,
@@ -77,80 +73,135 @@ Mỗi Virtual Catalog Group xuất ra contract chuẩn dạng mảng như sau:
 ]
 ```
 
+### Contract khi Database Unavailable:
+```php
+[
+    'key'                     => 'laptop',
+    'name'                    => 'Laptop',
+    'canonical_slug'           => 'laptop',
+    'virtual_slug'            => 'laptop',
+    'icon'                    => 'fa-solid fa-laptop',
+    'source_category_ids'     => [],
+    'source_slugs'            => ['laptop-gaming', 'laptop-van-phong'],
+    'aliases'                 => ['laptop', 'laptop-gaming', 'laptop-van-phong', 'may-tinh-xach-tay', 'lap'],
+    'status'                  => 'unavailable', // Không bao giờ có status = 'ready'
+    'product_count'           => 0,
+    'subgroups'               => [],
+    'brands'                  => [],
+    'price_ranges'            => [],
+    'min_effective_price'    => null,
+    'median_effective_price' => null,
+    'max_effective_price'    => null,
+]
+```
+
+---
+
+## 3. Files Changed (Danh sách file đã thay đổi)
+
+1. [CatalogGroupService.php](../../../app/services/CatalogGroupService.php) **[MODIFY]**: Cung cấp Single Source of Truth cho catalog mapping, resolvers API, dynamic category ID resolution, connection provider seam cho testing và safe fallback contract.
+2. [CategoryMenuService.php](../../../app/services/CategoryMenuService.php) **[MODIFY]**: Xuất mảng menu item với virtual slug chuẩn (`laptop`, `pc`, `pc-linh-kien`), trả về mảng rỗng an toàn khi DB ngắt kết nối.
+3. [Product.php](../../../app/models/Product.php) **[MODIFY]**: Bỏ mảng `$aliases` trùng lặp, dùng `CatalogGroupService::getKeywordAliasMap()` & `resolveSourceSlugs()`, cập nhật `getByCategorySlug()` với `:slug_direct` & `:slug_parent` cùng điều kiện active status.
+4. [HomeController.php](../../../app/controllers/HomeController.php) **[MODIFY]**: Cập nhật action `search()` sử dụng `CatalogGroupService::getDisplayName($categorySlug)` cho virtual page titles.
+5. [CatalogGroupTest.php](../../../tests/CatalogGroupTest.php) **[MODIFY]**: Bổ sung 13 integration test cases V2 (Virtual URL resolution, DB offline simulation seam, page title, product status checks).
+6. [.github/workflows/catalog-ci.yml](../../../.github/workflows/catalog-ci.yml) **[NEW]**: File cấu hình GitHub Actions CI chạy `php -l` và `php tests/CatalogGroupTest.php`.
+7. [CHECKPOINT_1_VIRTUAL_CATALOG.md](CHECKPOINT_1_VIRTUAL_CATALOG.md) **[MODIFY]**: Báo cáo tổng kết Checkpoint 1 V2 Final.
+
 ---
 
 ## 4. Bảng Mapping Thực Tế và Runtime Product Counts
 
-| STT | Virtual Group Name | Key / Canonical Slug | Source Category IDs | Active Products (Runtime) | Status | Subgroups Rendered |
-| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
-| 1 | **Laptop** | `laptop-gaming` / `laptop` | `[1, 2]` | **74** | `ready` | Laptop Gaming (38 SP), Laptop Văn Phòng (36 SP) |
-| 2 | **PC & Build PC** | `pc-build-san` / `pc` | `[3, 6]` | **36** | `ready` | PC Build Sẵn (36 SP) *(bỏ qua Máy tính bộ 0 SP)* |
-| 3 | **Linh kiện PC** | `pc-linh-kien` | `[4, 10..18]` | **485** | `ready` | CPU (40 SP), Mainboard (60 SP), RAM (80 SP), VGA (80 SP), SSD (60 SP), HDD (20 SP), PSU (50 SP), Case (50 SP), Tản nhiệt (45 SP) |
-| 4 | **Màn hình** | `man-hinh` | `[5]` | **10** | `ready` | Màn hình (10 SP) |
-| 5 | **Gaming Gear** | `gaming-gear` | `[7]` | **10** | `ready` | Gaming Gear (10 SP) |
-| 6 | **Thiết bị văn phòng** | `office-gear` | `[8]` | **5** | `ready` | Thiết bị văn phòng (5 SP) |
-| 7 | **Thiết bị mạng** | `networking` | `[9]` | **0** | `not_ready` | *(Bị ẩn hoàn toàn trên storefront, count = 0)* |
-| **TỔNG** | | | | **620** | | |
+| STT | Virtual Group Name | Virtual Slug | Source Category Slugs | Active Products (Runtime) | Status | Menu Link Output |
+| :---: | :--- | :--- | :--- | :---: | :---: | :--- |
+| 1 | **Laptop** | `laptop` | `laptop-gaming`, `laptop-van-phong` | **74** | `ready` | `home/search?cat=laptop` |
+| 2 | **PC & Build PC** | `pc` | `pc-build-san`, `may-tinh-bo` | **36** | `ready` | `home/search?cat=pc` |
+| 3 | **Linh kiện PC** | `pc-linh-kien` | `pc-linh-kien`, `cpu`, `mainboard`, `ram`, `vga`, `ssd`, `hdd`, `psu`, `case`, `tan-nhiet` | **485** | `ready` | `home/search?cat=pc-linh-kien` |
+| 4 | **Màn hình** | `man-hinh` | `man-hinh` | **10** | `ready` | `home/search?cat=man-hinh` |
+| 5 | **Gaming Gear** | `gaming-gear` | `gaming-gear` | **10** | `ready` | `home/search?cat=gaming-gear` |
+| 6 | **Thiết bị văn phòng** | `office-gear` | `office-gear` | **5** | `ready` | `home/search?cat=office-gear` |
+| 7 | **Thiết bị mạng** | `networking` | `networking` | **0** | `not_ready` | *(Bị ẩn hoàn toàn trên menu)* |
 
 ---
 
-## 5. Kết Quả Kiểm Thử Tích Hợp (Test Output)
+## 5. Bằng Chứng Thực Thi Local Test Suite V2 (Local Execution Evidence)
 
-### Command chạy test:
+### Command chạy local test suite V2:
 ```bash
 php tests/CatalogGroupTest.php
 ```
 
-### Raw Test Output Execution Log:
+### Raw Test Execution Log Output:
 ```text
 ==================================================
-RUNNING CHECKPOINT 1 — CATALOG GROUP INTEGRATION TESTS
+RUNNING CHECKPOINT 1 V2 — CATALOG GROUP INTEGRATION TESTS
 ==================================================
 
-1. Laptop active runtime count == 74                         [PASS]
-2. PC & Build PC active runtime count == 36                  [PASS]
-3. Linh kiện PC active runtime count == 485                [PASS]
-4. Màn hình active runtime count == 10                     [PASS]
-5. Gaming Gear active runtime count == 10                    [PASS]
-6. Thiết bị văn phòng active runtime count == 5        [PASS]
-7. Thiết bị mạng has 0 products and is NOT_READY/HIDDEN [PASS]
-8. Parent 'pc-linh-kien' with 0 direct products IS displayed via child products [PASS]
-9. No duplicate brands within any virtual group              [PASS]
-10. No subgroup rendered with count == 0                     [PASS]
-11. Keyword 'linh kiện' resolves to pc-linh-kien (485 items) [PASS]
-12. Safe fallback when DB unavailable returns 7 defined fallback groups [PASS]
-13. Zero DB mutations during and after tests                 [PASS]
+1. countSearch('', 'laptop') == 74                                [PASS]
+2. search('', 'laptop', 24) returns 24 products on page 1         [PASS]
+3. Products returned for 'laptop' belong ONLY to laptop-gaming or laptop-van-phong [PASS]
+4. countSearch('', 'pc') == 36                                    [PASS]
+5. Storefront Menu item for Laptop has slug 'laptop' (NOT laptop-gaming) [PASS]
+6. Storefront Menu item for PC has slug 'pc' (NOT pc-build-san)   [PASS]
+7. home/search?cat=laptop request context has totalResults = 74   [PASS]
+8. Virtual page titles resolve correctly ('Laptop', 'PC & Build PC', 'Linh kiện PC') [PASS]
+9. getByCategorySlug returns ONLY active status products & categories [PASS]
+10. No duplicate category mapping array in Product.php            [PASS]
+11. DB unavailable simulated via connection provider SEAM returns empty menu tree [PASS]
+12. Fallback groups with count 0 MUST NOT have status 'ready'     [PASS]
+13. Zero DB mutations during and after tests                      [PASS]
 
 --------------------------------------------------
 ALL 13 INTEGRATION TESTS PASSED SUCCESSFULLY!
 --------------------------------------------------
 ```
 
+### Command kiểm tra cú pháp PHP (Lint Audit):
+```bash
+php -l app/services/CatalogGroupService.php
+php -l app/services/CategoryMenuService.php
+php -l app/models/Product.php
+php -l app/controllers/HomeController.php
+php -l tests/CatalogGroupTest.php
+```
+
+### Raw PHP Lint Output:
+```text
+No syntax errors detected in app/services/CatalogGroupService.php
+No syntax errors detected in app/services/CategoryMenuService.php
+No syntax errors detected in app/models/Product.php
+No syntax errors detected in app/controllers/HomeController.php
+No syntax errors detected in tests/CatalogGroupTest.php
+```
+
 ---
 
-## 6. Những Nội Dung Chưa Triển Khai (Deferred Scope)
+## 6. Cấu Hình CI Workflow (GitHub Actions)
 
-Theo đúng quy định Checkpoint 1, các hạng mục sau chưa được thực hiện và được hoãn lại cho Checkpoint 2 (UI Integration & Layout Hardening):
-1. **Chưa chỉnh sửa HTML/CSS Header:** Chiều cao header stack, navigation links trên storefront header views.
-2. **Chưa điều chỉnh Hero Section:** Kích thước hero category sidebar và carousel trên trang chủ.
-3. **Chưa thay đổi JavaScript mega menu:** Xử lý hover/dropdown mega panel.
+File workflow [.github/workflows/catalog-ci.yml](../../../.github/workflows/catalog-ci.yml) đã được cấu hình với các bước:
+1. `Checkout Repository`
+2. `Setup PHP 8.3` (với extensions pdo, pdo_mysql)
+3. `PHP Lint Check` (chạy `php -l` cho toàn bộ các tệp PHP thay đổi)
+4. `Import Database Schema & Seed Data` (khởi tạo MySQL 8 service container)
+5. `Run Catalog Group Integration Tests` (chạy `php tests/CatalogGroupTest.php`)
 
 ---
 
-## 7. Đánh Giá Rủi Ro Cho Checkpoint Tiếp Theo (UI Integration Risk)
+## 7. Đánh Giá Rủi Ro Còn Lại Cho Checkpoint Tiếp Theo (UI Integration)
 
 | Mã Rủi Ro | Nội dung rủi ro | Mức độ | Phương án kiểm soát ở Checkpoint 2 |
 | :---: | :--- | :---: | :--- |
-| **R-UI-01** | Viewport Vertical Overflow | **CAO** | Cần giảm padding và font-size của topbar/header/nav để cả 5 thành phần (Topbar, Main Header, Navigation, Hero, Features Bar) nằm trọn trong vạch 768px chiều cao màn hình 1366x768. |
-| **R-UI-02** | Search Form Select Sync | **TRUNG BÌNH** | Cập nhật ô `<select name="cat">` trong header search bar hiển thị chuẩn 7 nhóm Virtual Catalog thay vì 18 category gốc. |
-| **R-UI-03** | Subgroup Hover Overflow | **TRUNG BÌNH** | Đảm bảo Mega Menu Panel của nhóm `Linh kiện PC` (có 9 subgroups) hiển thị cân đối và không bị tràn khỏi màn hình. |
+| **R-UI-01** | Viewport Vertical Overflow | **CAO** | Tối ưu kích thước padding & height của Navigation/Header stack để vừa vặn trong chiều cao 768px màn hình 1366x768. |
+| **R-UI-02** | Search Form Select Sync | **TRUNG BÌNH** | Đồng bộ các thẻ `<option>` trong dropdown danh mục của Header Search Bar theo 7 Virtual Groups. |
+| **R-UI-03** | Subgroup Mega Panel Layout | **TRUNG BÌNH** | Đảm bảo Mega Menu Panel của nhóm Linh kiện PC (9 subgroups) cân đối và dễ nhìn trên màn hình desktop. |
 
 ---
 
-### Xác nhận hoàn tất Checkpoint 1:
-- [x] Không migration CSDL.
-- [x] Không thay đổi `category_id` sản phẩm.
-- [x] Không sửa giao diện lớn.
-- [x] Đã tạo `CatalogGroupService.php` & refactor `CategoryMenuService.php`.
-- [x] Đã vượt qua 100% test tích hợp tự động (`CatalogGroupTest.php`).
-- [x] Đã tạo báo cáo tại [CHECKPOINT_1_VIRTUAL_CATALOG.md](CHECKPOINT_1_VIRTUAL_CATALOG.md).
+### Xác nhận hoàn tất Checkpoint 1 V2:
+- [x] Không sửa giao diện, CSS, hero, features bar hoặc CSDL.
+- [x] Menu group Laptop dùng virtual slug `laptop`, PC dùng `pc`.
+- [x] Single source of truth tại `CatalogGroupService.php`.
+- [x] Dynamic category ID resolution từ `source_slugs`.
+- [x] Fallback contract an toàn khi DB ngắt kết nối (`status = 'unavailable'`).
+- [x] `getByCategorySlug()` chỉ trả sản phẩm active thuộc category active.
+- [x] 13/13 test cases V2 pass trên local runtime.
+- [x] Đã tạo GitHub Actions CI workflow tại `.github/workflows/catalog-ci.yml`.

@@ -1,0 +1,64 @@
+name: Catalog Virtual Routing & Contract CI
+
+on:
+  push:
+    branches:
+      - feature/hieu-news
+      - main
+  pull_request:
+    branches:
+      - feature/hieu-news
+      - main
+
+jobs:
+  catalog-audit-test:
+    name: Catalog Virtual Routing & Contract Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: techpilot
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql
+
+      - name: PHP Lint Check (Syntax Error Audit)
+        run: |
+          php -l app/services/CatalogGroupService.php
+          php -l app/services/CategoryMenuService.php
+          php -l app/models/Product.php
+          php -l app/controllers/HomeController.php
+          php -l tests/CatalogGroupTest.php
+
+      - name: Import Database Schema & Seed Data
+        run: |
+          if [ -f "database/schema.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < database/schema.sql
+          elif [ -f "schema.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < schema.sql
+          fi
+          if [ -f "database/seeds.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < database/seeds.sql
+          fi
+
+      - name: Run Catalog Group Integration Tests
+        run: |
+          php tests/CatalogGroupTest.php
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: techpilot
+          DB_USER: root
+          DB_PASS: ""
