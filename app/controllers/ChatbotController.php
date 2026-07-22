@@ -280,7 +280,10 @@ class ChatbotController extends Controller
             if ($isProductDiscussion && $discussedProduct) {
                 require_once ROOT_PATH . '/app/services/GeminiService.php';
                 $specs = json_decode($discussedProduct['specs'] ?? '{}', true) ?: [];
-                $specsStr = implode(', ', array_map(function($k, $v) { return "$k: $v"; }, array_keys($specs), $specs));
+                $specsStr = implode(', ', array_map(function($k, $v) { 
+                    $valStr = is_array($v) ? json_encode($v, JSON_UNESCAPED_UNICODE) : (string)$v;
+                    return "$k: $valStr"; 
+                }, array_keys($specs), $specs));
                 
                 $productPrompt = "Bạn là TechPilot AI Advisor. Khách hàng đang hỏi về sản phẩm: {$discussedProduct['name']} (Giá: " . number_format($discussedProduct['price'], 0, ',', '.') . "đ. Cấu hình: $specsStr).\n" .
                                   "Câu hỏi của khách: \"$queryText\"\n\n" .
@@ -379,7 +382,10 @@ class ChatbotController extends Controller
                     foreach ($rows as $r) {
                         $candidatesMap[$r['id']] = $r;
                         $specs = json_decode($r['specs'] ?? '{}', true) ?: [];
-                        $specsStr = implode(', ', array_map(function($k, $v) { return "$k: $v"; }, array_keys($specs), $specs));
+                        $specsStr = implode(', ', array_map(function($k, $v) { 
+                            $valStr = is_array($v) ? json_encode($v, JSON_UNESCAPED_UNICODE) : (string)$v;
+                            return "$k: $valStr"; 
+                        }, array_keys($specs), $specs));
                         $productsContext .= "- Tên: {$r['name']} (ID: {$r['id']}). Giá: " . number_format($r['price'], 0, ',', '.') . "đ. Cấu hình: $specsStr.\n";
                     }
                 }
