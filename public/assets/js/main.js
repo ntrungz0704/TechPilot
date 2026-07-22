@@ -10,8 +10,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (themeToggle) {
             const icon = themeToggle.querySelector('i');
             if (icon) {
-                icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                icon.className = isDark ? 'fa-solid fa-sun header-action__icon' : 'fa-solid fa-moon header-action__icon';
             }
+            const labelText = isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
+            themeToggle.setAttribute('aria-label', labelText);
+            themeToggle.setAttribute('title', labelText);
         }
     }
 
