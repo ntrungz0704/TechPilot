@@ -18,8 +18,8 @@ const baseUrl = `http://127.0.0.1:${port}/`;
     console.log('==================================================\n');
 
     console.log(`Starting local PHP web server on 127.0.0.1:${port}...`);
-    const phpServer = spawn('php', ['-S', `127.0.0.1:${port}`], { cwd: rootDir });
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const phpServer = spawn('php', ['-S', `127.0.0.1:${port}`], { cwd: rootDir, env: process.env });
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     let browser;
     try {
@@ -50,6 +50,7 @@ const baseUrl = `http://127.0.0.1:${port}/`;
         // TEST 1: Desktop 1366x768 - Closed Menu
         await page.setViewport({ width: 1366, height: 768 });
         await page.goto(baseUrl, { waitUntil: 'networkidle2' });
+        await page.waitForSelector('#categoryMenuToggle', { timeout: 10000 });
         await page.screenshot({ path: path.join(screenshotDir, 'desktop_1366_closed.png') });
         console.log('1. Captured desktop_1366_closed.png');
 
@@ -87,6 +88,7 @@ const baseUrl = `http://127.0.0.1:${port}/`;
         // TEST 6: Mobile 390x844 - Open Category Drawer
         await page.setViewport({ width: 390, height: 844 });
         await page.goto(baseUrl, { waitUntil: 'networkidle2' });
+        await page.waitForSelector('#mobileCategoryToggle', { timeout: 10000 });
         await page.click('#mobileCategoryToggle');
         await new Promise(r => setTimeout(r, 200));
         const isMobileDrawerOpen = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open'));
