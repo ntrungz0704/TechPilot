@@ -130,7 +130,10 @@ class AdminPostController extends Controller
 
             } catch (Throwable $e) {
                 if ($uploadedImage) {
-                    UploadService::deleteImage($uploadedImage, 'posts');
+                    $cleaned = UploadService::deleteImage($uploadedImage, 'posts');
+                    if (!$cleaned) {
+                        error_log('[AdminPostController::store] Failed to clean up uploaded image on insert failure: ' . $uploadedImage);
+                    }
                 }
 
                 $this->renderAdmin('admin/posts/create', [
@@ -262,7 +265,10 @@ class AdminPostController extends Controller
             } catch (Throwable $e) {
                 // If upload or DB update failed, cleanup $newImage if created
                 if ($newImage) {
-                    UploadService::deleteImage($newImage, 'posts');
+                    $cleaned = UploadService::deleteImage($newImage, 'posts');
+                    if (!$cleaned) {
+                        error_log('[AdminPostController::update] Failed to clean up new image on update failure: ' . $newImage);
+                    }
                 }
 
                 $this->renderAdmin('admin/posts/edit', [
@@ -287,9 +293,12 @@ class AdminPostController extends Controller
             // DB update succeeded! Best-effort delete old image OUTSIDE main try/catch block
             if ($newImage && !empty($post['image']) && $post['image'] !== $newImage) {
                 try {
-                    UploadService::deleteImage($post['image'], 'posts');
+                    $cleaned = UploadService::deleteImage($post['image'], 'posts');
+                    if (!$cleaned) {
+                        error_log('[AdminPostController::update] Best-effort deletion returned false for old image: ' . $post['image']);
+                    }
                 } catch (Throwable $cleanupError) {
-                    error_log('Failed to delete old post image: ' . $cleanupError->getMessage());
+                    error_log('[AdminPostController::update] Exception during old image deletion: ' . $cleanupError->getMessage());
                 }
             }
 
@@ -311,14 +320,25 @@ class AdminPostController extends Controller
                 $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($post) {
-                    if ($post['image']) {
-                        UploadService::deleteImage($post['image'], 'posts');
-                    }
+                    $imageToDelete = $post['image'] ?? null;
 
+                    // 1. DELETE DB row FIRST
                     $stmt = $db->prepare('DELETE FROM posts WHERE id = :id');
                     $stmt->execute([':id' => $id]);
 
                     $_SESSION['success'] = 'Đã xóa bài viết';
+
+                    // 2. Best-effort file cleanup ONLY AFTER DB row is deleted successfully
+                    if ($imageToDelete) {
+                        try {
+                            $cleaned = UploadService::deleteImage($imageToDelete, 'posts');
+                            if (!$cleaned) {
+                                error_log('[AdminPostController::delete] Failed to delete image file: ' . $imageToDelete);
+                            }
+                        } catch (Throwable $cleanupError) {
+                            error_log('[AdminPostController::delete] Exception during image deletion: ' . $cleanupError->getMessage());
+                        }
+                    }
                 }
             } catch (Throwable $e) {
                 $_SESSION['error'] = 'Không thể xóa bài viết: ' . $e->getMessage();

@@ -158,6 +158,13 @@ class AdminPostValidationTest
         $this->assert(str_contains($controllerSrc, "UploadService::deleteImage(\$uploadedImage, 'posts')"), "store() cleans uploaded image if DB insert fails");
         $this->assert(str_contains($controllerSrc, "UploadService::deleteImage(\$newImage, 'posts')"), "update() cleans new uploaded image if DB update fails");
 
+        // Delete method ordering: DB DELETE before file cleanup
+        $deletePos = strpos($controllerSrc, 'public function delete');
+        $dbDeleteInDelete = strpos($controllerSrc, 'DELETE FROM posts WHERE id = :id', $deletePos);
+        $fileDeleteInDelete = strpos($controllerSrc, 'UploadService::deleteImage', $deletePos);
+        $this->assert($deletePos !== false && $dbDeleteInDelete !== false && $fileDeleteInDelete !== false, "delete() method contains DB DELETE and deleteImage calls");
+        $this->assert($dbDeleteInDelete < $fileDeleteInDelete, "delete() executes DB DELETE query BEFORE file cleanup");
+
         // View assertions
         $this->assert(str_contains($createViewSrc, "\$errors['title']"), "create.php renders errors['title']");
         $this->assert(str_contains($createViewSrc, "\$errors['content']"), "create.php renders errors['content']");
