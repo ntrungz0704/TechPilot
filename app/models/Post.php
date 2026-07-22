@@ -10,6 +10,40 @@ class Post
         $this->db = Database::getConnection();
     }
 
+    /**
+     * Kiểm tra tính hợp lệ của nội dung bài viết trước khi xuất bản (published).
+     * Trả về mảng ['valid' => bool, 'errors' => array].
+     */
+    public static function validatePublishedContent(?string $content, string $status = 'published'): array
+    {
+        $errors = [];
+        if ($status === 'published') {
+            $trimmed = trim((string)$content);
+            if ($trimmed === '') {
+                $errors[] = 'Nội dung bài viết xuất bản không được để rỗng.';
+            } elseif (mb_strlen($trimmed) < 100) {
+                $errors[] = 'Nội dung bài viết quá ngắn (tối thiểu 100 ký tự).';
+            }
+
+            $placeholders = [
+                'Nội dung chi tiết đánh giá...',
+                'Nội dung chi tiết mua SSD...',
+                'Nội dung chi tiết RTX 50...',
+            ];
+            foreach ($placeholders as $ph) {
+                if (str_contains($trimmed, $ph)) {
+                    $errors[] = 'Nội dung bài viết chứa văn bản giữ chỗ (placeholder) chưa hoàn thiện.';
+                    break;
+                }
+            }
+        }
+
+        return [
+            'valid'  => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
     /** Lấy danh sách tin tức công nghệ mới nhất */
     public function getLatest(int $limit = 4): array
     {

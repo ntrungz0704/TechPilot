@@ -1,3 +1,9 @@
+-- ============================================================================
+-- WARNING: Full development database dump.
+-- May contain DROP TABLE statements.
+-- DO NOT execute automatically at application runtime.
+-- Backup database before manual import.
+-- ============================================================================
 -- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: techpilot
