@@ -1,16 +1,20 @@
 <?php
 /**
  * Hot Topics (Xu hướng tìm kiếm)
- * Variables: $hotTopicsVariant ('mobile' | 'sidebar')
+ * Variables: $hotTopics (array), $hotTopicsVariant ('mobile' | 'sidebar')
  */
 $hotTopicsVariant = $hotTopicsVariant ?? 'mobile';
 
-$hotTopics = [
-    ['title' => 'Review RTX 5090', 'q' => 'RTX 5090', 'icon' => 'fa-fire'],
-    ['title' => 'CES 2026',        'q' => 'CES 2026', 'icon' => 'fa-bolt'],
-    ['title' => 'Build PC AI',     'q' => 'PC AI',    'icon' => 'fa-microchip'],
-    ['title' => 'Laptop sinh viên','q' => 'laptop sinh viên', 'icon' => 'fa-graduation-cap'],
-];
+// Nếu chưa nhận $hotTopics từ view context, thử nạp từ config/news.php làm fallback an toàn
+if (!isset($hotTopics) || !is_array($hotTopics)) {
+    $newsConfigFile = ROOT_PATH . '/config/news.php';
+    $newsConfig     = file_exists($newsConfigFile) ? require $newsConfigFile : [];
+    $hotTopics      = is_array($newsConfig['hot_topics'] ?? null) ? $newsConfig['hot_topics'] : [];
+}
+
+if (empty($hotTopics)) {
+    return;
+}
 ?>
 
 <?php if ($hotTopicsVariant === 'sidebar'): ?>
@@ -20,11 +24,18 @@ $hotTopics = [
         </h3>
         <div class="news-hot-topics__list">
             <?php foreach ($hotTopics as $topic): ?>
-                <a href="<?= url('post?q=' . urlencode($topic['q'])) ?>" class="news-hot-topic-link">
-                    <?php if (!empty($topic['icon'])): ?>
-                        <i class="fa-solid <?= e($topic['icon']) ?>" aria-hidden="true"></i>
+                <?php
+                if (!is_array($topic)) continue;
+                $title = trim((string)($topic['title'] ?? ''));
+                $query = trim((string)($topic['q'] ?? ($topic['query'] ?? '')));
+                $icon  = trim((string)($topic['icon'] ?? 'fa-magnifying-glass'));
+                if ($title === '' || $query === '') continue;
+                ?>
+                <a href="<?= url('post?q=' . urlencode($query)) ?>" class="news-hot-topic-link">
+                    <?php if ($icon !== ''): ?>
+                        <i class="fa-solid <?= e($icon) ?>" aria-hidden="true"></i>
                     <?php endif; ?>
-                    <?= e($topic['title']) ?>
+                    <?= e($title) ?>
                 </a>
             <?php endforeach; ?>
         </div>
@@ -36,11 +47,18 @@ $hotTopics = [
         </span>
         <div class="news-hot-topics__list">
             <?php foreach ($hotTopics as $topic): ?>
-                <a href="<?= url('post?q=' . urlencode($topic['q'])) ?>" class="news-hot-topic-link">
-                    <?php if (!empty($topic['icon'])): ?>
-                        <i class="fa-solid <?= e($topic['icon']) ?>" aria-hidden="true"></i>
+                <?php
+                if (!is_array($topic)) continue;
+                $title = trim((string)($topic['title'] ?? ''));
+                $query = trim((string)($topic['q'] ?? ($topic['query'] ?? '')));
+                $icon  = trim((string)($topic['icon'] ?? 'fa-magnifying-glass'));
+                if ($title === '' || $query === '') continue;
+                ?>
+                <a href="<?= url('post?q=' . urlencode($query)) ?>" class="news-hot-topic-link">
+                    <?php if ($icon !== ''): ?>
+                        <i class="fa-solid <?= e($icon) ?>" aria-hidden="true"></i>
                     <?php endif; ?>
-                    <?= e($topic['title']) ?>
+                    <?= e($title) ?>
                 </a>
             <?php endforeach; ?>
         </div>

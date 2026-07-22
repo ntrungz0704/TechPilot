@@ -20,7 +20,6 @@ class PostController extends Controller
         $tag      = isset($_GET['tag']) ? trim($_GET['tag']) : '';
         $q        = isset($_GET['q']) ? trim(mb_substr($_GET['q'], 0, 150)) : '';
         $limit    = 6;
-        $offset   = ($page - 1) * $limit;
 
         $featured = null;
         $heroPopular = [];
@@ -47,7 +46,14 @@ class PostController extends Controller
 
         // countAll và getAll dùng cùng bộ điều kiện và excludeId
         $total = $this->postModel->countAll($type, $category, $tag, $q, $excludeFeaturedId);
-        $posts = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
+        $totalPages = $total > 0 ? max(1, (int)ceil($total / $limit)) : 1;
+
+        if ($total > 0) {
+            $page = min($page, $totalPages);
+        }
+
+        $offset = ($page - 1) * $limit;
+        $posts  = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
 
         // Sidebar: lấy popular gần đây, loại trừ tất cả ID đã dùng ở hero
         $popular = $this->postModel->getPopularRecent(8, 30, $usedHeroIds);
@@ -63,6 +69,10 @@ class PostController extends Controller
             'placement' => 'news-index-sidebar',
             'config'    => $genericCommerce['sidebar'] ?? null,
         ];
+
+        $newsConfigFile = ROOT_PATH . '/config/news.php';
+        $newsConfig     = file_exists($newsConfigFile) ? require $newsConfigFile : [];
+        $hotTopics      = is_array($newsConfig['hot_topics'] ?? null) ? $newsConfig['hot_topics'] : [];
 
         $canonicalAbsolute = absoluteUrl('post');
 
@@ -82,6 +92,7 @@ class PostController extends Controller
             'featured'        => $featured,
             'heroPopular'     => $heroPopular,
             'popular'         => $filteredPopular,
+            'hotTopics'       => $hotTopics,
             'currentPage'     => $page,
             'totalPages'      => (int)ceil($total / $limit),
             'currentType'     => $type,
@@ -172,9 +183,14 @@ class PostController extends Controller
         $hasValidPubDate = ($rawPubTime !== false && $rawPubTime > 0);
         $publishedAt     = $hasValidPubDate ? date('c', $rawPubTime) : null;
 
-        // Phạm vi không migration: dateModified dùng datePublished và tạm ẩn badge Cập nhật
-        $hasValidUpdatedAt = false;
-        $modifiedAt        = $publishedAt;
+        $rawUpdatedTime           = !empty($post['updated_at']) ? strtotime($post['updated_at']) : false;
+        $hasValidUpdatedTimestamp = ($rawUpdatedTime !== false && $rawUpdatedTime > 0);
+
+        $hasValidUpdatedAt = $hasValidPubDate
+            && $hasValidUpdatedTimestamp
+            && ($rawUpdatedTime >= $rawPubTime + 60);
+
+        $modifiedAt = $hasValidUpdatedAt ? date('c', $rawUpdatedTime) : $publishedAt;
 
         $description = !empty($post['summary'])
             ? $post['summary']

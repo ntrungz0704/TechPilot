@@ -34,7 +34,7 @@ if (!$post) return;
         <!-- Cột trái: Nội dung chi tiết bài viết -->
         <article class="news-main news-detail-card">
             <!-- Badge loại bài -->
-            <span class="news-badge-category" style="margin-bottom: 12px; display: inline-block;">
+            <span class="news-badge-category news-detail-category-badge">
                 <?= postTypeLabel($post['post_type'] ?? '') ?>
             </span>
 

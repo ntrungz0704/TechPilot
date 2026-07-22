@@ -202,10 +202,11 @@ class Post
         }
 
         if (!empty($q)) {
-            $sql .= ' AND (title LIKE :kw1 OR summary LIKE :kw2 OR content LIKE :kw3)';
-            $params[':kw1'] = '%' . $q . '%';
-            $params[':kw2'] = '%' . $q . '%';
-            $params[':kw3'] = '%' . $q . '%';
+            $escapedQ = addcslashes($q, '%_\\');
+            $sql .= ' AND (title LIKE :kw1 ESCAPE "\\" OR summary LIKE :kw2 ESCAPE "\\" OR content LIKE :kw3 ESCAPE "\\")';
+            $params[':kw1'] = '%' . $escapedQ . '%';
+            $params[':kw2'] = '%' . $escapedQ . '%';
+            $params[':kw3'] = '%' . $escapedQ . '%';
         }
 
         return $sql;
@@ -243,17 +244,39 @@ class Post
     {
         if ($this->db === null) return [];
 
-        $sql = 'SELECT * FROM posts WHERE status = "published"';
         $params = [];
+        $filterWhere = $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
 
-        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
+        $relSelect = '';
+        $relOrder  = '';
+
+        if (!empty($q)) {
+            $escapedQ = addcslashes($q, '%_\\');
+            $relSelect = ', (CASE
+                WHEN title = :q_exact THEN 100
+                WHEN title LIKE :q_prefix ESCAPE "\\" THEN 80
+                WHEN title LIKE :q_title ESCAPE "\\" THEN 60
+                WHEN summary LIKE :q_summary ESCAPE "\\" THEN 30
+                WHEN content LIKE :q_content ESCAPE "\\" THEN 10
+                ELSE 0
+            END) AS relevance_score';
+            $relOrder = 'relevance_score DESC, ';
+
+            $params[':q_exact']   = $q;
+            $params[':q_prefix']  = $escapedQ . '%';
+            $params[':q_title']   = '%' . $escapedQ . '%';
+            $params[':q_summary'] = '%' . $escapedQ . '%';
+            $params[':q_content'] = '%' . $escapedQ . '%';
+        }
+
+        $sql = 'SELECT *' . $relSelect . ' FROM posts WHERE status = "published"' . $filterWhere;
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
             $params[':excludeId'] = $excludeId;
         }
 
-        $sql .= ' ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT :limit OFFSET :offset';
+        $sql .= ' ORDER BY ' . $relOrder . 'COALESCE(published_at, created_at) DESC, id DESC LIMIT :limit OFFSET :offset';
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);

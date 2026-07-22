@@ -93,7 +93,7 @@ if (!empty($currentQ)) {
                         $clearParams = $pageQueryParams;
                         unset($clearParams['q']);
                     ?>
-                    <a href="<?= url('post?' . http_build_query($clearParams)) ?>" class="btn btn--primary btn--sm" style="margin-top: 16px; display: inline-block;">
+                    <a href="<?= url('post?' . http_build_query($clearParams)) ?>" class="btn btn--primary btn--sm news-empty__action">
                         <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Xem lại danh sách
                     </a>
                 </div>
