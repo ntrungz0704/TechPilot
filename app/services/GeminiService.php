@@ -31,7 +31,7 @@ class GeminiService
      */
     private static function sendApiRequest(string $apiKey, string $prompt): string
     {
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
         
         $payload = [
             'contents' => [
