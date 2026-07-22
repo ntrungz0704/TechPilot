@@ -146,35 +146,39 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 
                 <!-- Actions buttons -->
                 <div class="header-actions">
-                    <button type="button" class="header-actions__item theme-toggle" id="themeToggle" aria-label="Chuyển chế độ tối">
-                        <i class="fa-solid fa-moon"></i>
-                        <div class="header-actions__text">
-                            <span>Giao</span>
-                            <strong>Diện</strong>
-                        </div>
-                    </button>
+                    <?php
+                    $isWishlistActive = (strpos($currentPath, 'wishlist') !== false);
+                    $cartCountVal = (int)cartCount();
+                    $isCartActive = ($currentPath === 'cart' || strpos($currentPath, 'cart/') === 0);
+                    ?>
 
-                    <a href="<?= url('profile/wishlist') ?>" class="header-actions__item header-actions__wishlist desktop-only-link">
-                        <i class="fa-regular fa-heart"></i>
-                        <div class="header-actions__text">
-                            <span>Yêu</span>
-                            <strong>Thích</strong>
-                        </div>
+                    <!-- 1. Yêu thích -->
+                    <a href="<?= url('profile/wishlist') ?>" 
+                       class="header-actions__item header-action header-action--wishlist header-actions__wishlist <?= $isWishlistActive ? 'is-active' : '' ?>"
+                       <?= $isWishlistActive ? 'aria-current="page"' : '' ?>
+                       title="Danh sách sản phẩm yêu thích">
+                        <i class="<?= $isWishlistActive ? 'fa-solid' : 'fa-regular' ?> fa-heart header-action__icon" aria-hidden="true"></i>
+                        <span class="header-action__label">Yêu thích</span>
                     </a>
-                    <a href="<?= url('cart') ?>" class="header-actions__item header-actions__cart">
-                        <div class="header-actions__icon-wrapper">
-                            <i class="fa-solid fa-cart-shopping"></i>
-                            <span class="cart-badge"><?= (int)cartCount() ?></span>
+
+                    <!-- 2. Giỏ hàng -->
+                    <a href="<?= url('cart') ?>" 
+                       class="header-actions__item header-action header-action--cart header-actions__cart <?= $isCartActive ? 'is-active' : '' ?>"
+                       <?= $isCartActive ? 'aria-current="page"' : '' ?>
+                       aria-label="Giỏ hàng<?= $cartCountVal > 0 ? ', ' . $cartCountVal . ' sản phẩm' : '' ?>"
+                       title="Giỏ hàng của bạn">
+                        <div class="header-action__icon-wrapper">
+                            <i class="fa-solid fa-cart-shopping header-action__icon" aria-hidden="true"></i>
+                            <?php if ($cartCountVal > 0): ?>
+                                <span class="cart-badge" aria-hidden="true"><?= $cartCountVal > 99 ? '99+' : $cartCountVal ?></span>
+                            <?php endif; ?>
                         </div>
-                        <div class="header-actions__text">
-                            <span>Giỏ</span>
-                            <strong>Hàng</strong>
-                        </div>
+                        <span class="header-action__label">Giỏ hàng</span>
                     </a>
-                    
+
+                    <!-- 3. Đăng nhập / Tài khoản + Thông báo (nếu đã đăng nhập) -->
                     <?php if ($u = currentUser()): ?>
                         <?php
-                        // Fetch unread notifications count dynamically
                         $unreadNotificationsCount = 0;
                         try {
                             require_once ROOT_PATH . '/config/database.php';
@@ -187,39 +191,63 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         } catch (Exception $e) {
                             // Fail silently
                         }
+                        $isNotifActive = (strpos($currentPath, 'notifications') !== false);
+                        $isAccountActive = (strpos($currentPath, 'profile') !== false && !$isNotifActive && !$isWishlistActive);
                         ?>
-                        <a href="<?= url('profile/notifications') ?>" class="header-actions__item header-actions__notifications" style="position: relative; text-decoration: none; color: inherit;">
-                            <i class="fa-solid fa-bell"></i>
-                            <div class="header-actions__text">
-                                <span>Thông</span>
-                                <strong>Báo</strong>
+
+                        <!-- Thông báo (chỉ khi đã đăng nhập) -->
+                        <a href="<?= url('profile/notifications') ?>" 
+                           class="header-actions__item header-action header-action--notifications header-actions__notifications <?= $isNotifActive ? 'is-active' : '' ?>"
+                           <?= $isNotifActive ? 'aria-current="page"' : '' ?>
+                           aria-label="Thông báo<?= $unreadNotificationsCount > 0 ? ', ' . $unreadNotificationsCount . ' chưa đọc' : '' ?>"
+                           title="Thông báo">
+                            <div class="header-action__icon-wrapper">
+                                <i class="fa-solid fa-bell header-action__icon" aria-hidden="true"></i>
+                                <?php if ($unreadNotificationsCount > 0): ?>
+                                    <span class="notification-badge" aria-hidden="true"><?= $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount ?></span>
+                                <?php endif; ?>
                             </div>
-                            <?php if ($unreadNotificationsCount > 0): ?>
-                                <span class="notification-badge" style="position: absolute; top: 0; right: 0; background-color: #EF4444; color: #FFFFFF; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-card); padding: 0 3px; transform: translate(30%, -30%);"><?= $unreadNotificationsCount ?></span>
-                            <?php endif; ?>
+                            <span class="header-action__label">Thông báo</span>
                         </a>
 
-                        <div class="header-actions__item dropdown header-actions__account">
-                            <i class="fa-solid fa-circle-user"></i>
-                            <span><?= e($u['full_name']) ?></span>
-                            <div class="dropdown__menu">
-                                <a href="<?= url('profile') ?>"><i class="fa-solid fa-user"></i> Trang cá nhân</a>
-                                <a href="<?= url('profile/orders') ?>"><i class="fa-solid fa-box-open"></i> Đơn hàng của tôi</a>
+                        <!-- Tài khoản (Dropdown) -->
+                        <div class="header-actions__item header-action header-action--account dropdown header-actions__account <?= $isAccountActive ? 'is-active' : '' ?>" 
+                             tabindex="0" 
+                             role="button" 
+                             aria-expanded="false" 
+                             aria-haspopup="true"
+                             title="Tài khoản cá nhân">
+                            <i class="fa-solid fa-circle-user header-action__icon" aria-hidden="true"></i>
+                            <span class="header-action__label header-action__username"><?= e($u['full_name']) ?></span>
+                            <i class="fa-solid fa-chevron-down dropdown__chevron" aria-hidden="true"></i>
+                            <div class="dropdown__menu" role="menu">
+                                <a href="<?= url('profile') ?>" role="menuitem"><i class="fa-solid fa-user" aria-hidden="true"></i> Trang cá nhân</a>
+                                <a href="<?= url('profile/orders') ?>" role="menuitem"><i class="fa-solid fa-box-open" aria-hidden="true"></i> Đơn hàng của tôi</a>
                                 <?php if (($u['role'] ?? '') === 'admin'): ?>
-                                    <a href="<?= url('admin') ?>" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield"></i> Trang quản trị</a>
+                                    <a href="<?= url('admin') ?>" role="menuitem" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Trang quản trị</a>
                                 <?php endif; ?>
-                                <a href="<?= url('auth/logout') ?>"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
+                                <a href="<?= url('auth/logout') ?>" role="menuitem"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Đăng xuất</a>
                             </div>
                         </div>
                     <?php else: ?>
-                        <a href="<?= url('auth/login') ?>" class="header-actions__item header-actions__account">
-                            <i class="fa-regular fa-circle-user"></i>
-                            <div class="header-actions__text">
-                                <span>Đăng</span>
-                                <strong>Nhập</strong>
-                            </div>
+                        <?php $isLoginActive = (strpos($currentPath, 'auth/login') !== false); ?>
+                        <a href="<?= url('auth/login') ?>" 
+                           class="header-actions__item header-action header-action--account header-actions__account <?= $isLoginActive ? 'is-active' : '' ?>"
+                           <?= $isLoginActive ? 'aria-current="page"' : '' ?>
+                           title="Đăng nhập tài khoản">
+                            <i class="fa-regular fa-circle-user header-action__icon" aria-hidden="true"></i>
+                            <span class="header-action__label">Đăng nhập</span>
                         </a>
                     <?php endif; ?>
+
+                    <!-- 4. Theme Switch (Icon-only, luôn ở cuối) -->
+                    <button type="button" 
+                            class="header-actions__item header-action header-action--theme theme-toggle" 
+                            id="themeToggle" 
+                            aria-label="Chuyển chế độ tối"
+                            title="Chuyển chế độ tối">
+                        <i class="fa-solid fa-moon header-action__icon" aria-hidden="true"></i>
+                    </button>
                 </div>
 
             </div>

@@ -304,6 +304,12 @@ button {
     .techpilot-topbar__group[aria-hidden="true"] {
         display: none;
     }
+
+    .header-action,
+    .header-actions__item,
+    .dropdown__chevron {
+        transition: none !important;
+    }
 }
 
 /* Mobile + Reduced Motion */
@@ -467,93 +473,202 @@ html.dark-mode .logo-text span {
     font-size: 18px;
 }
 
+/* ==========================================================================
+   HEADER ACTIONS (Refactored UX/UI Design System)
+   ========================================================================== */
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
     flex-shrink: 0;
     white-space: nowrap;
 }
 
+.header-action,
 .header-actions__item {
-    display: flex;
-    flex-direction: row;
+    min-height: 44px;
+    height: 44px;
+    padding-inline: 12px;
+    display: inline-flex;
     align-items: center;
-    color: var(--text-primary);
-    font-size: 11px;
-    font-weight: 500;
-    gap: 6px;
-    position: relative;
-    cursor: pointer;
-    background: none;
-    border: none;
-    text-decoration: none;
-    text-align: left;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-elem, 12px);
     white-space: nowrap;
-    flex-shrink: 0;
-    padding: 6px 8px;
-    border-radius: var(--radius-elem);
-    margin: 0;
-    transition: var(--transition);
+    color: var(--text-primary);
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.header-actions__item i {
+.header-action__icon,
+.header-actions__item i:not(.dropdown__chevron) {
     font-size: 20px;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.header-actions__item:hover {
-    color: var(--primary);
+.header-action__label {
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
-.header-actions__icon-wrapper {
+.header-action__icon-wrapper {
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
-.header-actions__text {
-    display: flex;
-    flex-direction: column;
+/* Interactive States: Hover */
+.header-action:hover,
+.header-actions__item:hover {
+    color: var(--primary);
+    background-color: rgba(10, 91, 255, 0.08);
+    border-color: rgba(10, 91, 255, 0.25);
 }
 
-.header-actions__text span {
-    font-size: 10px;
-    opacity: 0.8;
+html.dark-mode .header-action:hover,
+html.dark-mode .header-actions__item:hover {
+    color: var(--primary);
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.header-actions__text strong {
-    font-size: 12px;
-    font-weight: 700;
+/* Focus-visible for keyboard accessibility */
+.header-action:focus-visible,
+.header-actions__item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
+/* Active / Current Page State */
+.header-action.is-active,
+.header-action[aria-current="page"],
+.header-actions__item.is-active {
+    color: var(--primary);
+    border-color: var(--primary);
+    background-color: rgba(10, 91, 255, 0.1);
+    font-weight: 600;
+}
+
+html.dark-mode .header-action.is-active,
+html.dark-mode .header-action[aria-current="page"] {
+    background-color: rgba(10, 91, 255, 0.2);
+    border-color: var(--primary);
+}
+
+/* 1. Theme Toggle Button (Icon-Only, 44x44px) */
+.header-action--theme,
+.header-actions__item.theme-toggle {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+}
+
+/* 2. Wishlist Active State */
+.header-action--wishlist.is-active .header-action__icon {
+    color: #EF4444;
+}
+
+/* 3. Cart Action (Highlighted Visual Priority) */
+.header-action--cart,
 .header-actions__cart {
-    background-color: var(--secondary);
-    padding: 6px 12px;
-    border-radius: var(--radius-elem);
+    background-color: rgba(10, 91, 255, 0.06);
+    border: 1px solid rgba(10, 91, 255, 0.18);
+    color: var(--primary);
+    font-weight: 600;
 }
 
-.cart-badge {
+html.dark-mode .header-action--cart,
+html.dark-mode .header-actions__cart {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}
+
+.header-action--cart:hover,
+.header-actions__cart:hover {
+    background-color: var(--primary);
+    color: #FFFFFF;
+    border-color: var(--primary);
+}
+
+/* Badges (Cart & Notification) */
+.cart-badge,
+.notification-badge {
     position: absolute;
     top: -6px;
     right: -8px;
-    background-color: var(--accent);
-    color: #fff;
+    background-color: var(--accent, #FF4D4F);
+    color: #FFFFFF;
     font-size: 10px;
     font-weight: 700;
-    min-width: 16px;
-    height: 16px;
+    min-width: 18px;
+    height: 18px;
     padding: 0 4px;
-    border-radius: 10px;
-    display: flex;
+    border-radius: 999px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    border: 2px solid var(--surface-card);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    line-height: 1;
+    z-index: 2;
+}
+
+.dropdown__chevron {
+    font-size: 11px !important;
+    margin-left: 2px;
+    opacity: 0.7;
+    transition: transform 0.2s ease;
+}
+
+.dropdown:hover .dropdown__chevron,
+.dropdown:focus-within .dropdown__chevron {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 1279px) and (min-width: 1025px) {
+    .header-action--wishlist .header-action__label {
+        display: none;
+    }
+    .header-action--wishlist {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 1024px) {
-    .header-actions__item span {
+    .header-action--wishlist .header-action__label,
+    .header-action--notifications .header-action__label {
         display: none;
+    }
+    .header-action--wishlist,
+    .header-action--notifications {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+        justify-content: center;
     }
 
     .search-bar {
@@ -3638,56 +3753,32 @@ body {
     }
 
     /* Header actions: chÃ¡Â»â€° giÃ¡Â»Â hÃƒÂ ng + tÃƒÂ i khoÃ¡ÂºÂ£n */
+    /* Header actions on Mobile */
     .header-actions {
-        gap: 4px !important;
+        gap: 6px !important;
         align-items: center !important;
         flex-shrink: 0 !important;
     }
 
+    .header-action,
     .header-actions__item {
-        display: flex !important;
+        display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        color: var(--text-primary) !important;
-        position: relative !important;
-        text-decoration: none !important;
-        width: 40px !important;
-        height: 40px !important;
-        background: none !important;
-        border: none !important;
-        flex-direction: column !important;
-        cursor: pointer !important;
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        border-radius: 10px !important;
     }
 
-    .header-actions__item i {
-        font-size: 20px !important;
-    }
-
-    .header-actions__item span:not(.cart-badge) {
+    .header-action__label {
         display: none !important;
     }
 
-    /* Ã¡ÂºÂ¨n nhÃ¡Â»Â¯ng nÃƒÂºt ÃƒÂ­t dÃƒÂ¹ng trÃƒÂªn mobile */
-    .header-actions__item.theme-toggle,
-    .header-actions__item:nth-child(2),
-    .header-actions__wishlist {
+    .header-action--wishlist {
         display: none !important;
-    }
-
-    .cart-badge {
-        position: absolute !important;
-        top: -6px !important;
-        right: -8px !important;
-        background-color: #EF4444 !important;
-        color: #fff !important;
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        width: 16px !important;
-        height: 16px !important;
-        border-radius: 50% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
     }
 
     /* 3. Mobile Search Container - ngay dÃ†Â°Ã¡Â»â€ºi header, scroll cÃƒÂ¹ng trang */
