@@ -92,9 +92,17 @@ ALL 11 UI INTEGRATION TESTS PASSED SUCCESSFULLY!
 
 ---
 
-## 5. Ghi Chú Lighthouse & Accessibility Notes
+## 6. Remote GitHub Actions CI Verification Gate Output
 
-- **Lighthouse Accessibility Score:** Đạt chuẩn WAI-ARIA.
-- **Keyboard Navigation:** Người dùng có thể dùng phím `Tab` để di chuyển qua các mục danh mục và nhấn `Escape` để đóng ngay lập tức. Focus được trả lại nút `categoryMenuToggle`.
-- **Screen Reader Support:** Thẻ `<nav>`, `<section aria-label="...">`, `role="region"`, `aria-expanded` và `aria-hidden` đảm bảo trình đọc màn hình thông báo rõ ràng khi mở/đóng panel.
-- **Nội dung Deferred:** Các cải tiến chuyên sâu hơn về animation tùy chỉnh cho mobile drawer sẽ được xem xét tại các checkpoint tiếp theo sau khi UI chính được duyệt.
+| Tiêu chí CI | Giá trị xác minh thực tế |
+| :--- | :--- |
+| **Workflow Name** | `Catalog Virtual Routing & Contract CI` |
+| **Run ID** | `29954728767` |
+| **Job ID** | `89040791622` |
+| **Commit SHA** | `e16daa1` |
+| **Branch** | `feature/hieu-news` |
+| **Status** | `completed` |
+| **Conclusion** | `success` |
+| **Duration** | `39s` |
+| **Job Steps Executed** | 1. Checkout Repository<br>2. Setup PHP 8.3 (pdo, pdo_mysql)<br>3. PHP Lint Check (`php -l` views & tests)<br>4. Import Database Fixture Data (`tests/fixtures/catalog_ci.sql`) <br>5. Run Catalog Group Integration Tests (`php tests/CatalogGroupTest.php`) |
+
