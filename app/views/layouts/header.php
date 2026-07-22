@@ -262,7 +262,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                 <div class="container main-nav__inner">
                     <ul class="main-nav__links">
                         <li><a href="<?= url('/') ?>" class="<?= $activeMenu === 'home' ? 'is-active' : '' ?>">Trang chủ</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-gaming') ?>" class="<?= $activeMenu === 'laptop-gaming' ? 'is-active' : '' ?>">PC Gaming</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-build-san') ?>" class="<?= $activeMenu === 'pc-build-san' ? 'is-active' : '' ?>">PC Gaming</a></li>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="<?= $activeMenu === 'laptop-van-phong' ? 'is-active' : '' ?>">Laptop</a></li>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="<?= $activeMenu === 'pc-linh-kien' ? 'is-active' : '' ?>">Linh kiện PC</a></li>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>" class="<?= $activeMenu === 'man-hinh' ? 'is-active' : '' ?>">Màn hình</a></li>

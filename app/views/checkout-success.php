@@ -27,7 +27,7 @@ $order = $order ?? [];
             </div>
             <div class="detail-row">
                 <span>Số điện thoại</span>
-                <strong><?= e($order['phone'] ?? '') ?></strong>
+                <strong><?= e(formatPhone($order['phone'] ?? '')) ?></strong>
             </div>
             <div class="detail-row">
                 <span>Địa chỉ giao hàng</span>
