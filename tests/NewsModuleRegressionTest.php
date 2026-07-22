@@ -154,11 +154,13 @@ class NewsModuleRegressionTest
     {
         echo "\n--- 4. Testing Search Relevance Logic & LIKE Escaping ---\n";
 
-        $term = "RTX 5090_test%";
-        $escapedTerm = addcslashes($term, '%_\\');
+        $postModel = new Post();
+        $term = "RTX!5090_test%";
+        $escapedTerm = $postModel->escapeLikeTerm($term);
 
-        $this->assert(str_contains($escapedTerm, '\_'), "LIKE wildcard '_' is escaped as '\\_'");
-        $this->assert(str_contains($escapedTerm, '\%'), "LIKE wildcard '%' is escaped as '\\%'");
+        $this->assert(str_contains($escapedTerm, '!!'), "LIKE escape char '!' is escaped as '!!'");
+        $this->assert(str_contains($escapedTerm, '!_'), "LIKE wildcard '_' is escaped as '!_'");
+        $this->assert(str_contains($escapedTerm, '!%'), "LIKE wildcard '%' is escaped as '!%'");
 
         // Test ranking score simulation
         $titleExact = "RTX 5090";
