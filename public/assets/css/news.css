@@ -23,6 +23,16 @@
     color: var(--news-text-main);
 }
 
+.news-detail-category-badge {
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.news-empty__action {
+    margin-top: 16px;
+    display: inline-block;
+}
+
 /* ── 2. Layout & Grid ────────────────────────────────────────────────────── */
 .news-layout {
     display: grid;
