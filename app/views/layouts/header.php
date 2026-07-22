@@ -158,7 +158,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                        <?= $isWishlistActive ? 'aria-current="page"' : '' ?>
                        title="Danh sách sản phẩm yêu thích">
                         <i class="<?= $isWishlistActive ? 'fa-solid' : 'fa-regular' ?> fa-heart header-action__icon" aria-hidden="true"></i>
-                        <span class="header-action__label">Yêu thích</span>
+                        <span class="header-actions__label header-action__label">Yêu thích</span>
                     </a>
 
                     <!-- 2. Giỏ hàng -->
@@ -173,7 +173,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                                 <span class="cart-badge" aria-hidden="true"><?= $cartCountVal > 99 ? '99+' : $cartCountVal ?></span>
                             <?php endif; ?>
                         </div>
-                        <span class="header-action__label">Giỏ hàng</span>
+                        <span class="header-actions__label header-action__label">Giỏ hàng</span>
                     </a>
 
                     <!-- 3. Đăng nhập / Tài khoản + Thông báo (nếu đã đăng nhập) -->
@@ -207,7 +207,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                                     <span class="notification-badge" aria-hidden="true"><?= $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount ?></span>
                                 <?php endif; ?>
                             </div>
-                            <span class="header-action__label">Thông báo</span>
+                            <span class="header-actions__label header-action__label">Thông báo</span>
                         </a>
 
                         <!-- Tài khoản (Dropdown) -->
@@ -218,7 +218,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                              aria-haspopup="true"
                              title="Tài khoản cá nhân">
                             <i class="fa-solid fa-circle-user header-action__icon" aria-hidden="true"></i>
-                            <span class="header-action__label header-action__username"><?= e($u['full_name']) ?></span>
+                            <span class="header-actions__label header-action__label header-action__username"><?= e($u['full_name']) ?></span>
                             <i class="fa-solid fa-chevron-down dropdown__chevron" aria-hidden="true"></i>
                             <div class="dropdown__menu" role="menu">
                                 <a href="<?= url('profile') ?>" role="menuitem"><i class="fa-solid fa-user" aria-hidden="true"></i> Trang cá nhân</a>
@@ -236,17 +236,18 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                            <?= $isLoginActive ? 'aria-current="page"' : '' ?>
                            title="Đăng nhập tài khoản">
                             <i class="fa-regular fa-circle-user header-action__icon" aria-hidden="true"></i>
-                            <span class="header-action__label">Đăng nhập</span>
+                            <span class="header-actions__label header-action__label">Đăng nhập</span>
                         </a>
                     <?php endif; ?>
 
                     <!-- 4. Theme Switch (Icon-only, luôn ở cuối) -->
                     <button type="button" 
-                            class="header-actions__item header-action header-action--theme theme-toggle" 
+                            class="header-actions__item theme-toggle" 
                             id="themeToggle" 
-                            aria-label="Chuyển chế độ tối"
-                            title="Chuyển chế độ tối">
-                        <i class="fa-solid fa-moon header-action__icon" aria-hidden="true"></i>
+                            aria-label="Chuyển sang giao diện tối"
+                            title="Chuyển sang giao diện tối"
+                            aria-pressed="false">
+                        <i class="fa-solid fa-moon" aria-hidden="true"></i>
                     </button>
                 </div>
 

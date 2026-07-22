@@ -7,15 +7,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function applyTheme(isDark) {
         document.documentElement.classList.toggle('dark-mode', isDark);
-        if (themeToggle) {
-            const icon = themeToggle.querySelector('i');
-            if (icon) {
-                icon.className = isDark ? 'fa-solid fa-sun header-action__icon' : 'fa-solid fa-moon header-action__icon';
-            }
-            const labelText = isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
-            themeToggle.setAttribute('aria-label', labelText);
-            themeToggle.setAttribute('title', labelText);
+
+        if (!themeToggle) return;
+
+        const icon = themeToggle.querySelector('i');
+        const nextActionLabel = isDark
+            ? 'Chuyển sang giao diện sáng'
+            : 'Chuyển sang giao diện tối';
+
+        if (icon) {
+            icon.className = isDark
+                ? 'fa-solid fa-sun'
+                : 'fa-solid fa-moon';
+
+            icon.setAttribute('aria-hidden', 'true');
         }
+
+        themeToggle.setAttribute('aria-label', nextActionLabel);
+        themeToggle.setAttribute('title', nextActionLabel);
+        themeToggle.setAttribute('aria-pressed', String(isDark));
     }
 
     if (savedTheme) {
