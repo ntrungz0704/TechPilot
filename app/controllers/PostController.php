@@ -281,6 +281,8 @@ class PostController extends Controller
             $encodedStructuredData = null;
         }
 
+        $hasArticleContent = self::hasRenderableArticleContent($renderedContent);
+
         $this->render('post/detail', [
             'pageTitle'          => $post['title'],
             'title'              => $post['title'] . ' - TechPilot News',
@@ -299,6 +301,7 @@ class PostController extends Controller
             'post'               => $post,
             'related'            => $related,
             'renderedContent'    => $renderedContent,
+            'hasArticleContent'  => $hasArticleContent,
             'articleHeadings'    => $articleHeadings,
             'articleBlocks'      => $articleBlocks,
             'articleWordCount'   => $articleWordCount,
@@ -314,6 +317,19 @@ class PostController extends Controller
             'pageStyles'         => ['assets/css/news.css?v=2.4'],
             'pageScripts'        => ['assets/js/news.js?v=2.3'],
         ]);
+    }
+
+    public static function hasRenderableArticleContent(string $renderedContent): bool
+    {
+        $plainText = trim(
+            html_entity_decode(
+                strip_tags($renderedContent),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            )
+        );
+
+        return $plainText !== '';
     }
 
     /**
