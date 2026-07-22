@@ -1,0 +1,4 @@
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS remember_token VARCHAR(100) DEFAULT NULL AFTER status,
+    ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100) DEFAULT NULL AFTER remember_token,
+    ADD COLUMN IF NOT EXISTS reset_token_expiry DATETIME DEFAULT NULL AFTER reset_token;
