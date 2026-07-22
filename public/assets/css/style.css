@@ -546,8 +546,8 @@ html.dark-mode .logo-text span {
 
 html.dark-mode .header-action:hover,
 html.dark-mode .header-actions__item:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
+    color: #38BDF8;
+    background: rgba(56, 189, 248, 0.14);
     border: none;
 }
 
@@ -567,7 +567,7 @@ html.dark-mode .header-actions__item:hover {
 
 html.dark-mode .header-action:focus-visible,
 html.dark-mode .header-actions__item:focus-visible {
-    box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.35);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.4);
 }
 
 /* Active / Current Page State (Seamless Highlight without Border) */
@@ -582,8 +582,9 @@ html.dark-mode .header-actions__item:focus-visible {
 
 html.dark-mode .header-action.is-active,
 html.dark-mode .header-action[aria-current="page"] {
-    color: #FFFFFF;
-    background: rgba(255, 255, 255, 0.14);
+    color: #38BDF8;
+    background: rgba(56, 189, 248, 0.16);
+    font-weight: 600;
     border: none;
 }
 
@@ -614,9 +615,10 @@ html.dark-mode .header-action[aria-current="page"] {
 
 html.dark-mode .header-action--cart,
 html.dark-mode .header-actions__cart {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(56, 189, 248, 0.12);
     border: none;
-    color: var(--text-primary);
+    color: #38BDF8;
+    font-weight: 600;
 }
 
 .header-action--cart:hover,
@@ -628,8 +630,8 @@ html.dark-mode .header-actions__cart {
 
 html.dark-mode .header-action--cart:hover,
 html.dark-mode .header-actions__cart:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #FFFFFF;
+    background: rgba(56, 189, 248, 0.22);
+    color: #38BDF8;
     border: none;
 }
 
