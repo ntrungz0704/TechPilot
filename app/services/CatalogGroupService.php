@@ -133,17 +133,11 @@ class CatalogGroupService
     /** Connection Provider Seam cho testing / DI */
     private static mixed $customConnectionProvider = null;
 
-    /**
-     * Thiết lập custom Connection Provider dùng cho testing / dependency injection
-     */
     public static function setConnectionProvider(?callable $provider): void
     {
         self::$customConnectionProvider = $provider;
     }
 
-    /**
-     * Lấy PDO connection
-     */
     private static function getConnection(): ?PDO
     {
         if (self::$customConnectionProvider !== null) {
@@ -164,14 +158,12 @@ class CatalogGroupService
             return null;
         }
 
-        // Ưu tiên 1: Exact virtual_slug hoặc key
         foreach (self::$groupDefinitions as $key => $def) {
             if ($key === $input || $def['virtual_slug'] === $input) {
                 return $key;
             }
         }
 
-        // Ưu tiên 2: Group-level route alias (như lap, may-tinh-xach-tay, linh-kien, linh-kien-pc)
         foreach (self::$groupDefinitions as $key => $def) {
             if (in_array($input, $def['group_aliases'], true)) {
                 return $key;
@@ -183,12 +175,6 @@ class CatalogGroupService
 
     /**
      * 2. Resolver API: Chuyển đổi slug/alias thành danh sách source_slugs hợp lệ cho SQL query
-     *
-     * Ưu tiên resolution:
-     * 1. Exact virtual_slug / key -> expand cả group. (vd: 'laptop', 'pc', 'pc-linh-kien')
-     * 2. Group-level route alias -> expand cả group. (vd: 'lap', 'may-tinh-xach-tay', 'linh-kien')
-     * 3. Exact source_slug -> CHỈ trả chính source slug đó! (vd: 'laptop-gaming', 'cpu', 'vga', 'ram')
-     * 4. Unknown slug -> trả [$slugOrAlias]
      */
     public static function resolveSourceSlugs(string $slugOrAlias): array
     {
@@ -197,26 +183,20 @@ class CatalogGroupService
             return [];
         }
 
-        // Ưu tiên 1 & 2: Virtual Group Slug / Key / Group Alias (vd: 'laptop', 'pc', 'pc-linh-kien', 'linh-kien')
         $groupKey = self::resolveGroupKey($input);
         if ($groupKey !== null && isset(self::$groupDefinitions[$groupKey])) {
             return self::$groupDefinitions[$groupKey]['source_slugs'];
         }
 
-        // Ưu tiên 3: Exact source_slug -> CHỈ trả chính source slug đó!
         foreach (self::$groupDefinitions as $def) {
             if (in_array($input, $def['source_slugs'], true)) {
                 return [$input];
             }
         }
 
-        // Ưu tiên 4: Unknown slug -> giữ nguyên
         return [$input];
     }
 
-    /**
-     * 3. Resolver API: Lấy định nghĩa tĩnh (static contract) của một Virtual Group theo key
-     */
     public static function getStaticGroupDefinition(string $key): ?array
     {
         $groupKey = self::resolveGroupKey($key) ?? $key;
@@ -224,9 +204,7 @@ class CatalogGroupService
     }
 
     /**
-     * 4. Resolver API: Lấy Tên hiển thị chuẩn (Human-readable Display Name)
-     * - Virtual root slug ('laptop', 'pc', 'pc-linh-kien') -> Tên Virtual Group ('Laptop', 'PC & Build PC', 'Linh kiện PC')
-     * - Exact source slug ('laptop-gaming', 'cpu', 'ram') -> Tên category cụ thể ('Laptop Gaming', 'CPU', 'RAM')
+     * 4. Resolver API: Lấy Tên hiển thị chuẩn
      */
     public static function getDisplayName(string $slugOrAlias): string
     {
@@ -235,18 +213,15 @@ class CatalogGroupService
             return '';
         }
 
-        // Nếu khớp Virtual Group Slug hoặc Key chính thức (laptop, pc, pc-linh-kien, office-gear, networking, v.v.)
         if (isset(self::$groupDefinitions[$input])) {
             return self::$groupDefinitions[$input]['name'];
         }
 
-        // Nếu là group alias thuần túy (không phải là single source slug)
         $groupKey = self::resolveGroupKey($input);
         if ($groupKey !== null && !self::isExactSourceSlug($input)) {
             return self::$groupDefinitions[$groupKey]['name'];
         }
 
-        // Với exact source slug hoặc category slug khác, tra cứu tên category thật từ DB
         $db = self::getConnection();
         if ($db !== null) {
             try {
@@ -262,13 +237,9 @@ class CatalogGroupService
         return ucfirst(str_replace('-', ' ', $input));
     }
 
-    /**
-     * Kiểm tra xem 1 slug có phải là exact source_slug cụ thể hay không
-     */
     private static function isExactSourceSlug(string $slug): bool
     {
         foreach (self::$groupDefinitions as $def) {
-            // pc-linh-kien vừa là virtual_slug vừa là parent slug -> phải được ưu tiên như virtual group
             if ($slug === 'pc-linh-kien') {
                 return false;
             }
@@ -279,17 +250,11 @@ class CatalogGroupService
         return false;
     }
 
-    /**
-     * Trả về mảng map keyword search có target riêng
-     */
     public static function getKeywordAliasMap(): array
     {
         return self::$keywordAliasMap;
     }
 
-    /**
-     * Lấy toàn bộ Virtual Groups được hydrate dữ liệu thời gian thực từ CSDL
-     */
     public static function getAllVirtualGroups(): array
     {
         $db = self::getConnection();
@@ -327,14 +292,11 @@ class CatalogGroupService
         }
     }
 
-    /**
-     * Lấy danh sách các Virtual Groups sẵn sàng hiển thị trên Storefront Menu
-     */
     public static function getStorefrontGroups(): array
     {
         $db = self::getConnection();
         if ($db === null) {
-            return []; // Mảng rỗng an toàn khi DB unavailable
+            return [];
         }
 
         $allGroups = self::getAllVirtualGroups();
@@ -349,9 +311,6 @@ class CatalogGroupService
         return $storefront;
     }
 
-    /**
-     * Hydrate dữ liệu CSDL runtime cho 1 group definition
-     */
     private static function hydrateGroupData(array $def, array $allCats, array $allProds): array
     {
         $sourceSlugs = $def['source_slugs'];
@@ -423,7 +382,7 @@ class CatalogGroupService
             }
         }
 
-        $priceRanges = self::generatePriceRanges($def['key'], $minPrice, $maxPrice);
+        $priceRanges = self::generatePriceRanges($def['key'], $effectivePrices);
 
         return [
             'key'                     => $def['key'],
@@ -445,43 +404,70 @@ class CatalogGroupService
         ];
     }
 
-    private static function generatePriceRanges(string $groupKey, ?float $minPrice, ?float $maxPrice): array
+    /**
+     * Tính toán khoảng giá động dựa trên dữ liệu runtime effective prices.
+     * Chỉ trả về các range có product_count > 0 và các mốc giá không bị ranh giới chồng lấn.
+     */
+    private static function generatePriceRanges(string $groupKey, array $effectivePrices): array
     {
-        if ($minPrice === null || $maxPrice === null) {
+        if (empty($effectivePrices)) {
             return [];
         }
 
+        $templates = [];
         if ($groupKey === 'laptop' || $groupKey === 'pc') {
-            return [
-                ['name' => 'Dưới 15 triệu', 'query' => 'min_price=0&max_price=15000000'],
-                ['name' => 'Từ 15 - 20 triệu', 'query' => 'min_price=15000000&max_price=20000000'],
-                ['name' => 'Từ 20 - 30 triệu', 'query' => 'min_price=20000000&max_price=30000000'],
-                ['name' => 'Trên 30 triệu', 'query' => 'min_price=30000000'],
+            $templates = [
+                ['name' => 'Dưới 15 triệu', 'min_price' => 0, 'max_price' => 15000000, 'query' => 'min_price=0&max_price=15000000'],
+                ['name' => 'Từ 15 - 20 triệu', 'min_price' => 15000001, 'max_price' => 20000000, 'query' => 'min_price=15000001&max_price=20000000'],
+                ['name' => 'Từ 20 - 30 triệu', 'min_price' => 20000001, 'max_price' => 30000000, 'query' => 'min_price=20000001&max_price=30000000'],
+                ['name' => 'Trên 30 triệu', 'min_price' => 30000001, 'max_price' => null, 'query' => 'min_price=30000001'],
+            ];
+        } elseif ($groupKey === 'man-hinh') {
+            $templates = [
+                ['name' => 'Dưới 5 triệu', 'min_price' => 0, 'max_price' => 5000000, 'query' => 'min_price=0&max_price=5000000'],
+                ['name' => 'Từ 5 - 10 triệu', 'min_price' => 5000001, 'max_price' => 10000000, 'query' => 'min_price=5000001&max_price=10000000'],
+                ['name' => 'Trên 10 triệu', 'min_price' => 10000001, 'max_price' => null, 'query' => 'min_price=10000001'],
+            ];
+        } elseif ($groupKey === 'gaming-gear' || $groupKey === 'office-gear') {
+            $templates = [
+                ['name' => 'Dưới 2 triệu', 'min_price' => 0, 'max_price' => 2000000, 'query' => 'min_price=0&max_price=2000000'],
+                ['name' => 'Từ 2 - 5 triệu', 'min_price' => 2000001, 'max_price' => 5000000, 'query' => 'min_price=2000001&max_price=5000000'],
+                ['name' => 'Trên 5 triệu', 'min_price' => 5000001, 'max_price' => null, 'query' => 'min_price=5000001'],
+            ];
+        } else {
+            // Linh kiện PC
+            $templates = [
+                ['name' => 'Dưới 2 triệu', 'min_price' => 0, 'max_price' => 2000000, 'query' => 'min_price=0&max_price=2000000'],
+                ['name' => 'Từ 2 - 5 triệu', 'min_price' => 2000001, 'max_price' => 5000000, 'query' => 'min_price=2000001&max_price=5000000'],
+                ['name' => 'Từ 5 - 10 triệu', 'min_price' => 5000001, 'max_price' => 10000000, 'query' => 'min_price=5000001&max_price=10000000'],
+                ['name' => 'Trên 10 triệu', 'min_price' => 10000001, 'max_price' => null, 'query' => 'min_price=10000001'],
             ];
         }
 
-        if ($groupKey === 'man-hinh') {
-            return [
-                ['name' => 'Dưới 5 triệu', 'query' => 'min_price=0&max_price=5000000'],
-                ['name' => 'Từ 5 - 10 triệu', 'query' => 'min_price=5000000&max_price=10000000'],
-                ['name' => 'Trên 10 triệu', 'query' => 'min_price=10000000'],
-            ];
+        $ranges = [];
+        foreach ($templates as $tpl) {
+            $minP = (float)$tpl['min_price'];
+            $maxP = $tpl['max_price'] !== null ? (float)$tpl['max_price'] : null;
+
+            $matchingCount = 0;
+            foreach ($effectivePrices as $price) {
+                if ($price >= $minP && ($maxP === null || $price <= $maxP)) {
+                    $matchingCount++;
+                }
+            }
+
+            if ($matchingCount > 0) {
+                $ranges[] = [
+                    'name'          => $tpl['name'],
+                    'min_price'     => $minP,
+                    'max_price'     => $maxP,
+                    'product_count' => $matchingCount,
+                    'query'         => $tpl['query'],
+                ];
+            }
         }
 
-        if ($groupKey === 'gaming-gear' || $groupKey === 'office-gear') {
-            return [
-                ['name' => 'Dưới 2 triệu', 'query' => 'min_price=0&max_price=2000000'],
-                ['name' => 'Từ 2 - 5 triệu', 'query' => 'min_price=2000000&max_price=5000000'],
-                ['name' => 'Trên 5 triệu', 'query' => 'min_price=5000000'],
-            ];
-        }
-
-        return [
-            ['name' => 'Dưới 2 triệu', 'query' => 'min_price=0&max_price=2000000'],
-            ['name' => 'Từ 2 - 5 triệu', 'query' => 'min_price=2000000&max_price=5000000'],
-            ['name' => 'Từ 5 - 10 triệu', 'query' => 'min_price=5000000&max_price=10000000'],
-            ['name' => 'Trên 10 triệu', 'query' => 'min_price=10000000'],
-        ];
+        return $ranges;
     }
 
     public static function getFallbackGroups(): array
