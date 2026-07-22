@@ -339,7 +339,7 @@ body.category-scroll-locked {
     align-items: center;
     justify-content: space-between;
     height: 80px;
-    gap: 24px;
+    gap: 16px;
 }
 
 .logo-img-wrapper {
@@ -388,8 +388,9 @@ html.dark-mode .logo-text span {
     background-color: var(--secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius-elem);
-    max-width: 650px;
-    height: 48px;
+    max-width: 440px;
+    min-width: 220px;
+    height: 46px;
     overflow: hidden;
     transition: var(--transition);
 }
@@ -401,10 +402,11 @@ html.dark-mode .logo-text span {
 
 .search-bar input {
     flex: 1;
+    min-width: 0;
     border: none;
     background: transparent;
-    padding: 0 16px;
-    font-size: 14px;
+    padding: 0 14px;
+    font-size: 13.5px;
     color: var(--text-primary);
 }
 
@@ -412,8 +414,9 @@ html.dark-mode .logo-text span {
     border: none;
     background: transparent;
     border-left: 1px solid var(--border);
-    padding: 0 16px;
-    font-size: 13px;
+    padding: 0 10px;
+    max-width: 135px;
+    font-size: 12.5px;
     color: var(--text-secondary);
     cursor: pointer;
     height: 100%;
@@ -423,10 +426,11 @@ html.dark-mode .logo-text span {
     background-color: var(--primary);
     color: #fff;
     border: none;
-    width: 54px;
+    width: 48px;
     height: 100%;
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
+    flex-shrink: 0;
     transition: var(--transition);
 }
 
@@ -458,7 +462,9 @@ html.dark-mode .logo-text span {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .header-actions__item {
@@ -468,7 +474,7 @@ html.dark-mode .logo-text span {
     color: var(--text-primary);
     font-size: 11px;
     font-weight: 500;
-    gap: 8px;
+    gap: 6px;
     position: relative;
     cursor: pointer;
     background: none;
@@ -476,8 +482,11 @@ html.dark-mode .logo-text span {
     text-decoration: none;
     text-align: left;
     white-space: nowrap;
-    padding: 0;
+    flex-shrink: 0;
+    padding: 6px 8px;
+    border-radius: var(--radius-elem);
     margin: 0;
+    transition: var(--transition);
 }
 
 .header-actions__item i {
