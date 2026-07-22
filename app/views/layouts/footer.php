@@ -1165,9 +1165,11 @@
         // Toggle Chat Window
         function toggleChatbot() {
             const windowEl = document.getElementById('tpChatbotWindow');
+            const launcherEl = document.getElementById('tpChatbotLauncher');
             chatbotOpen = !chatbotOpen;
             if (chatbotOpen) {
                 windowEl.classList.add('is-open');
+                if (launcherEl) launcherEl.style.display = 'none';
                 // Khởi tạo tin nhắn chào mừng nếu chưa có
                 const msgBox = document.getElementById('tpChatbotMessages');
                 if (msgBox.children.length === 0) {
@@ -1180,6 +1182,7 @@
                 }
             } else {
                 windowEl.classList.remove('is-open');
+                if (launcherEl) launcherEl.style.display = 'flex';
             }
         }
 
@@ -1431,8 +1434,14 @@
                     reasonsHtml += `<li>✔️ ${r}</li>`;
                 });
 
+                const baseUrl = '<?= rtrim(url(''), '/') ?>';
+                const imgSrc = item.image
+                    ? (item.image.startsWith('http') ? item.image
+                        : (item.image.includes('/') ? baseUrl + '/' + item.image
+                            : baseUrl + '/public/assets/images/products/' + item.image))
+                    : baseUrl + '/public/assets/images/laptop-gaming.jpg';
                 card.innerHTML = `
-                    <img class="tp-rec-img" src="<?= url('assets/images/') ?>${item.image}" onerror="this.src=' public/assets/images/laptop-gaming.jpg'">
+                    <img class="tp-rec-img" src="${imgSrc}" onerror="this.src='${baseUrl}/public/assets/images/laptop-gaming.jpg'">`
                     <div class="tp-rec-info">
                         <h5>${item.name}</h5>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
