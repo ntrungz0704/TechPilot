@@ -1,0 +1,32 @@
+QA Type: PLAYWRIGHT
+Browser: Chromium 1.61.1
+Date: 2026-07-22
+Base URL: http://localhost/TechPilot/public
+
+Route: /post
+Uncaught JavaScript Errors: 0
+Unhandled Promise Rejections: 0
+Console Errors: 0
+Console Warnings: 0
+Result: PASS
+
+Route: /post?q=rtx
+Uncaught JavaScript Errors: 0
+Unhandled Promise Rejections: 0
+Console Errors: 0
+Console Warnings: 0
+Result: PASS
+
+Route: /post?page=999
+Uncaught JavaScript Errors: 0
+Unhandled Promise Rejections: 0
+Console Errors: 0
+Console Warnings: 0
+Result: PASS (Clamped cleanly to page 3)
+
+Route: /post/detail/10-meo-toi-uu-windows-11-tang-toc-may-tinh-choi-game
+Uncaught JavaScript Errors: 0
+Unhandled Promise Rejections: 0
+Console Errors: 0
+Console Warnings: 0
+Result: PASS
