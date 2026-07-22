@@ -342,6 +342,13 @@ body.category-scroll-locked {
     gap: 16px;
 }
 
+.header-left-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
 .logo-img-wrapper {
     background-color: #fff;
     border-radius: 8px;
@@ -388,9 +395,10 @@ html.dark-mode .logo-text span {
     background-color: var(--secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius-elem);
-    max-width: 440px;
-    min-width: 220px;
+    max-width: 540px;
+    min-width: 240px;
     height: 46px;
+    margin: 0 12px;
     overflow: hidden;
     transition: var(--transition);
 }
@@ -462,7 +470,7 @@ html.dark-mode .logo-text span {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     flex-shrink: 0;
     white-space: nowrap;
 }

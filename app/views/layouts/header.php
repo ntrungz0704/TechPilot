@@ -84,7 +84,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=20.0') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=21.0') ?>">
     <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=2.0') ?>">
     <?php foreach ($pageStyles ?? [] as $stylesheet): ?>
         <link rel="stylesheet" href="<?= url($stylesheet) ?>">
@@ -107,25 +107,28 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
         <!-- 2. Main Header -->
         <header class="site-header">
             <div class="container site-header__inner">
-                <!-- Hamburger menu toggle for mobile -->
-                <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Menu Toggle">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
+                <!-- Group trái: Logo & Danh mục -->
+                <div class="header-left-group">
+                    <!-- Hamburger menu toggle for mobile -->
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Menu Toggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
 
-                <!-- Logo Thương hiệu -->
-                <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 1px; text-decoration: none;">
-                    <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
-                    <div class="logo-brand-info">
-                        <span class="logo-brand-title">Tech<span>Pilot</span></span>
-                    </div>
-                </a>
+                    <!-- Logo Thương hiệu -->
+                    <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 1px; text-decoration: none;">
+                        <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
+                        <div class="logo-brand-info">
+                            <span class="logo-brand-title">Tech<span>Pilot</span></span>
+                        </div>
+                    </a>
 
-                <!-- Nút Danh mục sản phẩm -->
-                <button type="button" class="category-toggle desktop-only-link" id="categoryMenuToggle" aria-expanded="false" aria-controls="categoryMegaDropdown">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <span class="desktop-only-link">Danh mục</span>
-                    <i class="category-toggle__chevron fa-solid fa-chevron-down"></i>
-                </button>
+                    <!-- Nút Danh mục sản phẩm -->
+                    <button type="button" class="category-toggle desktop-only-link" id="categoryMenuToggle" aria-expanded="false" aria-controls="categoryMegaDropdown">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span class="desktop-only-link">Danh mục</span>
+                        <i class="category-toggle__chevron fa-solid fa-chevron-down"></i>
+                    </button>
+                </div>
 
                 <!-- Search Bar với Category Dropdown -->
                 <form class="search-bar" action="<?= url('home/search') ?>" method="get" id="headerSearchForm" onsubmit="return cleanSearchParams(this)">
