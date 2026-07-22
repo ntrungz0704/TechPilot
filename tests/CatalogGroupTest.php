@@ -17,7 +17,7 @@ class CatalogGroupTest
     public function runAll(): bool
     {
         echo "==================================================\n";
-        echo "RUNNING CHECKPOINT 1 V3 — CATALOG ROUTING & CONTRACT INTEGRATION TESTS\n";
+        echo "RUNNING CHECKPOINT 1 V4 — CATALOG ROUTING & CONTRACT INTEGRATION TESTS\n";
         echo "==================================================\n\n";
 
         $pdo = Database::getConnection();
@@ -27,10 +27,11 @@ class CatalogGroupTest
         $this->testCategoryRouteCounts();
         $this->testKeywordSearchTargetedCounts();
         $this->testSubgroupCPULinkAndNoExpansion();
-        $this->testHomepageSectionSeparation();
+        $this->testExactSourceRouteNoDescendantExpansionTransaction();
+        $this->testRealCategoryInactiveTransaction();
+        $this->testDataBackedPriceRanges();
         $this->testPageTitlesVirtualVsExact();
-        $this->testInactiveCategoryExclusion();
-        $this->testHomeControllerRouteExecution();
+        $this->testHomeControllerRouteHeaderTitleParsing();
         $this->testDatabaseUnavailableDependencyInjectionSeam();
         $this->testZeroDatabaseMutations($initialCatCount, $initialProdCount);
 
@@ -115,32 +116,122 @@ class CatalogGroupTest
         );
     }
 
-    private function testHomepageSectionSeparation(): void
+    private function testExactSourceRouteNoDescendantExpansionTransaction(): void
     {
-        $productModel = new Product();
-        $gamingProds = $productModel->getByCategorySlug('laptop-gaming', 100);
-        $vpProds = $productModel->getByCategorySlug('laptop-van-phong', 100);
+        $pdo = Database::getConnection();
+        $pdo->beginTransaction();
 
-        $gamingContainsVP = false;
-        foreach ($gamingProds as $p) {
-            if (($p['category_slug'] ?? '') === 'laptop-van-phong') {
-                $gamingContainsVP = true;
+        try {
+            // 1. Chèn 1 category con thử nghiệm dưới CPU (category ID 10)
+            $stmtCat = $pdo->prepare("INSERT INTO categories (name, slug, parent_id, status) VALUES ('CPU Intel Gen 14', 'cpu-intel-gen14', 10, 'active')");
+            $stmtCat->execute();
+            $newCatId = (int)$pdo->lastInsertId();
+
+            // 2. Chèn 1 sản phẩm active thử nghiệm vào category con mới này
+            $stmtProd = $pdo->prepare("INSERT INTO products (name, slug, category_id, price, status) VALUES ('Test CPU Gen 14', 'test-cpu-gen14', :cat_id, 5000000, 'active')");
+            $stmtProd->execute([':cat_id' => $newCatId]);
+
+            $productModel = new Product();
+            $cpuSearchCount = $productModel->countSearch('', 'cpu');
+            $cpuProds = $productModel->getByCategorySlug('cpu', 100);
+
+            $containsTestProd = false;
+            foreach ($cpuProds as $p) {
+                if (($p['slug'] ?? '') === 'test-cpu-gen14') {
+                    $containsTestProd = true;
+                    break;
+                }
+            }
+
+            $pass = ($cpuSearchCount === 40) && !$containsTestProd;
+            $this->record(
+                "16. Exact source route 'cpu' locked: does NOT expand descendants in SQL",
+                $pass,
+                "cpuSearchCount: $cpuSearchCount (expected 40), containsTestProd: " . ($containsTestProd ? 'Yes' : 'No')
+            );
+        } finally {
+            $pdo->rollBack(); // Khôi phục trạng thái CSDL hoàn toàn
+        }
+    }
+
+    private function testRealCategoryInactiveTransaction(): void
+    {
+        $pdo = Database::getConnection();
+        $pdo->beginTransaction();
+
+        try {
+            // Chuyển category laptop-gaming (ID 1) sang inactive
+            $pdo->exec("UPDATE categories SET status = 'inactive' WHERE id = 1");
+
+            $productModel = new Product();
+            $gamingCount = $productModel->countSearch('', 'laptop-gaming');
+            $laptopGroupCount = $productModel->countSearch('', 'laptop');
+            $gamingProds = $productModel->search('', 'laptop-gaming', 50, 0);
+
+            $pass = ($gamingCount === 0) && ($laptopGroupCount === 36) && empty($gamingProds);
+            $this->record(
+                "17. Real category inactive transaction excludes products from search()",
+                $pass,
+                "gamingCount: $gamingCount, laptopGroupCount: $laptopGroupCount, gamingProdsCount: " . count($gamingProds)
+            );
+        } finally {
+            $pdo->rollBack();
+        }
+    }
+
+    private function testDataBackedPriceRanges(): void
+    {
+        $groups = CatalogGroupService::getAllVirtualGroups();
+        $productModel = new Product();
+        $allPass = true;
+        $errMsg = "";
+
+        foreach ($groups as $gKey => $group) {
+            $ranges = $group['price_ranges'] ?? [];
+
+            // 1. Kiểm tra Laptop & PC không được có range rỗng
+            if (($gKey === 'laptop' || $gKey === 'pc') && empty($ranges)) {
+                $allPass = false;
+                $errMsg = "Group $gKey has empty price ranges!";
                 break;
             }
-        }
 
-        $vpContainsGaming = false;
-        foreach ($vpProds as $p) {
-            if (($p['category_slug'] ?? '') === 'laptop-gaming') {
-                $vpContainsGaming = true;
+            $totalRangeCount = 0;
+            foreach ($ranges as $idx => $r) {
+                // 2. Mọi price range phải có product_count > 0
+                if (($r['product_count'] ?? 0) <= 0) {
+                    $allPass = false;
+                    $errMsg = "Group $gKey price range '{$r['name']}' has count 0!";
+                    break 2;
+                }
+
+                // 3. Phân tích query và kiểm tra xem countSearch với min_price/max_price có khớp khai báo
+                parse_str($r['query'], $qParams);
+                $minP = (float)($qParams['min_price'] ?? 0);
+                $maxP = (float)($qParams['max_price'] ?? 0);
+
+                $dbCount = $productModel->countSearch('', $group['virtual_slug'], '', $minP, $maxP);
+                if ($dbCount !== $r['product_count']) {
+                    $allPass = false;
+                    $errMsg = "Group $gKey range '{$r['name']}' query count ($dbCount) != contract product_count ({$r['product_count']})!";
+                    break 2;
+                }
+
+                $totalRangeCount += $r['product_count'];
+            }
+
+            // 4. Tổng số sản phẩm khớp từng range bằng đúng tổng sản phẩm của group (không đếm trùng)
+            if ($group['product_count'] > 0 && $totalRangeCount !== $group['product_count']) {
+                $allPass = false;
+                $errMsg = "Group $gKey range total products ($totalRangeCount) != group total products ({$group['product_count']})!";
                 break;
             }
         }
 
         $this->record(
-            "16. Homepage sections: Laptop Gaming & Laptop VP are strictly isolated",
-            !$gamingContainsVP && !$vpContainsGaming && count($gamingProds) === 38 && count($vpProds) === 36,
-            "Cross contamination in homepage categories"
+            "18. Price ranges are data-backed, non-overlapping, and match runtime DB queries",
+            $allPass,
+            $errMsg
         );
     }
 
@@ -157,44 +248,43 @@ class CatalogGroupTest
         $passExact = ($titleExactGaming === 'Laptop Gaming') && ($titleExactCPU === 'CPU');
 
         $this->record(
-            "17. Page titles: Virtual root ('Laptop') vs Exact source ('CPU') resolve correctly",
+            "19. Page titles: Virtual root ('Laptop') vs Exact source ('CPU') resolve correctly",
             $passVirtual && $passExact,
             "Virtual: '$titleVirtualLaptop', Exact CPU: '$titleExactCPU'"
         );
     }
 
-    private function testInactiveCategoryExclusion(): void
+    private function testHomeControllerRouteHeaderTitleParsing(): void
     {
-        $pdo = Database::getConnection();
-        // Deactivate category ID 9 (networking) temporarily in memory test context or verify inactive status filtering
-        $productModel = new Product();
-        $prods = $productModel->search('', 'networking', 10, 0);
-
-        $this->record(
-            "18. Inactive category / empty category filtering works correctly in search",
-            empty($prods)
-        );
-    }
-
-    private function testHomeControllerRouteExecution(): void
-    {
+        // 1. Kiểm tra route cat=laptop -> HTML title tag chứa <title>Laptop - TechPilot</title> hoặc <title>Laptop</title>
         $_GET['cat'] = 'laptop';
         $_GET['q'] = '';
-
-        // Execute HomeController search via buffering
         ob_start();
         $controller = new HomeController();
         $controller->search();
-        $output = ob_get_clean();
+        $htmlLaptop = ob_get_clean();
 
-        $pass = str_contains($output, 'Laptop') && !empty($output);
+        preg_match('/<title>(.*?)<\/title>/is', $htmlLaptop, $matchesLaptop);
+        $titleTextLaptop = trim($matchesLaptop[1] ?? '');
+        $passLaptop = str_contains($titleTextLaptop, 'Laptop');
+
+        // 2. Kiểm tra route cat=cpu -> HTML title tag chứa <title>CPU - TechPilot</title> hoặc <title>CPU</title>
+        $_GET['cat'] = 'cpu';
+        ob_start();
+        $controller = new HomeController();
+        $controller->search();
+        $htmlCPU = ob_get_clean();
+
+        preg_match('/<title>(.*?)<\/title>/is', $htmlCPU, $matchesCPU);
+        $titleTextCPU = trim($matchesCPU[1] ?? '');
+        $passCPU = str_contains($titleTextCPU, 'CPU') && !str_contains($titleTextCPU, 'Linh kiện PC');
 
         unset($_GET['cat'], $_GET['q']);
 
         $this->record(
-            "19. HomeController::search() route execution renders Virtual Group page title",
-            $pass,
-            "Controller rendering failed or title missing"
+            "20. HomeController::search() parses exact <title> tags ('Laptop' & 'CPU')",
+            $passLaptop && $passCPU,
+            "Laptop title: '$titleTextLaptop', CPU title: '$titleTextCPU'"
         );
     }
 
@@ -210,7 +300,7 @@ class CatalogGroupTest
         $pass = empty($storefrontTree) && ($fallbackGroups['laptop']['status'] ?? '') === 'unavailable';
 
         $this->record(
-            "20. DB unavailable SEAM returns empty storefront tree & unavailable status",
+            "21. DB unavailable SEAM returns empty storefront tree & unavailable status",
             $pass
         );
     }
@@ -224,7 +314,7 @@ class CatalogGroupTest
         $pass = ($initialCatCount === $finalCatCount) && ($initialProdCount === $finalProdCount);
 
         $this->record(
-            "21. Zero DB mutations during and after tests",
+            "22. Zero DB mutations during and after tests",
             $pass,
             "DB counts modified! Cats: $initialCatCount -> $finalCatCount, Prods: $initialProdCount -> $finalProdCount"
         );

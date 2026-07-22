@@ -975,35 +975,30 @@ class Product
             require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
             $sourceSlugs = CatalogGroupService::resolveSourceSlugs($slug);
 
-            if (count($sourceSlugs) > 1) {
-                $inClause = implode(',', array_fill(0, count($sourceSlugs), '?'));
-                $sql = "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
-                        FROM products p
-                        JOIN categories c ON p.category_id = c.id
-                        LEFT JOIN brands b ON p.brand_id = b.id
-                        WHERE p.status = 'active' AND c.status = 'active' AND c.slug IN ($inClause)
-                        ORDER BY p.id DESC LIMIT ?";
-                $stmt = $this->db->prepare($sql);
-                $idx = 1;
-                foreach ($sourceSlugs as $sSlug) {
-                    $stmt->bindValue($idx++, $sSlug);
-                }
-                $stmt->bindValue($idx, $limit, PDO::PARAM_INT);
-                $stmt->execute();
-                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($sourceSlugs)) {
+                return [];
             }
 
-            $stmt = $this->db->prepare(
-                "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
-                 FROM products p
-                 JOIN categories c ON p.category_id = c.id
-                 LEFT JOIN brands b ON p.brand_id = b.id
-                 WHERE p.status = 'active' AND c.status = 'active' 
-                   AND (c.slug = :slug_direct OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug_parent AND status = 'active'))
-                 ORDER BY p.id DESC LIMIT :limit"
-            );
-            $stmt->bindValue(':slug_direct', $slug);
-            $stmt->bindValue(':slug_parent', $slug);
+            $placeholders = [];
+            $params = [];
+            foreach ($sourceSlugs as $i => $sSlug) {
+                $pName = ':sSlug_' . $i;
+                $params[$pName] = $sSlug;
+                $placeholders[] = $pName;
+            }
+
+            $inClause = implode(', ', $placeholders);
+            $sql = "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
+                    FROM products p
+                    JOIN categories c ON p.category_id = c.id
+                    LEFT JOIN brands b ON p.brand_id = b.id
+                    WHERE p.status = 'active' AND c.status = 'active' AND c.slug IN ($inClause)
+                    ORDER BY p.id DESC LIMIT :limit";
+
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k, $v);
+            }
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1342,15 +1337,13 @@ class Product
                 // Giao rỗng -> 0 kết quả
                 $conditions[] = '1 = 0';
             } else {
-                $catConditions = [];
+                $placeholders = [];
                 foreach ($targetSlugs as $i => $slug) {
                     $pName = ':catSlug_' . $i;
                     $params[$pName] = $slug;
-                    $pNameParent = ':catSlugParent_' . $i;
-                    $params[$pNameParent] = $slug;
-                    $catConditions[] = "(c.slug = $pName OR c.parent_id IN (SELECT id FROM categories WHERE slug = $pNameParent AND status = 'active'))";
+                    $placeholders[] = $pName;
                 }
-                $conditions[] = '(' . implode(' OR ', $catConditions) . ')';
+                $conditions[] = 'c.slug IN (' . implode(', ', $placeholders) . ')';
             }
         }
 
