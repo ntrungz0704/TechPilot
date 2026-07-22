@@ -21,14 +21,14 @@
 
 ## C. CP5 Final Validation Candidate Section
 
-- **CP5_VALIDATED_CANDIDATE_SHA**: `50edbc000e95f9363c2da2929392bda42d073431`
-- **CP5_REMOTE_CI_RUN_ID**: `29913922429`
-- **CP5_REMOTE_CI_RUN_NUMBER**: 33
+- **CP5_VALIDATED_CANDIDATE_SHA**: `20563e25eadf25594e4a3d5f3920fe2975a1c0b0`
+- **CP5_REMOTE_CI_RUN_ID**: `29914319331`
+- **CP5_REMOTE_CI_RUN_NUMBER**: 34
 - **CP5_REMOTE_CI_CONCLUSION**: `success`
-- **PHP_JOB**: `success` (Duration: 19s)
-- **DB_JOB**: `success` (Duration: 46s)
+- **PHP_JOB**: `success` (Duration: 23s)
+- **DB_JOB**: `success` (Duration: 47s)
 
-*Note: The candidate SHA above represents the fully validated candidate run prior to this documentation-only metadata correction commit to prevent self-referencing SHA loops.*
+*Note: The candidate SHA above represents the fully validated candidate run prior to this final documentation-only inventory correction commit to prevent self-referencing SHA loops.*
 
 ## D. Blockers Resolved & Technical Architecture
 
@@ -61,7 +61,7 @@
 - `02-rich-detail-mobile.png` — Rich article detail view (Mobile)
 - `03-empty-fallback-desktop.png` — Empty article fallback notice (Desktop)
 - `04-empty-fallback-mobile.png` — Empty article fallback notice (Mobile)
-- `browser-qa-matrix.txt` — CP1 UI QA test matrix
+- `browser-qa-matrix.txt` — CP1 browser QA test matrix
 - `console-summary.txt` — Zero console errors
 - `network-summary.txt` — Zero HTTP errors
 - `test-summary.txt` — Test execution log
@@ -94,11 +94,16 @@
 - `browser-qa-matrix.txt`, `console-summary.txt`, `network-summary.txt`, `db-integration.txt`, `php-tests.txt`, `ci-fix-local-tests.txt`
 
 ### 4. Supporting Historical Corrective Evidence (`docs/reviews/evidence/news-corrective/`)
-- Supporting historical evidence files from pre-checkpoint baseline.
+*Note: Supporting historical baseline evidence, not primary final acceptance source.*
+- `browser-qa-matrix.txt`
+- `console-summary.txt`
+- `db-integration-output.txt`
+- `network-summary.txt`
+- `php-test-output.txt`
 
-### 5. CP5 Final Regression & CI Summaries (`docs/reviews/evidence/news-checkpoints/cp5/`)
+### 5. CP5 Final Summary Directory (`docs/reviews/evidence/news-checkpoints/cp5/`)
 - `final-regression-summary.txt` — Local 306-test execution summary
-- `final-ci-summary.txt` — Remote CI run 29913922429 summary
+- `final-ci-summary.txt` — Remote CI run 29914319331 summary (Candidate SHA 20563e25eadf25594e4a3d5f3920fe2975a1c0b0)
 - `evidence-index.txt` — Complete evidence inventory index
 
 ## F. Automated & Integration Test Suite Summary
