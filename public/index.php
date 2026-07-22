@@ -111,4 +111,16 @@ $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 $router->get('/tin-tuc', 'NewsController@index');
 $router->get('/tin-tuc/{slug}', 'NewsController@show');
 
+// AI & Compare Routes
+$router->get('/compare', 'CompareController@index');
+$router->post('/compare/add', 'CompareController@add');
+$router->post('/compare/remove', 'CompareController@remove');
+$router->post('/ai/compare', 'CompareController@aiCompare');
+
+$router->get('/ai-assistant', 'AiAssistantController@index');
+$router->post('/ai/recommend', 'AiAssistantController@recommend');
+$router->post('/ai/favorite', 'AiAssistantController@saveFavorite');
+
+$router->post('/product/ai-chat', 'ProductController@chat');
+
 $router->dispatch($url);
