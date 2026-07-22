@@ -1,18 +1,13 @@
 <?php
 /**
  * Hot Topics (Xu hướng tìm kiếm)
+ * Partial thuần render - không đọc filesystem / config.
  * Variables: $hotTopics (array), $hotTopicsVariant ('mobile' | 'sidebar')
  */
+$hotTopics = is_array($hotTopics ?? null) ? $hotTopics : [];
 $hotTopicsVariant = $hotTopicsVariant ?? 'mobile';
 
-// Nếu chưa nhận $hotTopics từ view context, thử nạp từ config/news.php làm fallback an toàn
-if (!isset($hotTopics) || !is_array($hotTopics)) {
-    $newsConfigFile = ROOT_PATH . '/config/news.php';
-    $newsConfig     = file_exists($newsConfigFile) ? require $newsConfigFile : [];
-    $hotTopics      = is_array($newsConfig['hot_topics'] ?? null) ? $newsConfig['hot_topics'] : [];
-}
-
-if (empty($hotTopics)) {
+if ($hotTopics === []) {
     return;
 }
 ?>

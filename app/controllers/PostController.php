@@ -15,10 +15,14 @@ class PostController extends Controller
     public function index()
     {
         $page     = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $type     = isset($_GET['type']) ? trim($_GET['type']) : '';
-        $category = isset($_GET['category']) ? trim($_GET['category']) : '';
-        $tag      = isset($_GET['tag']) ? trim($_GET['tag']) : '';
-        $q        = isset($_GET['q']) ? trim(mb_substr($_GET['q'], 0, 150)) : '';
+        $rawType  = $_GET['type'] ?? '';
+        $type     = is_string($rawType) ? trim($rawType) : '';
+        $rawCat   = $_GET['category'] ?? '';
+        $category = is_string($rawCat) ? trim($rawCat) : '';
+        $rawTag   = $_GET['tag'] ?? '';
+        $tag      = is_string($rawTag) ? trim($rawTag) : '';
+        $rawQ     = $_GET['q'] ?? '';
+        $q        = is_string($rawQ) ? trim(mb_substr($rawQ, 0, 150)) : '';
         $limit    = 6;
 
         $featured = null;
@@ -94,7 +98,7 @@ class PostController extends Controller
             'popular'         => $filteredPopular,
             'hotTopics'       => $hotTopics,
             'currentPage'     => $page,
-            'totalPages'      => (int)ceil($total / $limit),
+            'totalPages'      => $totalPages,
             'currentType'     => $type,
             'currentCategory' => $category,
             'currentTag'      => $tag,
