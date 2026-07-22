@@ -11,14 +11,15 @@ if (!fs.existsSync(screenshotDir)) {
 const rootDir = path.join(__dirname, '..');
 const port = 8099;
 const baseUrl = `http://127.0.0.1:${port}/`;
+const routerScript = path.join(__dirname, 'router.php');
 
 (async () => {
     console.log('==================================================');
     console.log('RUNNING BROWSER INTERACTION & ACCESSIBILITY AUDIT SUITE');
     console.log('==================================================\n');
 
-    console.log(`Starting local PHP web server on 127.0.0.1:${port}...`);
-    const phpServer = spawn('php', ['-S', `127.0.0.1:${port}`], { cwd: rootDir, env: process.env });
+    console.log(`Starting local PHP web server on 127.0.0.1:${port} with router.php...`);
+    const phpServer = spawn('php', ['-S', `127.0.0.1:${port}`, routerScript], { cwd: rootDir, env: process.env });
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     let browser;
