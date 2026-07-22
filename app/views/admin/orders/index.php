@@ -44,7 +44,7 @@
                         <tr>
                             <td><strong><a href="<?= url('admin/orders/detail/' . $order['id']) ?>" style="color: var(--primary); text-decoration: none;"><?= e($order['order_code']) ?></a></strong></td>
                             <td><?= e($order['customer_name']) ?></td>
-                            <td><?= e($order['phone']) ?></td>
+                            <td><?= e(formatPhone($order['phone'])) ?></td>
                             <td><strong><?= formatPrice($order['total_amount']) ?></strong></td>
                             <td><span style="font-size: 13px; font-weight: 600;"><?= e($order['payment_method']) ?></span></td>
                             <td>
