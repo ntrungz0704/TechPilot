@@ -1,22 +1,27 @@
+/* ===== CATEGORY MEGA MENU STYLES (V2.0 HARDENED) ===== */
+
 /* ===== BUTTON STYLE ===== */
 .category-toggle {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: transparent;
     border: none;
     color: var(--text-primary);
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 600;
     cursor: pointer;
-    padding: 8px 16px;
+    padding: 8px 14px;
     border-radius: var(--radius-sm);
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
-.category-toggle:hover {
+.category-toggle:hover,
+.category-toggle:focus-visible {
     background: rgba(10, 91, 255, 0.08);
     color: var(--primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .category-toggle.is-active {
@@ -25,7 +30,7 @@
 }
 
 .category-toggle__chevron {
-    font-size: 12px;
+    font-size: 11px;
     transition: transform 0.2s ease;
 }
 
@@ -58,7 +63,7 @@
     left: 0;
     width: 100%;
     z-index: 999;
-    padding: 10px 15px 0 15px; /* offset from header with padding to prevent hover gap */
+    padding-top: 6px;
 }
 
 .category-dropdown[hidden] {
@@ -71,34 +76,43 @@
     display: flex;
     background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
     border: 1px solid #e2e8f0;
     overflow: hidden;
-    min-height: 480px;
+    min-height: 380px;
 }
 
 /* ===== SIDEBAR ===== */
 .category-dropdown__sidebar {
-    width: 280px;
+    width: 260px;
     flex-shrink: 0;
     background: #ffffff;
     border-right: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
-    padding: 12px 0;
+    padding: 8px 0;
+}
+
+.category-sidebar__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
 }
 
 .category-sidebar__item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 24px;
+    width: 100%;
+    padding: 10px 20px;
     color: var(--text-primary);
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
     cursor: pointer;
+    border: none;
 }
 
 .category-sidebar__item-left {
@@ -111,7 +125,7 @@
     width: 20px;
     text-align: center;
     color: #64748b;
-    font-size: 16px;
+    font-size: 15px;
     transition: color 0.15s ease;
 }
 
@@ -121,17 +135,33 @@
     transition: color 0.15s ease;
 }
 
-/* Hover / Active states */
-.category-sidebar__item:hover,
-.category-sidebar__item.is-active {
+.category-mobile-accordion-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Hover / Focus / Active states */
+.category-sidebar__row:hover .category-sidebar__item,
+.category-sidebar__item:focus-visible,
+.category-sidebar__row.is-active .category-sidebar__item {
     background: var(--primary);
     color: #ffffff;
 }
 
-.category-sidebar__item:hover .category-icon,
-.category-sidebar__item.is-active .category-icon,
-.category-sidebar__item:hover .category-chevron,
-.category-sidebar__item.is-active .category-chevron {
+.category-sidebar__item:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px;
+}
+
+.category-sidebar__row:hover .category-icon,
+.category-sidebar__row.is-active .category-icon,
+.category-sidebar__row:hover .category-chevron,
+.category-sidebar__row.is-active .category-chevron {
     color: #ffffff;
 }
 
@@ -140,29 +170,67 @@
     flex-grow: 1;
     background: #f8fafc;
     position: relative;
-    padding: 24px 32px;
+    padding: 20px 28px;
+    min-height: 380px;
 }
 
 .category-mega__panel {
     display: none;
-    animation: fadeIn 0.2s ease;
 }
 
 .category-mega__panel.is-active {
     display: block;
+    animation: fadeIn 0.18s ease-in-out;
+}
+
+.mega-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.mega-panel__group-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.mega-panel__view-all {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s ease;
+}
+
+.mega-panel__view-all:hover,
+.mega-panel__view-all:focus-visible {
+    color: #0043ce;
+    text-decoration: underline;
 }
 
 .mega-panel__inner {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 32px;
+    gap: 28px;
+}
+
+.mega-panel__inner.is-linh-kien-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
 }
 
 .mega-panel__title {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     color: var(--primary);
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -173,21 +241,24 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .mega-panel__list a {
-    color: var(--text-secondary);
+    color: #475569;
     text-decoration: none;
     font-size: 13.5px;
     transition: color 0.15s ease;
 }
 
-.mega-panel__list a:hover {
+.mega-panel__list a:hover,
+.mega-panel__list a:focus-visible {
     color: var(--primary);
+    outline: none;
+    text-decoration: underline;
 }
 
-/* ===== STATIC MODE (HOMEPAGE) ===== */
+/* ===== HOMEPAGE STATIC MODE ===== */
 .category-dropdown.is-static {
     position: relative;
     top: auto;
@@ -196,7 +267,7 @@
     padding: 0;
     width: 100%;
     height: 100%;
-    z-index: 1001; /* Above the overlay which is 1000 */
+    z-index: 1001;
 }
 
 .category-dropdown.is-static .category-dropdown__inner {
@@ -205,7 +276,7 @@
     border: none;
     background: transparent;
     border-radius: 0;
-    display: block; /* Disable flex so it doesn't stretch */
+    display: block;
 }
 
 .category-dropdown.is-static .category-dropdown__sidebar {
@@ -214,43 +285,45 @@
     border-right: none;
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
-    padding: 16px 0;
+    padding: 10px 0;
     background: #ffffff;
     border: 1px solid var(--border);
 }
 
 .category-dropdown.is-static .category-dropdown__mega {
     position: absolute;
-    left: 100%; /* flush with the sidebar so we don't lose hover */
+    left: 100%;
     top: 0;
-    width: calc(100vw - 280px - 300px - 100px); /* rough width of the center carousel */
-    min-width: 700px;
-    height: 100%;
+    width: 720px;
+    min-height: 100%;
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-card);
-    display: none; /* hidden by default */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    display: none;
     background: #ffffff;
     border: 1px solid var(--border);
+    z-index: 1002;
 }
 
 .category-dropdown.is-static .category-mega__panel.is-active {
-    display: block; /* Show when a panel is active */
+    display: block;
 }
 
-/* On static mode, we need to show the mega container if ANY panel is active */
 .category-dropdown.is-static.has-active-panel .category-dropdown__mega {
     display: block;
 }
 
-.category-dropdown.is-static.is-highlighted .category-dropdown__sidebar {
-    box-shadow: 0 0 0 3px rgba(10, 91, 255, 0.4);
-    border-color: var(--primary);
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeIn {
-
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+    .category-mega__panel.is-active,
+    .category-overlay,
+    .category-sidebar__item {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 /* ===== DARK MODE ===== */
@@ -268,23 +341,37 @@ html.dark-mode .category-sidebar__item {
     color: #f1f5f9;
 }
 
+html.dark-mode .category-sidebar__item .category-icon {
+    color: #94a3b8;
+}
+
 html.dark-mode .category-dropdown__mega {
     background: #0f172a;
 }
 
+html.dark-mode .mega-panel__group-name {
+    color: #f8fafc;
+}
+
+html.dark-mode .mega-panel__header {
+    border-color: #334155;
+}
+
+html.dark-mode .mega-panel__title {
+    color: #38bdf8;
+}
+
 html.dark-mode .mega-panel__list a {
-    color: #94a3b8;
+    color: #cbd5e1;
 }
 
 html.dark-mode .mega-panel__list a:hover {
     color: #38bdf8;
 }
 
-/* Dark mode: is-static sidebar & mega panel (homepage) */
 html.dark-mode .category-dropdown.is-static .category-dropdown__sidebar {
     background: #1e293b;
     border-color: #334155;
-    color: #f1f5f9;
 }
 
 html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
@@ -292,30 +379,16 @@ html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
     border-color: #334155;
 }
 
-/* Dark mode: dropdown inner panel (non-static) */
-html.dark-mode .category-dropdown__inner {
-    background: #1e293b;
-    border-color: #334155;
-}
-
-html.dark-mode .category-sidebar__item {
-    color: #f1f5f9;
-}
-
-html.dark-mode .category-sidebar__item .category-icon {
-    color: #94a3b8;
-}
-
-html.dark-mode .mega-panel__title {
-    color: #38bdf8;
-}
-
-/* ===== MOBILE ===== */
+/* ===== MOBILE & TABLET RESPONSIVE (<= 767px) ===== */
 @media (max-width: 767px) {
     .category-toggle {
         display: none !important;
     }
-    
+
+    .category-mobile-accordion-toggle {
+        display: block;
+    }
+
     .category-dropdown {
         position: fixed;
         top: 0;
@@ -323,14 +396,19 @@ html.dark-mode .mega-panel__title {
         width: 85%;
         max-width: 320px;
         height: 100vh;
-        margin-top: 0;
         padding: 0;
         z-index: 1050;
         transition: left 0.3s ease;
+        background: #ffffff;
+    }
+
+    html.dark-mode .category-dropdown {
+        background: #1e293b;
     }
 
     .category-dropdown.is-mobile-open {
         left: 0;
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.2);
     }
 
     .category-dropdown__inner {
@@ -338,15 +416,47 @@ html.dark-mode .mega-panel__title {
         border-radius: 0;
         min-height: 100vh;
         border: none;
+        box-shadow: none;
+        overflow-y: auto;
     }
 
     .category-dropdown__sidebar {
         width: 100%;
-        height: 100vh;
-        overflow-y: auto;
+        height: auto;
+        border-right: none;
+        padding: 16px 0;
+    }
+
+    .category-sidebar__row {
+        flex-wrap: wrap;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    html.dark-mode .category-sidebar__row {
+        border-color: #334155;
+    }
+
+    .category-sidebar__item {
+        width: calc(100% - 48px);
     }
 
     .category-dropdown__mega {
         display: none;
+        width: 100%;
+        padding: 12px 20px;
+        background: #ffffff;
+    }
+
+    html.dark-mode .category-dropdown__mega {
+        background: #1e293b;
+    }
+
+    .category-sidebar__row.is-accordion-open + .category-dropdown__mega,
+    .category-dropdown.is-mobile-open .category-mega__panel.is-active {
+        display: block;
+    }
+
+    .mega-panel__inner.is-linh-kien-grid {
+        grid-template-columns: 1fr;
     }
 }

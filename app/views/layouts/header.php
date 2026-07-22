@@ -132,16 +132,21 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 
                 <!-- Search Bar với Category Dropdown -->
                 <form class="search-bar" action="<?= url('home/search') ?>" method="get" id="headerSearchForm" onsubmit="return cleanSearchParams(this)">
-                    <input type="text" name="q" placeholder="Bạn muốn mua gì hôm nay? Đang giảm giá 50%..." required>
-                    <select name="cat" class="search-bar__select">
+                    <input type="text" name="q" placeholder="Bạn muốn mua gì hôm nay? Đang giảm giá 50%..." value="<?= e($qParam) ?>" required>
+                    <select name="cat" class="search-bar__select" aria-label="Chọn danh mục tìm kiếm">
                         <option value="">Tất cả danh mục</option>
                         <?php
-                        $categoriesList = $globalCategories ?? [];
-                        foreach ($categoriesList as $cat): ?>
-                            <option value="<?= e($cat['slug']) ?>"><?= e($cat['name']) ?></option>
+                        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+                        $storefrontGroups = CatalogGroupService::getStorefrontGroups();
+                        foreach ($storefrontGroups as $group):
+                            $vSlug = $group['virtual_slug'];
+                            $vName = $group['name'];
+                            $isSelected = ($catParam === $vSlug) || in_array($catParam, $group['source_slugs'], true);
+                        ?>
+                            <option value="<?= e($vSlug) ?>" <?= $isSelected ? 'selected' : '' ?>><?= e($vName) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button type="submit" aria-label="Tìm kiếm"><i class="fa-solid fa-magnifying-glass"></i></button>
                 </form>
 
                 <!-- Actions buttons -->
