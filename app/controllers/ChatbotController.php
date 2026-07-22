@@ -242,39 +242,103 @@ class ChatbotController extends Controller
 
         // Nếu người dùng gửi tin nhắn trò chuyện tự nhiên
         if ($queryText !== '') {
+            // Khởi động session nếu chưa có
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            // Khởi tạo ngữ cảnh chatbot nếu chưa có hoặc muốn reset
+            if (!isset($_SESSION['chatbot_context']) || strpos(strtolower($queryText), 'tu dau') !== false || strpos(strtolower($queryText), 'reset') !== false) {
+                $_SESSION['chatbot_context'] = [
+                    'budget' => 'Chưa biết',
+                    'device_type' => 'Chưa biết',
+                    'purpose' => 'Chưa biết',
+                    'software' => 'Chưa biết',
+                    'priority' => 'Chưa biết'
+                ];
+            }
+
             $response = $this->handleNaturalLanguage($queryText);
             if ($response !== null) {
                 echo json_encode($response);
                 exit;
             }
 
-            // Hỏi đáp AI thật sử dụng Gemini
+            // Hỏi đáp AI sử dụng Gemini và nạp session context
             require_once ROOT_PATH . '/app/services/GeminiService.php';
             require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
 
-            // Phát hiện danh mục lọc tự động
-            $categories = $this->detectCategoryFilter($queryText);
-            if (empty($categories)) {
-                $categories = [1, 2]; // Laptop mặc định
+            // 1. Phân tích để cập nhật thông tin trong session từ câu trả lời mới của khách
+            $contextBefore = $_SESSION['chatbot_context'];
+            
+            // Tìm số tiền có trong câu hỏi (Ví dụ: "15 triệu", "15tr", "10 triệu")
+            if (preg_match('/(\d+)\s*(triệu|trieu|tr)/ui', $queryText, $matches)) {
+                $_SESSION['chatbot_context']['budget'] = $matches[1] . ' triệu';
+            } elseif (preg_match('/(\d+)(000000)/', $queryText, $matches)) {
+                $_SESSION['chatbot_context']['budget'] = ($matches[1]) . ' triệu';
             }
 
+            // Phân tích loại máy
+            $rawLower = strtolower($this->removeVietnameseAccents($queryText));
+            if (strpos($rawLower, 'laptop') !== false || strpos($rawLower, 'may xach tay') !== false) {
+                $_SESSION['chatbot_context']['device_type'] = 'Laptop';
+            } elseif (strpos($rawLower, 'pc') !== false || strpos($rawLower, 'may ban') !== false || strpos($rawLower, 'may tinh bo') !== false) {
+                $_SESSION['chatbot_context']['device_type'] = 'PC';
+            }
+
+            // Phân tích mục đích / phần mềm
+            if (strpos($rawLower, 'choi game') !== false || strpos($rawLower, 'game') !== false || strpos($rawLower, 'gaming') !== false) {
+                $_SESSION['chatbot_context']['purpose'] = 'Chơi game';
+            } elseif (strpos($rawLower, 'lap trinh') !== false || strpos($rawLower, 'coder') !== false || strpos($rawLower, 'it ') !== false || strpos($rawLower, 'hoc it') !== false) {
+                $_SESSION['chatbot_context']['purpose'] = 'Lập trình';
+            } elseif (strpos($rawLower, 'do hoa') !== false || strpos($rawLower, 'design') !== false || strpos($rawLower, 'thiet ke') !== false || strpos($rawLower, 'photoshop') !== false) {
+                $_SESSION['chatbot_context']['purpose'] = 'Thiết kế đồ họa';
+            } elseif (strpos($rawLower, 'van phong') !== false || strpos($rawLower, 'hoc tap') !== false || strpos($rawLower, 'excel') !== false) {
+                $_SESSION['chatbot_context']['purpose'] = 'Học tập / Văn phòng';
+            }
+
+            if (strpos($rawLower, 'vs code') !== false || strpos($rawLower, 'android studio') !== false || strpos($rawLower, 'docker') !== false) {
+                $_SESSION['chatbot_context']['software'] = 'Lập trình (VS Code, Android Studio...)';
+            } elseif (strpos($rawLower, 'photoshop') !== false || strpos($rawLower, 'premiere') !== false || strpos($rawLower, 'cad') !== false) {
+                $_SESSION['chatbot_context']['software'] = 'Đồ họa (Photoshop, Premiere...)';
+            }
+
+            // Phân tích ưu tiên
+            if (strpos($rawLower, 'hieu nang') !== false || strpos($rawLower, 'cau hinh') !== false || strpos($rawLower, 'khoe') !== false) {
+                $_SESSION['chatbot_context']['priority'] = 'Hiệu năng';
+            } elseif (strpos($rawLower, 'pin') !== false || strpos($rawLower, 'trau') !== false) {
+                $_SESSION['chatbot_context']['priority'] = 'Pin lâu';
+            } elseif (strpos($rawLower, 'mong nhe') !== false || strpos($rawLower, 'nhe') !== false || strpos($rawLower, 'gon') !== false) {
+                $_SESSION['chatbot_context']['priority'] = 'Mỏng nhẹ';
+            } elseif (strpos($rawLower, 'tiet kiem') !== false || strpos($rawLower, 'gia re') !== false) {
+                $_SESSION['chatbot_context']['priority'] = 'Tiết kiệm chi phí';
+            }
+
+            // Lấy danh mục phù hợp
+            $catId = 2; // Mặc định laptop văn phòng
+            if ($_SESSION['chatbot_context']['device_type'] === 'PC') {
+                $catId = 3; // PC lắp sẵn
+            } elseif ($_SESSION['chatbot_context']['purpose'] === 'Chơi game') {
+                $catId = 1; // Laptop gaming
+            }
+
+            // Lấy danh sách sản phẩm mẫu từ DB
             $productsContext = "";
             $candidatesMap = [];
             try {
-                $placeholders = implode(',', array_fill(0, count($categories), '?'));
                 $stmt = $this->db->prepare(
                     "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
                      FROM products p 
                      LEFT JOIN brands b ON p.brand_id = b.id
                      LEFT JOIN categories c ON p.category_id = c.id
-                     WHERE p.category_id IN ($placeholders) AND p.status = 'active' AND p.stock > 0 
-                     LIMIT 8"
+                     WHERE p.category_id = ? AND p.status = 'active' AND p.stock > 0 
+                     LIMIT 6"
                 );
-                $stmt->execute($categories);
+                $stmt->execute([$catId]);
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 if (!empty($rows)) {
-                    $productsContext = "Dưới đây là một số sản phẩm thật có sẵn tại cửa hàng TechPilot:\n";
+                    $productsContext = "Dưới đây là một số sản phẩm thật có sẵn tại cửa hàng TechPilot để đề xuất khi khách hàng cung cấp đủ dữ liệu:\n";
                     foreach ($rows as $r) {
                         $candidatesMap[$r['id']] = $r;
                         $specs = json_decode($r['specs'] ?? '{}', true) ?: [];
@@ -284,17 +348,36 @@ class ChatbotController extends Controller
                 }
             } catch (Exception $e) {}
 
-            $promptText = "Bạn là trợ lý ảo thông minh TechPilot AI. Khách hàng hỏi: \"$queryText\"\n\n" .
+            // Tạo system prompt chỉ định vai trò tư vấn tự nhiên bám sát luồng thông tin
+            $promptText = "Bạn là TechPilot AI Advisor - Một chuyên viên tư vấn laptop và PC thân thiện, lịch sự và chuyên nghiệp.\n" .
+                          "Nhiệm vụ của bạn là trò chuyện tự nhiên với khách hàng để tìm ra sản phẩm phù hợp nhất.\n\n" .
+                          "=== THÔNG TIN HỘI THOẠI HIỆN TẠI ===\n" .
+                          "- Ngân sách: " . $_SESSION['chatbot_context']['budget'] . "\n" .
+                          "- Loại máy: " . $_SESSION['chatbot_context']['device_type'] . "\n" .
+                          "- Mục đích: " . $_SESSION['chatbot_context']['purpose'] . "\n" .
+                          "- Phần mềm: " . $_SESSION['chatbot_context']['software'] . "\n" .
+                          "- Ưu tiên: " . $_SESSION['chatbot_context']['priority'] . "\n\n" .
+                          "=== LUỒNG HỎI ĐÁP CỦA BẠN ===\n" .
+                          "Hãy kiểm tra thông tin hội thoại từ trên xuống dưới:\n" .
+                          "1. Nếu Ngân sách chưa biết -> Hãy hỏi Ngân sách của khách hàng.\n" .
+                          "2. Nếu Ngân sách đã biết nhưng chưa biết Loại máy (Laptop hay PC) -> Hãy hỏi Laptop hay PC.\n" .
+                          "3. Nếu Loại máy đã biết nhưng chưa biết Mục đích sử dụng -> Hãy hỏi mục đích (Học tập, Lập trình, Đồ họa, Chơi game...)\n" .
+                          "4. Nếu Mục đích đã biết nhưng chưa biết Phần mềm -> Hãy hỏi các phần mềm cụ thể hay dùng (VS Code, Photoshop, AutoCAD...).\n" .
+                          "5. Nếu Phần mềm đã biết nhưng chưa biết Ưu tiên -> Hãy hỏi xem khách ưu tiên gì hơn (Hiệu năng, độ nhẹ, pin lâu, tiết kiệm...).\n" .
+                          "6. Nếu ĐÃ ĐỦ THÔNG TIN -> Tiến hành đề xuất tối đa 3 sản phẩm phù hợp nhất trong danh sách bên dưới kèm lý do kết luận cụ thể.\n\n" .
+                          "=== QUY TẮC PHẢN HỒI QUAN TRỌNG ===\n" .
+                          "- Gọi khách là 'bạn', xưng 'mình'.\n" .
+                          "- Trả lời ngắn gọn, tự nhiên như nhân viên cửa hàng thực tế, tuyệt đối KHÔNG trả lời máy móc hay dùng các câu 'Dựa trên thông tin...', 'Tôi là AI...'\n" .
+                          "- Mỗi lượt chat CHỈ HỎI ĐÚNG 1 CÂU quan trọng nhất còn thiếu. Không hỏi dồn dập nhiều câu cùng lúc.\n" .
+                          "- Luôn phản hồi/dẫn dắt câu trả lời trước của khách trước khi đặt câu hỏi tiếp theo (ví dụ: 'Cảm ơn bạn. Với tầm giá này mình có khá nhiều lựa chọn...', 'Đã rõ, lập trình thì Android Studio khá nặng...').\n" .
+                          "- Nếu đã đủ dữ liệu tư vấn, hãy gợi ý sản phẩm thật và ghi thẻ [RECOMMENDED_IDS: x, y, z] ở dòng cuối cùng.\n\n" .
                           $productsContext . "\n" .
-                          "Nhiệm vụ của bạn:\n" .
-                          "1. Tư vấn thân thiện và giải đáp câu hỏi của khách hàng bằng tiếng Việt.\n" .
-                          "2. Nếu có sản phẩm phù hợp trong danh sách ở trên với yêu cầu của khách, hãy đề xuất từ 1 đến 3 sản phẩm.\n" .
-                          "3. Ở dòng CUỐI CÙNG của câu trả lời, nếu có sản phẩm đề xuất, hãy in thẻ sau: `[RECOMMENDED_IDS: x, y, z]` (với x, y, z là các ID sản phẩm được đề xuất). Nếu không có sản phẩm nào phù hợp, không ghi thẻ này.\n" .
-                          "Hãy viết ngắn gọn 3-4 câu và định dạng Markdown sạch đẹp.";
-            
+                          "Tin nhắn mới nhất của khách hàng: \"$queryText\"";
+
             try {
                 $answer = GeminiService::callGemini($promptText, ['type' => 'general']);
                 
+                // Đồng bộ ngược lại nếu AI phát hiện thông tin khác
                 // Kiểm tra xem có đề xuất sản phẩm nào không
                 if (preg_match('/\[RECOMMENDED_IDS:\s*([\d\s,]+)\]/', $answer, $matches)) {
                     $rawIds = explode(',', $matches[1]);
