@@ -13,7 +13,11 @@
             <img
                 src="<?= postImageUrl($featured['image'] ?? '') ?>"
                 alt="<?= e($featured['title']) ?>"
-                loading="lazy"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
+                width="800"
+                height="450"
                 onerror="this.src='<?= url('assets/images/products/placeholder-component.webp') ?>'"
             >
         </a>
@@ -28,7 +32,6 @@
                 <?php if (!empty($featured['reading_minutes'])): ?>
                     <span><i class="fa-regular fa-hourglass-half" aria-hidden="true"></i> <?= (int)$featured['reading_minutes'] ?> phút đọc</span>
                 <?php endif; ?>
-                <span><i class="fa-regular fa-eye" aria-hidden="true"></i> <?= (int)$featured['views'] ?> lượt xem</span>
             </div>
         </div>
     </div>
@@ -42,13 +45,15 @@
                         src="<?= postImageUrl($pop['image'] ?? '') ?>"
                         alt="<?= e($pop['title']) ?>"
                         loading="lazy"
+                        decoding="async"
+                        width="400"
+                        height="225"
                         onerror="this.src='<?= url('assets/images/products/placeholder-component.webp') ?>'"
                     >
                 </a>
                 <div class="news-hero-popular__content">
                     <h4><a href="<?= url('post/detail/' . e($pop['slug'])) ?>"><?= e($pop['title']) ?></a></h4>
                     <div class="news-meta">
-                        <span><i class="fa-solid fa-user" aria-hidden="true"></i> <?= e($pop['author_name'] ?? 'Admin') ?></span>
                         <span><i class="fa-regular fa-clock" aria-hidden="true"></i> <?= date('d/m/Y', strtotime($pop['published_at'] ?? $pop['created_at'])) ?></span>
                     </div>
                 </div>

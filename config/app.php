@@ -34,6 +34,10 @@ define('BASE_URL', $scriptDir);
 
 define('APP_NAME', 'TechPilot');
 
+if (!defined('APP_URL')) {
+    define('APP_URL', rtrim((string)(getenv('APP_URL') ?: ''), '/'));
+}
+
 // Đường dẫn tuyệt đối tới thư mục gốc dự án
 define('ROOT_PATH', dirname(__DIR__));
 

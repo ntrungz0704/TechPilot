@@ -12,13 +12,15 @@ $totalPages      = $totalPages      ?? 1;
 $currentType     = $currentType     ?? '';
 $currentCategory = $currentCategory ?? '';
 $currentTag      = $currentTag      ?? '';
+$currentQ        = $currentQ        ?? '';
 
 $pageQueryParams = [];
 if (!empty($currentType))     $pageQueryParams['type']     = $currentType;
 if (!empty($currentCategory)) $pageQueryParams['category'] = $currentCategory;
 if (!empty($currentTag))      $pageQueryParams['tag']      = $currentTag;
+if (!empty($currentQ))        $pageQueryParams['q']        = $currentQ;
 
-$hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($currentTag);
+$hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($currentTag) || !empty($currentQ);
 ?>
 
 <section class="container breadcrumb" aria-label="Đường dẫn">
@@ -40,7 +42,9 @@ $hasActiveFilter = !empty($currentType) || !empty($currentCategory) || !empty($c
 <?php
 // Tính toán Tiêu đề danh sách bài viết động theo bộ lọc
 $sectionTitle = 'Bài viết mới nhất';
-if (!empty($currentType) && !empty($currentCategory)) {
+if (!empty($currentQ)) {
+    $sectionTitle = 'Kết quả tìm kiếm cho “' . $currentQ . '”';
+} elseif (!empty($currentType) && !empty($currentCategory)) {
     $sectionTitle = postTypeLabel($currentType) . ' — ' . postCategoryLabel($currentCategory);
 } elseif (!empty($currentType)) {
     $sectionTitle = postTypeLabel($currentType);
@@ -55,7 +59,9 @@ if (!empty($currentType) && !empty($currentCategory)) {
     <div class="news-layout">
         <!-- Cột trái: Danh sách bài viết -->
         <div class="news-main">
-            <h3 class="news-section-title"><?= e($sectionTitle) ?></h3>
+            <div class="news-main-header">
+                <h3 class="news-section-title"><?= e($sectionTitle) ?></h3>
+            </div>
 
             <?php if (!empty($posts)): ?>
                 <div class="news-list">
@@ -65,39 +71,16 @@ if (!empty($currentType) && !empty($currentCategory)) {
                 </div>
 
                 <!-- Phân trang (Pagination) -->
-                <?php if ($totalPages > 1): ?>
-                    <nav class="news-pagination" aria-label="Phân trang">
-                        <?php if ($currentPage > 1): ?>
-                            <?php $prevParams = array_merge($pageQueryParams, ['page' => $currentPage - 1]); ?>
-                            <a href="<?= url('post?' . http_build_query($prevParams)) ?>" class="page-btn" aria-label="Trang trước">
-                                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-                            </a>
-                        <?php endif; ?>
-
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <?php $iParams = array_merge($pageQueryParams, ['page' => $i]); ?>
-                            <a
-                                href="<?= url('post?' . http_build_query($iParams)) ?>"
-                                class="page-btn <?= $currentPage === $i ? 'is-active' : '' ?>"
-                                <?= $currentPage === $i ? 'aria-current="page"' : '' ?>
-                            ><?= $i ?></a>
-                        <?php endfor; ?>
-
-                        <?php if ($currentPage < $totalPages): ?>
-                            <?php $nextParams = array_merge($pageQueryParams, ['page' => $currentPage + 1]); ?>
-                            <a href="<?= url('post?' . http_build_query($nextParams)) ?>" class="page-btn" aria-label="Trang sau">
-                                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                            </a>
-                        <?php endif; ?>
-                    </nav>
-                <?php endif; ?>
+                <?php require __DIR__ . '/partials/_pagination.php'; ?>
 
             <?php else: ?>
                 <div class="news-empty">
                     <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
                     <h4>Chưa có bài viết nào phù hợp</h4>
                     <p>
-                        <?php if (!empty($currentType) || !empty($currentCategory)): ?>
+                        <?php if (!empty($currentQ)): ?>
+                            Không tìm thấy bài viết phù hợp với “<?= e($currentQ) ?>”.
+                        <?php elseif (!empty($currentType) || !empty($currentCategory)): ?>
                             Không tìm thấy bài viết thuộc
                             <strong><?= !empty($currentType) ? postTypeLabel($currentType) : '' ?></strong>
                             <?= (!empty($currentType) && !empty($currentCategory)) ? ' dành cho ' : '' ?>
@@ -106,8 +89,12 @@ if (!empty($currentType) && !empty($currentCategory)) {
                             Hãy chọn bộ lọc hoặc chuyên mục khác.
                         <?php endif; ?>
                     </p>
-                    <a href="<?= url('post') ?>" class="btn btn--primary btn--sm" style="margin-top: 16px; display: inline-block;">
-                        <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Xem tất cả bài viết
+                    <?php 
+                        $clearParams = $pageQueryParams;
+                        unset($clearParams['q']);
+                    ?>
+                    <a href="<?= url('post?' . http_build_query($clearParams)) ?>" class="btn btn--primary btn--sm news-empty__action">
+                        <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Xem lại danh sách
                     </a>
                 </div>
             <?php endif; ?>
@@ -119,7 +106,7 @@ if (!empty($currentType) && !empty($currentCategory)) {
             <!-- Box 1: Bài viết phổ biến -->
             <?php if (!empty($popular)): ?>
             <div class="news-sidebar-widget">
-                <h3 class="widget-title">Bài viết phổ biến</h3>
+                <h3 class="widget-title">Xem nhiều gần đây</h3>
                 <div class="news-popular-list">
                     <?php
                     $rank = 1;
@@ -134,7 +121,13 @@ if (!empty($currentType) && !empty($currentCategory)) {
             </div>
             <?php endif; ?>
 
-            <!-- Widget 2: Mua theo nhu cầu -->
+            <!-- Box 2: Xu hướng tìm kiếm (Sidebar Variant) -->
+            <?php
+            $hotTopicsVariant = 'sidebar';
+            require __DIR__ . '/partials/_hot_topics.php';
+            ?>
+
+            <!-- Box 3: Mua theo nhu cầu -->
             <?php require __DIR__ . '/partials/_buying_needs.php'; ?>
 
         </aside>

@@ -1,0 +1,18 @@
+Browser QA Viewport Matrix (Manual QA):
+
+| Route | 390x844 (Mobile) | 768x1024 (Tablet) | 1024x768 (Desktop Small) | 1440x900 (Desktop Large) |
+| :--- | :---: | :---: | :---: | :---: |
+| /post | PASS | PASS | PASS | PASS |
+| /post?page=1 | PASS | PASS | PASS | PASS |
+| /post?page=999 | PASS | PASS | PASS | PASS |
+| /post?q=rtx | PASS | PASS | PASS | PASS |
+| /post?q=%25 | PASS | PASS | PASS | PASS |
+| /post?q=_ | PASS | PASS | PASS | PASS |
+| /post?type=review&category=laptop | PASS | PASS | PASS | PASS |
+| /post/detail/10-meo-toi-uu-windows-11... | PASS | PASS | PASS | PASS |
+| /post/detail/so-sanh-intel-i9-14900k... | PASS | PASS | PASS | PASS |
+| /post/detail/invalid-slug | PASS | PASS | PASS | PASS |
+
+Tested Slugs:
+- 10-meo-toi-uu-windows-11-tang-toc-may-tinh-choi-game
+- so-sanh-intel-i9-14900k-vs-amd-ryzen-7-7800x3d-vua-gaming
