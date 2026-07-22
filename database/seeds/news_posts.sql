@@ -1,6 +1,7 @@
 -- ============================================================================
--- TechPilot News Module Seed Data
--- Pure INSERT / ON DUPLICATE KEY UPDATE seed file (Non-destructive)
+-- TechPilot News Module Seed Data (LEGACY REFERENCE ONLY)
+-- WARNING: DO NOT EXECUTE DIRECTLY.
+-- Primary news seeding uses database/seeds/news_posts.php and NewsSeederService.
 -- ============================================================================
 
 INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_name, status, views, is_featured, reading_minutes, created_at)

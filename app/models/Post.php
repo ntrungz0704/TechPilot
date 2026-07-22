@@ -11,6 +11,34 @@ class Post
     }
 
     /**
+     * Kiểm tra nội dung bài viết có phải là văn bản giữ chỗ (placeholder) hoặc rỗng hay không.
+     */
+    public static function isPlaceholderContent(?string $content): bool
+    {
+        if ($content === null) {
+            return true;
+        }
+        $trimmed = trim($content);
+        if ($trimmed === '') {
+            return true;
+        }
+        if (mb_strlen($trimmed) < 100) {
+            return true;
+        }
+        $placeholders = [
+            'Nội dung chi tiết đánh giá...',
+            'Nội dung chi tiết mua SSD...',
+            'Nội dung chi tiết RTX 50...',
+        ];
+        foreach ($placeholders as $ph) {
+            if (str_contains($trimmed, $ph)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Kiểm tra tính hợp lệ của nội dung bài viết trước khi xuất bản (published).
      * Trả về mảng ['valid' => bool, 'errors' => array].
      */
@@ -23,18 +51,8 @@ class Post
                 $errors[] = 'Nội dung bài viết xuất bản không được để rỗng.';
             } elseif (mb_strlen($trimmed) < 100) {
                 $errors[] = 'Nội dung bài viết quá ngắn (tối thiểu 100 ký tự).';
-            }
-
-            $placeholders = [
-                'Nội dung chi tiết đánh giá...',
-                'Nội dung chi tiết mua SSD...',
-                'Nội dung chi tiết RTX 50...',
-            ];
-            foreach ($placeholders as $ph) {
-                if (str_contains($trimmed, $ph)) {
-                    $errors[] = 'Nội dung bài viết chứa văn bản giữ chỗ (placeholder) chưa hoàn thiện.';
-                    break;
-                }
+            } elseif (self::isPlaceholderContent($content)) {
+                $errors[] = 'Nội dung bài viết chứa văn bản giữ chỗ (placeholder) chưa hoàn thiện.';
             }
         }
 
