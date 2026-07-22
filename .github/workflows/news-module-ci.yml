@@ -58,9 +58,6 @@ jobs:
       - name: Run Absolute URL Test
         run: php tests/test_absolute_url.php
 
-      - name: Run Author Cases Test
-        run: php tests/test_author_cases.php
-
       - name: Run News Module Regression Test
         run: php tests/NewsModuleRegressionTest.php
 
@@ -110,6 +107,9 @@ jobs:
       - name: Import Database Schema
         run: |
           mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/schema.sql
+
+      - name: Run Author Cases Database Test
+        run: php tests/test_author_cases.php
 
       - name: Run News Database Integration Test
         run: php tests/NewsSearchIntegrationTest.php
