@@ -6,6 +6,7 @@ require_once ROOT_PATH . '/app/models/Notification.php';
 require_once ROOT_PATH . '/app/models/ReturnRequest.php';
 require_once ROOT_PATH . '/app/models/User.php';
 require_once ROOT_PATH . '/app/models/Wishlist.php';
+require_once ROOT_PATH . '/app/models/Address.php';
 
 class ProfileController extends Controller
 {
@@ -14,6 +15,7 @@ class ProfileController extends Controller
     private ReturnRequest $returnModel;
     private User $userModel;
     private Wishlist $wishlistModel;
+    private Address $addressModel;
 
     public function __construct()
     {
@@ -22,6 +24,45 @@ class ProfileController extends Controller
         $this->returnModel = new ReturnRequest();
         $this->userModel = new User();
         $this->wishlistModel = new Wishlist();
+        $this->addressModel = new Address();
+    }
+
+    public function addresses(): void
+    {
+        $user = $this->requireLogin();
+        $this->render('profile/addresses', [
+            'pageTitle' => 'Sổ địa chỉ',
+            'addresses' => $this->addressModel->allForUser((int)$user['id']),
+            'flashes' => pullFlashes(),
+        ], false);
+    }
+
+    public function save_address(): void
+    {
+        $user = $this->requireLogin();
+        $fields = ['recipient_name','phone','address_line','ward','district','province'];
+        $data = [];
+        foreach ($fields as $field) $data[$field] = trim((string)($_POST[$field] ?? ''));
+        $data['is_default'] = isset($_POST['is_default']);
+
+        if ($data['recipient_name'] === '' || !preg_match('/^[0-9+ .()-]{8,20}$/', $data['phone']) || $data['address_line'] === '' || $data['province'] === '') {
+            flash('error', 'Vui lòng nhập đầy đủ tên người nhận, số điện thoại hợp lệ và địa chỉ.');
+        } else {
+            $id = (int)($_POST['id'] ?? 0);
+            $ok = $id > 0
+                ? $this->addressModel->update($id, (int)$user['id'], $data)
+                : $this->addressModel->create((int)$user['id'], $data);
+            flash($ok ? 'success' : 'error', $ok ? 'Đã lưu địa chỉ.' : 'Không thể lưu địa chỉ.');
+        }
+        $this->redirect('profile/addresses');
+    }
+
+    public function delete_address(): void
+    {
+        $user = $this->requireLogin();
+        $ok = $this->addressModel->delete((int)($_POST['id'] ?? 0), (int)$user['id']);
+        flash($ok ? 'success' : 'error', $ok ? 'Đã xóa địa chỉ.' : 'Không tìm thấy địa chỉ.');
+        $this->redirect('profile/addresses');
     }
 
     private function requireLogin(): array
@@ -67,6 +108,35 @@ class ProfileController extends Controller
         ], false);
     }
 
+    public function repay(): void
+    {
+        $user = $this->requireLogin();
+        if (!$this->isPost()) $this->redirect('profile/orders');
+        $orderId = (int)($_POST['order_id'] ?? 0);
+        $order = $this->orderModel->getById($orderId, (int)$user['id']);
+        if (!$order || ($order['payment_method'] ?? '') !== 'VNPAY' || ($order['status'] ?? '') === 'cancelled' || !in_array($order['payment_status'] ?? '', ['failed', 'pending'], true)) {
+            flash('error', 'Đơn hàng này không thể thanh toán lại.');
+            $this->redirect('profile/orders');
+        }
+
+        require_once ROOT_PATH . '/app/services/VnpayService.php';
+        try {
+            $this->orderModel->updatePayment((string)$order['order_code'], 'pending');
+            $_SESSION['last_order'] = array_merge($order, [
+                'payment_status' => 'pending',
+                'total' => (float)$order['total_amount'],
+            ]);
+            header('Location: ' . (new VnpayService())->createPaymentUrl([
+                'order_code' => $order['order_code'],
+                'total' => $order['total_amount'],
+            ]));
+            exit;
+        } catch (Throwable $e) {
+            flash('error', 'Không thể kết nối VNPay. Vui lòng thử lại sau.');
+            $this->redirect('profile/order_detail?id=' . $orderId);
+        }
+    }
+
     /** Hộp thư thông báo */
     public function notifications(): void
     {
@@ -103,6 +173,11 @@ class ProfileController extends Controller
             $this->redirect('profile/orders');
             return;
         }
+
+        if (($order['payment_status'] ?? '') !== 'paid') {
+            flash('error', 'Chỉ đơn hàng đã thanh toán thành công mới có thể yêu cầu đổi trả.');
+            $this->redirect('profile/order_detail?id=' . $orderId);
+        }
         
         $this->render('profile/return', [
             'pageTitle' => 'Yêu cầu đổi trả sản phẩm',
@@ -125,6 +200,11 @@ class ProfileController extends Controller
         }
 
         $orderId = (int)($_POST['order_id'] ?? 0);
+        $order = $this->orderModel->getById($orderId, (int)$user['id']);
+        if (!$order || ($order['payment_status'] ?? '') !== 'paid') {
+            flash('error', 'Đơn hàng chưa thanh toán hoặc không hợp lệ.');
+            $this->redirect('profile/orders');
+        }
         $reason = trim((string)($_POST['reason'] ?? ''));
         $description = trim((string)($_POST['description'] ?? ''));
         $quantities = $_POST['quantity'] ?? []; // mảng [order_item_id => qty]

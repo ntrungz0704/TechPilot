@@ -50,7 +50,8 @@
                                         <?php if ($order['status'] === 'pending') echo 'background-color: #FEF3C7; color: #D97706;';
                                               elseif ($order['status'] === 'completed' || $order['status'] === 'delivered') echo 'background-color: #D1FAE5; color: #059669;';
                                               else echo 'background-color: #FEE2E2; color: #DC2626;'; ?>">
-                                        <?= e($order['status']) ?>
+                                        <?php $statusLabels = ['pending'=>'Chờ xác nhận','confirmed'=>'Đã xác nhận','processing'=>'Đang chuẩn bị hàng','shipping'=>'Đang giao hàng','completed'=>'Hoàn thành','cancelled'=>'Đã hủy']; ?>
+                                        <?= e($statusLabels[$order['status']] ?? $order['status']) ?>
                                     </span>
                                 </div>
                             </div>
@@ -62,9 +63,8 @@
                                 </div>
                                 <div style="display: flex; gap: 10px;">
                                     <a href="<?= url('profile/order_detail?id=' . (int)$order['id']) ?>" class="btn btn--light btn--sm">Chi Tiết</a>
-                                    <?php if ($order['status'] === 'completed'): ?>
-                                        <a href="<?= url('profile/return?order_id=' . (int)$order['id']) ?>" class="btn btn--sm" style="background-color: #F59E0B; border-color: #D97706;">Yêu Cầu Đổi Trả</a>
-                                    <?php endif; ?>
+                                    <!-- Nút đổi trả chỉ cho phép nếu trạng thái thích hợp -->
+                                    <a href="<?= url('profile/return?order_id=' . (int)$order['id']) ?>" class="btn btn--sm" style="background-color: #F59E0B; border-color: #D97706;">Yêu Cầu Đổi Trả</a>
                                 </div>
                             </div>
                         </div>

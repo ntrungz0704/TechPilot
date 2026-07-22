@@ -35,7 +35,7 @@
                         <?php foreach ($order['items'] as $item): ?>
                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); padding-bottom: 15px; flex-wrap: wrap;">
                                 <div style="display: flex; gap: 15px; align-items: center; max-width: 60%;">
-                                    <img src="<?= url('assets/images/' . e($item['image'])) ?>" alt="<?= e($item['product_name']) ?>" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 4px; background: #FFF;">
+                                    <img src="<?= e(productImageUrl($item['image'] ?? '')) ?>" alt="<?= e($item['product_name']) ?>" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 4px; background: #FFF;">
                                     <div>
                                         <h4 style="margin: 0; font-size: 14px; font-weight: 600;"><?= e($item['product_name']) ?></h4>
                                         <span style="font-size: 12.5px; color: var(--text-secondary); display: block; margin-top: 2px;">Đã mua: <?= (int)$item['quantity'] ?> sản phẩm</span>

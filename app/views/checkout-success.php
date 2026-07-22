@@ -1,16 +1,22 @@
 <?php
 $order = $order ?? [];
+$paymentStatus = $order['payment_status'] ?? 'unpaid';
+$isVnpay = ($order['payment_method'] ?? 'COD') === 'VNPAY';
+$paymentFailed = $isVnpay && $paymentStatus === 'failed';
 ?>
 <section class="container breadcrumb">
     <a href="<?= url('/') ?>">Trang chủ</a> <i class="fa-solid fa-chevron-right"></i>
-    <span>Đặt hàng thành công</span>
+    <span><?= $paymentFailed ? 'Thanh toán chưa hoàn tất' : 'Đặt hàng thành công' ?></span>
 </section>
 
 <section class="container success-page">
     <div class="success-card">
-        <i class="fa-solid fa-circle-check"></i>
-        <h1>Đặt hàng thành công!</h1>
-        <p class="success-desc">Cảm ơn bạn đã tin tưởng mua sắm tại TechPilot. Đơn hàng của bạn đã được tiếp nhận và xử lý.</p>
+        <?php if (!empty($order['payment_error'])): ?>
+            <div class="alert alert--error"><?= e($order['payment_error']) ?></div>
+        <?php endif; ?>
+        <i class="fa-solid <?= $paymentFailed ? 'fa-circle-xmark payment-failed-icon' : 'fa-circle-check' ?>"></i>
+        <h1><?= $paymentFailed ? 'Thanh toán chưa thành công' : 'Đặt hàng thành công!' ?></h1>
+        <p class="success-desc"><?= $paymentFailed ? 'Giao dịch VNPay đã bị hủy hoặc không thành công. Đơn hàng chưa được thanh toán.' : 'Cảm ơn bạn đã tin tưởng mua sắm tại TechPilot. Đơn hàng của bạn đã được tiếp nhận và xử lý.' ?></p>
         
         <div class="success-details">
             <div class="detail-row">
@@ -19,7 +25,7 @@ $order = $order ?? [];
             </div>
             <div class="detail-row">
                 <span>Trạng thái thanh toán</span>
-                <span class="status-badge">Chờ xác nhận</span>
+                <span class="status-badge"><?= e($paymentStatus === 'paid' ? 'Đã thanh toán' : ($paymentStatus === 'failed' ? 'Thanh toán thất bại' : ($paymentStatus === 'pending' ? 'Đang chờ VNPay' : 'Chưa thanh toán'))) ?></span>
             </div>
             <div class="detail-row">
                 <span>Người nhận</span>
@@ -35,7 +41,7 @@ $order = $order ?? [];
             </div>
             <div class="detail-row">
                 <span>Phương thức thanh toán</span>
-                <strong><?= e($order['payment_method'] === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : ($order['payment_method'] === 'QR' ? 'Quét mã QR Code' : 'Chuyển khoản ngân hàng')) ?></strong>
+                <strong><?= e(($order['payment_method'] ?? 'COD') === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán trực tuyến qua VNPay') ?></strong>
             </div>
             <div class="detail-row total">
                 <span>Tổng số tiền</span>
@@ -69,6 +75,12 @@ $order = $order ?? [];
     .success-card i.fa-circle-check {
         font-size: 64px;
         color: var(--success);
+        margin-bottom: 20px;
+    }
+
+    .success-card i.payment-failed-icon {
+        font-size: 64px;
+        color: #dc2626;
         margin-bottom: 20px;
     }
 

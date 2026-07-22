@@ -126,18 +126,18 @@ class AdminOrderController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Lấy thông tin hiện tại của đơn hàng
-            $stmt = $db->prepare('SELECT status, user_id, order_code FROM orders WHERE id = :id LIMIT 1');
+            // Lấy trạng thái hiện tại của đơn hàng
+            $stmt = $db->prepare('SELECT status, payment_method, payment_status FROM orders WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $id]);
-            $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
+            $currentOrder = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$orderData) {
+            if (!$currentOrder) {
                 flash('error', 'Đơn hàng không tồn tại.');
                 $this->redirect('admin/orders');
                 return;
             }
 
-            $currentStatus = $orderData['status'];
+            $currentStatus = $currentOrder['status'];
 
             if ($currentStatus === $newStatus) {
                 $this->redirect('admin/orders/detail/' . $id);
@@ -147,13 +147,19 @@ class AdminOrderController extends Controller
             // Cho phép chuyển đổi linh hoạt 100% giữa tất cả các trạng thái để Admin dễ dàng kiểm thử và sửa lỗi vận chuyển
             $allStatuses = ['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'];
             $validTransitions = [
-                'pending'    => $allStatuses,
-                'confirmed'  => $allStatuses,
-                'processing' => $allStatuses,
-                'shipping'   => $allStatuses,
-                'completed'  => $allStatuses,
-                'cancelled'  => $allStatuses
+                'pending'   => ['confirmed', 'cancelled'],
+                'confirmed' => ['processing', 'cancelled'],
+                'processing'=> ['shipping', 'cancelled'],
+                'shipping'  => ['completed', 'cancelled'],
+                'completed' => [],
+                'cancelled' => []
             ];
+
+            if ($newStatus === 'confirmed' && $currentOrder['payment_method'] === 'VNPAY' && $currentOrder['payment_status'] !== 'paid') {
+                flash('error', 'Đơn VNPay chỉ được xác nhận sau khi thanh toán thành công.');
+                $this->redirect('admin/orders/detail/' . $id);
+                return;
+            }
 
             if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
                 flash('error', 'Chuyển đổi trạng thái không hợp lệ (Không thể chuyển từ ' . $currentStatus . ' sang ' . $newStatus . ').');
@@ -164,9 +170,9 @@ class AdminOrderController extends Controller
             $db->beginTransaction();
 
             try {
-                // Nếu đơn hàng chuyển sang Completed -> Tự động đánh dấu đã thanh toán (Paid)
+                // COD được ghi nhận đã thanh toán khi giao hàng hoàn tất.
                 $paymentStatusSql = '';
-                if ($newStatus === 'completed') {
+                if ($newStatus === 'completed' && $currentOrder['payment_method'] === 'COD') {
                     $paymentStatusSql = ', payment_status = \'paid\'';
                 }
 

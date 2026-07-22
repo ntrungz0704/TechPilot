@@ -16,6 +16,9 @@
 
         <!-- Right Content Area -->
         <div style="flex: 1; min-width: 300px;">
+            <?php foreach ($flashes ?? [] as $message): ?>
+                <div class="alert alert--<?= e($message['type']) ?>" style="margin-bottom:15px"><?= e($message['message']) ?></div>
+            <?php endforeach; ?>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                 <h2 style="margin: 0;">Chi tiết đơn hàng #<?= e($order['order_code']) ?></h2>
                 <a href="<?= url('profile/orders') ?>" style="text-decoration: none; font-size: 14.5px; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-arrow-left"></i> Quay lại lịch sử</a>
@@ -28,7 +31,7 @@
                         <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Thông tin người nhận</h4>
                         <p style="margin: 0; font-weight: 600; font-size: 15px;"><?= e($order['customer_name']) ?></p>
                         <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e($order['phone']) ?></p>
-                        <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e($order['email']) ?></p>
+                        <?php if (!empty($order['email'])): ?><p style="margin: 4px 0 0 0; font-size: 14px; color: var(--text-secondary);"><?= e($order['email']) ?></p><?php endif; ?>
                     </div>
                     <div>
                         <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Địa chỉ giao hàng</h4>
@@ -38,7 +41,8 @@
                         <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Thanh toán & Vận chuyển</h4>
                         <p style="margin: 0; font-size: 14px;">Hình thức: <strong><?= e($order['payment_method']) ?></strong></p>
                         <p style="margin: 4px 0 0 0; font-size: 14px;">Thanh toán: <strong style="text-transform: uppercase;"><?= e($order['payment_status']) ?></strong></p>
-                        <p style="margin: 4px 0 0 0; font-size: 14px;">Vận chuyển: <strong style="text-transform: uppercase;"><?= e($order['status']) ?></strong></p>
+                        <?php $shippingLabels = ['pending'=>'Chờ xác nhận','confirmed'=>'Đã xác nhận','processing'=>'Đang chuẩn bị hàng','shipping'=>'Đang giao hàng','completed'=>'Hoàn thành','cancelled'=>'Đã hủy']; ?>
+                        <p style="margin: 4px 0 0 0; font-size: 14px;">Vận chuyển: <strong><?= e($shippingLabels[$order['status'] ?? 'pending'] ?? 'Chờ xác nhận') ?></strong></p>
                     </div>
                 </div>
 
@@ -57,7 +61,7 @@
                     <?php foreach ($order['items'] as $item): ?>
                         <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
                             <div style="display: flex; gap: 15px; align-items: center;">
-                                <img src="<?= url('assets/images/' . e($item['image'])) ?>" alt="<?= e($item['product_name']) ?>" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: #FFF;">
+                                <img src="<?= e(productImageUrl($item['image'] ?? '')) ?>" alt="<?= e($item['product_name']) ?>" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: #FFF;">
                                 <div>
                                     <h4 style="margin: 0; font-size: 14.5px; font-weight: 600;"><?= e($item['product_name']) ?></h4>
                                     <?php if (!empty($item['variant_name'])): ?>
@@ -102,6 +106,11 @@
                                 <i class="fa-solid fa-ban"></i> Hủy đơn hàng
                             </button>
                         </form>
+                    <?php endif; ?>
+                    <?php if (($order['payment_method'] ?? '') === 'VNPAY' && ($order['status'] ?? '') !== 'cancelled' && in_array($order['payment_status'] ?? '', ['failed', 'pending'], true)): ?>
+                        <form method="post" action="<?= url('profile/repay') ?>" style="margin-top:10px;width:280px"><?= csrf_field() ?><input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>"><button type="submit" class="btn" style="width:100%"><i class="fa-solid fa-credit-card"></i> Thanh toán lại</button></form>
+                    <?php elseif (($order['payment_status'] ?? '') === 'paid'): ?>
+                        <a href="<?= url('profile/return?order_id=' . (int)$order['id']) ?>" class="btn" style="margin-top:10px;width:280px;text-align:center;background:#F59E0B"><i class="fa-solid fa-rotate-left"></i> Yêu cầu đổi trả</a>
                     <?php endif; ?>
                 </div>
             </div>
