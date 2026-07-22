@@ -78,6 +78,9 @@
         <!-- Cập nhật trạng thái -->
         <div class="card" style="margin-bottom: 0;">
             <h3 class="card-title">Trạng thái đơn hàng</h3>
+            <div style="margin-bottom:14px;padding:12px;border-radius:7px;background:<?= ($order['payment_status'] ?? '') === 'paid' ? '#ECFDF5' : '#FFF7ED' ?>">
+                Thanh toán: <strong><?= e(($order['payment_status'] ?? '') === 'paid' ? 'Đã thanh toán' : (($order['payment_status'] ?? '') === 'failed' ? 'Thất bại' : 'Chưa thanh toán')) ?></strong>
+            </div>
             
             <form method="post" action="<?= url('admin/orders/update_status/' . $order['id']) ?>" style="display: flex; flex-direction: column; gap: 15px;">
                 <?= csrf_field() ?>
@@ -86,17 +89,16 @@
                     <label for="status">Thay đổi trạng thái</label>
                     <select name="status" id="status" class="form-control" style="font-weight: 600;">
                         <option value="pending" <?= $order['status'] === 'pending' ? 'selected' : '' ?>>Chờ xử lý (Pending)</option>
-                        <option value="confirmed" <?= $order['status'] === 'confirmed' ? 'selected' : '' ?>>Đã xác nhận (Confirmed)</option>
+                        <option value="confirmed" <?= $order['status'] === 'confirmed' ? 'selected' : '' ?> <?= ($order['payment_method'] ?? '') === 'VNPAY' && ($order['payment_status'] ?? '') !== 'paid' ? 'disabled' : '' ?>>Đã xác nhận (Confirmed)</option>
                         <option value="processing" <?= $order['status'] === 'processing' ? 'selected' : '' ?>>Đang xử lý (Processing)</option>
                         <option value="shipping" <?= $order['status'] === 'shipping' ? 'selected' : '' ?>>Đang giao hàng (Shipping)</option>
                         <option value="completed" <?= $order['status'] === 'completed' ? 'selected' : '' ?>>Hoàn thành (Completed)</option>
                         <option value="cancelled" <?= $order['status'] === 'cancelled' ? 'selected' : '' ?>>Đã huỷ (Cancelled)</option>
-                        <option value="returned" <?= $order['status'] === 'returned' ? 'selected' : '' ?>>Trả hàng (Returned)</option>
                     </select>
                 </div>
 
                 <div style="font-size: 13.5px; line-height: 1.5; background: #FFFBEB; border: 1px solid #FDE68A; padding: 12px; border-radius: 6px; color: #92400E;">
-                    <i class="fa-solid fa-circle-info"></i> Nếu chuyển sang <strong>Completed</strong>, trạng thái thanh toán sẽ tự động chuyển thành <strong>Paid</strong>. Nếu chuyển sang <strong>Cancelled</strong>, tồn kho sản phẩm sẽ được tự động hoàn lại.
+                    <i class="fa-solid fa-circle-info"></i> Đơn VNPay phải thanh toán thành công mới được xác nhận. Với COD, thanh toán tự chuyển thành <strong>Paid</strong> khi đơn hoàn thành. Đơn bị hủy sẽ được hoàn lại tồn kho.
                 </div>
 
                 <button type="submit" class="btn" style="justify-content: center;"><i class="fa-solid fa-floppy-disk"></i> Cập nhật trạng thái</button>

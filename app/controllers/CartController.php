@@ -46,6 +46,7 @@ class CartController extends Controller
                 'name' => $item['name'],
                 'price' => (float)$item['price'],
                 'quantity' => (int)$item['quantity'],
+                'line_total' => (float)$item['price'] * (int)$item['quantity'],
                 'image' => $item['image'],
                 'stock' => (int)$item['stock'],
             ];
@@ -69,9 +70,14 @@ class CartController extends Controller
 
         $cartItems = $_SESSION['cart'] ?? [];
         $subtotal = 0.0;
-        foreach ($cartItems as $item) {
-            $subtotal += (float)$item['price'] * (int)$item['quantity'];
+        foreach ($cartItems as &$item) {
+            $quantity = max(1, (int)($item['quantity'] ?? 1));
+            $price = (float)($item['price'] ?? 0);
+            $item['quantity'] = $quantity;
+            $item['line_total'] = $price * $quantity;
+            $subtotal += $item['line_total'];
         }
+        unset($item);
 
         $this->render('cart', [
             'pageTitle' => 'Giỏ hàng',

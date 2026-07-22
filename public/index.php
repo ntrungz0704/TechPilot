@@ -27,6 +27,11 @@ $router = new Router();
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
 $router->post('/product/review', 'ProductController@review');
 $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
+$router->post('/profile/save_address', 'ProfileController@save_address');
+$router->post('/profile/delete_address', 'ProfileController@delete_address');
+$router->post('/profile/repay', 'ProfileController@repay');
+$router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
+$router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');

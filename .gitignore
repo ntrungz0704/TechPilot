@@ -1,4 +1,5 @@
 /config/database.local.php
+/config/vnpay.local.php
 *.log
 .DS_Store
 Thumbs.db

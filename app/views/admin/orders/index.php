@@ -13,7 +13,6 @@
             <option value="shipping" <?= $status === 'shipping' ? 'selected' : '' ?>>Đang giao hàng (Shipping)</option>
             <option value="completed" <?= $status === 'completed' ? 'selected' : '' ?>>Hoàn thành (Completed)</option>
             <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>Đã huỷ (Cancelled)</option>
-            <option value="returned" <?= $status === 'returned' ? 'selected' : '' ?>>Trả hàng (Returned)</option>
         </select>
 
         <button type="submit" class="btn btn--outline"><i class="fa-solid fa-filter"></i> Lọc đơn</button>

@@ -3,6 +3,7 @@ $cartItems = $cartItems ?? [];
 $subtotal = $subtotal ?? 0;
 $shipping = $shipping ?? 0;
 $total = $total ?? 0;
+$savedAddresses = $savedAddresses ?? [];
 ?>
 
 <section class="container breadcrumb">
@@ -24,6 +25,20 @@ $total = $total ?? 0;
 
         <form method="post" action="<?= url('checkout/submit') ?>" class="checkout-form">
             <?= csrf_field() ?>
+            <?php if ($savedAddresses): ?>
+                <div class="form-group">
+                    <label>Chọn từ sổ địa chỉ</label>
+                    <select id="savedAddress" name="saved_address_id">
+                        <option value="">Nhập địa chỉ khác</option>
+                        <?php foreach ($savedAddresses as $saved): ?>
+                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e(Address::formatted($saved)) ?>">
+                                <?= e($saved['recipient_name']) ?> — <?= e(Address::formatted($saved)) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <a href="<?= url('profile/addresses') ?>" style="font-size:13px">Quản lý sổ địa chỉ</a>
+                </div>
+            <?php endif; ?>
             <div class="form-group">
                 <label>Họ và tên người nhận</label>
                 <input type="text" name="customer_name" required placeholder="Nguyễn Văn A">
@@ -36,6 +51,10 @@ $total = $total ?? 0;
                 <label>Địa chỉ nhận hàng</label>
                 <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"></textarea>
             </div>
+            <label class="save-address-option">
+                <input type="checkbox" name="save_address" value="1">
+                <span><strong>Lưu thông tin giao hàng vào sổ địa chỉ</strong><small>Dùng lại nhanh chóng cho lần mua hàng tiếp theo.</small></span>
+            </label>
             <div class="form-group">
                 <label>Phương thức thanh toán</label>
 
@@ -106,6 +125,16 @@ $total = $total ?? 0;
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const savedAddress = document.getElementById('savedAddress');
+        if (savedAddress) savedAddress.addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            if (!option.value) return;
+            const saveCheckbox = document.querySelector('[name="save_address"]');
+            if (saveCheckbox) saveCheckbox.checked = false;
+            document.querySelector('[name="customer_name"]').value = option.dataset.name || '';
+            document.querySelector('[name="phone"]').value = option.dataset.phone || '';
+            document.querySelector('[name="address"]').value = option.dataset.address || '';
+        });
         const applyBtn = document.getElementById('applyCouponBtn');
         const couponInput = document.getElementById('couponInput');
         const couponMsg = document.getElementById('couponMsg');
@@ -205,6 +234,11 @@ $total = $total ?? 0;
         flex-direction: column;
         gap: 18px;
     }
+
+    .save-address-option { display:flex; align-items:flex-start; gap:10px; padding:14px; border:1px solid var(--border); border-radius:var(--radius-elem); cursor:pointer; background:#f8fafc; }
+    .save-address-option input { width:auto; margin-top:3px; }
+    .save-address-option span { display:grid; gap:3px; }
+    .save-address-option small { color:var(--text-secondary); font-weight:400; }
 
     .form-group {
         display: flex;
