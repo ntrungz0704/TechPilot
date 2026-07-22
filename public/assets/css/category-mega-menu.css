@@ -280,6 +280,36 @@ html.dark-mode .mega-panel__list a:hover {
     color: #38bdf8;
 }
 
+/* Dark mode: is-static sidebar & mega panel (homepage) */
+html.dark-mode .category-dropdown.is-static .category-dropdown__sidebar {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+/* Dark mode: dropdown inner panel (non-static) */
+html.dark-mode .category-dropdown__inner {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+html.dark-mode .category-sidebar__item {
+    color: #f1f5f9;
+}
+
+html.dark-mode .category-sidebar__item .category-icon {
+    color: #94a3b8;
+}
+
+html.dark-mode .mega-panel__title {
+    color: #38bdf8;
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 767px) {
     .category-toggle {

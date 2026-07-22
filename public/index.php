@@ -109,6 +109,8 @@ $router->get('/admin/posts/edit/{id}', 'AdminPostController@edit');
 $router->post('/admin/posts/update/{id}', 'AdminPostController@update');
 $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
 
+// Static frontend page: Thu cũ đổi mới máy cũ
+$router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
 // PC Builder Routes
 $router->get('/build-pc', 'PcBuilderController@index');
 $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
@@ -121,5 +123,17 @@ $router->get('/tin-tuc/{slug}', 'NewsController@show');
 $router->get('/post', 'PostController@index');
 $router->get('/post/detail/{slug}', 'PostController@detail');
 $router->get('/post/{slug}', 'PostController@detail');
+
+// AI & Compare Routes
+$router->get('/compare', 'CompareController@index');
+$router->post('/compare/add', 'CompareController@add');
+$router->post('/compare/remove', 'CompareController@remove');
+$router->post('/ai/compare', 'CompareController@aiCompare');
+
+$router->get('/ai-assistant', 'AiAssistantController@index');
+$router->post('/ai/recommend', 'AiAssistantController@recommend');
+$router->post('/ai/favorite', 'AiAssistantController@saveFavorite');
+
+$router->post('/product/ai-chat', 'ProductController@chat');
 
 $router->dispatch($url);

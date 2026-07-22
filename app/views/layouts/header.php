@@ -218,6 +218,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         </a>
                     <?php endif; ?>
                 </div>
+
             </div>
 
             <!-- 2.5. Mobile Search and Quick Categories (Display: None on Desktop) -->
