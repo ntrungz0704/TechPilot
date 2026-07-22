@@ -60,7 +60,9 @@ define('BASE_URL', $scriptDir);
 define('APP_NAME', 'TechPilot');
 
 // Đường dẫn tuyệt đối tới thư mục gốc dự án
-define('ROOT_PATH', dirname(__DIR__));
+if (!defined('ROOT_PATH')) {
+    define('ROOT_PATH', dirname(__DIR__));
+}
 
 // Bật hiển thị lỗi khi phát triển (tắt khi lên production)
 error_reporting(E_ALL);
