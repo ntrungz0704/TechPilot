@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "docs/workflow/schemas/checkpoint-state.schema.json",
+  "title": "Checkpoint State",
+  "description": "Validates checkpoints/STATE.json — the machine-readable lifecycle state.",
+  "type": "object",
+  "required": [
+    "schema_version", "checkpoint_id", "lifecycle_status",
+    "branch", "base_sha", "last_updated", "state_history_ref"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+$" },
+    "checkpoint_id": { "type": "string", "pattern": "^CHECKPOINT_[0-9]+$" },
+    "title": { "type": "string" },
+    "lifecycle_status": {
+      "type": "string",
+      "enum": [
+        "ROADMAP_DEFINED", "CONTRACT_DRAFTED", "CONTRACT_APPROVED",
+        "IMPLEMENTING", "CI_PENDING", "CI_FAILED", "CI_GREEN",
+        "WAITING_FOR_HERMES", "REWORK_REQUIRED", "HERMES_VERIFIED",
+        "WAITING_FOR_SEMANTIC_REVIEW", "SEMANTIC_CHANGES_REQUIRED",
+        "SEMANTIC_APPROVED", "MERGE_READY", "MERGED", "CLOSED"
+      ]
+    },
+    "branch": { "type": "string" },
+    "base_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "candidate_sha": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        { "type": "null" }
+      ]
+    },
+    "reviewed_sha": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        { "type": "null" }
+      ]
+    },
+    "merged_sha": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        { "type": "null" }
+      ]
+    },
+    "writer": {
+      "type": "object",
+      "properties": {
+        "assigned": { "type": "boolean" },
+        "member": { "type": ["string", "null"] },
+        "tool": { "type": "string" }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "properties": {
+        "assigned": { "type": "boolean" },
+        "member": { "type": ["string", "null"] },
+        "tool": { "type": "string" }
+      }
+    },
+    "semantic_authority": { "type": "string" },
+    "last_updated": { "type": "string", "format": "date-time" },
+    "state_history_ref": { "type": "string" }
+  }
+}

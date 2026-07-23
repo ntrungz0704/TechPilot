@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+BASE_SHA="${2:-HEAD~1}"
+
+if git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  CHANGED_FILES=$(git diff --name-only "$BASE_SHA" 2>/dev/null || git diff --name-only "HEAD")
+else
+  CHANGED_FILES=$(git diff --name-only "HEAD")
+fi
+
+if [ -z "$CHANGED_FILES" ]; then
+  echo "OK: No changed files detected"
+  echo "PASS: check-changed-files"
+  exit 0
+fi
+
+echo "Changed files:"
+echo "$CHANGED_FILES"
+
+# If contract exists, try to parse allowed/forbidden paths
+# For now, check that no workflow infrastructure files are being modified
+# in the same change as production files
+
+WORKFLOW_PATTERNS="^(checkpoints/|docs/workflow/|scripts/workflow/|\.opencode/|AGENTS\.md)"
+PRODUCTION_PATTERNS="^(app/|config/|database/|public/|techpilot/|tests/|\.github/)"
+
+HAS_WORKFLOW=0
+HAS_PRODUCTION=0
+
+while IFS= read -r file; do
+  if [[ "$file" =~ $WORKFLOW_PATTERNS ]]; then
+    HAS_WORKFLOW=1
+  fi
+  if [[ "$file" =~ $PRODUCTION_PATTERNS ]]; then
+    HAS_PRODUCTION=1
+  fi
+done <<< "$CHANGED_FILES"
+
+if [ "$HAS_WORKFLOW" -eq 1 ] && [ "$HAS_PRODUCTION" -eq 1 ]; then
+  echo "WARNING: Mixed changes detect workflow and production files in same diff"
+  echo "Consider separating into distinct commits."
+fi
+
+echo "PASS: check-changed-files"
+exit 0

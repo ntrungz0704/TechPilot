@@ -1,0 +1,57 @@
+# CHECKPOINT 3 — First-fold Layout Compaction & Responsive Hardening
+# Status: ROADMAP_DEFINED — contract pending Planning Authority (ChatGPT) draft
+
+schema_version: "1"
+checkpoint_id: "CHECKPOINT_3"
+phase_id: "PHASE-NEWS"
+title: "First-fold layout compaction and responsive hardening"
+lifecycle_status: "ROADMAP_DEFINED"
+base_sha: "039ff0d07ef1c5161a4bb4f459b9b008e5cab0dd"
+candidate_sha: null
+reviewed_sha: null
+
+scope:
+  in_scope:
+    - "Compress first-fold layout to reduce vertical scroll on mobile news views"
+    - "Fix responsive breakpoint transitions at 767px boundary"
+    - "Ensure category drawer resets correctly across viewport changes"
+    - "Harden accessibility for keyboard and screen reader navigation"
+    - "Remove horizontal overflow on all viewports"
+  out_of_scope:
+    - "New features or pages outside the existing news module"
+    - "Database schema changes"
+    - "Backend controller/API changes unrelated to layout"
+    - "Governance or workflow infrastructure changes"
+  allowed_paths:
+    - "app/views/news/**"
+    - "public/assets/css/news.css"
+    - "public/assets/js/news.js"
+    - "tests/**"
+    - "docs/reviews/evidence/**"
+  forbidden_paths:
+    - "techpilot/**"
+    - "docs/governance/**"
+    - "scripts/workflow/**"
+    - ".github/workflows/**"
+    - "checkpoints/STATE.json"
+    - "checkpoints/STATE_HISTORY.jsonl"
+
+acceptance_criteria:
+  - "Category drawer resets to closed state when viewport crosses 767px boundary"
+  - "Zero horizontal page overflow on 390px, 768px, 1024px, 1440px viewports"
+  - "Keyboard navigation through news cards is complete and focus-visible is styled"
+  - "First-fold content fits within viewport height without scroll on mobile (390x844)"
+  - "All existing PHP tests pass with exit code 0"
+  - "Browser UI test passes with zero console errors"
+
+required_tests:
+  - command: "php tests/NewsModuleRegressionTest.php"
+    expected_exit_code: 0
+  - command: "node tests/browser_ui_test.js"
+    expected_exit_code: 0
+
+required_evidence:
+  - "test-summary.txt with all test commands, results, and exit codes"
+  - "Screenshot evidence for each viewport (390x844, 768x1024, 1440x900)"
+  - "Console error log showing zero errors"
+  - "changed-files report matching handoff"

@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "checkpoint_id": "CHECKPOINT_3",
+  "base_sha": "039ff0d07ef1c5161a4bb4f459b9b008e5cab0dd",
+  "candidate_sha": "CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT",
+  "branch": "feature/hieu-news",
+  "changed_files": [],
+  "test_results": [],
+  "evidence_paths": [],
+  "writer_declaration": "PENDING_IMPLEMENTATION",
+  "scope_declaration": "PENDING",
+  "dependency_declaration": "No changes",
+  "architecture_declaration": "No changes",
+  "mvc_declaration": "PENDING",
+  "known_limitations": [],
+  "remaining_risks": [],
+  "writer_tool": "deepseek",
+  "last_updated": "2026-07-24T00:00:00Z"
+}

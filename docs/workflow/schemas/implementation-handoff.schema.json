@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "docs/workflow/schemas/implementation-handoff.schema.json",
+  "title": "Implementation Handoff",
+  "description": "Validates checkpoints/CP03/IMPLEMENTATION_HANDOFF.json — the Writer-to-Reviewer handoff.",
+  "type": "object",
+  "required": [
+    "schema_version", "checkpoint_id", "base_sha",
+    "candidate_sha", "changed_files", "test_results",
+    "writer_declaration"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+$" },
+    "checkpoint_id": { "type": "string", "pattern": "^CHECKPOINT_[0-9]+$" },
+    "base_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "candidate_sha": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        { "type": "string", "enum": ["CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT"] }
+      ]
+    },
+    "branch": { "type": "string" },
+    "changed_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "test_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["command", "exit_code", "result"],
+        "properties": {
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "result": { "type": "string" },
+          "evidence_path": { "type": "string" }
+        }
+      }
+    },
+    "evidence_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "writer_declaration": {
+      "type": "string",
+      "enum": [
+        "PENDING_IMPLEMENTATION",
+        "READY_FOR_REVIEW",
+        "REWORK_IN_PROGRESS"
+      ]
+    },
+    "scope_declaration": { "type": "string" },
+    "dependency_declaration": { "type": "string" },
+    "architecture_declaration": { "type": "string" },
+    "mvc_declaration": { "type": "string" },
+    "known_limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "remaining_risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "writer_tool": { "type": "string" },
+    "last_updated": { "type": "string", "format": "date-time" }
+  }
+}
