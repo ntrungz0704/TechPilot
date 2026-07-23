@@ -184,7 +184,7 @@ jobs:
         run: bash tests/workflow/test_control.sh
 
       - name: Check Changed Files Against Allowlist
-        run: scripts/workflow/check-changed-files
+        run: scripts/workflow/check-changed-files checkpoints/CP03/TASK_CONTRACT.yaml ${{ github.event.pull_request.base.sha || github.event.before || '' }}
 
       - name: Scan Forbidden Patterns
         run: scripts/workflow/scan-forbidden-patterns
