@@ -1,34 +1,49 @@
 # CHECKPOINT 3 — Architecture
 
-> Status: ROADMAP_DEFINED — full architecture TBD by Planning Authority (ChatGPT)
+> Status: ROADMAP_DEFINED
+> Route: Homepage
+> Viewport: 1366x768
+> scrollY: 0
+> Gate: featuresBar.getBoundingClientRect().bottom <= 764
 
 ## Context
 
-Checkpoint 3 focuses on layout compaction and responsive hardening for the news module views. The existing architecture uses plain PHP MVC with:
+Checkpoint 3 compacts the first-fold layout so the full Hero (three columns)
+and Features Bar are visible at 1366x768 without scrolling. The target is
+the homepage, not the news module.
 
-- `app/controllers/NewsController.php` — request handling
-- `app/models/News.php` — data/persistence semantics
-- `app/views/news/` — presentation templates (index, detail, search, admin)
-- `public/assets/css/news.css` — stylesheet
-- `public/assets/js/news.js` — client-side behavior
+## Target Page Structure (top-to-bottom at scrollY=0)
+
+1. Topbar
+2. Main Header (logo, search, actions)
+3. Main Navigation (category mega menu)
+4. Hero (three-column promotional area)
+5. Features Bar (feature cards row)
+
+The acceptance gate is: featuresBar.getBoundingClientRect().bottom <= 764
+
+The viewport height at 1366x768 is 768px. Subtracting browser chrome
+(bookmarks bar, tab bar, etc.), the available content area is ~764px.
+Therefore every section from Topbar through Features Bar must fit within
+764px.
 
 ## Constraints
 
-1. No new JavaScript frameworks or libraries
-2. No backend controller/API changes unless required for layout data
-3. MVC convention must be preserved (no Domain/Service/Repository layers)
-4. Accessibility must not regress (WCAG 2.1 AA baseline)
+1. No changes to news module files
+2. No new JavaScript frameworks or libraries
+3. MVC convention preserved
+4. No backend controller/API changes unless required
+5. No database schema changes
 
-## Responsive Breakpoints
+## Key Files
 
-| Breakpoint | Target |
-|---|---|
-| <= 767px | Mobile-first: single column, compact first-fold |
-| 768px - 1023px | Tablet: 2-column grid, adjusted hero |
-| >= 1024px | Desktop: full layout, mega menu static |
+- app/views/home/index.php — homepage template
+- public/assets/css/home.css — homepage styles
+- public/assets/js/home.js — homepage behavior
 
-## Key Components Affected
+## Existing Conventions
 
-- `news.js`: `syncCategoryDrawerResponsiveState()`, `handleViewportChange()`
-- `news.css`: First-fold `min-height`, overflow rules, breakpoint media queries
-- View templates: Structure tags for responsive layout containers
+- PHP MVC with plain PHP templates
+- Front controller at public/index.php
+- Controller action naming: lowerCamelCase
+- Database: snake_case columns

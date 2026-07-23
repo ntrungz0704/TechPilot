@@ -2,23 +2,16 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "docs/workflow/schemas/task-contract.schema.json",
   "title": "Checkpoint Task Contract",
-  "description": "Machine-readable task contract for a checkpoint. Mirrors and extends the YAML front-matter convention in docs/checkpoints/.",
+  "description": "Validates checkpoints/CP03/TASK_CONTRACT.yaml after YAML-to-JSON conversion.",
   "type": "object",
   "required": [
-    "schema_version",
-    "checkpoint_id",
-    "phase_id",
-    "title",
-    "lifecycle_status",
-    "base_sha",
-    "scope"
+    "CHECKPOINT_ID", "TITLE", "LIFECYCLE_STATUS", "BASE_SHA",
+    "SCOPE", "ACCEPTANCE_CRITERIA", "REQUIRED_TESTS"
   ],
   "properties": {
-    "schema_version": { "type": "string", "pattern": "^[0-9]+$" },
-    "checkpoint_id": { "type": "string", "pattern": "^CHECKPOINT_[0-9]+$" },
-    "phase_id": { "type": "string" },
-    "title": { "type": "string", "minLength": 1 },
-    "lifecycle_status": {
+    "CHECKPOINT_ID": { "type": "string", "pattern": "^CHECKPOINT_[0-9]+$" },
+    "TITLE": { "type": "string", "minLength": 1 },
+    "LIFECYCLE_STATUS": {
       "type": "string",
       "enum": [
         "ROADMAP_DEFINED", "CONTRACT_DRAFTED", "CONTRACT_APPROVED",
@@ -28,34 +21,38 @@
         "SEMANTIC_APPROVED", "MERGE_READY", "MERGED", "CLOSED"
       ]
     },
-    "base_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "candidate_sha": {
+    "BASE_SHA": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "CANDIDATE_SHA": {
       "oneOf": [
         { "type": "string", "pattern": "^[0-9a-f]{40}$" },
         { "type": "null" }
       ]
     },
-    "reviewed_sha": {
+    "REVIEWED_SHA": {
       "oneOf": [
         { "type": "string", "pattern": "^[0-9a-f]{40}$" },
         { "type": "null" }
       ]
     },
-    "scope": {
+    "SCOPE": {
       "type": "object",
-      "required": ["in_scope", "out_of_scope", "allowed_paths", "forbidden_paths"],
+      "required": ["ALLOWED_PATHS", "FORBIDDEN_PATHS"],
       "properties": {
-        "in_scope": { "type": "array", "items": { "type": "string" } },
-        "out_of_scope": { "type": "array", "items": { "type": "string" } },
-        "allowed_paths": { "type": "array", "items": { "type": "string" } },
-        "forbidden_paths": { "type": "array", "items": { "type": "string" } }
+        "TARGET_ROUTE": { "type": "string" },
+        "TARGET_VIEWPORT": { "type": "string" },
+        "SCROLL_Y": { "type": "integer" },
+        "ACCEPTANCE_GATE": { "type": "string" },
+        "VISIBLE_SECTIONS": { "type": "array", "items": { "type": "string" } },
+        "OUT_OF_SCOPE": { "type": "array", "items": { "type": "string" } },
+        "ALLOWED_PATHS": { "type": "array", "items": { "type": "string" } },
+        "FORBIDDEN_PATHS": { "type": "array", "items": { "type": "string" } }
       }
     },
-    "acceptance_criteria": {
+    "ACCEPTANCE_CRITERIA": {
       "type": "array",
       "items": { "type": "string" }
     },
-    "required_tests": {
+    "REQUIRED_TESTS": {
       "type": "array",
       "items": {
         "type": "object",
@@ -66,25 +63,9 @@
         }
       }
     },
-    "required_evidence": {
+    "REQUIRED_EVIDENCE": {
       "type": "array",
       "items": { "type": "string" }
-    },
-    "risks": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "description", "severity", "mitigation"],
-        "properties": {
-          "id": { "type": "string" },
-          "description": { "type": "string" },
-          "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
-          "mitigation": { "type": "string" }
-        }
-      }
-    },
-    "contract_path": { "type": "string" },
-    "handoff_path": { "type": "string" },
-    "last_updated": { "type": "string", "format": "date-time" }
+    }
   }
 }
