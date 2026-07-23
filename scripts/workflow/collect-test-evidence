@@ -3,6 +3,48 @@ set -euo pipefail
 
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
 EVIDENCE_DIR="${2:-checkpoints/CP03/evidence}"
+STATE_FILE="checkpoints/STATE.json"
+
+# Determine lifecycle
+LIFECYCLE=""
+if [ -f "$STATE_FILE" ]; then
+  LIFECYCLE=$(grep '"lifecycle_status"' "$STATE_FILE" | awk -F'"' '{print $4}' 2>/dev/null || echo "")
+fi
+: "${LIFECYCLE:=unknown}"
+
+# Pre-approval: skip required_tests execution (no CP03 implementation yet)
+PRE_APPROVAL=false
+case "$LIFECYCLE" in
+  ROADMAP_DEFINED|CONTRACT_DRAFTED|CONTRACT_APPROVED|"") PRE_APPROVAL=true;;
+esac
+
+if [ "$PRE_APPROVAL" = true ]; then
+  echo "Mode: pre-approval — collecting infrastructure evidence only"
+  HEAD_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+  BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  mkdir -p "$EVIDENCE_DIR"
+  {
+    echo "# Pre-approval Infrastructure Evidence"
+    echo "Timestamp: $TIMESTAMP"
+    echo "HEAD SHA: $HEAD_SHA"
+    echo "Branch: $BRANCH"
+    echo "Lifecycle: $LIFECYCLE"
+    echo ""
+    echo "=== Git Status ==="
+    git status --short 2>&1 || true
+    echo ""
+    echo "=== Workflow Files ==="
+    git ls-files scripts/workflow/ .opencode/ AGENTS.md checkpoints/ docs/workflow/ 2>/dev/null || true
+    echo ""
+    echo "=== Validation ==="
+    echo "validate-contract: skipped (pre-approval)"
+    echo "required_tests: skipped (pre-approval, no CP03 implementation)"
+  } > "$EVIDENCE_DIR/test-summary.txt"
+  echo "Infrastructure evidence collected at $EVIDENCE_DIR/test-summary.txt"
+  echo "PASS: collect-test-evidence (pre-approval mode)"
+  exit 0
+fi
 
 if [ ! -f "$CONTRACT" ]; then
   echo "FAIL: Contract file not found: $CONTRACT"
