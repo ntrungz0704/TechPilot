@@ -1,0 +1,8 @@
+Network Asset Diagnostics:
+- news.css status: 200 OK (assets/css/news.css?v=2.2 / v=2.4)
+- news.js status: 200 OK (assets/js/news.js?v=2.3)
+- Cover image status: 200 OK / absoluteUrl correctly resolved without duplicate BASE_URL prefix
+- Unexpected 404: 0
+- Redirect loops: 0
+- Mixed content warnings: 0
+- Request loops: 0

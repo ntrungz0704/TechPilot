@@ -1,0 +1,40 @@
+Date: 2026-07-22
+PHP Version: 8.3.26
+DB Version: MySQL 9.4.0
+CI_FIX_BEFORE_SHA: f5445e9be62fe202db108195a7edcc55862a62b6
+
+PHP Lint:
+- Exit code: 0
+- Result: PASS (All 97 PHP files syntax linted cleanly)
+
+MarkdownRendererTest:
+- Passed: 35
+- Failed: 0
+- Exit code: 0
+
+EditorialExperienceTest:
+- Passed: 42
+- Failed: 0
+- Exit code: 0
+
+test_absolute_url:
+- Passed: 9
+- Failed: 0
+- Exit code: 0
+
+NewsModuleRegressionTest:
+- Passed: 42
+- Failed: 0
+- Exit code: 0
+
+test_author_cases:
+- Passed: 3
+- Failed: 0
+- Exit code: 0
+- Transaction rollback: YES
+
+NewsSearchIntegrationTest:
+- Passed: 20
+- Failed: 0
+- Exit code: 0
+- Transaction rollback: YES

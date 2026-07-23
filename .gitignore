@@ -3,4 +3,8 @@
 .DS_Store
 Thumbs.db
 .env
-/scratch/
+config/.db_sync_state.json
+scratch/
+/storage/backups/
+*.local.sql
+*.local.json

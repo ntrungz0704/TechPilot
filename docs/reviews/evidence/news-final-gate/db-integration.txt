@@ -1,0 +1,13 @@
+Command: php tests/NewsSearchIntegrationTest.php
+Exit code: 0
+Passed: 20, Failed: 0, Skipped: 0
+
+Database Engine: MySQL 9.4.0 (PDO mysql driver)
+Transaction Rollback: YES (All 8 fixture rows executed and rolled back cleanly)
+Literal % search: PASS
+Literal _ search: PASS
+Literal ! search: PASS
+SQL Injection quote safety: PASS
+Backslash safety: PASS
+XSS script search safety: PASS
+incrementViews updated_at preservation: PASS (views 10 -> 11, updated_at unchanged)
