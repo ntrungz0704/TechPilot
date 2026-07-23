@@ -29,11 +29,12 @@ OUT_OF_SCOPE:
   - Governance or workflow infrastructure changes
 
 ALLOWED_PATHS:
-  - app/views/home/**
-  - public/assets/css/home.css
-  - public/assets/js/home.js
-  - tests/**
-  - docs/reviews/evidence/**
+  - app/views/home/index.php
+  - public/assets/css/style.css
+  - tests/browser/home_first_fold.spec.js
+  - checkpoints/CP03/IMPLEMENTATION_HANDOFF.json
+  - checkpoints/CP03/evidence/**
+  - docs/reviews/evidence/news-checkpoints/cp3/**
 
 FORBIDDEN_PATHS:
   - app/views/news/**
@@ -47,22 +48,27 @@ FORBIDDEN_PATHS:
   - checkpoints/STATE_HISTORY.jsonl
 
 ACCEPTANCE_CRITERIA:
-  - "At 1366x768 viewport, scrollY=0: Topbar is fully visible"
-  - "At 1366x768 viewport, scrollY=0: Main Header is fully visible"
-  - "At 1366x768 viewport, scrollY=0: Main Navigation is fully visible"
-  - "At 1366x768 viewport, scrollY=0: Hero (three columns) is fully visible"
-  - "At 1366x768 viewport, scrollY=0: Features Bar bottom <= 764px"
+  - "viewport 1366x768, window.scrollY === 0"
+  - "Topbar fully visible"
+  - "Main Header fully visible"
+  - "Main Navigation fully visible"
+  - "Hero (three columns) fully visible"
+  - "Features Bar fully visible"
+  - "featuresBar.getBoundingClientRect().bottom <= 764"
+  - "document horizontal overflow == 0"
+  - "Zero console errors"
+  - "Zero uncaught page errors"
   - "All existing PHP tests pass with exit code 0"
-  - "Browser UI test passes with zero console errors"
 
 REQUIRED_TESTS:
-  - command: "node tests/browser_ui_test.js"
+  - command: "node tests/browser/home_first_fold.spec.js"
     expected_exit_code: 0
   - command: "php tests/CatalogGroupTest.php"
     expected_exit_code: 0
 
 REQUIRED_EVIDENCE:
   - "Screenshot of homepage at 1366x768, scrollY=0"
+  - "Screenshot showing all visible sections"
   - "Console error log showing zero errors"
   - "featuresBar.getBoundingClientRect().bottom measurement"
   - "changed-files report matching handoff"
