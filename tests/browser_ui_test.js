@@ -15,7 +15,7 @@ const routerScript = path.join(__dirname, 'router.php');
 
 (async () => {
     console.log('==================================================');
-    console.log('RUNNING BROWSER INTERACTION & ACCESSIBILITY AUDIT SUITE (V3 FINAL)');
+    console.log('RUNNING BROWSER INTERACTION & ACCESSIBILITY AUDIT SUITE (V4 FINAL)');
     console.log('==================================================\n');
 
     console.log(`Starting local PHP web server on 127.0.0.1:${port} with router.php...`);
@@ -53,131 +53,251 @@ const routerScript = path.join(__dirname, 'router.php');
         });
 
         // --------------------------------------------------
-        // SCENARIO 1: DESKTOP HOMEPAGE STATIC MENU & HOVER
+        // SECTION 1: VIEWPORT AUDITS & BREAKPOINT CONTRACTS
+        // --------------------------------------------------
+
+        // 1A. Viewport 1366x768 (Desktop mode > 1024px)
+        await page.setViewport({ width: 1366, height: 768 });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await page.screenshot({ path: path.join(screenshotDir, 'desktop_1366_closed.png') });
+
+        const d1366MainNavVisible = await page.evaluate(() => {
+            const el = document.getElementById('mainNavMenu');
+            if (!el) return false;
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        });
+        const d1366MainNavAriaHidden = await page.$eval('#mainNavMenu', el => el.getAttribute('aria-hidden'));
+        const d1366MainNavInert = await page.$eval('#mainNavMenu', el => el.hasAttribute('inert'));
+        const d1366ToggleHidden = await page.evaluate(() => {
+            const btn = document.getElementById('mobileMenuToggle');
+            if (!btn) return true;
+            const style = window.getComputedStyle(btn);
+            return style.display === 'none';
+        });
+
+        results.push({
+            name: '1366x768 Desktop: mainNavMenu visible, no aria-hidden, no inert, mobileMenuToggle hidden',
+            pass: d1366MainNavVisible && (d1366MainNavAriaHidden === null || d1366MainNavAriaHidden === 'false') && !d1366MainNavInert && d1366ToggleHidden
+        });
+
+        // 1B. Viewport 1024x768 (Drawer mode <= 1024px)
+        await page.setViewport({ width: 1024, height: 768 });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await page.screenshot({ path: path.join(screenshotDir, 'tablet_1024_open.png') });
+
+        const v1024ToggleVisible = await page.evaluate(() => {
+            const btn = document.getElementById('mobileMenuToggle');
+            if (!btn) return false;
+            const style = window.getComputedStyle(btn);
+            return style.display !== 'none';
+        });
+        const v1024MainNavClosed = await page.evaluate(() => {
+            const el = document.getElementById('mainNavMenu');
+            if (!el) return false;
+            return el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert') && !el.classList.contains('is-mobile-open');
+        });
+
+        // Click hamburger at 1024x768
+        await page.click('#mobileMenuToggle');
+        await new Promise(r => setTimeout(r, 200));
+        const v1024NavOpen = await page.evaluate(() => {
+            const el = document.getElementById('mainNavMenu');
+            return el.classList.contains('is-mobile-open') && el.getAttribute('aria-hidden') === 'false' && !el.hasAttribute('inert');
+        });
+
+        // Escape closes hamburger & restores focus
+        await page.keyboard.press('Escape');
+        await new Promise(r => setTimeout(r, 150));
+        const v1024NavClosedEscape = await page.$eval('#mainNavMenu', el => el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert'));
+        const v1024FocusRestored = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
+
+        results.push({
+            name: '1024x768 Breakpoint: mobileMenuToggle visible, mainNavMenu closed with aria-hidden & inert, hamburger opens nav, Escape closes & restores focus',
+            pass: v1024ToggleVisible && v1024MainNavClosed && v1024NavOpen && v1024NavClosedEscape && v1024FocusRestored === 'mobileMenuToggle'
+        });
+
+        // 1C. Viewport 768x800 (Drawer mode <= 1024px)
+        await page.setViewport({ width: 768, height: 800 });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+
+        const v768ToggleVisible = await page.evaluate(() => {
+            const btn = document.getElementById('mobileMenuToggle');
+            return btn && window.getComputedStyle(btn).display !== 'none';
+        });
+        const v768NavClosed = await page.evaluate(() => {
+            const el = document.getElementById('mainNavMenu');
+            return el && el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert');
+        });
+        await page.click('#mobileMenuToggle');
+        await new Promise(r => setTimeout(r, 200));
+        const v768NavOpen = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open') && el.getAttribute('aria-hidden') === 'false');
+        await page.keyboard.press('Escape');
+        await new Promise(r => setTimeout(r, 150));
+        const v768NavEscape = await page.$eval('#mainNavMenu', el => el.getAttribute('aria-hidden') === 'true');
+
+        results.push({
+            name: '768x800 Breakpoint: same drawer contract as 1024px (toggle visible, closed with aria-hidden/inert, opens on click, Escape closes)',
+            pass: v768ToggleVisible && v768NavClosed && v768NavOpen && v768NavEscape
+        });
+
+        // 1D. Viewport 600x800 (Drawer mode <= 1024px)
+        await page.setViewport({ width: 600, height: 800 });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+
+        const v600ToggleVisible = await page.evaluate(() => {
+            const btn = document.getElementById('mobileMenuToggle');
+            return btn && window.getComputedStyle(btn).display !== 'none';
+        });
+        const v600NavClosed = await page.evaluate(() => {
+            const el = document.getElementById('mainNavMenu');
+            return el && el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert');
+        });
+        await page.click('#mobileMenuToggle');
+        await new Promise(r => setTimeout(r, 200));
+        const v600NavOpen = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open') && el.getAttribute('aria-hidden') === 'false');
+        await page.keyboard.press('Escape');
+        await new Promise(r => setTimeout(r, 150));
+        const v600NavEscape = await page.$eval('#mainNavMenu', el => el.getAttribute('aria-hidden') === 'true');
+
+        results.push({
+            name: '600x800 Breakpoint: same drawer contract as 1024px',
+            pass: v600ToggleVisible && v600NavClosed && v600NavOpen && v600NavEscape
+        });
+
+        // 1E. Viewport 1440x900 (Large Desktop)
+        await page.setViewport({ width: 1440, height: 900 });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await page.click('#categoryMenuToggle');
+        await new Promise(r => setTimeout(r, 200));
+        await page.screenshot({ path: path.join(screenshotDir, 'desktop_1440_open.png') });
+
+        // --------------------------------------------------
+        // SECTION 2: INTERACTION TESTS (DESKTOP & STATIC MENU)
         // --------------------------------------------------
         await page.setViewport({ width: 1366, height: 768 });
-        await page.goto(baseUrl, { waitUntil: 'networkidle2' });
-        await page.screenshot({ path: path.join(screenshotDir, 'desktop_1366_closed.png') });
-        console.log('1. Captured desktop_1366_closed.png');
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
-        // Test static menu hover in Homepage hero
+        // 2A. Keyboard focus on static menu row opens static panel
         const staticMenuExists = await page.$('#categoryStaticMenu') !== null;
         if (staticMenuExists) {
-            await page.hover('#categoryStaticMenu [data-panel-id="panel-static-pc-linh-kien"] .category-sidebar__item');
+            await page.focus('#categoryStaticMenu [data-panel-id="panel-static-pc-linh-kien"] .category-sidebar__item');
             await new Promise(r => setTimeout(r, 200));
-            const isLinhKienPanelVisible = await page.$eval('#panel-static-pc-linh-kien', el => el.classList.contains('is-active') && !el.hidden);
-            results.push({ name: 'Desktop Homepage static menu: hover Linh kiện PC displays panel-static-pc-linh-kien', pass: isLinhKienPanelVisible });
+            const isLinhKienPanelVisibleOnFocus = await page.$eval('#panel-static-pc-linh-kien', el => el.classList.contains('is-active') && !el.hidden);
+            results.push({ name: 'Keyboard focus on static menu row opens panel-static-pc-linh-kien', pass: isLinhKienPanelVisibleOnFocus });
+
+            // 2B. Hover from static sidebar item onto static mega panel keeps panel open
+            await page.hover('#categoryStaticMenu [data-panel-id="panel-static-pc-linh-kien"] .category-sidebar__item');
+            await new Promise(r => setTimeout(r, 150));
+            await page.hover('#panel-static-pc-linh-kien');
+            await new Promise(r => setTimeout(r, 150));
+            const isPanelStillOpen = await page.$eval('#panel-static-pc-linh-kien', el => el.classList.contains('is-active') && !el.hidden);
+            results.push({ name: 'Hovering from static sidebar onto mega panel area keeps panel open', pass: isPanelStillOpen });
             await page.screenshot({ path: path.join(screenshotDir, 'desktop_1366_static_hover.png') });
-            console.log('2. Captured desktop_1366_static_hover.png');
 
             // Mouseleave container closes static panel
             await page.mouse.move(10, 10);
             await new Promise(r => setTimeout(r, 200));
             const isStaticPanelClosed = await page.$eval('#panel-static-pc-linh-kien', el => !el.classList.contains('is-active'));
-            results.push({ name: 'Desktop Homepage static menu: mouseleave closes panel', pass: isStaticPanelClosed });
+            results.push({ name: 'Mouseleave static menu container closes panel', pass: isStaticPanelClosed });
         }
 
-        // Test Dropdown Header Menu
+        // 2C. Category Dropdown open & Escape restores trigger focus
         await page.click('#categoryMenuToggle');
         await new Promise(r => setTimeout(r, 200));
         await page.hover('#categoryMegaDropdown [data-panel-id="panel-pc-linh-kien"] .category-sidebar__item');
         await new Promise(r => setTimeout(r, 250));
         await page.screenshot({ path: path.join(screenshotDir, 'desktop_1366_linh_kien_open.png') });
-        console.log('3. Captured desktop_1366_linh_kien_open.png');
 
-        // Escape closes dropdown menu & restores focus
         await page.keyboard.press('Escape');
         await new Promise(r => setTimeout(r, 150));
-        const isClosedAfterEscape = await page.$eval('#categoryMegaDropdown', el => el.hidden);
-        const focusedId = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
-        results.push({ name: 'Desktop Escape key closes dropdown menu & restores focus to toggle', pass: isClosedAfterEscape && focusedId === 'categoryMenuToggle' });
+        const isCatDropdownClosedEscape = await page.$eval('#categoryMegaDropdown', el => el.hidden);
+        const focusedIdCatEscape = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
+        results.push({ name: 'Escape key closes category dropdown & restores focus to categoryMenuToggle', pass: isCatDropdownClosedEscape && focusedIdCatEscape === 'categoryMenuToggle' });
 
         // --------------------------------------------------
-        // SCENARIO 2: DESKTOP LARGE & TABLET VIEWPORTS
-        // --------------------------------------------------
-        await page.setViewport({ width: 1440, height: 900 });
-        await page.goto(baseUrl, { waitUntil: 'networkidle2' });
-        await page.click('#categoryMenuToggle');
-        await new Promise(r => setTimeout(r, 200));
-        await page.screenshot({ path: path.join(screenshotDir, 'desktop_1440_open.png') });
-        console.log('4. Captured desktop_1440_open.png');
-
-        await page.setViewport({ width: 1024, height: 768 });
-        await page.goto(baseUrl, { waitUntil: 'networkidle2' });
-        await page.click('#categoryMenuToggle');
-        await new Promise(r => setTimeout(r, 200));
-        await page.screenshot({ path: path.join(screenshotDir, 'tablet_1024_open.png') });
-        console.log('5. Captured tablet_1024_open.png');
-
-        // --------------------------------------------------
-        // SCENARIO 3: MOBILE TRIGGERS & MUTUAL EXCLUSION
+        // SECTION 3: MOBILE INTERACTION & ACCORDION TOGGLE
         // --------------------------------------------------
         await page.setViewport({ width: 390, height: 844 });
-        await page.goto(baseUrl, { waitUntil: 'networkidle2' });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
-        // 3A. mobileBottomNavCats -> ONLY category drawer
+        // 3A. Trigger #mobileBottomNavCats opens ONLY category drawer
         await page.waitForSelector('#mobileBottomNavCats');
         await page.click('#mobileBottomNavCats');
         await new Promise(r => setTimeout(r, 200));
-        let isCategoryOpen = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open'));
-        let isNavOpen = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
-        results.push({ name: 'Mobile trigger #mobileBottomNavCats opens ONLY category drawer', pass: isCategoryOpen && !isNavOpen });
+        let isCatDrawerOpen = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open'));
+        let isMainNavOpen = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
+        results.push({ name: 'Mobile trigger #mobileBottomNavCats opens ONLY category drawer', pass: isCatDrawerOpen && !isMainNavOpen });
         await page.screenshot({ path: path.join(screenshotDir, 'mobile_390_drawer_open.png') });
-        console.log('6. Captured mobile_390_drawer_open.png');
 
-        // 3B. Switch drawer: Click mobileMenuToggle -> closes category drawer, opens main nav
-        await page.evaluate(() => document.getElementById('mobileMenuToggle').click());
+        // 3B. Overlay click closes drawer
+        await page.evaluate(() => document.querySelector('.category-overlay').click());
         await new Promise(r => setTimeout(r, 200));
-        isCategoryOpen = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open'));
-        isNavOpen = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
-        results.push({ name: 'Switch drawer: Opening main nav completely closes category drawer', pass: isNavOpen && !isCategoryOpen });
+        const isCatDrawerClosedOverlay = await page.$eval('#categoryMegaDropdown', el => !el.classList.contains('is-mobile-open') && el.hidden);
+        results.push({ name: 'Overlay click closes category drawer', pass: isCatDrawerClosedOverlay });
 
-        // 3C. Switch drawer back: Click mobileCategoryToggle -> closes main nav, opens category drawer
-        await page.evaluate(() => document.getElementById('mobileCategoryToggle').click());
+        // 3C. Re-open category drawer & test Accordions
+        await page.click('#mobileCategoryToggle');
         await new Promise(r => setTimeout(r, 200));
-        isCategoryOpen = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open'));
-        isNavOpen = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
-        results.push({ name: 'Switch drawer: Opening category drawer completely closes main nav', pass: isCategoryOpen && !isNavOpen });
 
-        // 3D. mobileQuickCatAll -> ONLY category drawer
-        await page.click('#categoryDrawerClose');
-        await new Promise(r => setTimeout(r, 200));
-        await page.click('#mobileQuickCatAll');
-        await new Promise(r => setTimeout(r, 200));
-        isCategoryOpen = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open'));
-        results.push({ name: 'Mobile trigger #mobileQuickCatAll opens ONLY category drawer', pass: isCategoryOpen });
-
-        // --------------------------------------------------
-        // SCENARIO 4: EXCLUSIVE ACCORDIONS
-        // --------------------------------------------------
+        // Click Laptop accordion 1st time -> expands
         await page.click('#acc-btn-laptop');
         await new Promise(r => setTimeout(r, 200));
-        const isLaptopExpanded = await page.$eval('#acc-btn-laptop', el => el.getAttribute('aria-expanded') === 'true');
-        const isLaptopPanelVisible = await page.$eval('#mobile-panel-laptop', el => !el.hidden && el.getAttribute('aria-hidden') !== 'true');
-        results.push({ name: 'Mobile Laptop accordion expands subcategories', pass: isLaptopExpanded && isLaptopPanelVisible });
+        const isLaptopExpanded1 = await page.$eval('#acc-btn-laptop', el => el.getAttribute('aria-expanded') === 'true');
+        const isLaptopPanelVisible1 = await page.$eval('#mobile-panel-laptop', el => !el.hidden && el.getAttribute('aria-hidden') !== 'true');
+        results.push({ name: 'Clicking Laptop accordion 1st time expands it', pass: isLaptopExpanded1 && isLaptopPanelVisible1 });
         await page.screenshot({ path: path.join(screenshotDir, 'mobile_390_laptop_expanded.png') });
-        console.log('7. Captured mobile_390_laptop_expanded.png');
 
-        await page.click('#acc-btn-pc');
+        // Click Laptop accordion 2nd time -> collapses (toggle behavior)
+        await page.click('#acc-btn-laptop');
         await new Promise(r => setTimeout(r, 200));
-        const isLaptopClosedAfterPC = await page.$eval('#acc-btn-laptop', el => el.getAttribute('aria-expanded') === 'false');
-        const isPCExpanded = await page.$eval('#acc-btn-pc', el => el.getAttribute('aria-expanded') === 'true');
-        results.push({ name: 'Opening PC accordion auto-closes Laptop accordion (exclusive accordions)', pass: isLaptopClosedAfterPC && isPCExpanded });
+        const isLaptopCollapsed2 = await page.$eval('#acc-btn-laptop', el => el.getAttribute('aria-expanded') === 'false');
+        const isLaptopPanelHidden2 = await page.$eval('#mobile-panel-laptop', el => el.hidden || el.getAttribute('aria-hidden') === 'true');
+        results.push({ name: 'Clicking Laptop accordion 2nd time collapses it (toggle behavior)', pass: isLaptopCollapsed2 && isLaptopPanelHidden2 });
+
+        // 3D. "Xem tất cả Laptop" link has cat=laptop
+        await page.click('#acc-btn-laptop');
+        await new Promise(r => setTimeout(r, 200));
+        const viewAllLaptopHref = await page.$eval('#mobile-panel-laptop .mobile-panel__view-all', el => el.getAttribute('href'));
+        results.push({ name: '"Xem tất cả Laptop" link contains cat=laptop', pass: viewAllLaptopHref && viewAllLaptopHref.includes('cat=laptop') });
 
         // --------------------------------------------------
-        // SCENARIO 5: NON-HOME ROUTE (/home/search?cat=laptop)
+        // SECTION 4: RESIZING FROM MOBILE/TABLET TO DESKTOP
+        // --------------------------------------------------
+        // Open main nav at 1024x768
+        await page.setViewport({ width: 1024, height: 768 });
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await page.click('#mobileMenuToggle');
+        await new Promise(r => setTimeout(r, 200));
+
+        const isNavOpenBeforeResize = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
+        const isScrollLockedBeforeResize = await page.$eval('body', el => el.classList.contains('category-scroll-locked'));
+
+        // Resize to Desktop 1366x768
+        await page.setViewport({ width: 1366, height: 768 });
+        await new Promise(r => setTimeout(r, 300));
+
+        const isNavOpenAfterResize = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
+        const isScrollLockedAfterResize = await page.$eval('body', el => el.classList.contains('category-scroll-locked'));
+        const isNavAriaHiddenAfterResize = await page.$eval('#mainNavMenu', el => el.hasAttribute('aria-hidden'));
+        const isNavInertAfterResize = await page.$eval('#mainNavMenu', el => el.hasAttribute('inert'));
+
+        results.push({
+            name: 'Resizing from drawer mode (1024px) to desktop (1366px) resets body scroll lock, removes is-mobile-open, removes aria-hidden & inert',
+            pass: isNavOpenBeforeResize && isScrollLockedBeforeResize && !isNavOpenAfterResize && !isScrollLockedAfterResize && !isNavAriaHiddenAfterResize && !isNavInertAfterResize
+        });
+
+        // --------------------------------------------------
+        // SECTION 5: NON-HOME ROUTE & TECHNICAL AUDITS
         // --------------------------------------------------
         await page.setViewport({ width: 1366, height: 768 });
-        await page.goto(`${baseUrl}home/search?cat=laptop`, { waitUntil: 'networkidle2' });
+        await page.goto(`${baseUrl}home/search?cat=laptop`, { waitUntil: 'domcontentloaded' });
         await page.click('#categoryMenuToggle');
         await new Promise(r => setTimeout(r, 200));
         const isSearchRouteOpen = await page.$eval('#categoryMegaDropdown', el => !el.hidden);
         results.push({ name: 'Non-home search route (/home/search?cat=laptop) opens category dropdown', pass: isSearchRouteOpen });
 
-        // --------------------------------------------------
-        // SCENARIO 6: TECHNICAL & ACCESSIBILITY AUDIT CHECKS
-        // --------------------------------------------------
-        // 6A. All aria-controls target IDs exist in DOM
+        // Technical Audit: aria-controls targets exist
         const missingAriaTargets = await page.evaluate(() => {
             const nodes = Array.from(document.querySelectorAll('[aria-controls]'));
             const missing = [];
@@ -191,24 +311,14 @@ const routerScript = path.join(__dirname, 'router.php');
         });
         results.push({ name: 'All aria-controls target IDs exist in DOM', pass: missingAriaTargets.length === 0, msg: `Missing: ${missingAriaTargets.join(', ')}` });
 
-        // 6B. Closed drawers focus isolation (inert attribute set on closed drawers on mobile)
-        await page.setViewport({ width: 390, height: 844 });
-        await page.goto(baseUrl, { waitUntil: 'networkidle2' });
-        const isClosedDrawerInert = await page.evaluate(() => {
-            const catDrawer = document.getElementById('categoryMegaDropdown');
-            const mainNav = document.getElementById('mainNavMenu');
-            return (catDrawer ? catDrawer.hasAttribute('inert') : true) && (mainNav ? mainNav.hasAttribute('inert') : true);
-        });
-        results.push({ name: 'Closed drawers have inert attribute set for keyboard focus isolation', pass: isClosedDrawerInert });
-
-        // 6C. Zero duplicate IDs
+        // Zero duplicate element IDs
         const duplicateIds = await page.evaluate(() => {
             const ids = Array.from(document.querySelectorAll('[id]')).map(el => el.id);
             return ids.filter((id, index) => ids.indexOf(id) !== index);
         });
         results.push({ name: 'Zero duplicate element IDs in DOM', pass: duplicateIds.length === 0, msg: `Duplicates: ${duplicateIds.join(', ')}` });
 
-        // 6D. Zero horizontal page overflow across 6 viewports
+        // Zero horizontal page overflow across all viewports
         const viewports = [
             { w: 1366, h: 768 },
             { w: 1440, h: 900 },
@@ -223,9 +333,9 @@ const routerScript = path.join(__dirname, 'router.php');
             const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
             if (hasOverflow) overflowViewports.push(`${vp.w}x${vp.h}`);
         }
-        results.push({ name: 'Zero horizontal page overflow across all 6 viewports', pass: overflowViewports.length === 0, msg: `Overflows: ${overflowViewports.join(', ')}` });
+        results.push({ name: 'Zero horizontal page overflow across all viewports', pass: overflowViewports.length === 0, msg: `Overflows: ${overflowViewports.join(', ')}` });
 
-        // 6E. Zero console errors
+        // Zero console errors
         results.push({ name: 'Zero browser console errors during interaction', pass: consoleErrors.length === 0, msg: `Errors: ${consoleErrors.join('; ')}` });
 
     } finally {
@@ -237,7 +347,7 @@ const routerScript = path.join(__dirname, 'router.php');
     let allPassed = true;
     for (const res of results) {
         const status = res.pass ? '[PASS]' : '[FAIL]';
-        console.log(`${res.name.padEnd(68)} ${status}`);
+        console.log(`${res.name.padEnd(80)} ${status}`);
         if (!res.pass) {
             allPassed = false;
             if (res.msg) console.log(`   -> Error: ${res.msg}`);

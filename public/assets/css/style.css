@@ -874,6 +874,21 @@ html.dark-mode .logo-text span {
 
 @media (max-width: 1024px) {
 
+    .mobile-menu-toggle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: none !important;
+        border: none !important;
+        color: var(--text-primary) !important;
+        font-size: 22px !important;
+        cursor: pointer !important;
+        padding: 4px !important;
+        width: 40px !important;
+        height: 40px !important;
+        flex-shrink: 0 !important;
+    }
+
     /* 5. Mobile Mega Menu Drawer - Slide từ trái vào */
     .main-nav {
         position: fixed !important;
@@ -892,8 +907,7 @@ html.dark-mode .logo-text span {
         pointer-events: none !important;
     }
 
-    .main-nav.is-mobile-open,
-    .main-nav.is-active {
+    .main-nav.is-mobile-open {
         left: 0 !important;
         visibility: visible !important;
         pointer-events: auto !important;
@@ -3571,6 +3585,23 @@ html.dark-mode .logo-brand-title span {
 .mobile-fixed-buy-bar,
 .product-detail__promo-box {
     display: none !important;
+}
+
+@media (max-width: 1024px) {
+    .mobile-menu-toggle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: none !important;
+        border: none !important;
+        color: var(--text-primary) !important;
+        font-size: 22px !important;
+        cursor: pointer !important;
+        padding: 4px !important;
+        width: 40px !important;
+        height: 40px !important;
+        flex-shrink: 0 !important;
+    }
 }
 
 
