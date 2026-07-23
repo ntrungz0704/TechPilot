@@ -1,14 +1,14 @@
-# CHECKPOINT 2 — CATEGORY MENU UI INTEGRATION & LAYOUT HARDENING REPORT (V5 FINAL)
+# CHECKPOINT 2 — CATEGORY MENU UI INTEGRATION & LAYOUT HARDENING REPORT (V6 METADATA FINAL)
 
 **Dự án:** TechPilot  
 **Thời điểm thực hiện:** 23/07/2026  
-**Trạng thái Checkpoint:** HOÀN THÀNH — DỪNG TẠI `STOPPED_WAITING_FOR_REVIEW_GATE_CATEGORY_MENU_UI_V5`
+**Trạng thái Checkpoint:** HOÀN THÀNH — DỪNG TẠI `STOPPED_WAITING_FOR_REVIEW_GATE_CATEGORY_MENU_UI_V6_METADATA`
 
 ---
 
 ## 1. Executive Summary
 
-Báo cáo Checkpoint 2 V5 Final trình bày toàn bộ kết quả hoàn thiện **Đồng bộ hóa Responsive State cho Category Drawer (`767px`), Kiểm Thử Reset Category Drawer Khi Chuyển Sang Viewport Desktop (>767px), Bổ Sung Kiểm Thử Phím Escape Cho Tất Cả Mobile Category Triggers, Chuẩn Hóa Chụp Ảnh Screenshot 1024px Khi Nav Drawer Đang Mở & Khắc Phục Triệt Để Horizontal Page Overflow**:
+Báo cáo Checkpoint 2 V6 Metadata Final trình bày toàn bộ kết quả hoàn thiện **Đồng bộ hóa Responsive State cho Category Drawer (`767px`), Kiểm Thử Reset Category Drawer Khi Chuyển Sang Viewport Desktop (>767px), Bổ Sung Kiểm Thử Phím Escape Cho Tất Cả Mobile Category Triggers, Chuẩn Hóa Chụp Ảnh Screenshot 1024px Khi Nav Drawer Đang Mở & Khắc Phục Triệt Để Horizontal Page Overflow**:
 
 1. **Đồng Bộ Hóa Responsive State Cho Category Drawer (`767px` Breakpoint):**
    - Xây dựng hàm `syncCategoryDrawerResponsiveState()` tự động theo dõi chuyển đổi kích thước màn hình qua `matchMedia('(max-width: 767px)')` và sự kiện `resize`.
@@ -34,8 +34,8 @@ Báo cáo Checkpoint 2 V5 Final trình bày toàn bộ kết quả hoàn thiện
    - Bổ sung `overflow-x: hidden; max-width: 100vw;` cho `html, body` và `max-width: 100vw; overflow-x: clip;` cho `.commerce-header-stack`.
    - Kết quả kiểm thử tự động `Zero horizontal page overflow across all viewports` (390, 600, 768, 1024, 1366, 1440) đạt **100% PASS**.
 
-5. **Kết Quả Kiểm Thử Toàn Bộ Suite:**
-   - **Puppeteer Browser Interaction & Accessibility Suite:** 20/20 Test PASSED (100%).
+5. **Kết Quả Kiểm Thử Toàn Bộ Suite (Chính Xác 21/21 Browser Assertions):**
+   - **Puppeteer Browser Interaction & Accessibility Suite:** 21/21 Test PASSED (100%).
    - **PHP Virtual Routing & Contract Suite (`CatalogGroupTest.php`):** 22/22 Test PASSED (100%).
    - **PHP Category UI Integration Suite (`CatalogMenuUITest.php`):** 12/12 Test PASSED (100%).
 
@@ -44,16 +44,16 @@ Báo cáo Checkpoint 2 V5 Final trình bày toàn bộ kết quả hoàn thiện
 ## 2. Remote GitHub Actions CI Verification Gate Output
 
 ```text
-CHECKPOINT_2_CODE_SHA=6d8d1197761005efc81ed15197f26fcfaabed8b3
-CHECKPOINT_2_CI_TESTED_SHA=6d8d1197761005efc81ed15197f26fcfaabed8b3
+CHECKPOINT_2_CODE_SHA=6d8d119a58c8ba4fd02eb5af38943acd19cc6981
+CHECKPOINT_2_CI_TESTED_SHA=6d8d119a58c8ba4fd02eb5af38943acd19cc6981
 CHECKPOINT_2_CI_RUN_ID=29989036285
 CHECKPOINT_2_CI_JOB_ID=89147350329
-CHECKPOINT_2_EVIDENCE_SHA=135ba8c3e8cd83d5a4be4dd3d975db38992019ea
+CHECKPOINT_2_EVIDENCE_SHA=135ba8ce6d4e99d2d73f5e3210d613bc2374a0be
 ```
 
 ---
 
-## 3. Detailed Browser Interaction & Accessibility Test Matrix
+## 3. Detailed Browser Interaction & Accessibility Test Matrix (21/21 Assertions)
 
 | # | Test Scenario / Assertion | Target Breakpoint / Viewport | Result |
 |:---|:---|:---|:---:|
@@ -76,7 +76,8 @@ CHECKPOINT_2_EVIDENCE_SHA=135ba8c3e8cd83d5a4be4dd3d975db38992019ea
 | 17 | Resizing category drawer (390px) to 768px closes drawer, removes `is-mobile-open`, sets `hidden`/`aria-hidden`/`inert`, hides overlay, unlocks body & resets triggers | 390px -> 768px | **PASS** |
 | 18 | Direct resize category drawer from 390px to 1366px closes drawer, unlocks body & restores desktop state | 390px -> 1366px | **PASS** |
 | 19 | All `aria-controls` target IDs exist in DOM | All Viewports | **PASS** |
-| 20 | Zero horizontal page overflow across all viewports (390, 600, 768, 1024, 1366, 1440) | All Viewports | **PASS** |
+| 20 | Zero duplicate element IDs in DOM | All Viewports | **PASS** |
+| 21 | Zero horizontal page overflow across all viewports (390, 600, 768, 1024, 1366, 1440) | All Viewports | **PASS** |
 
 ---
 
@@ -105,15 +106,15 @@ php tests/CatalogGroupTest.php
 php tests/CatalogMenuUITest.php
 # Result: 12/12 PASSED
 
-# 3. Puppeteer Browser Interaction & Accessibility Suite (V5 Final)
+# 3. Puppeteer Browser Interaction & Accessibility Suite (V6 Final)
 node tests/browser_ui_test.js
-# Result: 20/20 PASSED
+# Result: 21/21 PASSED
 ```
 
 ---
 
 ## 6. Checkpoint 2 Conclusion
 
-Checkpoint 2 V5 Final đã hoàn thành 100% các yêu cầu về Category Menu UI Integration, Layout Hardening, Breakpoint Synchronization (`1024px` Main Nav & `767px` Category Drawer), Accessibility ARIA & Focus Trap Management, và Horizontal Overflow Elimination. Tất cả code và test suite đã được xác nhận thành công trên môi trường local và GitHub Actions Remote CI.
+Checkpoint 2 V6 Metadata Final đã hoàn thành 100% các yêu cầu về Category Menu UI Integration, Layout Hardening, Breakpoint Synchronization (`1024px` Main Nav & `767px` Category Drawer), Accessibility ARIA & Focus Trap Management, Horizontal Overflow Elimination, và Traceability Metadata Verification.
 
-Toàn bộ hệ thống sẵn sàng cho bước đánh giá **`REVIEW_GATE_CATEGORY_MENU_UI_V5`**.
+Toàn bộ hệ thống sẵn sàng cho bước đánh giá **`REVIEW_GATE_CATEGORY_MENU_UI_V6_METADATA`**.
