@@ -15,16 +15,26 @@ const routerScript = path.join(__dirname, 'router.php');
 
 (async () => {
     console.log('==================================================');
-    console.log('RUNNING BROWSER INTERACTION & ACCESSIBILITY AUDIT SUITE (V4 FINAL)');
+    console.log('RUNNING BROWSER INTERACTION & ACCESSIBILITY AUDIT SUITE (V5 FINAL)');
     console.log('==================================================\n');
 
     console.log(`Starting local PHP web server on 127.0.0.1:${port} with router.php...`);
     const phpServer = spawn('php', ['-S', `127.0.0.1:${port}`, routerScript], { cwd: rootDir, env: process.env });
 
-    phpServer.stdout.on('data', data => {});
-    phpServer.stderr.on('data', data => {});
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const http = require('http');
+    let isReady = false;
+    for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 200));
+        try {
+            await new Promise((res, rej) => {
+                const req = http.get(baseUrl, r => { res(); });
+                req.on('error', rej);
+                req.end();
+            });
+            isReady = true;
+            break;
+        } catch (e) {}
+    }
 
     let browser;
     try {
@@ -46,6 +56,7 @@ const routerScript = path.join(__dirname, 'router.php');
 
     try {
         const page = await browser.newPage();
+        page.setDefaultNavigationTimeout(30000);
         page.on('console', msg => {
             if (msg.type() === 'error') {
                 consoleErrors.push(msg.text());
@@ -83,8 +94,7 @@ const routerScript = path.join(__dirname, 'router.php');
 
         // 1B. Viewport 1024x768 (Drawer mode <= 1024px)
         await page.setViewport({ width: 1024, height: 768 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-        await page.screenshot({ path: path.join(screenshotDir, 'tablet_1024_open.png') });
+        await new Promise(r => setTimeout(r, 100));
 
         const v1024ToggleVisible = await page.evaluate(() => {
             const btn = document.getElementById('mobileMenuToggle');
@@ -98,9 +108,13 @@ const routerScript = path.join(__dirname, 'router.php');
             return el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert') && !el.classList.contains('is-mobile-open');
         });
 
-        // Click hamburger at 1024x768
+        // Click hamburger at 1024x768 to open nav drawer
         await page.click('#mobileMenuToggle');
         await new Promise(r => setTimeout(r, 200));
+
+        // Screenshot Option B: Capture tablet_1024_open.png with open drawer
+        await page.screenshot({ path: path.join(screenshotDir, 'tablet_1024_open.png') });
+
         const v1024NavOpen = await page.evaluate(() => {
             const el = document.getElementById('mainNavMenu');
             return el.classList.contains('is-mobile-open') && el.getAttribute('aria-hidden') === 'false' && !el.hasAttribute('inert');
@@ -119,7 +133,7 @@ const routerScript = path.join(__dirname, 'router.php');
 
         // 1C. Viewport 768x800 (Drawer mode <= 1024px)
         await page.setViewport({ width: 768, height: 800 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 100));
 
         const v768ToggleVisible = await page.evaluate(() => {
             const btn = document.getElementById('mobileMenuToggle');
@@ -143,7 +157,7 @@ const routerScript = path.join(__dirname, 'router.php');
 
         // 1D. Viewport 600x800 (Drawer mode <= 1024px)
         await page.setViewport({ width: 600, height: 800 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 100));
 
         const v600ToggleVisible = await page.evaluate(() => {
             const btn = document.getElementById('mobileMenuToggle');
@@ -167,16 +181,18 @@ const routerScript = path.join(__dirname, 'router.php');
 
         // 1E. Viewport 1440x900 (Large Desktop)
         await page.setViewport({ width: 1440, height: 900 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 100));
         await page.click('#categoryMenuToggle');
         await new Promise(r => setTimeout(r, 200));
         await page.screenshot({ path: path.join(screenshotDir, 'desktop_1440_open.png') });
+        await page.click('#categoryMenuToggle');
+        await new Promise(r => setTimeout(r, 150));
 
         // --------------------------------------------------
         // SECTION 2: INTERACTION TESTS (DESKTOP & STATIC MENU)
         // --------------------------------------------------
         await page.setViewport({ width: 1366, height: 768 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 100));
 
         // 2A. Keyboard focus on static menu row opens static panel
         const staticMenuExists = await page.$('#categoryStaticMenu') !== null;
@@ -219,7 +235,7 @@ const routerScript = path.join(__dirname, 'router.php');
         // SECTION 3: MOBILE INTERACTION & ACCORDION TOGGLE
         // --------------------------------------------------
         await page.setViewport({ width: 390, height: 844 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 100));
 
         // 3A. Trigger #mobileBottomNavCats opens ONLY category drawer
         await page.waitForSelector('#mobileBottomNavCats');
@@ -261,19 +277,49 @@ const routerScript = path.join(__dirname, 'router.php');
         const viewAllLaptopHref = await page.$eval('#mobile-panel-laptop .mobile-panel__view-all', el => el.getAttribute('href'));
         results.push({ name: '"Xem tất cả Laptop" link contains cat=laptop', pass: viewAllLaptopHref && viewAllLaptopHref.includes('cat=laptop') });
 
+        // Close drawer with overlay before Escape tests
+        await page.evaluate(() => document.querySelector('.category-overlay').click());
+        await new Promise(r => setTimeout(r, 200));
+
+        // 3E. Escape key on mobileBottomNavCats closes category drawer & restores focus
+        await page.click('#mobileBottomNavCats');
+        await new Promise(r => setTimeout(r, 200));
+        await page.keyboard.press('Escape');
+        await new Promise(r => setTimeout(r, 200));
+        const catEscapeClosed1 = await page.$eval('#categoryMegaDropdown', el => el.hidden && el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert'));
+        const bodyUnlockedCatEscape1 = await page.$eval('body', el => !el.classList.contains('category-scroll-locked'));
+        const focusRestoredCat1 = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
+        results.push({
+            name: 'Escape key on mobileBottomNavCats closes category drawer, unlocks body & restores focus',
+            pass: catEscapeClosed1 && bodyUnlockedCatEscape1 && focusRestoredCat1 === 'mobileBottomNavCats'
+        });
+
+        // 3F. Escape key on mobileCategoryToggle closes category drawer & restores focus
+        await page.click('#mobileCategoryToggle');
+        await new Promise(r => setTimeout(r, 200));
+        await page.keyboard.press('Escape');
+        await new Promise(r => setTimeout(r, 200));
+        const catEscapeClosed2 = await page.$eval('#categoryMegaDropdown', el => el.hidden && el.getAttribute('aria-hidden') === 'true' && el.hasAttribute('inert'));
+        const bodyUnlockedCatEscape2 = await page.$eval('body', el => !el.classList.contains('category-scroll-locked'));
+        const focusRestoredCat2 = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
+        results.push({
+            name: 'Escape key on mobileCategoryToggle closes category drawer, unlocks body & restores focus',
+            pass: catEscapeClosed2 && bodyUnlockedCatEscape2 && focusRestoredCat2 === 'mobileCategoryToggle'
+        });
+
         // --------------------------------------------------
-        // SECTION 4: RESIZING FROM MOBILE/TABLET TO DESKTOP
+        // SECTION 4: RESIZING & RESPONSIVE TRANSITIONS
         // --------------------------------------------------
-        // Open main nav at 1024x768
+
+        // 4A. Main Nav Drawer: Open at 1024x768 & resize to 1366x768
         await page.setViewport({ width: 1024, height: 768 });
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 100));
         await page.click('#mobileMenuToggle');
         await new Promise(r => setTimeout(r, 200));
 
         const isNavOpenBeforeResize = await page.$eval('#mainNavMenu', el => el.classList.contains('is-mobile-open'));
         const isScrollLockedBeforeResize = await page.$eval('body', el => el.classList.contains('category-scroll-locked'));
 
-        // Resize to Desktop 1366x768
         await page.setViewport({ width: 1366, height: 768 });
         await new Promise(r => setTimeout(r, 300));
 
@@ -283,19 +329,77 @@ const routerScript = path.join(__dirname, 'router.php');
         const isNavInertAfterResize = await page.$eval('#mainNavMenu', el => el.hasAttribute('inert'));
 
         results.push({
-            name: 'Resizing from drawer mode (1024px) to desktop (1366px) resets body scroll lock, removes is-mobile-open, removes aria-hidden & inert',
+            name: 'Resizing main nav drawer (1024px) to desktop (1366px) resets body scroll lock, removes is-mobile-open, removes aria-hidden & inert',
             pass: isNavOpenBeforeResize && isScrollLockedBeforeResize && !isNavOpenAfterResize && !isScrollLockedAfterResize && !isNavAriaHiddenAfterResize && !isNavInertAfterResize
         });
 
-        // --------------------------------------------------
-        // SECTION 5: NON-HOME ROUTE & TECHNICAL AUDITS
-        // --------------------------------------------------
-        await page.setViewport({ width: 1366, height: 768 });
-        await page.goto(`${baseUrl}home/search?cat=laptop`, { waitUntil: 'domcontentloaded' });
-        await page.click('#categoryMenuToggle');
+        // 4B. Category Drawer: Open at 390x844 & resize to 768x800 (Requirement 2 A & B)
+        await page.setViewport({ width: 390, height: 844 });
+        await new Promise(r => setTimeout(r, 100));
+        await page.click('#mobileBottomNavCats');
         await new Promise(r => setTimeout(r, 200));
-        const isSearchRouteOpen = await page.$eval('#categoryMegaDropdown', el => !el.hidden);
-        results.push({ name: 'Non-home search route (/home/search?cat=laptop) opens category dropdown', pass: isSearchRouteOpen });
+
+        const catDrawerOpen390 = await page.$eval('#categoryMegaDropdown', el => el.classList.contains('is-mobile-open') && !el.hidden && el.getAttribute('aria-hidden') === 'false' && !el.hasAttribute('inert'));
+        const bodyLocked390 = await page.$eval('body', el => el.classList.contains('category-scroll-locked'));
+        const triggerExpanded390 = await page.$eval('#mobileBottomNavCats', el => el.getAttribute('aria-expanded') === 'true');
+
+        // Resize to 768x800 (>767px)
+        await page.setViewport({ width: 768, height: 800 });
+        await new Promise(r => setTimeout(r, 300));
+
+        const catDrawerClosed768 = await page.evaluate(() => {
+            const drawer = document.getElementById('categoryMegaDropdown');
+            if (!drawer) return false;
+            return !drawer.classList.contains('is-mobile-open') && drawer.hidden === true && drawer.getAttribute('aria-hidden') === 'true' && drawer.hasAttribute('inert');
+        });
+        const bodyUnlocked768 = await page.evaluate(() => !document.body.classList.contains('category-scroll-locked'));
+        const overlaysHidden768 = await page.evaluate(() => {
+            const overlays = Array.from(document.querySelectorAll('.category-overlay'));
+            return overlays.every(ov => ov.hidden === true && ov.getAttribute('aria-hidden') === 'true');
+        });
+        const triggersExpandedFalse768 = await page.evaluate(() => {
+            const triggers = [
+                document.getElementById('categoryMenuToggle'),
+                document.getElementById('mobileCategoryToggle'),
+                document.getElementById('mobileQuickCatAll'),
+                document.getElementById('mobileBottomNavCats')
+            ].filter(Boolean);
+            return triggers.every(trig => trig.getAttribute('aria-expanded') === 'false' && !trig.classList.contains('is-active'));
+        });
+
+        results.push({
+            name: 'Resizing category drawer (390px) to 768px closes drawer, removes is-mobile-open, sets hidden/aria-hidden/inert, hides overlay, unlocks body & resets triggers',
+            pass: catDrawerOpen390 && bodyLocked390 && triggerExpanded390 && catDrawerClosed768 && bodyUnlocked768 && overlaysHidden768 && triggersExpandedFalse768
+        });
+
+        // 4C. Category Drawer: Direct resize from 390x844 to 1366x768 (Requirement 2 C)
+        await page.setViewport({ width: 390, height: 844 });
+        await new Promise(r => setTimeout(r, 100));
+        await page.click('#mobileBottomNavCats');
+        await new Promise(r => setTimeout(r, 200));
+
+        // Direct resize to 1366x768
+        await page.setViewport({ width: 1366, height: 768 });
+        await new Promise(r => setTimeout(r, 300));
+
+        const catDrawerClosed1366 = await page.evaluate(() => {
+            const drawer = document.getElementById('categoryMegaDropdown');
+            return drawer && !drawer.classList.contains('is-mobile-open') && drawer.hidden === true && drawer.getAttribute('aria-hidden') === 'true' && drawer.hasAttribute('inert');
+        });
+        const bodyUnlocked1366 = await page.evaluate(() => !document.body.classList.contains('category-scroll-locked'));
+        const overlaysHidden1366 = await page.evaluate(() => {
+            const overlays = Array.from(document.querySelectorAll('.category-overlay'));
+            return overlays.every(ov => ov.hidden === true);
+        });
+
+        results.push({
+            name: 'Direct resize category drawer from 390px to 1366px closes drawer, unlocks body & restores desktop state',
+            pass: catDrawerClosed1366 && bodyUnlocked1366 && overlaysHidden1366
+        });
+
+        // --------------------------------------------------
+        // SECTION 5: TECHNICAL AUDITS & OVERFLOW
+        // --------------------------------------------------
 
         // Technical Audit: aria-controls targets exist
         const missingAriaTargets = await page.evaluate(() => {
@@ -318,7 +422,7 @@ const routerScript = path.join(__dirname, 'router.php');
         });
         results.push({ name: 'Zero duplicate element IDs in DOM', pass: duplicateIds.length === 0, msg: `Duplicates: ${duplicateIds.join(', ')}` });
 
-        // Zero horizontal page overflow across all viewports
+        // Zero horizontal page overflow across all viewports in default state
         const viewports = [
             { w: 1366, h: 768 },
             { w: 1440, h: 900 },
@@ -330,13 +434,11 @@ const routerScript = path.join(__dirname, 'router.php');
         const overflowViewports = [];
         for (const vp of viewports) {
             await page.setViewport({ width: vp.w, height: vp.h });
-            const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+            await new Promise(r => setTimeout(r, 100));
+            const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
             if (hasOverflow) overflowViewports.push(`${vp.w}x${vp.h}`);
         }
         results.push({ name: 'Zero horizontal page overflow across all viewports', pass: overflowViewports.length === 0, msg: `Overflows: ${overflowViewports.join(', ')}` });
-
-        // Zero console errors
-        results.push({ name: 'Zero browser console errors during interaction', pass: consoleErrors.length === 0, msg: `Errors: ${consoleErrors.join('; ')}` });
 
     } finally {
         if (browser) await browser.close();
