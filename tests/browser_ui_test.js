@@ -53,6 +53,7 @@ const routerScript = path.join(__dirname, 'router.php');
 
     const results = [];
     const consoleErrors = [];
+    const pageErrors = [];
 
     try {
         const page = await browser.newPage();
@@ -61,6 +62,9 @@ const routerScript = path.join(__dirname, 'router.php');
             if (msg.type() === 'error') {
                 consoleErrors.push(msg.text());
             }
+        });
+        page.on('pageerror', error => {
+            pageErrors.push(error.message);
         });
 
         // --------------------------------------------------
@@ -439,6 +443,18 @@ const routerScript = path.join(__dirname, 'router.php');
             if (hasOverflow) overflowViewports.push(`${vp.w}x${vp.h}`);
         }
         results.push({ name: 'Zero horizontal page overflow across all viewports', pass: overflowViewports.length === 0, msg: `Overflows: ${overflowViewports.join(', ')}` });
+
+        // Quality Gates: Console & Page Errors
+        results.push({
+            name: 'Zero browser console errors during all interactions',
+            pass: consoleErrors.length === 0,
+            msg: `Errors: ${consoleErrors.join('; ')}`
+        });
+        results.push({
+            name: 'Zero uncaught browser page errors',
+            pass: pageErrors.length === 0,
+            msg: `Errors: ${pageErrors.join('; ')}`
+        });
 
     } finally {
         if (browser) await browser.close();
