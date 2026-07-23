@@ -71,4 +71,63 @@ class UploadService
         // Trả về đường dẫn tương đối để lưu database (ví dụ: "products/image.png" hoặc "image.png")
         return $targetSubDir !== '' ? $targetSubDir . '/' . $randomName : $randomName;
     }
+
+    /**
+     * Delete an uploaded image safely and idempotently.
+     * Only deletes files located strictly within public/assets/images/.
+     *
+     * @param string|null $storedPath Stored image path (e.g. "posts/abc.jpg" or "abc.jpg")
+     * @param string $fallbackSubDir Optional sub-directory fallback (e.g. "posts")
+     * @return bool True if deleted or already missing, false if path traversal / invalid
+     */
+    public static function deleteImage(?string $storedPath, string $fallbackSubDir = ''): bool
+    {
+        if (empty($storedPath)) {
+            return true;
+        }
+
+        // Standardize slashes and trim
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+
+        // Security check: reject path traversal and absolute paths
+        if (str_contains($storedPath, '..') || str_starts_with($storedPath, '/') || preg_match('/^[a-zA-Z]:/', $storedPath)) {
+            return false;
+        }
+
+        $baseDir = ROOT_PATH . '/public/assets/images';
+        $realBaseDir = realpath($baseDir);
+        if (!$realBaseDir) {
+            return false;
+        }
+        $realBaseDirNormalized = str_replace('\\', '/', $realBaseDir);
+
+        // Try direct path first
+        $candidates = [$baseDir . '/' . $storedPath];
+
+        // If no subdirectory in storedPath and fallbackSubDir is provided, also try fallback candidate
+        if (!str_contains($storedPath, '/') && !empty($fallbackSubDir)) {
+            $cleanSubDir = str_replace(['..', '/', '\\'], '', $fallbackSubDir);
+            $candidates[] = $baseDir . '/' . $cleanSubDir . '/' . $storedPath;
+        }
+
+        foreach ($candidates as $candidatePath) {
+            $realCandidate = realpath($candidatePath);
+            if ($realCandidate) {
+                $realCandidateNormalized = str_replace('\\', '/', $realCandidate);
+                // Ensure candidate is strictly within base directory
+                if (str_starts_with($realCandidateNormalized, $realBaseDirNormalized . '/')) {
+                    try {
+                        return @unlink($realCandidate);
+                    } catch (Throwable $e) {
+                        return false;
+                    }
+                } else {
+                    return false; // Traversal or outside base directory
+                }
+            }
+        }
+
+        // File does not exist -> Idempotent success
+        return true;
+    }
 }

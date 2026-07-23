@@ -1,0 +1,8 @@
+MarkdownRendererTest: 35 passed, 0 failed (Exit code 0)
+EditorialExperienceTest: 42 passed, 0 failed (Exit code 0)
+test_absolute_url: 9 passed, 0 failed (Exit code 0)
+test_author_cases: 3 passed, 0 failed (Exit code 0)
+NewsModuleRegressionTest: 36 passed, 0 failed (Exit code 0)
+NewsSearchIntegrationTest: 20 passed, 0 failed (Exit code 0)
+
+All 145 unit, regression, and integration test cases passed with exit code 0.

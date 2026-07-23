@@ -2,6 +2,7 @@
 require_once ROOT_PATH . '/app/core/Controller.php';
 require_once ROOT_PATH . '/app/models/Post.php';
 require_once ROOT_PATH . '/app/services/UploadService.php';
+require_once ROOT_PATH . '/app/services/PostPublishingValidator.php';
 
 class AdminPostController extends Controller
 {
@@ -58,6 +59,27 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $validation = PostPublishingValidator::validate($_POST);
+            if (!$validation['valid']) {
+                $this->renderAdmin('admin/posts/create', [
+                    'pageTitle' => 'Thêm bài viết mới',
+                    'activeMenu' => 'posts',
+                    'errors' => $validation['errors'],
+                    'post' => [
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ]
+                ]);
+                return;
+            }
+
+            $uploadedImage = null;
             try {
                 $title = trim($_POST['title'] ?? '');
                 $summary = trim($_POST['summary'] ?? '');
@@ -67,14 +89,9 @@ class AdminPostController extends Controller
                 $postType = $_POST['post_type'] ?? 'news';
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
-                
-                if (empty($title) || empty($content)) {
-                    throw new Exception('Vui lòng nhập đầy đủ tiêu đề và nội dung');
-                }
 
-                $image = null;
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                    $image = UploadService::uploadImage($_FILES['image'], 'posts');
+                    $uploadedImage = UploadService::uploadImage($_FILES['image'], 'posts');
                 }
 
                 $slug = Post::slugify($title);
@@ -93,12 +110,12 @@ class AdminPostController extends Controller
                 
                 $stmt = $db->prepare($sql);
                 $stmt->execute([
-                    ':author_id' => $_SESSION['user']['id'],
+                    ':author_id' => $_SESSION['user']['id'] ?? null,
                     ':title' => $title,
                     ':slug' => $slug,
                     ':summary' => $summary,
                     ':content' => $content,
-                    ':image' => $image,
+                    ':image' => $uploadedImage,
                     ':status' => $status,
                     ':category_slug' => $categorySlug,
                     ':post_type' => $postType,
@@ -111,11 +128,28 @@ class AdminPostController extends Controller
                 header('Location: ' . url('admin/posts'));
                 exit;
 
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
+                if ($uploadedImage) {
+                    $cleaned = UploadService::deleteImage($uploadedImage, 'posts');
+                    if (!$cleaned) {
+                        error_log('[AdminPostController::store] Failed to clean up uploaded image on insert failure: ' . $uploadedImage);
+                    }
+                }
+
                 $this->renderAdmin('admin/posts/create', [
                     'pageTitle' => 'Thêm bài viết mới',
                     'activeMenu' => 'posts',
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'post' => [
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ]
                 ]);
             }
         }
@@ -146,17 +180,40 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getConnection();
+            $stmt = $db->prepare('SELECT * FROM posts WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $post = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$post) {
+                $_SESSION['error'] = 'Không tìm thấy bài viết';
+                header('Location: ' . url('admin/posts'));
+                exit;
+            }
+
+            $validation = PostPublishingValidator::validate($_POST);
+            if (!$validation['valid']) {
+                $this->renderAdmin('admin/posts/edit', [
+                    'pageTitle' => 'Chỉnh sửa bài viết',
+                    'activeMenu' => 'posts',
+                    'errors' => $validation['errors'],
+                    'post' => array_merge($post, [
+                        'id' => $id,
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ])
+                ]);
+                return;
+            }
+
+            $newImage = null;
             try {
-                $db = Database::getConnection();
-                
-                $stmt = $db->prepare('SELECT * FROM posts WHERE id = :id');
-                $stmt->execute([':id' => $id]);
-                $post = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                if (!$post) {
-                    throw new Exception('Không tìm thấy bài viết');
-                }
-
                 $title = trim($_POST['title'] ?? '');
                 $summary = trim($_POST['summary'] ?? '');
                 $content = trim($_POST['content'] ?? '');
@@ -166,33 +223,15 @@ class AdminPostController extends Controller
                 $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
                 $readingMinutes = !empty($_POST['reading_minutes']) ? (int)$_POST['reading_minutes'] : null;
 
-                if (empty($title) || empty($content)) {
-                    throw new Exception('Vui lòng nhập đầy đủ tiêu đề và nội dung');
-                }
-
-                $image = $post['image'];
+                $imageToSave = $post['image'];
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                    if ($image) {
-                        // Xoá ảnh cũ nếu tồn tại (tìm cả posts/ lẫn news/ cho backward compat)
-                        $oldPaths = [
-                            ROOT_PATH . '/public/assets/images/posts/' . basename($image),
-                            ROOT_PATH . '/public/assets/images/news/' . basename($image),
-                        ];
-                        foreach ($oldPaths as $oldPath) {
-                            if (file_exists($oldPath)) { @unlink($oldPath); break; }
-                        }
-                    }
-                    $image = UploadService::uploadImage($_FILES['image'], 'posts');
+                    $newImage = UploadService::uploadImage($_FILES['image'], 'posts');
+                    $imageToSave = $newImage;
                 }
-
-                // Không tự động đổi slug khi edit để tránh hỏng SEO (chỉ đổi nếu explicit update slug form - tạm bỏ qua)
-                $slug = $post['slug']; 
 
                 $publishedAt = $post['published_at'];
                 if ($status === 'published' && empty($publishedAt)) {
                     $publishedAt = date('Y-m-d H:i:s');
-                } elseif ($status !== 'published') {
-                    // Tùy chọn: clear published_at nếu unpublish. Ở đây giữ nguyên cho history.
                 }
 
                 $sql = 'UPDATE posts SET 
@@ -213,7 +252,7 @@ class AdminPostController extends Controller
                     ':title' => $title,
                     ':summary' => $summary,
                     ':content' => $content,
-                    ':image' => $image,
+                    ':image' => $imageToSave,
                     ':status' => $status,
                     ':category_slug' => $categorySlug,
                     ':post_type' => $postType,
@@ -223,15 +262,49 @@ class AdminPostController extends Controller
                     ':id' => $id
                 ]);
 
-                $_SESSION['success'] = 'Cập nhật bài viết thành công';
-                header('Location: ' . url('admin/posts'));
-                exit;
+            } catch (Throwable $e) {
+                // If upload or DB update failed, cleanup $newImage if created
+                if ($newImage) {
+                    $cleaned = UploadService::deleteImage($newImage, 'posts');
+                    if (!$cleaned) {
+                        error_log('[AdminPostController::update] Failed to clean up new image on update failure: ' . $newImage);
+                    }
+                }
 
-            } catch (Exception $e) {
-                $_SESSION['error'] = $e->getMessage();
-                header('Location: ' . url('admin/posts/edit/' . $id));
-                exit;
+                $this->renderAdmin('admin/posts/edit', [
+                    'pageTitle' => 'Chỉnh sửa bài viết',
+                    'activeMenu' => 'posts',
+                    'error' => $e->getMessage(),
+                    'post' => array_merge($post, [
+                        'id' => $id,
+                        'title' => $_POST['title'] ?? '',
+                        'summary' => $_POST['summary'] ?? '',
+                        'content' => $_POST['content'] ?? '',
+                        'status' => $_POST['status'] ?? 'draft',
+                        'category_slug' => $_POST['category_slug'] ?? 'cong-nghe',
+                        'post_type' => $_POST['post_type'] ?? 'news',
+                        'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                        'reading_minutes' => $_POST['reading_minutes'] ?? '',
+                    ])
+                ]);
+                return;
             }
+
+            // DB update succeeded! Best-effort delete old image OUTSIDE main try/catch block
+            if ($newImage && !empty($post['image']) && $post['image'] !== $newImage) {
+                try {
+                    $cleaned = UploadService::deleteImage($post['image'], 'posts');
+                    if (!$cleaned) {
+                        error_log('[AdminPostController::update] Best-effort deletion returned false for old image: ' . $post['image']);
+                    }
+                } catch (Throwable $cleanupError) {
+                    error_log('[AdminPostController::update] Exception during old image deletion: ' . $cleanupError->getMessage());
+                }
+            }
+
+            $_SESSION['success'] = 'Cập nhật bài viết thành công';
+            header('Location: ' . url('admin/posts'));
+            exit;
         }
     }
 
@@ -239,21 +312,36 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getConnection();
-            
-            $stmt = $db->prepare('SELECT image FROM posts WHERE id = :id');
-            $stmt->execute([':id' => $id]);
-            $post = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($post) {
-                if ($post['image']) {
-                    UploadService::deleteImage($post['image'], 'news');
-                }
+            try {
+                $db = Database::getConnection();
                 
-                $stmt = $db->prepare('DELETE FROM posts WHERE id = :id');
+                $stmt = $db->prepare('SELECT image FROM posts WHERE id = :id');
                 $stmt->execute([':id' => $id]);
-                
-                $_SESSION['success'] = 'Đã xóa bài viết';
+                $post = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($post) {
+                    $imageToDelete = $post['image'] ?? null;
+
+                    // 1. DELETE DB row FIRST
+                    $stmt = $db->prepare('DELETE FROM posts WHERE id = :id');
+                    $stmt->execute([':id' => $id]);
+
+                    $_SESSION['success'] = 'Đã xóa bài viết';
+
+                    // 2. Best-effort file cleanup ONLY AFTER DB row is deleted successfully
+                    if ($imageToDelete) {
+                        try {
+                            $cleaned = UploadService::deleteImage($imageToDelete, 'posts');
+                            if (!$cleaned) {
+                                error_log('[AdminPostController::delete] Failed to delete image file: ' . $imageToDelete);
+                            }
+                        } catch (Throwable $cleanupError) {
+                            error_log('[AdminPostController::delete] Exception during image deletion: ' . $cleanupError->getMessage());
+                        }
+                    }
+                }
+            } catch (Throwable $e) {
+                $_SESSION['error'] = 'Không thể xóa bài viết: ' . $e->getMessage();
             }
             
             header('Location: ' . url('admin/posts'));

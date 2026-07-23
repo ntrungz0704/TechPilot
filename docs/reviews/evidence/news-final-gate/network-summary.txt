@@ -1,0 +1,10 @@
+Route Diagnostic Network Summary:
+news.css: 200 OK (assets/css/news.css?v=2.2 / v=2.4)
+news.js: 200 OK (assets/js/news.js?v=2.3)
+Document Status: 200 OK
+Unexpected 4xx: 0
+Unexpected 5xx: 0
+Redirect Loops: 0
+Mixed Content: 0
+Failed Requests: 0
+Result: PASS

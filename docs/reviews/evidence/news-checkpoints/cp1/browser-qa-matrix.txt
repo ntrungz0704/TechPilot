@@ -1,0 +1,26 @@
+TechPilot News Module - Checkpoint 1 Browser QA Test Matrix
+===================================================================================
+
+TC01: Rich Article Detail View (Desktop)
+Viewport: 1440x900
+Result: PASS
+Details: Full markdown content, Table of Contents (TOC), sources, and author box rendered correctly.
+
+TC02: Rich Article Detail View (Mobile)
+Viewport: 390x844
+Result: PASS
+Details: Responsive layout, collapsible mobile TOC, responsive images and callouts.
+
+TC03: Empty Article Fallback View (Desktop)
+Viewport: 1440x900
+Result: PASS
+Details: Renders .news-detail__empty-notice banner safely. Suppresses TOC, CTA blocks, sources, and author box layout.
+
+TC04: Empty Article Fallback View (Mobile)
+Viewport: 390x844
+Result: PASS
+Details: Responsive empty notice banner rendered cleanly. TOC, CTA, sources, and author box completely suppressed.
+
+Console Errors: 0
+HTTP 500 Errors: 0
+Status: PASS

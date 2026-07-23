@@ -23,6 +23,16 @@
     color: var(--news-text-main);
 }
 
+.news-detail-category-badge {
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.news-empty__action {
+    margin-top: 16px;
+    display: inline-block;
+}
+
 /* ── 2. Layout & Grid ────────────────────────────────────────────────────── */
 .news-layout {
     display: grid;
@@ -51,244 +61,306 @@
 
 /* Header Intro */
 .news-intro-header {
-    margin-bottom: 24px;
-}
-.news-intro-badge {
-    display: inline-flex;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    background: rgba(20, 110, 245, 0.08);
-    color: var(--news-primary);
-    font-size: 12px;
-    font-weight: 700;
-    border-radius: 20px;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
 }
-html.dark-mode .news-intro-badge {
-    background: rgba(0, 200, 255, 0.15);
-    color: #00C8FF;
+.news-intro-text {
+    flex: 1 1 320px;
+    max-width: 680px;
 }
 .news-intro-title {
-    font-size: clamp(24px, 3.5vw, 32px);
+    font-size: 28px;
     font-weight: 900;
     color: var(--news-text-main);
     line-height: 1.25;
-    margin: 0 0 8px 0;
+    margin: 0;
     letter-spacing: -0.5px;
 }
+@media (max-width: 767px) {
+    .news-intro-title {
+        font-size: clamp(20px, 5vw, 24px);
+    }
+}
 .news-intro-desc {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--news-text-light);
     margin: 0;
-    max-width: 720px;
-    line-height: 1.6;
+    max-width: 600px;
+    line-height: 1.5;
 }
 
-/* Tier 1 Content Category Cards Container */
-.news-content-categories {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding: 4px 2px 14px 2px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--news-border) transparent;
-    -webkit-overflow-scrolling: touch;
-}
-.news-content-categories::-webkit-scrollbar {
-    height: 4px;
-}
-.news-content-categories::-webkit-scrollbar-thumb {
-    background: var(--news-border);
-    border-radius: 4px;
-}
-
-/* Content Category Card */
-.news-category-card {
+/* Header Search Form */
+.news-page .news-search-form {
     flex: 0 0 auto;
-    min-width: 210px;
+    width: 280px;
+    max-width: 100%;
+}
+@media (max-width: 767px) {
+    .news-page .news-search-form {
+        width: 100%;
+    }
+}
+.news-search-input-wrapper {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 18px;
-    background-color: var(--news-card-bg);
-    border: 1px solid var(--news-border);
-    border-radius: var(--news-radius);
-    text-decoration: none;
-    color: var(--news-text-main);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: var(--news-shadow);
-    outline-offset: 3px;
-    position: relative;
-    user-select: none;
+    width: 100%;
 }
-
-/* Card Icon Box */
-.news-category-card__icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;
-    background: var(--news-muted-bg);
+.news-search-input-wrapper input {
+    width: 100%;
+    padding: 8px 36px 8px 14px;
+    border: 1px solid var(--news-border);
+    border-radius: 20px;
+    background: var(--news-card-bg);
+    color: var(--news-text-main);
+    font-size: 13px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.news-search-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--news-primary);
+    box-shadow: 0 0 0 3px rgba(20, 110, 245, 0.15);
+}
+html.dark-mode .news-search-input-wrapper input:focus {
+    border-color: #00C8FF;
+    box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.2);
+}
+.news-search-submit-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--news-text-light);
+    cursor: pointer;
+    padding: 6px 8px;
+    font-size: 14px;
+}
+.news-search-submit-btn:hover {
     color: var(--news-primary);
-    display: flex;
+}
+.news-search-clear-btn {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--news-text-light);
+    text-decoration: none;
+    padding: 6px;
+    font-size: 14px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-    transition: all 0.25s ease;
 }
-
-/* Card Info */
-.news-category-card__info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+.news-search-clear-btn:hover {
+    color: #ef4444;
 }
-.news-category-card__title {
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.3;
-    white-space: nowrap;
-}
-.news-category-card__sub {
-    font-size: 12px;
-    color: var(--news-text-light);
-    white-space: nowrap;
-    transition: color 0.2s ease;
-}
-
-/* Card Hover State */
-.news-category-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--news-primary);
-    box-shadow: 0 10px 25px -5px rgba(20, 110, 245, 0.18);
-}
-.news-category-card:hover .news-category-card__icon {
-    background: var(--news-primary);
-    color: #FFFFFF;
-}
-
-/* Card Active State */
-.news-category-card.is-active {
-    background: linear-gradient(135deg, #146EF5 0%, #5B5BFF 100%);
-    border-color: transparent;
-    color: #FFFFFF;
-    box-shadow: 0 10px 25px -4px rgba(20, 110, 245, 0.35);
-}
-.news-category-card.is-active .news-category-card__icon {
-    background: rgba(255, 255, 255, 0.2);
-    color: #FFFFFF;
-}
-.news-category-card.is-active .news-category-card__sub {
-    color: rgba(255, 255, 255, 0.85);
-}
-
-/* Focus State */
-.news-category-card:focus-visible {
-    outline: 2px solid #00C8FF;
-}
-
-/* Grid on Large Desktop */
-@media (min-width: 1200px) {
-    .news-content-categories {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        overflow-x: visible;
-        padding-bottom: 4px;
+@media (max-width: 767px) {
+    .news-search-input-wrapper input {
+        min-height: 44px;
     }
-    .news-category-card {
-        min-width: 0;
+    .news-search-submit-btn,
+    .news-search-clear-btn {
+        min-height: 44px;
+        min-width: 44px;
     }
 }
 
-/* ── Tier 2: Topic Filter Bar (Chủ đề thiết bị) ────────────────────────── */
-.news-topic-bar {
-    margin-top: 18px;
+/* Filter Control Group */
+.news-filter-controls {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 14px;
-    padding: 10px 16px;
-    background: var(--news-card-bg);
-    border: 1px solid var(--news-border);
-    border-radius: var(--news-radius);
-    box-shadow: var(--news-shadow);
-    overflow: hidden;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--news-border);
 }
-.news-topic-bar__label {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--news-text-light);
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
-.news-topic-bar__label i {
-    color: var(--news-primary);
-}
-.news-topic-pills {
+
+/* Tier 1 Content Category Tabs */
+.news-type-pills {
     display: flex;
     gap: 8px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-    padding: 2px 0;
-    width: 100%;
+    padding: 2px;
 }
-.news-topic-pills::-webkit-scrollbar {
-    display: none;
-}
-.news-topic-pill {
-    white-space: nowrap;
-    padding: 6px 14px;
-    border-radius: 20px;
-    background-color: var(--news-muted-bg);
+.news-type-pills::-webkit-scrollbar { display: none; }
+
+.news-type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background-color: var(--news-card-bg);
     border: 1px solid var(--news-border);
+    border-radius: 20px;
     color: var(--news-text-main);
     font-weight: 600;
     font-size: 13px;
-    transition: all 0.2s ease;
+    white-space: nowrap;
     text-decoration: none;
-    outline-offset: 2px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     user-select: none;
 }
-.news-topic-pill:hover {
-    background-color: var(--news-page-bg);
+.news-type-pill i {
+    color: var(--news-primary);
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+.news-type-pill:hover {
     border-color: var(--news-primary);
     color: var(--news-primary);
+    background-color: var(--news-page-bg);
 }
-.news-topic-pill.is-active {
-    background-color: var(--news-primary);
-    color: #FFFFFF;
-    border-color: var(--news-primary);
+.news-type-pill.is-active {
+    background: linear-gradient(135deg, var(--news-primary) 0%, var(--news-ai-accent) 100%);
+    color: #fff;
+    border-color: transparent;
     box-shadow: 0 4px 12px rgba(20, 110, 245, 0.25);
 }
-html.dark-mode .news-topic-pill.is-active {
-    background-color: #00C8FF;
-    color: #0B0F19;
-    border-color: #00C8FF;
-    box-shadow: 0 4px 12px rgba(0, 200, 255, 0.3);
+.news-type-pill.is-active i {
+    color: #fff;
 }
-.news-topic-pill:focus-visible {
+.news-type-pill:focus-visible {
     outline: 2px solid var(--news-cyan);
+    outline-offset: 2px;
 }
-
-@media (max-width: 768px) {
-    .news-topic-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 12px;
+@media (max-width: 767px) {
+    .news-type-pill {
+        min-height: 44px;
+        padding: 10px 16px;
     }
 }
 
+/* Tier 2: Topic Select Form */
+.news-topic-form {
+    display: inline-flex;
+    align-items: center;
+}
+.news-topic-select-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.news-topic-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--news-text-light);
+    white-space: nowrap;
+}
+.news-topic-select {
+    padding: 6px 32px 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--news-text-main);
+    background-color: var(--news-card-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 20px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+html.dark-mode .news-topic-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.news-topic-select:focus-visible {
+    outline: 2px solid var(--news-primary);
+    outline-offset: 1px;
+}
+.news-topic-submit-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+}
+@media (max-width: 767px) {
+    .news-topic-form {
+        width: 100%;
+    }
+    .news-topic-select-wrapper {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .news-topic-select {
+        min-height: 44px;
+        flex: 1 1 auto;
+    }
+    .news-topic-submit-btn {
+        min-height: 44px;
+    }
+}
 
+/* Hot Topics (Dual Placement Visibility Rules) */
+.news-hot-topics-mobile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 0 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.news-hot-topics-mobile::-webkit-scrollbar { display: none; }
+
+.news-hot-topics-mobile .news-hot-topics__label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--news-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.news-hot-topics-mobile .news-hot-topics__list {
+    display: flex;
+    gap: 8px;
+}
+.news-hot-topic-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--news-border);
+    border-radius: 20px;
+    color: var(--news-text-main);
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.news-hot-topic-link:hover {
+    border-color: var(--news-primary);
+    color: var(--news-primary);
+    background-color: var(--news-card-bg);
+}
+
+/* Breakpoint visibility rules - strictly display: none !important */
+@media (min-width: 1024px) {
+    .news-hot-topics-mobile {
+        display: none !important;
+    }
+}
+@media (max-width: 1023px) {
+    .news-hot-topics-sidebar {
+        display: none !important;
+    }
+}
 
 /* ── 4. Hero Grid (Featured + Popular) ──────────────────────────────────── */
 .news-hero-grid {
@@ -453,16 +525,26 @@ html.dark-mode .news-topic-pill.is-active {
 
 /* Badge styles */
 .news-badge {
-    position: absolute;
-    top: 16px;
-    left: 16px;
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    width: fit-content;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--news-primary) 0%, var(--news-ai-accent) 100%);
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(20, 110, 245, 0.3);
+    position: static;
     z-index: 3;
-    background-color: var(--news-accent);
-    color: #fff;
-    padding: 4px 10px;
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 4px;
+}
+html.dark-mode .news-badge {
+    background: linear-gradient(135deg, #00C8FF 0%, var(--news-primary) 100%);
+    color: #0B0F19;
 }
 .news-badge-category {
     font-size: 11px;
@@ -942,6 +1024,40 @@ html.dark-mode .news-topic-pill.is-active {
 .news-detail-content blockquote p:last-child {
     margin-bottom: 0;
 }
+.news-detail-content .news-code-block {
+    margin: 30px 0;
+    border-radius: 8px;
+    background: #1e1e1e;
+    overflow-x: auto;
+}
+.news-detail-content .news-code-block pre {
+    margin: 0;
+    padding: 16px 24px;
+}
+.news-detail-content .news-code-block code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #d4d4d4;
+    white-space: pre;
+}
+.news-detail-content .youtube-embed-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    margin: 30px 0;
+    border-radius: 8px;
+    background: #000;
+}
+.news-detail-content .youtube-embed-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
 .news-detail-content img {
     max-width: 100%;
     height: auto;
@@ -997,6 +1113,30 @@ html.dark-mode .news-detail-content .callout {
 .news-detail-content .callout-info {
     border-left: 4px solid var(--news-cyan);
 }
+.news-detail-content .pros-cons-block {
+    margin: 30px 0;
+    padding: 20px 24px;
+    border-radius: 8px;
+    background-color: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+}
+.news-detail-content .pros-cons-block h4 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.news-detail-content .pros-cons-block ul {
+    margin: 0;
+}
+.news-detail-content .pros-block {
+    border-top: 4px solid var(--news-green, #10b981);
+}
+.news-detail-content .cons-block {
+    border-top: 4px solid var(--news-red, #ef4444);
+}
 .news-toc {
     background: var(--news-muted-bg);
     border: 1px solid var(--news-border);
@@ -1039,6 +1179,10 @@ html.dark-mode .news-detail-content .callout {
 .news-toc-item a:hover {
     color: var(--news-primary);
     text-decoration: none;
+}
+.news-toc-item.is-active a {
+    color: var(--news-primary);
+    font-weight: 700;
 }
 .news-toc-level-3 {
     padding-left: 24px;
@@ -1113,28 +1257,52 @@ html.dark-mode .news-detail-content .callout {
     bottom: 80px; /* Tránh che mobile bottom nav */
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: #111827;
+    background: #333;
     color: #fff;
-    padding: 10px 22px;
-    border-radius: 24px;
+    padding: 12px 20px;
+    border-radius: 8px;
     font-size: 14px;
-    font-weight: 500;
-    z-index: 9999;
+    font-weight: 600;
+    z-index: 10000;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity .25s ease, transform .25s ease;
+    visibility: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,.25);
 }
 .toast-message.show {
-    opacity: 1;
     transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
 }
 @media (min-width: 768px) {
     .toast-message {
         bottom: 32px;
     }
+}
+
+/* ── 13. Reading Progress Bar ────────────────────────────────────────────── */
+/* Nằm NGOÀI .news-page nên phải dùng fallback value cho biến CSS */
+.news-reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: transparent;
+    z-index: 9999;
+    pointer-events: none;
+}
+.news-reading-progress-bar {
+    height: 100%;
+    /* Fallback values cho --news-cyan và --news-primary khi nằm ngoài .news-page */
+    background: linear-gradient(
+        90deg,
+        var(--news-cyan, #00C8FF) 0%,
+        var(--news-primary, #146EF5) 100%
+    );
+    width: 0%;
+    transition: width 0.15s ease-out;
 }
 
 /* ── 13. Dark Mode ───────────────────────────────────────────────────────── */
@@ -1188,6 +1356,23 @@ html.dark-mode .toast-message {
     background: #F9FAFB;
     color: #111827;
 }
+/* Dark mode: code block */
+html.dark-mode .news-detail-content .news-code-block {
+    background: #0d1117;
+    border: 1px solid #374151;
+}
+html.dark-mode .news-detail-content .news-code-block code {
+    color: #e6edf3;
+}
+/* Dark mode: YouTube embed – chỉ border */
+html.dark-mode .news-detail-content .youtube-embed-wrapper {
+    background: #000;
+}
+/* Dark mode: Pros/Cons */
+html.dark-mode .news-detail-content .pros-cons-block {
+    background-color: var(--news-muted-bg);
+    border-color: var(--news-border);
+}
 
 /* ── 14. Reduced Motion ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -1199,6 +1384,14 @@ html.dark-mode .toast-message {
     }
     .toast-message {
         transition: opacity .1s;
+    }
+    /* Tắt transition progress bar khi user prefer reduced motion */
+    .news-reading-progress-bar {
+        transition: none;
+    }
+    /* Tắt animation icon rotate trong TOC toggle */
+    .news-toc-toggle i {
+        transition: none !important;
     }
 }
 
@@ -1334,3 +1527,263 @@ html.dark-mode .article-cta-box {
         min-height: 44px;
     }
 }
+
+/* ==========================================================================
+   Editorial Article Experience Extensions
+   ========================================================================== */
+
+/* ── 13. Variables update for .news-page ── */
+.news-page {
+    --news-sticky-offset: 140px; /* Measured: site-header (80px) + main-nav (40px) + 20px gap */
+}
+
+/* ── 14. Dual TOC & Sticky Sidebar Widget ── */
+.news-sidebar-toc-widget {
+    position: sticky;
+    top: var(--news-sticky-offset, 140px);
+    max-height: calc(100vh - var(--news-sticky-offset, 140px) - 30px);
+    overflow-y: auto;
+    z-index: 10;
+    margin-bottom: 0;
+}
+
+/* Desktop vs Mobile visibility for Dual TOC */
+@media (min-width: 1024px) {
+    .news-mobile-toc-wrapper {
+        display: none !important;
+    }
+    .news-sidebar-toc-widget {
+        display: block !important;
+    }
+}
+@media (max-width: 1023px) {
+    .news-mobile-toc-wrapper {
+        display: block !important;
+    }
+    .news-sidebar-toc-widget {
+        display: none !important;
+    }
+}
+
+/* TOC Styling adjustments for Desktop Sidebar and Mobile */
+.news-toc {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+}
+.news-sidebar-toc-widget .news-toc {
+    display: block;
+    margin: 0;
+}
+
+/* No-JS (default): List is visible, toggle button is hidden */
+.news-toc-list {
+    display: block;
+}
+.news-toc-toggle {
+    display: none;
+}
+
+/* Progressive enhancement with JS (when html.js is active) */
+html.js .news-toc--mobile .news-toc-toggle {
+    display: inline-flex;
+}
+html.js .news-toc--mobile .news-toc-list {
+    display: none;
+}
+html.js .news-toc--mobile.is-open .news-toc-list {
+    display: block;
+}
+
+.news-sidebar-toc-widget .news-toc-list {
+    display: block !important;
+}
+
+/* ── 15. Quick Summary Box (:::summary) ── */
+.article-quick-summary {
+    background: linear-gradient(135deg, rgba(20, 110, 245, 0.06) 0%, rgba(0, 200, 255, 0.06) 100%);
+    border: 1px solid rgba(20, 110, 245, 0.2);
+    border-left: 4px solid var(--news-primary);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 20px 0 30px 0;
+}
+.article-quick-summary .article-summary-title,
+.article-quick-summary h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--news-primary);
+    margin: 0 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.article-quick-summary .summary-body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--news-text-main);
+}
+.article-quick-summary .summary-body p:last-child,
+.article-quick-summary .summary-body ul:last-child,
+.article-quick-summary .summary-body ol:last-child {
+    margin-bottom: 0;
+}
+
+/* Dark mode for Quick Summary */
+html.dark-mode .article-quick-summary {
+    background: linear-gradient(135deg, rgba(20, 110, 245, 0.15) 0%, rgba(0, 200, 255, 0.1) 100%);
+    border-color: rgba(0, 200, 255, 0.3);
+    border-left-color: var(--news-cyan);
+}
+html.dark-mode .article-quick-summary .article-summary-title,
+html.dark-mode .article-quick-summary h2 {
+    color: var(--news-cyan);
+}
+
+/* ── 16. Sources Block (:::sources) ── */
+.article-sources-block {
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 35px 0;
+}
+.article-sources-block .article-sources-title,
+.article-sources-block h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--news-text-main);
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.article-sources-block ul,
+.article-sources-block ol {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+.article-sources-block li {
+    margin-bottom: 6px;
+}
+.article-sources-block li:last-child {
+    margin-bottom: 0;
+}
+.article-sources-block a {
+    color: var(--news-primary);
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}
+.article-sources-block a:hover {
+    color: var(--news-cyan);
+}
+
+/* ── 17. Author Box (_author_box.php) ── */
+.news-author-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--news-muted-bg);
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 30px 0;
+}
+.news-author-avatar-fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--news-primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.news-author-info {
+    flex: 1;
+    min-width: 0;
+}
+.news-author-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--news-text-light);
+    display: block;
+    margin-bottom: 2px;
+}
+.news-author-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--news-text-main);
+    margin: 0 0 4px 0;
+    display: block;
+}
+.news-author-note {
+    font-size: 13px;
+    color: var(--news-text-light);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Cover Image Optimization - aspect-ratio & max-width */
+.news-detail-image img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* ── 18. Empty Article Fallback Notice ───────────────────────────────────── */
+.article-content-empty {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+    padding: 2.5rem 1.25rem;
+    border: 1px solid var(--news-border);
+    border-radius: 8px;
+    background: var(--news-card-bg, var(--news-muted-bg));
+    text-align: center;
+}
+
+.article-content-empty__icon {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 999px;
+    background: var(--news-muted-bg);
+    color: var(--news-primary);
+    font-size: 1.5rem;
+}
+
+.article-content-empty h2,
+.article-content-empty p {
+    margin: 0;
+}
+
+.article-content-empty h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--news-text-main);
+}
+
+.article-content-empty p {
+    max-width: 38rem;
+    color: var(--news-text-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+

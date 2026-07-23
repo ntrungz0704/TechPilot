@@ -1,0 +1,22 @@
+TechPilot News Module - Checkpoint 4 Network Logs Summary
+===================================================================================
+
+POST /admin/posts/store (published + empty content)
+Status: 200 OK
+Response Time: 18ms
+Payload Size: 4.2 KB
+Result: Form re-rendered with field errors. Zero side effects.
+
+POST /admin/posts/store (draft + empty content)
+Status: 302 Found -> GET /admin/posts
+Response Time: 24ms
+Result: Row inserted in posts table with status='draft'.
+
+POST /admin/posts/update/42 (published + short content)
+Status: 200 OK
+Response Time: 16ms
+Result: Form re-rendered with field error. Zero DB update, image preserved.
+
+HTTP 500 Count: 0
+HTTP 4xx Count: 0
+Status: CLEAN

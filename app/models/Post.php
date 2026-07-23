@@ -10,6 +10,58 @@ class Post
         $this->db = Database::getConnection();
     }
 
+    /**
+     * Kiểm tra nội dung bài viết có phải là văn bản giữ chỗ (placeholder) hoặc rỗng hay không.
+     */
+    public static function isPlaceholderContent(?string $content): bool
+    {
+        if ($content === null) {
+            return true;
+        }
+        $trimmed = trim($content);
+        if ($trimmed === '') {
+            return true;
+        }
+        if (mb_strlen($trimmed) < 100) {
+            return true;
+        }
+        $placeholders = [
+            'Nội dung chi tiết đánh giá...',
+            'Nội dung chi tiết mua SSD...',
+            'Nội dung chi tiết RTX 50...',
+        ];
+        foreach ($placeholders as $ph) {
+            if (str_contains($trimmed, $ph)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Kiểm tra tính hợp lệ của nội dung bài viết trước khi xuất bản (published).
+     * Trả về mảng ['valid' => bool, 'errors' => array].
+     */
+    public static function validatePublishedContent(?string $content, string $status = 'published'): array
+    {
+        $errors = [];
+        if ($status === 'published') {
+            $trimmed = trim((string)$content);
+            if ($trimmed === '') {
+                $errors[] = 'Nội dung bài viết xuất bản không được để rỗng.';
+            } elseif (mb_strlen($trimmed) < 100) {
+                $errors[] = 'Nội dung bài viết quá ngắn (tối thiểu 100 ký tự).';
+            } elseif (self::isPlaceholderContent($content)) {
+                $errors[] = 'Nội dung bài viết chứa văn bản giữ chỗ (placeholder) chưa hoàn thiện.';
+            }
+        }
+
+        return [
+            'valid'  => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
     /** Lấy danh sách tin tức công nghệ mới nhất */
     public function getLatest(int $limit = 4): array
     {
@@ -43,18 +95,136 @@ class Post
         return $post ?: null;
     }
 
-    /** Lấy danh sách bài viết phổ biến (nhiều lượt xem nhất) */
+    /** Lấy danh sách bài viết phổ biến (nhiều lượt xem nhất, ưu tiên 30 ngày gần đây) */
     public function getPopular(int $limit = 3): array
     {
         if ($this->db === null) return [];
-        $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" ORDER BY views DESC, COALESCE(published_at, created_at) DESC LIMIT :limit');
+        // Ưu tiên bài viết trong 30 ngày qua, sau đó mới tính đến view chung
+        $sql = '
+            SELECT * FROM posts 
+            WHERE status = "published" 
+            ORDER BY 
+                CASE 
+                    WHEN COALESCE(published_at, created_at) >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1
+                    ELSE 0 
+                END DESC,
+                views DESC, 
+                COALESCE(published_at, created_at) DESC 
+            LIMIT :limit
+        ';
+        $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Build where clause cho filter type, category và legacy tag */
-    private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', array &$params = []): string
+    /**
+     * Lấy bài viết xem nhiều gần đây.
+     *
+     * Contract:
+     *   - $limit: clamped vào [1, 50].
+     *   - $days: clamped vào [1, 365].
+     *   - $excludeIds: danh sách ID loại trừ (bind an toàn qua prepared statement).
+     *   - Query 1: bài trong $days ngày qua, order by views DESC.
+     *   - Query 2 (optional): bổ sung all-time popular nếu chưa đủ $limit.
+     *   - Dedup theo ID giữa hai tập.
+     *   - Chỉ lấy status = "published".
+     *   - Không tạo N+1 (tối đa 2 query).
+     *   - Kết quả trả về không quá $limit phần tử.
+     */
+    public function getPopularRecent(int $limit = 5, int $days = 30, array $excludeIds = []): array
+    {
+        if ($this->db === null) return [];
+
+        // Clamp inputs
+        $limit = max(1, min(50, $limit));
+        $days  = max(1, min(365, $days));
+
+        // Sanitize excludeIds thành mảng integer thuần
+        $excludeIds = array_values(array_unique(array_map('intval', $excludeIds)));
+
+        // ── Query 1: bài trong $days ngày qua ───────────────────────────────
+        $params1    = [];
+        $whereExtra = '';
+        if ($excludeIds) {
+            $ph          = implode(',', array_fill(0, count($excludeIds), '?'));
+            $whereExtra  = " AND id NOT IN ($ph)";
+        }
+
+        $sql1 = "
+            SELECT * FROM posts
+            WHERE status = 'published'
+              AND COALESCE(published_at, created_at) >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              {$whereExtra}
+            ORDER BY views DESC, COALESCE(published_at, created_at) DESC
+            LIMIT ?
+        ";
+
+        $stmt1 = $this->db->prepare($sql1);
+        $pos   = 1;
+        $stmt1->bindValue($pos++, $days,  PDO::PARAM_INT);
+        foreach ($excludeIds as $eid) {
+            $stmt1->bindValue($pos++, $eid, PDO::PARAM_INT);
+        }
+        $stmt1->bindValue($pos, $limit, PDO::PARAM_INT);
+        $stmt1->execute();
+        $recent = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($recent) >= $limit) {
+            return array_slice($recent, 0, $limit);
+        }
+
+        // ── Query 2: bổ sung bài all-time nếu chưa đủ ──────────────────────
+        $needed   = $limit - count($recent);
+        $usedIds  = array_merge($excludeIds, array_column($recent, 'id'));
+        $usedIds  = array_values(array_unique(array_map('intval', $usedIds)));
+
+        if ($usedIds) {
+            $ph2  = implode(',', array_fill(0, count($usedIds), '?'));
+            $sql2 = "
+                SELECT * FROM posts
+                WHERE status = 'published'
+                  AND id NOT IN ($ph2)
+                ORDER BY views DESC, COALESCE(published_at, created_at) DESC
+                LIMIT ?
+            ";
+            $stmt2 = $this->db->prepare($sql2);
+            $pos2  = 1;
+            foreach ($usedIds as $uid) {
+                $stmt2->bindValue($pos2++, $uid, PDO::PARAM_INT);
+            }
+            $stmt2->bindValue($pos2, $needed, PDO::PARAM_INT);
+        } else {
+            $sql2  = "
+                SELECT * FROM posts
+                WHERE status = 'published'
+                ORDER BY views DESC, COALESCE(published_at, created_at) DESC
+                LIMIT ?
+            ";
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->bindValue(1, $needed, PDO::PARAM_INT);
+        }
+
+        $stmt2->execute();
+        $allTime = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = array_merge($recent, $allTime);
+        return array_slice($result, 0, $limit);
+    }
+
+
+    /** Helper escape ký tự đặc biệt cho câu lệnh LIKE với ESCAPE '!' */
+    public function escapeLikeTerm(string $value): string
+    {
+        return strtr($value, [
+            '!' => '!!',
+            '%' => '!%',
+            '_' => '!_',
+        ]);
+    }
+
+    /** Build where clause cho filter type, category và legacy tag, bao gồm cả từ khóa tìm kiếm (q) */
+    private function buildFilterWhereClause(string $type = '', string $category = '', string $tag = '', string $q = '', array &$params = []): string
     {
         $sql = '';
 
@@ -93,17 +263,29 @@ class Post
             }
         }
 
+        if ($q !== '') {
+            $escapedQ = $this->escapeLikeTerm($q);
+            $sql .= " AND (
+                title LIKE :filter_title ESCAPE '!'
+                OR summary LIKE :filter_summary ESCAPE '!'
+                OR content LIKE :filter_content ESCAPE '!'
+            )";
+            $params[':filter_title']   = '%' . $escapedQ . '%';
+            $params[':filter_summary'] = '%' . $escapedQ . '%';
+            $params[':filter_content'] = '%' . $escapedQ . '%';
+        }
+
         return $sql;
     }
 
     /** Đếm số lượng bài viết để phân trang (hỗ trợ excludeId để đồng bộ với getAll) */
-    public function countAll(string $type = '', string $category = '', string $tag = '', ?int $excludeId = null): int
+    public function countAll(string $type = '', string $category = '', string $tag = '', string $q = '', ?int $excludeId = null): int
     {
         if ($this->db === null) return 0;
 
         $sql = 'SELECT COUNT(*) FROM posts WHERE status = "published"';
         $params = [];
-        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $params);
+        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
@@ -124,21 +306,43 @@ class Post
     }
 
     /** Lấy danh sách bài viết phân trang */
-    public function getAll(int $offset, int $limit, string $type = '', string $category = '', string $tag = '', ?int $excludeId = null): array
+    public function getAll(int $offset, int $limit, string $type = '', string $category = '', string $tag = '', string $q = '', ?int $excludeId = null): array
     {
         if ($this->db === null) return [];
 
-        $sql = 'SELECT * FROM posts WHERE status = "published"';
         $params = [];
+        $filterWhere = $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
 
-        $sql .= $this->buildFilterWhereClause($type, $category, $tag, $params);
+        $relSelect = '';
+        $relOrder  = '';
+
+        if ($q !== '') {
+            $escapedQ = $this->escapeLikeTerm($q);
+            $relSelect = ", (CASE
+                WHEN title = :rank_exact THEN 100
+                WHEN title LIKE :rank_prefix ESCAPE '!' THEN 80
+                WHEN title LIKE :rank_title ESCAPE '!' THEN 60
+                WHEN summary LIKE :rank_summary ESCAPE '!' THEN 30
+                WHEN content LIKE :rank_content ESCAPE '!' THEN 10
+                ELSE 0
+            END) AS relevance_score";
+            $relOrder = 'relevance_score DESC, ';
+
+            $params[':rank_exact']   = $q;
+            $params[':rank_prefix']  = $escapedQ . '%';
+            $params[':rank_title']   = '%' . $escapedQ . '%';
+            $params[':rank_summary'] = '%' . $escapedQ . '%';
+            $params[':rank_content'] = '%' . $escapedQ . '%';
+        }
+
+        $sql = 'SELECT *' . $relSelect . ' FROM posts WHERE status = "published"' . $filterWhere;
 
         if ($excludeId !== null) {
             $sql .= ' AND id != :excludeId';
             $params[':excludeId'] = $excludeId;
         }
 
-        $sql .= ' ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT :limit OFFSET :offset';
+        $sql .= ' ORDER BY ' . $relOrder . 'COALESCE(published_at, created_at) DESC, id DESC LIMIT :limit OFFSET :offset';
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -191,7 +395,7 @@ class Post
     {
         if ($this->db === null) return null;
         $stmt = $this->db->prepare('
-            SELECT p.*, COALESCE(u.full_name, p.author_name) as author_name
+            SELECT p.*, u.full_name AS user_full_name
             FROM posts p
             LEFT JOIN users u ON p.author_id = u.id
             WHERE p.slug = :slug AND p.status = "published"
@@ -202,9 +406,15 @@ class Post
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($post) {
-            if (empty($post['author_name'])) {
-                $post['author_name'] = 'Đội ngũ TechPilot';
-            }
+            $userFullName  = !empty($post['user_full_name']) ? trim((string)$post['user_full_name']) : '';
+            $rawAuthorName = !empty($post['author_name']) ? trim((string)$post['author_name']) : '';
+
+            $realAuthorName = $userFullName !== '' ? $userFullName : $rawAuthorName;
+            $hasRealAuthor  = ($realAuthorName !== '');
+
+            $post['has_real_author'] = $hasRealAuthor;
+            $post['author_name']     = $hasRealAuthor ? $realAuthorName : 'Đội ngũ TechPilot';
+
             if (empty($post['reading_minutes']) || $post['reading_minutes'] == 0) {
                 // Dùng regex UTF-8 để đếm từ tiếng Việt chính xác
                 $text = strip_tags($post['content'] ?? '');
@@ -215,11 +425,11 @@ class Post
         return $post ?: null;
     }
 
-    /** Tăng lượt xem bài viết */
+    /** Tăng lượt xem bài viết (bảo toàn updated_at không bị tự đổi theo views) */
     public function incrementViews(int $id): void
     {
         if ($this->db === null) return;
-        $stmt = $this->db->prepare('UPDATE posts SET views = views + 1 WHERE id = :id');
+        $stmt = $this->db->prepare('UPDATE posts SET views = views + 1, updated_at = updated_at WHERE id = :id');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
     }
@@ -247,6 +457,26 @@ class Post
             $text = 'bai-viet-' . time();
         }
         return $text;
+    }
+
+    /** Helper static: Xây dựng Author Schema cho JSON-LD dựa trên contract has_real_author và author_name thô */
+    public static function buildAuthorSchema(array $post): array
+    {
+        $hasRealAuthor = !empty($post['has_real_author']);
+        $authorName    = !empty($post['author_name']) ? trim((string)$post['author_name']) : '';
+
+        if ($hasRealAuthor && $authorName !== '') {
+            return [
+                '@type' => 'Person',
+                'name'  => $authorName,
+            ];
+        }
+
+        return [
+            '@type' => 'Organization',
+            'name'  => 'Đội ngũ TechPilot',
+            'url'   => absoluteUrl(''),
+        ];
     }
 
     /** Helper: Check unique slug */
