@@ -2,22 +2,46 @@
 set -euo pipefail
 
 STATE_FILE="checkpoints/STATE.json"
+HISTORY_FILE="checkpoints/STATE_HISTORY.jsonl"
 FROM_STATE="${1:-}"
 TO_STATE="${2:-}"
+ACTOR="${3:-workflow-script}"
+REASON="${4:-}"
 
 if [ ! -f "$STATE_FILE" ]; then
-  echo "FAIL: State file not found at $STATE_FILE"
+  echo "FAIL: State file not found: $STATE_FILE"
   exit 1
 fi
 
-CURRENT=$(jq -r '.lifecycle_status' "$STATE_FILE" 2>/dev/null || echo "unknown")
-
-if [ -n "$FROM_STATE" ] && [ "$CURRENT" != "$FROM_STATE" ]; then
-  echo "FAIL: Expected state '$FROM_STATE' but current state is '$CURRENT'"
+if [ -z "$FROM_STATE" ] || [ -z "$TO_STATE" ]; then
+  echo "FAIL: Usage: transition-state <from_state> <to_state> [actor] [reason]"
+  echo "  Example: transition-state ROADMAP_DEFINED CONTRACT_DRAFTED chatgpt 'Contract drafted by Planning Authority'"
   exit 1
 fi
 
-ALLOWED_TRANSITIONS=$(cat <<'TRANSITIONS'
+if ! command -v jq &> /dev/null; then
+  echo "FAIL: jq is required for state transitions"
+  exit 1
+fi
+
+# Read current state
+CURRENT=$(jq -r '.lifecycle_status' "$STATE_FILE")
+CHECKPOINT_ID=$(jq -r '.checkpoint_id' "$STATE_FILE")
+CURRENT_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+
+if [ "$CURRENT" != "$FROM_STATE" ]; then
+  echo "FAIL: Current state is '$CURRENT', expected '$FROM_STATE'"
+  exit 1
+fi
+
+# Validate transition
+ALLOWED=0
+while IFS=: read -r FROM TO; do
+  if [ "$FROM" = "$FROM_STATE" ] && [ "$TO" = "$TO_STATE" ]; then
+    ALLOWED=1
+    break
+  fi
+done <<'TRANSITIONS'
 ROADMAP_DEFINED:CONTRACT_DRAFTED
 CONTRACT_DRAFTED:CONTRACT_APPROVED
 CONTRACT_APPROVED:IMPLEMENTING
@@ -37,24 +61,49 @@ SEMANTIC_APPROVED:MERGE_READY
 MERGE_READY:MERGED
 MERGED:CLOSED
 TRANSITIONS
-)
 
-if [ -n "$TO_STATE" ]; then
-  VALID=0
-  while IFS=: read -r FROM TO; do
-    if [ "$FROM" = "$CURRENT" ] && [ "$TO" = "$TO_STATE" ]; then
-      VALID=1
-      break
-    fi
-  done <<< "$ALLOWED_TRANSITIONS"
-
-  if [ "$VALID" -eq 0 ]; then
-    echo "FAIL: Transition '$CURRENT' -> '$TO_STATE' is not allowed"
-    exit 1
-  fi
-
-  echo "OK: Transition '$CURRENT' -> '$TO_STATE' is allowed"
+if [ "$ALLOWED" -eq 0 ]; then
+  echo "FAIL: Transition '$FROM_STATE' -> '$TO_STATE' is not allowed by state machine"
+  exit 1
 fi
 
+# Set candidate_sha only for IMPLEMENTING transition
+if [ "$TO_STATE" = "IMPLEMENTING" ] || [ "$TO_STATE" = "CI_PENDING" ]; then
+  CANDIDATE_SHA="$CURRENT_HEAD"
+else
+  CANDIDATE_SHA=$(jq -r '.candidate_sha // null' "$STATE_FILE")
+fi
+
+# Update STATE.json
+jq --arg new_status "$TO_STATE" \
+   --arg candidate "${CANDIDATE_SHA:-null}" \
+   --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+   '.lifecycle_status = $new_status | .candidate_sha = (if $candidate == "null" then null else $candidate end) | .last_updated = $timestamp' \
+   "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+
+# Validate updated state is valid JSON
+if ! jq '.' "$STATE_FILE" &>/dev/null; then
+  echo "FAIL: Updated STATE.json is not valid JSON"
+  # Rollback
+  git checkout -- "$STATE_FILE" 2>/dev/null || true
+  exit 1
+fi
+
+# Append to history
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+HISTORY_LINE=$(jq -n \
+  --arg ts "$TIMESTAMP" \
+  --arg from "$FROM_STATE" \
+  --arg to "$TO_STATE" \
+  --arg cid "$CHECKPOINT_ID" \
+  --arg actor "$ACTOR" \
+  --arg sha "${CURRENT_HEAD}" \
+  --arg reason "${REASON:-Transition approved}" \
+  '{timestamp: $ts, from: $from, to: $to, checkpoint_id: $cid, actor: $actor, head_sha: $sha, reason: $reason}')
+
+echo "$HISTORY_LINE" >> "$HISTORY_FILE"
+
+echo "OK: State transitioned: $FROM_STATE -> $TO_STATE"
+echo "OK: History appended to $HISTORY_FILE"
 echo "PASS: transition-state"
 exit 0

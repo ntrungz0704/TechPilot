@@ -3,48 +3,118 @@ set -euo pipefail
 
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
 EVIDENCE_DIR="${2:-checkpoints/CP03/evidence}"
+
+if [ ! -f "$CONTRACT" ]; then
+  echo "FAIL: Contract file not found: $CONTRACT"
+  exit 1
+fi
+
+HEAD_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 mkdir -p "$EVIDENCE_DIR"
+SUMMARY_FILE="$EVIDENCE_DIR/test-summary.txt"
 
-echo "# Test Evidence Collection" > "$EVIDENCE_DIR/test-summary.txt"
-echo "Timestamp: $TIMESTAMP" >> "$EVIDENCE_DIR/test-summary.txt"
-echo "HEAD SHA: $(git rev-parse HEAD 2>/dev/null || echo 'unknown')" >> "$EVIDENCE_DIR/test-summary.txt"
-echo "Branch: $(git branch --show-current 2>/dev/null || echo 'unknown')" >> "$EVIDENCE_DIR/test-summary.txt"
-echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+{
+  echo "# Test Evidence Collection"
+  echo "Timestamp: $TIMESTAMP"
+  echo "HEAD SHA: $HEAD_SHA"
+  echo "Branch: $BRANCH"
+  echo ""
+} > "$SUMMARY_FILE"
 
-# Run PHP lint on news-related files
+# Parse REQUIRED_TESTS from contract
 if command -v php &> /dev/null; then
-  echo "=== PHP Lint ===" >> "$EVIDENCE_DIR/test-summary.txt"
-  for f in $(find app views -name '*.php' 2>/dev/null | head -20); do
-    result=$(php -l "$f" 2>&1 || true)
-    echo "[$f] $result" >> "$EVIDENCE_DIR/test-summary.txt"
-  done
-  echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+  TESTS=$(php -r '
+$yaml = file_get_contents("'"$CONTRACT"'");
+$lines = explode("\n", $yaml);
+$in_tests = false;
+$in_command = false;
+$in_exit_code = false;
+$current_cmd = "";
+$current_exit = "";
+foreach ($lines as $line) {
+  $trimmed = trim($line);
+  if ($trimmed === "REQUIRED_TESTS:" || $trimmed === "REQUIRED_TESTS") { $in_tests = true; continue; }
+  if ($in_tests && preg_match("/^[A-Z_]+:/", $trimmed)) { $in_tests = false; continue; }
+  if ($in_tests && preg_match("/^\s*-?\s*command:\s*(.+)$/", $trimmed, $m)) { $current_cmd = trim($m[1]); }
+  if ($in_tests && preg_match("/^\s*-?\s*expected_exit_code:\s*(\d+)$/", $trimmed, $m)) { $current_exit = $m[1]; }
+  if ($in_tests && $current_cmd !== "" && $current_exit !== "") {
+    echo $current_cmd . "|" . $current_exit . "\n";
+    $current_cmd = ""; $current_exit = "";
+  }
+}
+' 2>/dev/null || true)
+else
+  echo "FAIL: php is required to parse contract tests"
+  exit 1
 fi
 
-# Run available tests
-if ls tests/*.php 2>/dev/null; then
-  echo "=== PHP Test Results ===" >> "$EVIDENCE_DIR/test-summary.txt"
-  for test in tests/News*.php tests/Admin*.php tests/*Test*.php; do
-    if [ -f "$test" ]; then
-      echo "Running $test..." >> "$EVIDENCE_DIR/test-summary.txt"
-      php "$test" 2>&1 >> "$EVIDENCE_DIR/test-summary.txt" || echo "EXIT_CODE: $?" >> "$EVIDENCE_DIR/test-summary.txt"
-      echo "" >> "$EVIDENCE_DIR/test-summary.txt"
-    fi
-  done
+if [ -z "$TESTS" ]; then
+  echo "FAIL: No REQUIRED_TESTS found in contract"
+  {
+    echo "FAIL: No REQUIRED_TESTS found in contract"
+    echo "Please add REQUIRED_TESTS to $CONTRACT"
+  } >> "$SUMMARY_FILE"
+  exit 1
 fi
 
-# Check git status
-echo "=== Git Status ===" >> "$EVIDENCE_DIR/test-summary.txt"
-git status --short >> "$EVIDENCE_DIR/test-summary.txt" 2>&1 || true
-echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+ANY_FAILED=0
 
-# Check changed files
-echo "=== Changed Files ===" >> "$EVIDENCE_DIR/test-summary.txt"
-git diff --name-only >> "$EVIDENCE_DIR/test-summary.txt" 2>&1 || true
-echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+while IFS='|' read -r cmd expected_exit; do
+  [ -z "$cmd" ] && continue
+  echo "Running: $cmd"
+  
+  # Capture output and exit code
+  set +e
+  output=$(eval "$cmd" 2>&1)
+  actual_exit=$?
+  set -e
+  
+  {
+    echo "=== Test: $cmd ==="
+    echo "Command: $cmd"
+    echo "Expected exit code: $expected_exit"
+    echo "Actual exit code: $actual_exit"
+    echo "Output:"
+    echo "$output"
+    echo ""
+  } >> "$SUMMARY_FILE"
+  
+  if [ "$actual_exit" != "$expected_exit" ]; then
+    echo "FAIL: '$cmd' exited $actual_exit, expected $expected_exit"
+    ANY_FAILED=1
+  else
+    echo "OK: '$cmd' exited $actual_exit (expected $expected_exit)"
+  fi
+done <<< "$TESTS"
 
-echo "Evidence collected at $EVIDENCE_DIR/test-summary.txt"
+# Also capture git status and changed files
+{
+  echo "=== Git Status ==="
+  git status --short 2>&1 || true
+  echo ""
+  echo "=== Changed Files (from base) ==="
+  BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk '{print $2}' | tr -d ' "' 2>/dev/null || echo "")
+  if [ -n "$BASE_SHA" ] && git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+    git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null || git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true
+  else
+    git diff --name-only HEAD 2>/dev/null || true
+  fi
+  echo ""
+  echo "=== Git Diff Stat ==="
+  if [ -n "$BASE_SHA" ] && git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+    git diff --stat "$BASE_SHA...$HEAD_SHA" 2>/dev/null || git diff --stat "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true
+  fi
+} >> "$SUMMARY_FILE"
+
+echo "Evidence collected at $SUMMARY_FILE"
+
+if [ "$ANY_FAILED" -eq 1 ]; then
+  echo "FAIL: One or more required tests failed"
+  exit 1
+fi
+
 echo "PASS: collect-test-evidence"
 exit 0

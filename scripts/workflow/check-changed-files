@@ -2,13 +2,30 @@
 set -euo pipefail
 
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
-BASE_SHA="${2:-HEAD~1}"
+BASE_SHA="${2:-}"
 
-if git rev-parse --verify "$BASE_SHA" &>/dev/null; then
-  CHANGED_FILES=$(git diff --name-only "$BASE_SHA" 2>/dev/null || git diff --name-only "HEAD")
-else
-  CHANGED_FILES=$(git diff --name-only "HEAD")
+if [ -z "$BASE_SHA" ]; then
+  # Read base_sha from contract
+  if [ -f "$CONTRACT" ]; then
+    BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk '{print $2}' | tr -d ' "')
+  fi
 fi
+
+if [ -z "$BASE_SHA" ]; then
+  echo "FAIL: Could not determine base SHA. Provide as argument or in TASK_CONTRACT.yaml"
+  exit 1
+fi
+
+if ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  echo "FAIL: Base SHA '$BASE_SHA' is not a valid git reference"
+  exit 1
+fi
+
+HEAD_SHA=$(git rev-parse HEAD)
+echo "Diff range: $BASE_SHA...$HEAD_SHA"
+
+# Get changed files using three-dot diff
+CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null || git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true)
 
 if [ -z "$CHANGED_FILES" ]; then
   echo "OK: No changed files detected"
@@ -19,29 +36,89 @@ fi
 echo "Changed files:"
 echo "$CHANGED_FILES"
 
-# If contract exists, try to parse allowed/forbidden paths
-# For now, check that no workflow infrastructure files are being modified
-# in the same change as production files
+# Parse allowed and forbidden paths from contract
+ALLOWED_PATHS=""
+FORBIDDEN_PATHS=""
 
-WORKFLOW_PATTERNS="^(checkpoints/|docs/workflow/|scripts/workflow/|\.opencode/|AGENTS\.md)"
-PRODUCTION_PATTERNS="^(app/|config/|database/|public/|techpilot/|tests/|\.github/)"
+if [ -f "$CONTRACT" ]; then
+  # Extract ALLOWED_PATHS from contract YAML
+  ALLOWED_PATHS=$(php -r '
+$yaml = file_get_contents("'"$CONTRACT"'");
+$lines = explode("\n", $yaml);
+$in_allowed = false;
+$in_forbidden = false;
+foreach ($lines as $line) {
+  $trimmed = trim($line);
+  if ($trimmed === "ALLOWED_PATHS:") { $in_allowed = true; $in_forbidden = false; continue; }
+  if ($trimmed === "FORBIDDEN_PATHS:") { $in_forbidden = true; $in_allowed = false; continue; }
+  if (preg_match("/^[A-Z_]+:/", $trimmed)) { $in_allowed = false; $in_forbidden = false; continue; }
+  if ($in_allowed && preg_match("/^-\s+(.+)$/", $trimmed, $m)) echo trim($m[1]) . "\n";
+  if ($in_forbidden && preg_match("/^-\s+(.+)$/", $trimmed, $m)) echo trim($m[1]) . "\n";
+}
+' 2>/dev/null || true)
+fi
 
-HAS_WORKFLOW=0
-HAS_PRODUCTION=0
-
+# Check each changed file against allowed/forbidden paths
+VIOLATIONS=0
 while IFS= read -r file; do
-  if [[ "$file" =~ $WORKFLOW_PATTERNS ]]; then
-    HAS_WORKFLOW=1
+  [ -z "$file" ] && continue
+  
+  # Remove leading/trailing quotes if any
+  file="${file#\"}"; file="${file%\"}"
+  file="${file#\'}"; file="${file%\'}"
+
+  in_allowed_paths=false
+  in_forbidden_paths=false
+
+  if [ -n "$ALLOWED_PATHS" ]; then
+    while IFS= read -r pattern; do
+      [ -z "$pattern" ] && continue
+      # Convert glob pattern to regex
+      regex=$(echo "$pattern" | sed 's/\./\\./g; s/\*\*/[^\/]*/g; s/\*/[^\/]*/g; s/\?/./g')
+      # Handle trailing /** patterns
+      if [[ "$pattern" == *"/**" ]]; then
+        base="${pattern%/**}"
+        base_regex=$(echo "$base" | sed 's/\./\\./g; s/\*\*/[^\/]*/g; s/\*/[^\/]*/g; s/\?/./g')
+        if [[ "$file" == "$base"* ]]; then
+          in_allowed_paths=true
+        fi
+      elif [[ "$file" == $pattern ]] || [[ "$file" == $pattern* ]]; then
+        in_allowed_paths=true
+      fi
+    done <<< "$ALLOWED_PATHS"
+  else
+    # No allowed_paths in contract means everything is allowed
+    in_allowed_paths=true
   fi
-  if [[ "$file" =~ $PRODUCTION_PATTERNS ]]; then
-    HAS_PRODUCTION=1
+
+  if [ -n "$FORBIDDEN_PATHS" ]; then
+    while IFS= read -r pattern; do
+      [ -z "$pattern" ] && continue
+      if [[ "$pattern" == *"/**" ]]; then
+        base="${pattern%/**}"
+        if [[ "$file" == "$base"* ]]; then
+          in_forbidden_paths=true
+        fi
+      elif [[ "$file" == $pattern ]] || [[ "$file" == $pattern* ]]; then
+        in_forbidden_paths=true
+      fi
+    done <<< "$FORBIDDEN_PATHS"
+  fi
+
+  if [ "$in_forbidden_paths" = true ]; then
+    echo "VIOLATION: '$file' is in forbidden_paths"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  elif [ "$in_allowed_paths" = false ]; then
+    echo "VIOLATION: '$file' is not in allowed_paths"
+    VIOLATIONS=$((VIOLATIONS + 1))
   fi
 done <<< "$CHANGED_FILES"
 
-if [ "$HAS_WORKFLOW" -eq 1 ] && [ "$HAS_PRODUCTION" -eq 1 ]; then
-  echo "WARNING: Mixed changes detect workflow and production files in same diff"
-  echo "Consider separating into distinct commits."
+if [ "$VIOLATIONS" -gt 0 ]; then
+  echo "FAIL: $VIOLATIONS path violation(s) found"
+  exit 1
 fi
 
+echo "OK: All changed files are within allowed_paths and not in forbidden_paths"
 echo "PASS: check-changed-files"
 exit 0
