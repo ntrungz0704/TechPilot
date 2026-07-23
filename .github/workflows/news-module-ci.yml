@@ -187,7 +187,7 @@ jobs:
         run: scripts/workflow/check-changed-files checkpoints/CP03/TASK_CONTRACT.yaml ${{ github.event.pull_request.base.sha || github.event.before || '' }}
 
       - name: Scan Forbidden Patterns
-        run: scripts/workflow/scan-forbidden-patterns
+        run: scripts/workflow/scan-forbidden-patterns checkpoints/CP03/TASK_CONTRACT.yaml ${{ github.event.pull_request.base.sha || github.event.before || '' }}
 
       - name: Verify Review SHA
         run: scripts/workflow/verify-review-sha
