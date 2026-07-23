@@ -1,83 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
-BASE_SHA="${2:-}"
 STATE_FILE="checkpoints/STATE.json"
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
 
-# Determine lifecycle for enforcement mode
-LIFECYCLE=""
-if [ -f "$STATE_FILE" ]; then
-  LIFECYCLE=$(grep '"lifecycle_status"' "$STATE_FILE" | awk -F'"' '{print $4}' 2>/dev/null || echo "")
-fi
-: "${LIFECYCLE:=unknown}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
 
-echo "Lifecycle: $LIFECYCLE"
-
-# Pre-approval lifecycle: only check workflow vs production mixing
-PRE_APPROVAL=false
-case "$LIFECYCLE" in
-  ROADMAP_DEFINED|CONTRACT_DRAFTED|CONTRACT_APPROVED|"") PRE_APPROVAL=true;;
-esac
-
-if [ "$PRE_APPROVAL" = true ]; then
-  echo "Mode: pre-approval (checking workflow vs production mixing only)"
-  HEAD_SHA=$(git rev-parse HEAD)
-  
-  # For pre-approval, use parent commits as base if not specified
-  if [ -z "$BASE_SHA" ]; then
-    BASE_SHA="${2:-$(git rev-parse HEAD~1 2>/dev/null || echo "")}"
-    if [ -z "$BASE_SHA" ]; then
-      echo "OK: No base SHA specified and no parent commit — single commit repo"
-      echo "PASS: check-changed-files"
-      exit 0
-    fi
-  fi
-  
-  CHANGED_FILES=$(git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true)
-  
-  if [ -z "$CHANGED_FILES" ]; then
-    echo "OK: No changed files detected in diff range $BASE_SHA..$HEAD_SHA"
-    echo "PASS: check-changed-files"
-    exit 0
-  fi
-  
-  echo "Changed files (pre-approval mode):"
-  echo "$CHANGED_FILES"
-  
-  # Check for workflow/production mixing
-  WORKFLOW_PATTERNS="^(checkpoints/|docs/workflow/|scripts/workflow/|\.opencode/|AGENTS\.md|\.github/workflows/|tests/workflow/)"
-  PRODUCTION_PATTERNS="^(app/|config/|database/|public/|techpilot/|tests/(?!workflow/))"
-  
-  HAS_WORKFLOW=false
-  HAS_PRODUCTION=false
-  
-  while IFS= read -r file; do
-    [ -z "$file" ] && continue
-    if [[ "$file" =~ $WORKFLOW_PATTERNS ]]; then HAS_WORKFLOW=true; fi
-    if [[ "$file" =~ $PRODUCTION_PATTERNS ]]; then HAS_PRODUCTION=true; fi
-  done <<< "$CHANGED_FILES"
-  
-  if [ "$HAS_WORKFLOW" = true ] && [ "$HAS_PRODUCTION" = true ]; then
-    echo "FAIL: Mixed changes — workflow and production files in same diff"
-    echo "Separate workflow infrastructure changes from production code changes."
-    exit 1
-  fi
-  
-  echo "OK: No forbidden mixing detected"
-  echo "PASS: check-changed-files"
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [contract-path]"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
   exit 0
 fi
 
-# Post-approval lifecycle: enforce contract allowed/forbidden paths
-if [ -z "$BASE_SHA" ]; then
-  if [ -f "$CONTRACT" ]; then
-    BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk '{print $2}' | tr -d ' "')
+for tool in node jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
   fi
-fi
+done
 
-if [ -z "$BASE_SHA" ]; then
-  echo "FAIL: Could not determine base SHA. Provide as argument or in TASK_CONTRACT.yaml"
+HEAD_SHA=$(git rev-parse HEAD)
+BASE_SHA=$(jq -r '.base_sha // ""' "$STATE_FILE")
+
+if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ]; then
+  echo "FAIL: No base_sha in $STATE_FILE"
   exit 1
 fi
 
@@ -86,90 +33,124 @@ if ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
   exit 1
 fi
 
-HEAD_SHA=$(git rev-parse HEAD)
-echo "Diff range: $BASE_SHA...$HEAD_SHA"
+LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
+echo "OK: Lifecycle: $LIFECYCLE"
 
-CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null || git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true)
+CHANGED=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true)
 
-if [ -z "$CHANGED_FILES" ]; then
-  echo "OK: No changed files detected"
+if [ -z "$CHANGED" ]; then
+  echo "OK: No changed files in diff ${BASE_SHA}...${HEAD_SHA}"
   echo "PASS: check-changed-files"
   exit 0
 fi
 
-echo "Changed files:"
-echo "$CHANGED_FILES"
+echo "OK: Changed files:"
+echo "$CHANGED"
 
-# Parse allowed and forbidden paths from contract
-ALLOWED_PATHS=""
-FORBIDDEN_PATHS=""
+PRE_APPROVAL=false
+case "$LIFECYCLE" in
+  ROADMAP_DEFINED|CONTRACT_DRAFTED) PRE_APPROVAL=true;;
+esac
 
-if [ -f "$CONTRACT" ]; then
-  ALLOWED_PATHS=$(grep -A100 '^ALLOWED_PATHS:' "$CONTRACT" | grep '^  - ' | sed 's/^  - //' | sed 's/^"//;s/"$//' 2>/dev/null || true)
-  FORBIDDEN_PATHS=$(grep -A100 '^FORBIDDEN_PATHS:' "$CONTRACT" | grep '^  - ' | sed 's/^  - //' | sed 's/^"//;s/"$//' 2>/dev/null || true)
+if [ "$PRE_APPROVAL" = true ]; then
+  echo "OK: Mode: pre-approval (bootstrap allowlist)"
+
+  printf '%s\n' "$CHANGED" | node -e "
+  const chunks = [];
+  process.stdin.on('data', d => chunks.push(d));
+  process.stdin.on('end', () => {
+    const files = chunks.join('').trim().split(/\r?\n/).filter(Boolean);
+    const allowed = [
+      /^checkpoints\//, /^docs\/workflow\//, /^scripts\/workflow\//,
+      /^\.opencode\//, /^AGENTS\.md\$/, /^\.github\/workflows\//,
+      /^tests\/workflow\//
+    ];
+    const violations = [];
+    for (const f of files) {
+      if (!allowed.some(r => r.test(f))) {
+        violations.push('VIOLATION: not in bootstrap allowlist: ' + f);
+      }
+    }
+    if (violations.length > 0) {
+      violations.forEach(v => console.log(v));
+      process.exit(1);
+    }
+    console.log('OK: All files in bootstrap allowlist');
+  });
+  " || {
+    echo "FAIL: Bootstrap allowlist check failed"
+    exit 1
+  }
+
+  echo "PASS: check-changed-files"
+  exit 0
 fi
 
-# Check each changed file against allowed/forbidden paths
-VIOLATIONS=0
-while IFS= read -r file; do
-  [ -z "$file" ] && continue
-  
-  # Remove leading/trailing quotes if any
-  file="${file#\"}"; file="${file%\"}"
-  file="${file#\'}"; file="${file%\'}"
+echo "OK: Mode: full contract enforcement"
 
-  in_allowed_paths=false
-  in_forbidden_paths=false
-
-  if [ -n "$ALLOWED_PATHS" ]; then
-    while IFS= read -r pattern; do
-      [ -z "$pattern" ] && continue
-      # Convert glob pattern to regex
-      regex=$(echo "$pattern" | sed 's/\./\\./g; s/\*\*/[^\/]*/g; s/\*/[^\/]*/g; s/\?/./g')
-      # Handle trailing /** patterns
-      if [[ "$pattern" == *"/**" ]]; then
-        base="${pattern%/**}"
-        base_regex=$(echo "$base" | sed 's/\./\\./g; s/\*\*/[^\/]*/g; s/\*/[^\/]*/g; s/\?/./g')
-        if [[ "$file" == "$base"* ]]; then
-          in_allowed_paths=true
-        fi
-      elif [[ "$file" == $pattern ]] || [[ "$file" == $pattern* ]]; then
-        in_allowed_paths=true
-      fi
-    done <<< "$ALLOWED_PATHS"
-  else
-    # No allowed_paths in contract means everything is allowed
-    in_allowed_paths=true
-  fi
-
-  if [ -n "$FORBIDDEN_PATHS" ]; then
-    while IFS= read -r pattern; do
-      [ -z "$pattern" ] && continue
-      if [[ "$pattern" == *"/**" ]]; then
-        base="${pattern%/**}"
-        if [[ "$file" == "$base"* ]]; then
-          in_forbidden_paths=true
-        fi
-      elif [[ "$file" == $pattern ]] || [[ "$file" == $pattern* ]]; then
-        in_forbidden_paths=true
-      fi
-    done <<< "$FORBIDDEN_PATHS"
-  fi
-
-  if [ "$in_forbidden_paths" = true ]; then
-    echo "VIOLATION: '$file' is in forbidden_paths"
-    VIOLATIONS=$((VIOLATIONS + 1))
-  elif [ "$in_allowed_paths" = false ]; then
-    echo "VIOLATION: '$file' is not in allowed_paths"
-    VIOLATIONS=$((VIOLATIONS + 1))
-  fi
-done <<< "$CHANGED_FILES"
-
-if [ "$VIOLATIONS" -gt 0 ]; then
-  echo "FAIL: $VIOLATIONS path violation(s) found"
+if [ ! -f "$CONTRACT" ]; then
+  echo "FAIL: Contract file not found: $CONTRACT"
   exit 1
 fi
 
-echo "OK: All changed files are within allowed_paths and not in forbidden_paths"
+CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
+  echo "FAIL: YAML parsing failed"
+  echo "$CONTRACT_JSON"
+  exit 1
+}
+
+printf '%s\n' "$CHANGED" | node -e "
+const chunks = [];
+process.stdin.on('data', d => chunks.push(d));
+process.stdin.on('end', () => {
+  const files = chunks.join('').trim().split(/\r?\n/).filter(Boolean);
+  const contract = JSON.parse(process.argv[1]);
+  const allowed = contract.ALLOWED_PATHS || [];
+  const forbidden = contract.FORBIDDEN_PATHS || [];
+
+  if (allowed.length === 0) {
+    console.log('FAIL: ALLOWED_PATHS is empty');
+    process.exit(1);
+  }
+
+  function matchesPattern(file, pattern) {
+    if (pattern.endsWith('/**')) {
+      const prefix = pattern.slice(0, -3);
+      return file === prefix || file.startsWith(prefix + '/');
+    }
+    if (pattern.includes('*') || pattern.includes('?')) {
+      let regexStr = pattern.replace(/[.+?^\${}()|[\]\\]/g, '\\$&');
+      regexStr = regexStr
+        .replace(/\\\*\\\*\//g, '(.*/)?')
+        .replace(/\\\*\\\*/g, '.*')
+        .replace(/\\\*/g, '[^/]*')
+        .replace(/\\\?/g, '.');
+      return new RegExp('^' + regexStr + '$').test(file);
+    }
+    return file === pattern;
+  }
+
+  const violations = [];
+  for (const f of files) {
+    const inForbidden = forbidden.some(p => matchesPattern(f, p));
+    const inAllowed = allowed.some(p => matchesPattern(f, p));
+    if (inForbidden) {
+      violations.push('VIOLATION: in forbidden_paths: ' + f);
+    } else if (!inAllowed) {
+      violations.push('VIOLATION: not in allowed_paths: ' + f);
+    }
+  }
+
+  if (violations.length > 0) {
+    violations.forEach(v => console.log(v));
+    process.exit(1);
+  }
+  console.log('OK: All changed files within allowed_paths and not in forbidden_paths');
+});
+" "$CONTRACT_JSON" || {
+  echo "FAIL: Path enforcement failed"
+  exit 1
+}
+
 echo "PASS: check-changed-files"
 exit 0

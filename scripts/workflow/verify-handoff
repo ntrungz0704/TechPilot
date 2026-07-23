@@ -3,109 +3,185 @@ set -euo pipefail
 
 HANDOFF="${1:-checkpoints/CP03/IMPLEMENTATION_HANDOFF.json}"
 CONTRACT="${2:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+SCHEMA="docs/workflow/schemas/implementation-handoff.schema.json"
+STATE_FILE="checkpoints/STATE.json"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [handoff-path] [contract-path]"
+  echo "  Default handoff:  checkpoints/CP03/IMPLEMENTATION_HANDOFF.json"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
+  exit 0
+fi
+
+for tool in node jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
 
 if [ ! -f "$HANDOFF" ]; then
   echo "FAIL: Handoff file not found: $HANDOFF"
   exit 1
 fi
 
-if ! command -v jq &> /dev/null; then
-  echo "FAIL: jq is required for handoff verification"
+if [ ! -f "$SCHEMA" ]; then
+  echo "FAIL: Schema file not found: $SCHEMA"
   exit 1
 fi
 
-# Validate JSON
 if ! jq '.' "$HANDOFF" &>/dev/null; then
   echo "FAIL: Handoff is not valid JSON"
   exit 1
 fi
 
-# Required fields
-REQUIRED_FIELDS=("checkpoint_id" "candidate_sha" "changed_files" "test_results" "writer_declaration")
-for field in "${REQUIRED_FIELDS[@]}"; do
-  if ! jq -e ".$field" "$HANDOFF" &>/dev/null; then
-    echo "FAIL: Required field '$field' is missing from handoff"
-    exit 1
-  fi
-done
+printf '%s\n' "$(jq -c '.' "$HANDOFF")" | node -e "
+const fs = require('fs');
+const schema = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+const chunks = [];
+process.stdin.on('data', d => chunks.push(d));
+process.stdin.on('end', () => {
+  const handoff = JSON.parse(chunks.join(''));
+  const errors = [];
 
-# Checkpoint ID must match
-HANDOFF_CID=$(jq -r '.checkpoint_id' "$HANDOFF")
-EXPECTED_CID="CHECKPOINT_3"
-if [ "$HANDOFF_CID" != "$EXPECTED_CID" ]; then
-  echo "FAIL: Handoff checkpoint_id '$HANDOFF_CID' does not match expected '$EXPECTED_CID'"
-  exit 1
-fi
+  const required = schema.required || [];
+  for (const r of required) {
+    if (!(r in handoff)) {
+      errors.push('Missing required field: ' + r);
+    }
+  }
 
-# Check writer_declaration
-DECL=$(jq -r '.writer_declaration' "$HANDOFF")
-if [ "$DECL" = "GATE_PASS" ]; then
-  echo "FAIL: Writer declared GATE_PASS. Writer may only declare READY_FOR_REVIEW"
-  exit 1
-fi
-if [ "$DECL" = "PENDING_IMPLEMENTATION" ]; then
-  echo "FAIL: Handoff is in PENDING_IMPLEMENTATION state. Implementation must be complete before handoff"
-  exit 1
-fi
-if [ "$DECL" != "READY_FOR_REVIEW" ]; then
-  echo "FAIL: Invalid writer_declaration '$DECL'. Must be READY_FOR_REVIEW"
-  exit 1
-fi
+  for (const [key, def] of Object.entries(schema.properties || {})) {
+    if (key in handoff && handoff[key] !== undefined) {
+      const val = handoff[key];
+      if (def.type === 'string' && typeof val !== 'string') {
+        errors.push(key + ': expected string, got ' + typeof val);
+      }
+      if (def.enum && !def.enum.includes(val)) {
+        errors.push(key + ': invalid enum value: ' + val);
+      }
+      if (def.pattern && typeof val === 'string' && !new RegExp('^' + def.pattern + '\$').test(val)) {
+        errors.push(key + ': pattern mismatch: ' + val);
+      }
+    }
+  }
 
-# candidate_sha must be a full 40-char SHA or valid ref
+  if (errors.length > 0) {
+    errors.forEach(e => console.log('SCHEMA ERROR: ' + e));
+    process.exit(1);
+  }
+  console.log('OK: Schema validation passed');
+});
+" "$SCHEMA" || {
+  echo "FAIL: Handoff schema validation failed"
+  exit 1
+}
+
+WRITER_DECL=$(jq -r '.writer_declaration' "$HANDOFF")
+if [ "$WRITER_DECL" = "PENDING_IMPLEMENTATION" ]; then
+  echo "FAIL: Handoff is in PENDING_IMPLEMENTATION state. Implementation must be complete."
+  exit 1
+fi
+if [ "$WRITER_DECL" != "READY_FOR_REVIEW" ]; then
+  echo "FAIL: Invalid writer_declaration '$WRITER_DECL'. Must be READY_FOR_REVIEW"
+  exit 1
+fi
+echo "OK: writer_declaration=$WRITER_DECL"
+
 CANDIDATE_SHA=$(jq -r '.candidate_sha' "$HANDOFF")
 if [ "$CANDIDATE_SHA" = "CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT" ]; then
-  echo "FAIL: candidate_sha is placeholder 'CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT'. Must be actual SHA"
+  echo "FAIL: candidate_sha is a placeholder. Must be an actual commit SHA."
   exit 1
 fi
-if ! echo "$CANDIDATE_SHA" | grep -qE '^[0-9a-f]{40}$'; then
-  echo "FAIL: candidate_sha '$CANDIDATE_SHA' is not a valid 40-char SHA"
+if ! [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "FAIL: candidate_sha '$CANDIDATE_SHA' is not a valid 40-char hex SHA"
   exit 1
 fi
 
-# candidate_sha must equal HEAD
 HEAD_SHA=$(git rev-parse HEAD)
 if [ "$CANDIDATE_SHA" != "$HEAD_SHA" ]; then
   echo "FAIL: Handoff candidate_sha ($CANDIDATE_SHA) does not match HEAD ($HEAD_SHA)"
   exit 1
 fi
+echo "OK: candidate_sha matches HEAD"
 
-# Verify changed_files matches git diff
-BASE_SHA=""
-if [ -f "$CONTRACT" ]; then
-  BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk '{print $2}' | tr -d ' "')
-fi
-
-if [ -n "$BASE_SHA" ] && git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+BASE_SHA=$(jq -r '.base_sha // ""' "$STATE_FILE")
+if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "null" ] && git rev-parse --verify "$BASE_SHA" &>/dev/null; then
   HANDOFF_FILES=$(jq -r '.changed_files[]' "$HANDOFF" 2>/dev/null | sort)
-  GIT_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null | sort || git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null | sort || true)
-  
+  GIT_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null | sort)
+
   if [ "$HANDOFF_FILES" != "$GIT_FILES" ]; then
-    echo "FAIL: Handoff changed_files does not match git diff"
+    echo "FAIL: Handoff changed_files does not equal git diff ${BASE_SHA}...${HEAD_SHA}"
     echo "--- Handoff claims ---"
     echo "$HANDOFF_FILES"
     echo "--- Git diff shows ---"
     echo "$GIT_FILES"
     exit 1
   fi
-  echo "OK: Handoff changed_files matches git diff"
-fi
-
-# Verify test_results are present
-TEST_COUNT=$(jq '.test_results | length' "$HANDOFF")
-if [ "$TEST_COUNT" -eq 0 ]; then
-  echo "FAIL: Handoff has no test_results"
+  echo "OK: changed_files matches git diff exactly"
+else
+  echo "FAIL: Cannot verify changed_files: invalid or missing base_sha in $STATE_FILE"
   exit 1
 fi
 
-# Verify all tests passed (exit_code = 0)
-FAILED_TESTS=$(jq '[.test_results[] | select(.exit_code != 0)] | length' "$HANDOFF")
-if [ "$FAILED_TESTS" -gt 0 ]; then
-  echo "FAIL: $FAILED_TESTS test(s) in handoff have non-zero exit code"
-  jq '.test_results[] | select(.exit_code != 0) | "\(.command): exit \(.exit_code)"' "$HANDOFF"
-  exit 1
+if [ -f "$CONTRACT" ]; then
+  CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
+    echo "FAIL: Cannot parse contract YAML"
+    exit 1
+  }
+
+  export HANDOFF_TESTS_JSON
+  HANDOFF_TESTS_JSON=$(jq -c '{test_results: .test_results}' "$HANDOFF")
+
+  printf '%s\n' "$CONTRACT_JSON" | node -e "
+  const chunks = [];
+  process.stdin.on('data', d => chunks.push(d));
+  process.stdin.on('end', () => {
+    const contract = JSON.parse(chunks.join(''));
+    const requiredTests = contract.REQUIRED_TESTS || [];
+    if (requiredTests.length === 0) {
+      console.log('OK: No REQUIRED_TESTS in contract');
+      process.exit(0);
+    }
+    const handoffTests = JSON.parse(process.env.HANDOFF_TESTS_JSON).test_results || [];
+    const errors = [];
+    for (const ct of requiredTests) {
+      const match = handoffTests.find(ht => ht.command === ct.command);
+      if (!match) {
+        errors.push('MISSING: Contract test not found in handoff: ' + ct.command);
+        continue;
+      }
+      if (match.exit_code === undefined || match.exit_code === null) {
+        errors.push('MISSING: exit_code for test: ' + ct.command);
+      } else if (match.exit_code !== ct.expected_exit_code) {
+        errors.push('MISMATCH: ' + ct.command + ' expected exit ' + ct.expected_exit_code + ' but got ' + match.exit_code);
+      }
+    }
+    if (errors.length > 0) {
+      errors.forEach(e => console.log('FAIL: ' + e));
+      process.exit(1);
+    }
+    console.log('OK: All REQUIRED_TESTS match handoff test_results');
+  });
+  " || {
+    echo "FAIL: Contract test verification failed"
+    exit 1
+  }
 fi
 
-echo "OK: Handoff checkpoint_id=$HANDOFF_CID, candidate=$CANDIDATE_SHA, declaration=$DECL"
+EVIDENCE_PATHS=$(jq -r '.evidence_paths[]?' "$HANDOFF" 2>/dev/null || true)
+if [ -n "$EVIDENCE_PATHS" ]; then
+  while IFS= read -r epath; do
+    if [ ! -f "$epath" ]; then
+      echo "FAIL: Evidence path does not exist: $epath"
+      exit 1
+    fi
+  done <<< "$EVIDENCE_PATHS"
+  echo "OK: All evidence paths exist"
+fi
+
 echo "PASS: verify-handoff"
 exit 0
