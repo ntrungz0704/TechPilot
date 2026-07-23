@@ -3,9 +3,74 @@ set -euo pipefail
 
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
 BASE_SHA="${2:-}"
+STATE_FILE="checkpoints/STATE.json"
 
+# Determine lifecycle for enforcement mode
+LIFECYCLE=""
+if [ -f "$STATE_FILE" ]; then
+  LIFECYCLE=$(grep '"lifecycle_status"' "$STATE_FILE" | awk -F'"' '{print $4}' 2>/dev/null || echo "")
+fi
+: "${LIFECYCLE:=unknown}"
+
+echo "Lifecycle: $LIFECYCLE"
+
+# Pre-approval lifecycle: only check workflow vs production mixing
+PRE_APPROVAL=false
+case "$LIFECYCLE" in
+  ROADMAP_DEFINED|CONTRACT_DRAFTED|CONTRACT_APPROVED|"") PRE_APPROVAL=true;;
+esac
+
+if [ "$PRE_APPROVAL" = true ]; then
+  echo "Mode: pre-approval (checking workflow vs production mixing only)"
+  HEAD_SHA=$(git rev-parse HEAD)
+  
+  # For pre-approval, use parent commits as base if not specified
+  if [ -z "$BASE_SHA" ]; then
+    BASE_SHA="${2:-$(git rev-parse HEAD~1 2>/dev/null || echo "")}"
+    if [ -z "$BASE_SHA" ]; then
+      echo "OK: No base SHA specified and no parent commit — single commit repo"
+      echo "PASS: check-changed-files"
+      exit 0
+    fi
+  fi
+  
+  CHANGED_FILES=$(git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true)
+  
+  if [ -z "$CHANGED_FILES" ]; then
+    echo "OK: No changed files detected in diff range $BASE_SHA..$HEAD_SHA"
+    echo "PASS: check-changed-files"
+    exit 0
+  fi
+  
+  echo "Changed files (pre-approval mode):"
+  echo "$CHANGED_FILES"
+  
+  # Check for workflow/production mixing
+  WORKFLOW_PATTERNS="^(checkpoints/|docs/workflow/|scripts/workflow/|\.opencode/|AGENTS\.md|\.github/workflows/|tests/workflow/)"
+  PRODUCTION_PATTERNS="^(app/|config/|database/|public/|techpilot/|tests/(?!workflow/))"
+  
+  HAS_WORKFLOW=false
+  HAS_PRODUCTION=false
+  
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    if [[ "$file" =~ $WORKFLOW_PATTERNS ]]; then HAS_WORKFLOW=true; fi
+    if [[ "$file" =~ $PRODUCTION_PATTERNS ]]; then HAS_PRODUCTION=true; fi
+  done <<< "$CHANGED_FILES"
+  
+  if [ "$HAS_WORKFLOW" = true ] && [ "$HAS_PRODUCTION" = true ]; then
+    echo "FAIL: Mixed changes — workflow and production files in same diff"
+    echo "Separate workflow infrastructure changes from production code changes."
+    exit 1
+  fi
+  
+  echo "OK: No forbidden mixing detected"
+  echo "PASS: check-changed-files"
+  exit 0
+fi
+
+# Post-approval lifecycle: enforce contract allowed/forbidden paths
 if [ -z "$BASE_SHA" ]; then
-  # Read base_sha from contract
   if [ -f "$CONTRACT" ]; then
     BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk '{print $2}' | tr -d ' "')
   fi
@@ -24,7 +89,6 @@ fi
 HEAD_SHA=$(git rev-parse HEAD)
 echo "Diff range: $BASE_SHA...$HEAD_SHA"
 
-# Get changed files using three-dot diff
 CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null || git diff --name-only "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true)
 
 if [ -z "$CHANGED_FILES" ]; then
@@ -41,21 +105,8 @@ ALLOWED_PATHS=""
 FORBIDDEN_PATHS=""
 
 if [ -f "$CONTRACT" ]; then
-  # Extract ALLOWED_PATHS from contract YAML
-  ALLOWED_PATHS=$(php -r '
-$yaml = file_get_contents("'"$CONTRACT"'");
-$lines = explode("\n", $yaml);
-$in_allowed = false;
-$in_forbidden = false;
-foreach ($lines as $line) {
-  $trimmed = trim($line);
-  if ($trimmed === "ALLOWED_PATHS:") { $in_allowed = true; $in_forbidden = false; continue; }
-  if ($trimmed === "FORBIDDEN_PATHS:") { $in_forbidden = true; $in_allowed = false; continue; }
-  if (preg_match("/^[A-Z_]+:/", $trimmed)) { $in_allowed = false; $in_forbidden = false; continue; }
-  if ($in_allowed && preg_match("/^-\s+(.+)$/", $trimmed, $m)) echo trim($m[1]) . "\n";
-  if ($in_forbidden && preg_match("/^-\s+(.+)$/", $trimmed, $m)) echo trim($m[1]) . "\n";
-}
-' 2>/dev/null || true)
+  ALLOWED_PATHS=$(grep -A100 '^ALLOWED_PATHS:' "$CONTRACT" | grep '^  - ' | sed 's/^  - //' | sed 's/^"//;s/"$//' 2>/dev/null || true)
+  FORBIDDEN_PATHS=$(grep -A100 '^FORBIDDEN_PATHS:' "$CONTRACT" | grep '^  - ' | sed 's/^  - //' | sed 's/^"//;s/"$//' 2>/dev/null || true)
 fi
 
 # Check each changed file against allowed/forbidden paths
