@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+BASE_SHA="${2:-HEAD~1}"
+
+if git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  DIFF_CONTENT=$(git diff "$BASE_SHA" 2>/dev/null || git diff "HEAD")
+else
+  DIFF_CONTENT=$(git diff "HEAD")
+fi
+
+# Forbidden patterns that should never appear in committed code
+FORBIDDEN_PATTERNS=(
+  "debugger;"
+  "console\.log"
+  "TODO:"
+  "FIXME:"
+  "var_dump"
+  "print_r"
+  "password.*=.*['\"][^'\"]+['\"]"
+  "api_key.*=.*['\"][^'\"]+['\"]"
+  "secret.*=.*['\"][^'\"]+['\"]"
+)
+
+VIOLATIONS=0
+
+for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+  if echo "$DIFF_CONTENT" | grep -n "$pattern" &>/dev/null; then
+    echo "VIOLATION: Found pattern '$pattern' in diff"
+    echo "$DIFF_CONTENT" | grep -n "$pattern" | head -5
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+done
+
+# Check for governance file modifications
+GOVERNANCE_CHANGES=$(echo "$DIFF_CONTENT" | grep "^diff --git a/docs/governance/" || true)
+if [ -n "$GOVERNANCE_CHANGES" ]; then
+  echo "WARNING: Governance file changes detected:"
+  echo "$GOVERNANCE_CHANGES"
+  echo "Governance changes require separate human approval."
+fi
+
+if [ "$VIOLATIONS" -gt 0 ]; then
+  echo "FAIL: $VIOLATIONS forbidden pattern violation(s) found"
+  exit 1
+fi
+
+echo "PASS: scan-forbidden-patterns"
+exit 0

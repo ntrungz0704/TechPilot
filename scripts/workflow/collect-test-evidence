@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+EVIDENCE_DIR="${2:-checkpoints/CP03/evidence}"
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+mkdir -p "$EVIDENCE_DIR"
+
+echo "# Test Evidence Collection" > "$EVIDENCE_DIR/test-summary.txt"
+echo "Timestamp: $TIMESTAMP" >> "$EVIDENCE_DIR/test-summary.txt"
+echo "HEAD SHA: $(git rev-parse HEAD 2>/dev/null || echo 'unknown')" >> "$EVIDENCE_DIR/test-summary.txt"
+echo "Branch: $(git branch --show-current 2>/dev/null || echo 'unknown')" >> "$EVIDENCE_DIR/test-summary.txt"
+echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+
+# Run PHP lint on news-related files
+if command -v php &> /dev/null; then
+  echo "=== PHP Lint ===" >> "$EVIDENCE_DIR/test-summary.txt"
+  for f in $(find app views -name '*.php' 2>/dev/null | head -20); do
+    result=$(php -l "$f" 2>&1 || true)
+    echo "[$f] $result" >> "$EVIDENCE_DIR/test-summary.txt"
+  done
+  echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+fi
+
+# Run available tests
+if ls tests/*.php 2>/dev/null; then
+  echo "=== PHP Test Results ===" >> "$EVIDENCE_DIR/test-summary.txt"
+  for test in tests/News*.php tests/Admin*.php tests/*Test*.php; do
+    if [ -f "$test" ]; then
+      echo "Running $test..." >> "$EVIDENCE_DIR/test-summary.txt"
+      php "$test" 2>&1 >> "$EVIDENCE_DIR/test-summary.txt" || echo "EXIT_CODE: $?" >> "$EVIDENCE_DIR/test-summary.txt"
+      echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+    fi
+  done
+fi
+
+# Check git status
+echo "=== Git Status ===" >> "$EVIDENCE_DIR/test-summary.txt"
+git status --short >> "$EVIDENCE_DIR/test-summary.txt" 2>&1 || true
+echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+
+# Check changed files
+echo "=== Changed Files ===" >> "$EVIDENCE_DIR/test-summary.txt"
+git diff --name-only >> "$EVIDENCE_DIR/test-summary.txt" 2>&1 || true
+echo "" >> "$EVIDENCE_DIR/test-summary.txt"
+
+echo "Evidence collected at $EVIDENCE_DIR/test-summary.txt"
+echo "PASS: collect-test-evidence"
+exit 0

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HANDOFF="${1:-checkpoints/CP03/IMPLEMENTATION_HANDOFF.json}"
+SCHEMA="docs/workflow/schemas/implementation-handoff.schema.json"
+
+if [ ! -f "$HANDOFF" ]; then
+  echo "SKIPPED_PRECONDITION: Handoff not found at $HANDOFF"
+  exit 0
+fi
+
+# Validate JSON structure (requires jq)
+if ! command -v jq &> /dev/null; then
+  echo "SKIPPED_PRECONDITION: jq not available — cannot validate handoff JSON"
+  exit 0
+fi
+
+if ! jq '.' "$HANDOFF" &>/dev/null; then
+  echo "FAIL: Handoff is not valid JSON"
+  exit 1
+fi
+
+# Required fields check
+REQUIRED_FIELDS=("checkpoint_id" "candidate_sha" "changed_files" "test_results" "evidence_paths" "writer_declaration")
+MISSING=0
+
+for field in "${REQUIRED_FIELDS[@]}"; do
+  if ! jq -e ".$field" "$HANDOFF" &>/dev/null; then
+    echo "MISSING: Required field '$field' not found in handoff"
+    MISSING=$((MISSING + 1))
+  fi
+done
+
+# Verify writer declaration is READY_FOR_REVIEW, not GATE_PASS
+if jq -e '.writer_declaration' "$HANDOFF" &>/dev/null; then
+  DECL=$(jq -r '.writer_declaration' "$HANDOFF")
+  if [ "$DECL" = "PENDING_IMPLEMENTATION" ]; then
+    echo "SKIPPED_PRECONDITION: Handoff is a placeholder (PENDING_IMPLEMENTATION)"
+    echo "PASS: verify-handoff (placeholder)"
+    exit 0
+  fi
+  if [ "$DECL" = "GATE_PASS" ]; then
+    echo "VIOLATION: Writer declared GATE_PASS. Writer may only declare READY_FOR_REVIEW."
+    exit 1
+  fi
+fi
+
+# Verify changed_files list matches git diff
+CANDIDATE_SHA=$(jq -r '.candidate_sha // "CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT"' "$HANDOFF")
+if [ "$CANDIDATE_SHA" != "CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT" ]; then
+  HANDOFF_FILES=$(jq -r '.changed_files[]' "$HANDOFF" 2>/dev/null | sort)
+  GIT_FILES=$(git diff --name-only "$CANDIDATE_SHA" 2>/dev/null | sort || echo "")
+
+  if [ "$HANDOFF_FILES" != "$GIT_FILES" ]; then
+    echo "WARNING: Handoff changed_files does not match git diff for $CANDIDATE_SHA"
+    echo "Handoff files:"
+    echo "$HANDOFF_FILES"
+    echo "Git diff files:"
+    echo "$GIT_FILES"
+  fi
+fi
+
+if [ "$MISSING" -gt 0 ]; then
+  echo "FAIL: $MISSING required field(s) missing from handoff"
+  exit 1
+fi
+
+echo "PASS: verify-handoff"
+exit 0

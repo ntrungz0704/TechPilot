@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="checkpoints/STATE.json"
+FROM_STATE="${1:-}"
+TO_STATE="${2:-}"
+
+if [ ! -f "$STATE_FILE" ]; then
+  echo "FAIL: State file not found at $STATE_FILE"
+  exit 1
+fi
+
+CURRENT=$(jq -r '.lifecycle_status' "$STATE_FILE" 2>/dev/null || echo "unknown")
+
+if [ -n "$FROM_STATE" ] && [ "$CURRENT" != "$FROM_STATE" ]; then
+  echo "FAIL: Expected state '$FROM_STATE' but current state is '$CURRENT'"
+  exit 1
+fi
+
+ALLOWED_TRANSITIONS=$(cat <<'TRANSITIONS'
+ROADMAP_DEFINED:CONTRACT_DRAFTED
+CONTRACT_DRAFTED:CONTRACT_APPROVED
+CONTRACT_APPROVED:IMPLEMENTING
+IMPLEMENTING:CI_PENDING
+CI_PENDING:CI_FAILED
+CI_PENDING:CI_GREEN
+CI_FAILED:IMPLEMENTING
+CI_GREEN:WAITING_FOR_HERMES
+WAITING_FOR_HERMES:REWORK_REQUIRED
+WAITING_FOR_HERMES:HERMES_VERIFIED
+REWORK_REQUIRED:IMPLEMENTING
+HERMES_VERIFIED:WAITING_FOR_SEMANTIC_REVIEW
+WAITING_FOR_SEMANTIC_REVIEW:SEMANTIC_CHANGES_REQUIRED
+WAITING_FOR_SEMANTIC_REVIEW:SEMANTIC_APPROVED
+SEMANTIC_CHANGES_REQUIRED:IMPLEMENTING
+SEMANTIC_APPROVED:MERGE_READY
+MERGE_READY:MERGED
+MERGED:CLOSED
+TRANSITIONS
+)
+
+if [ -n "$TO_STATE" ]; then
+  VALID=0
+  while IFS=: read -r FROM TO; do
+    if [ "$FROM" = "$CURRENT" ] && [ "$TO" = "$TO_STATE" ]; then
+      VALID=1
+      break
+    fi
+  done <<< "$ALLOWED_TRANSITIONS"
+
+  if [ "$VALID" -eq 0 ]; then
+    echo "FAIL: Transition '$CURRENT' -> '$TO_STATE' is not allowed"
+    exit 1
+  fi
+
+  echo "OK: Transition '$CURRENT' -> '$TO_STATE' is allowed"
+fi
+
+echo "PASS: transition-state"
+exit 0
