@@ -35,7 +35,7 @@ $searchCases = [
     'pc' => ['category_slugs' => ['pc-build-san']],
     'pcie5' => ['match_names' => ['MSI MAG A750GL PCIe5']],
     'i3' => ['match_names' => ['Intel Core i3-12100']],
-    'rtx 4060' => ['match_names' => ['Card màn hình MSI RTX 4060 Ventus 2X OC', 'Card màn hình ASUS Dual RTX 4060 Ti OC']],
+    'rtx 4060' => ['match_names' => ['MSI Ventus RTX 4060', 'ASUS Dual RTX 4060 Ti']],
 ];
 
 foreach ($searchCases as $kw => $criteria) {

@@ -219,10 +219,10 @@ class AiAssistantController extends Controller
                     'name' => $p['name'],
                     'price' => (float)$p['price'],
                     'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
-                    'image' => $p['image'],
+                    'image' => productImageUrl($p['image'], $p['name']),
                     'slug' => $p['slug'],
                     'specs' => [
-                        'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? 'N/A',
+                        'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'N/A'),
                         'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
                         'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? ($specs['Ổ cứng'] ?? '512GB NVMe'),
                         'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Intel HD Graphics'

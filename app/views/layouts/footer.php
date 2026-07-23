@@ -1436,7 +1436,7 @@
 
                 const baseUrl = '<?= rtrim(url(''), '/') ?>';
                 const imgSrc = item.image
-                    ? (item.image.startsWith('http') ? item.image
+                    ? (item.image.startsWith('http') || item.image.startsWith('/') ? item.image
                         : (item.image.includes('/') ? baseUrl + '/' + item.image
                             : baseUrl + '/public/assets/images/products/' + item.image))
                     : baseUrl + '/public/assets/images/laptop-gaming.jpg';
