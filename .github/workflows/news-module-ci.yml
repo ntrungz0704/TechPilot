@@ -20,6 +20,7 @@ on:
       - '.github/workflows/news-module-ci.yml'
   pull_request:
     branches:
+      - feature/hieu-news
       - main
     paths:
       - 'app/**'
@@ -29,6 +30,11 @@ on:
       - 'public/assets/css/news.css'
       - 'public/assets/js/news.js'
       - 'tests/**'
+      - 'checkpoints/**'
+      - 'docs/workflow/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
+      - 'tests/workflow/**'
       - '.github/workflows/news-module-ci.yml'
 
 jobs:
@@ -148,13 +154,34 @@ jobs:
   checkpoint-gate:
     name: Checkpoint Gate Validator
     needs: [php-tests, db-integration]
-    if: github.ref == 'refs/heads/feature/hieu-news' && github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Checkout Exact PR Head SHA
+        if: github.event_name == 'pull_request'
+        run: |
+          git checkout ${{ github.event.pull_request.head.sha }}
+          echo "Checked out PR head SHA: $(git rev-parse HEAD)"
+
+      - name: Report Checkpoint State
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Base SHA: ${{ github.event.pull_request.base.sha || github.event.before || 'unknown' }}"
+          echo "Head SHA: $(git rev-parse HEAD)"
+          echo "Branch: $(git branch --show-current)"
+          echo "--- STATE.json ---"
+          cat checkpoints/STATE.json 2>/dev/null || echo "STATE.json not found"
+
+      - name: Validate Contract
+        run: scripts/workflow/validate-contract
+
+      - name: Run Workflow Regression Tests
+        run: bash tests/workflow/test_control.sh
 
       - name: Check Changed Files Against Allowlist
         run: scripts/workflow/check-changed-files
