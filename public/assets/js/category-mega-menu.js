@@ -101,6 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function syncCategoryDrawerResponsiveState() {
+        const isMobileCategoryMode = window.matchMedia('(max-width: 767px)').matches;
+        if (!isMobileCategoryMode) {
+            if (activeDrawer === 'categoryDrawer' || (categoryDropdown && categoryDropdown.classList.contains('is-mobile-open'))) {
+                closeCategoryDrawer(false);
+            }
+        }
+    }
+
+    function syncResponsiveNavigationState() {
+        syncMainNavResponsiveState();
+        syncCategoryDrawerResponsiveState();
+    }
+
     // --- MAIN NAVIGATION DRAWER CONTROLLER ---
     function openMainNav(triggerEl) {
         const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
@@ -302,15 +316,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Window Resize / Media Query Listener for Responsive State Sync
     const mediaQuery1024 = window.matchMedia('(max-width: 1024px)');
-    if (mediaQuery1024.addEventListener) {
-        mediaQuery1024.addEventListener('change', syncMainNavResponsiveState);
-    } else if (mediaQuery1024.addListener) {
-        mediaQuery1024.addListener(syncMainNavResponsiveState);
-    }
-    window.addEventListener('resize', syncMainNavResponsiveState);
+    const mediaQuery767 = window.matchMedia('(max-width: 767px)');
+
+    [mediaQuery1024, mediaQuery767].forEach(mq => {
+        if (mq.addEventListener) {
+            mq.addEventListener('change', syncResponsiveNavigationState);
+        } else if (mq.addListener) {
+            mq.addListener(syncResponsiveNavigationState);
+        }
+    });
+    window.addEventListener('resize', syncResponsiveNavigationState);
 
     // Initial state setup
-    syncMainNavResponsiveState();
+    syncResponsiveNavigationState();
     closeCategoryDrawer(false);
 
     // --- REUSABLE CATEGORY MENU INITIALIZER ---
