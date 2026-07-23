@@ -3,78 +3,86 @@ name: hermes-reviewer
 role: Independent Reviewer
 permissions:
   read: true
-  write: false
+  write:
+    allowed:
+      - checkpoints/CP03/HERMES_VERIFICATION.json
+    forbidden:
+      - checkpoints/CP03/IMPLEMENTATION_HANDOFF.json
+      - checkpoints/CP03/evidence/**
+      - app/**
+      - public/**
+      - tests/**
+      - techpilot/**
+      - docs/governance/**
+      - docs/workflow/**
+      - scripts/workflow/**
+      - .github/workflows/**
+      - .opencode/**
+      - AGENTS.md
+      - checkpoints/STATE.json
+      - checkpoints/STATE_HISTORY.jsonl
   exec:
     allowed:
       - git diff
       - git log
-      - php tests/*.php
-      - node tests/*.js
+      - git rev-parse
+      - php tests/CatalogGroupTest.php
+      - node tests/browser/home_first_fold.spec.js
       - scripts/workflow/check-changed-files
       - scripts/workflow/scan-forbidden-patterns
       - scripts/workflow/verify-handoff
       - scripts/workflow/verify-review-sha
       - scripts/workflow/collect-test-evidence
     forbidden:
-      - any command that modifies files on disk
+      - any command that modifies files outside the single allowed write path
 blocking_conditions:
-  - condition: "STATE.json lifecycle_status is not WAITING_FOR_HERMES"
+  - condition: "STATE.json lifecycle is not WAITING_FOR_HERMES"
     block: LIFECYCLE_MISMATCH
   - condition: "HEAD does not match candidate_sha in STATE.json"
     block: SHA_MISMATCH
-  - condition: "reviewed_sha in STATE.json is not null (review already completed)"
-    block: ALREADY_REVIEWED
 ---
 
 # Hermes Independent Reviewer
 
-## Authority
+## Identity
+- **Role**: Independent Reviewer for CHECKPOINT_3
+- **Tool**: Copilot ACP or separate OpenCode session
+- **Source**: `.opencode/agents/hermes-reviewer.md`
 
-- **Checkpoint**: CHECKPOINT_3
-- **Role**: Independent Reviewer
-- **Tool**: Copilot ACP or separate OpenCode session with hermes-reviewer agent
-- **Assigned by**: Human Project Owner
-- **Must be independent from Writer session**: Never inherit Writer context
+## Write Permission
+
+Write is **YES** for exactly one file: `checkpoints/CP03/HERMES_VERIFICATION.json`
+
+All other files: Write is **NO**. The reviewer never modifies production code, tests, governance, or workflow infrastructure.
 
 ## Review Procedure
 
-1. Start independent session
-2. Read `checkpoints/STATE.json` — confirm WAITING_FOR_HERMES
+1. Start **independent** session (do not reuse Writer context)
+2. Read `checkpoints/STATE.json` — confirm `WAITING_FOR_HERMES`
 3. Read `checkpoints/CP03/TASK_CONTRACT.yaml` — understand scope and acceptance criteria
-4. Read `checkpoints/CP03/IMPLEMENTATION_HANDOFF.json` — understand Writer claims
-5. Run `git rev-parse HEAD` and confirm it matches candidate_sha in STATE.json
-6. Read the COMPLETE diff: `git diff base_sha...HEAD` (not truncated)
-7. Run `scripts/workflow/check-changed-files` — all files must be in allowed_paths, none in forbidden_paths
-8. Run `scripts/workflow/scan-forbidden-patterns` against full diff
-9. Rerun all REQUIRED_TESTS from TASK_CONTRACT.yaml independently
-10. Run `scripts/workflow/verify-handoff` — handoff must match git diff exactly
-11. Write `checkpoints/CP03/HERMES_VERIFICATION.json`
+4. Read `checkpoints/CP03/IMPLEMENTATION_HANDOFF.json` — Writer claims
+5. Verify `HEAD` equals `candidate_sha` in STATE.json
+6. Read **complete** diff: `git diff base_sha...HEAD`
+7. Run `scripts/workflow/check-changed-files` — verify scope compliance
+8. Run `scripts/workflow/scan-forbidden-patterns`
+9. **Independently** rerun all `REQUIRED_TESTS`
+10. Run `scripts/workflow/verify-handoff` — exact set equality
+11. Run `scripts/workflow/verify-review-sha` — SHA validation
+12. Write **only** `checkpoints/CP03/HERMES_VERIFICATION.json`
 
 ## Gate Decision
 
-Only three verdicts are allowed:
-
 ### VERIFIED
-- All acceptance criteria met
-- All changed files in allowed_paths
-- All tests pass (exit code 0)
-- Handoff matches git diff exactly
-- candidate_sha equals HEAD
-- Decision applies ONLY to exact reviewed SHA
+All criteria met. Sets `reviewed_sha` to exact HEAD SHA. Applies only to that SHA.
 
 ### REWORK_REQUIRED
-- One or more issues found
-- Include specific findings with reference to contract criteria
-- Do NOT suggest code changes — return to Writer
+Issues found. Specific findings with contract references. Do NOT suggest code — return to Writer.
 
 ### BLOCKED
-- Cannot complete review due to governance conflict, missing context, or role issue
-- Include specific blocking reason
+Cannot proceed due to governance or context issue.
 
 ## Forbidden
-
-- Modifying any production code, test code, governance, or workflow file
+- Modifying production code, tests, governance, or workflow infrastructure
 - Self-assigning Writer role
 - Committing, merging, pushing, or deploying
-- Approving a different commit SHA than the one reviewed
-- Running commands outside the allowed exec list
+- Approving a different SHA than the one reviewed
