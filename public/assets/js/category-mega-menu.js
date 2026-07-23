@@ -1,5 +1,5 @@
 /**
- * TechPilot Category Mega Menu & Navigation Controller (V3 Final)
+ * TechPilot Category Mega Menu & Navigation Controller (V4 Final)
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -58,8 +58,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- RESPONSIVE STATE SYNCHRONIZATION ---
+    function syncMainNavResponsiveState() {
+        const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
+
+        if (!isDrawerMode) {
+            // Desktop Mode (> 1024px): Display as header nav
+            if (mainNavMenu) {
+                mainNavMenu.classList.remove('is-mobile-open');
+                mainNavMenu.removeAttribute('aria-hidden');
+                mainNavMenu.removeAttribute('inert');
+            }
+            if (mobileMenuBtn) {
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            }
+            if (activeDrawer === 'mainNav') {
+                activeDrawer = null;
+                setOverlaysVisible(false);
+                updateScrollLock();
+            }
+        } else {
+            // Drawer Mode (<= 1024px)
+            if (activeDrawer !== 'mainNav') {
+                if (mainNavMenu) {
+                    mainNavMenu.classList.remove('is-mobile-open');
+                    mainNavMenu.setAttribute('aria-hidden', 'true');
+                    mainNavMenu.setAttribute('inert', '');
+                }
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                }
+            } else {
+                if (mainNavMenu) {
+                    mainNavMenu.classList.add('is-mobile-open');
+                    mainNavMenu.setAttribute('aria-hidden', 'false');
+                    mainNavMenu.removeAttribute('inert');
+                }
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+        }
+    }
+
     // --- MAIN NAVIGATION DRAWER CONTROLLER ---
     function openMainNav(triggerEl) {
+        const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
+        if (!isDrawerMode) return;
+
         if (activeDrawer === 'categoryDrawer') {
             closeCategoryDrawer(false);
         }
@@ -73,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (mainNavMenu) {
             mainNavMenu.removeAttribute('inert');
-            mainNavMenu.classList.add('is-mobile-open', 'is-active');
+            mainNavMenu.classList.add('is-mobile-open');
             mainNavMenu.setAttribute('aria-hidden', 'false');
         }
 
@@ -96,11 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileMenuBtn.setAttribute('aria-expanded', 'false');
         }
 
-        mainNavMenu.classList.remove('is-mobile-open', 'is-active');
-        mainNavMenu.setAttribute('aria-hidden', 'true');
+        mainNavMenu.classList.remove('is-mobile-open');
 
-        if (window.innerWidth <= 767) {
+        const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
+        if (isDrawerMode) {
+            mainNavMenu.setAttribute('aria-hidden', 'true');
             mainNavMenu.setAttribute('inert', '');
+        } else {
+            mainNavMenu.removeAttribute('aria-hidden');
+            mainNavMenu.removeAttribute('inert');
         }
 
         setOverlaysVisible(false);
@@ -250,8 +300,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Window Resize / Media Query Listener for Responsive State Sync
+    const mediaQuery1024 = window.matchMedia('(max-width: 1024px)');
+    if (mediaQuery1024.addEventListener) {
+        mediaQuery1024.addEventListener('change', syncMainNavResponsiveState);
+    } else if (mediaQuery1024.addListener) {
+        mediaQuery1024.addListener(syncMainNavResponsiveState);
+    }
+    window.addEventListener('resize', syncMainNavResponsiveState);
+
     // Initial state setup
-    closeMainNav(false);
+    syncMainNavResponsiveState();
     closeCategoryDrawer(false);
 
     // --- REUSABLE CATEGORY MENU INITIALIZER ---
