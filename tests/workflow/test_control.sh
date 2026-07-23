@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "=== Running all workflow regression tests ==="
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 TESTS=(
   "test_validate_contract_positive.sh"

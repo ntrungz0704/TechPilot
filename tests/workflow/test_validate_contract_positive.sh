@@ -2,12 +2,16 @@
 set -euo pipefail
 
 echo "=== Positive: validate-contract with valid contract ==="
-SCRIPT_DIR="$(cd "$(dirname "$0")/../../scripts/workflow" && pwd)"
-TEST_DIR="$(mktemp -d)"
-trap 'rm -rf "$TEST_DIR"' EXIT
 
-# Create a valid test contract
-cat > "$TEST_DIR/valid_contract.yaml" << 'EOF'
+REPO_ROOT="$(cd "$(dirname "$0")"/../.. && pwd)"
+cd "$REPO_ROOT"
+
+# Use evidence dir for temp files (real path on all platforms)
+TEST_FILE="checkpoints/CP03/evidence/test_valid_contract.yaml"
+mkdir -p checkpoints/CP03/evidence
+
+# Create a valid test contract matching the real contract format
+cat > "$TEST_FILE" << 'EOF'
 CHECKPOINT_ID: CHECKPOINT_3
 TITLE: "Test contract"
 LIFECYCLE_STATUS: ROADMAP_DEFINED
@@ -22,14 +26,15 @@ SCOPE:
   VISIBLE_SECTIONS:
     - Topbar
     - Main Header
-  OUT_OF_SCOPE:
-    - Category drawer
-  ALLOWED_PATHS:
-    - tests/**
-  FORBIDDEN_PATHS:
-    - docs/governance/**
+OUT_OF_SCOPE:
+  - Category drawer
+ALLOWED_PATHS:
+  - tests/**
+FORBIDDEN_PATHS:
+  - docs/governance/**
 ACCEPTANCE_CRITERIA:
-  - "Test criterion"
+  - "Test criterion one"
+  - "Test criterion two"
 REQUIRED_TESTS:
   - command: "echo ok"
     expected_exit_code: 0
@@ -37,18 +42,19 @@ REQUIRED_EVIDENCE:
   - "test output"
 EOF
 
-SCHEMA_PATH="$(cd "$(dirname "$0")/../../docs/workflow/schemas" && pwd)/task-contract.schema.json"
-
 set +e
-output=$("$SCRIPT_DIR/validate-contract" "$TEST_DIR/valid_contract.yaml" "$SCHEMA_PATH" 2>&1)
+output=$(scripts/workflow/validate-contract "$TEST_FILE" "docs/workflow/schemas/task-contract.schema.json" 2>&1)
 exit_code=$?
 set -e
+
+rm -f "$TEST_FILE"
 
 if [ $exit_code -eq 0 ]; then
   echo "PASS: validate-contract exited 0 for valid contract"
 else
   echo "FAIL: validate-contract exited $exit_code for valid contract"
-  echo "Output: $output"
+  echo "Output:"
+  echo "$output"
   exit 1
 fi
 
