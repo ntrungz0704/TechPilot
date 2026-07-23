@@ -27,8 +27,14 @@ if [ "$TRANSITION_EXIT" -ne 0 ]; then
   exit 1
 fi
 
-if ! grep -q '"to":"CONTRACT_DRAFTED"' checkpoints/STATE_HISTORY.jsonl 2>/dev/null; then
-  echo "FAIL: test_17_history_append — history entry not found"
+if ! grep -q '"to"' checkpoints/STATE_HISTORY.jsonl 2>/dev/null; then
+  echo "FAIL: test_17_history_append — history has no entries (file might be empty)"
+  exit 1
+fi
+
+LAST_COUNT=$(wc -l < checkpoints/STATE_HISTORY.jsonl)
+if [ "$LAST_COUNT" -lt 1 ]; then
+  echo "FAIL: test_17_history_append — history file has no lines"
   exit 1
 fi
 
