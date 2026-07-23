@@ -13,6 +13,10 @@ on:
       - 'public/assets/css/news.css'
       - 'public/assets/js/news.js'
       - 'tests/**'
+      - 'checkpoints/**'
+      - 'docs/workflow/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
       - '.github/workflows/news-module-ci.yml'
   pull_request:
     branches:
@@ -140,3 +144,36 @@ jobs:
           name: news-module-test-evidence
           path: |
             docs/reviews/evidence/news-final-gate/*.txt
+
+  checkpoint-gate:
+    name: Checkpoint Gate Validator
+    needs: [php-tests, db-integration]
+    if: github.ref == 'refs/heads/feature/hieu-news' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Changed Files Against Allowlist
+        run: scripts/workflow/check-changed-files
+
+      - name: Scan Forbidden Patterns
+        run: scripts/workflow/scan-forbidden-patterns
+
+      - name: Verify Review SHA
+        run: scripts/workflow/verify-review-sha
+
+      - name: Collect Test Evidence
+        run: |
+          mkdir -p checkpoints/CP03/evidence
+          scripts/workflow/collect-test-evidence
+
+      - name: Upload Checkpoint Evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checkpoint-cp3-evidence
+          path: |
+            checkpoints/CP03/evidence/
