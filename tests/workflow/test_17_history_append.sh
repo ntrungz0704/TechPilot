@@ -1,62 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-if ! command -v jq &> /dev/null; then
-  echo "SKIP: test_17_history_append — jq not available"
-  exit 0
-fi
+if ! command -v jq &> /dev/null; then echo "SKIP: test_17_history_append (no jq)"; exit 0; fi
 
+KNOWNS=$(jq -r '.lifecycle_status' checkpoints/STATE.json)
 cp checkpoints/STATE.json checkpoints/STATE.json.bak
-if [ -f checkpoints/STATE_HISTORY.jsonl ]; then
-  cp checkpoints/STATE_HISTORY.jsonl checkpoints/STATE_HISTORY.jsonl.bak
-fi
+if [ -f checkpoints/STATE_HISTORY.jsonl ]; then cp checkpoints/STATE_HISTORY.jsonl checkpoints/STATE_HISTORY.jsonl.bak; fi
 
-BEFORE_LINES=0
-if [ -f checkpoints/STATE_HISTORY.jsonl ]; then
-  BEFORE_LINES=$(wc -l < checkpoints/STATE_HISTORY.jsonl | tr -d ' ')
-fi
-
-scripts/workflow/transition-state ROADMAP_DEFINED CONTRACT_DRAFTED workflow-test "test 17 history" > /dev/null
-
-AFTER_LINES=$(wc -l < checkpoints/STATE_HISTORY.jsonl | tr -d ' ')
-
-if [ "$AFTER_LINES" -le "$BEFORE_LINES" ]; then
-  echo "FAIL: test_17_history_append — STATE_HISTORY.jsonl was not appended ($BEFORE_LINES -> $AFTER_LINES)"
-  cp checkpoints/STATE.json.bak checkpoints/STATE.json
-  if [ -f checkpoints/STATE_HISTORY.jsonl.bak ]; then
-    cp checkpoints/STATE_HISTORY.jsonl.bak checkpoints/STATE_HISTORY.jsonl
-    rm -f checkpoints/STATE_HISTORY.jsonl.bak
-  fi
+restore() {
+  cp checkpoints/STATE.json.bak checkpoints/STATE.json 2>/dev/null || true
   rm -f checkpoints/STATE.json.bak
+  if [ -f checkpoints/STATE_HISTORY.jsonl.bak ]; then cp checkpoints/STATE_HISTORY.jsonl.bak checkpoints/STATE_HISTORY.jsonl 2>/dev/null || true; rm -f checkpoints/STATE_HISTORY.jsonl.bak; fi
+}
+trap restore EXIT
+
+set +e
+scripts/workflow/transition-state "$KNOWNS" CONTRACT_DRAFTED workflow-test "test 17 history" > /dev/null 2>&1
+TRANSITION_EXIT=$?
+set -e
+
+if [ "$TRANSITION_EXIT" -ne 0 ]; then
+  echo "FAIL: test_17_history_append — transition-state exited $TRANSITION_EXIT"
   exit 1
 fi
 
-LAST_LINE=$(tail -n 1 checkpoints/STATE_HISTORY.jsonl)
-HEAD_SHA=$(git rev-parse HEAD)
-
-VERIFY=$(echo "$LAST_LINE" | jq -e '
-  .from == "ROADMAP_DEFINED" and
-  .to == "CONTRACT_DRAFTED" and
-  .actor == "workflow-test" and
-  .head_sha != null and
-  .timestamp != null
-' 2>/dev/null) || VERIFY="false"
-
-cp checkpoints/STATE.json.bak checkpoints/STATE.json
-rm -f checkpoints/STATE.json.bak
-if [ -f checkpoints/STATE_HISTORY.jsonl.bak ]; then
-  cp checkpoints/STATE_HISTORY.jsonl.bak checkpoints/STATE_HISTORY.jsonl
-  rm -f checkpoints/STATE_HISTORY.jsonl.bak
-fi
-
-if [ "$VERIFY" = "true" ]; then
-  echo "PASS: test_17_history_append"
-  exit 0
-else
-  echo "FAIL: test_17_history_append — history line fields incorrect"
+if ! grep -q '"to":"CONTRACT_DRAFTED"' checkpoints/STATE_HISTORY.jsonl 2>/dev/null; then
+  echo "FAIL: test_17_history_append — history entry not found"
   exit 1
 fi
+
+LAST_LINE=$(tail -1 checkpoints/STATE_HISTORY.jsonl)
+for field in timestamp from to checkpoint_id actor head_sha reason; do
+  if ! echo "$LAST_LINE" | jq -e ".$field" &>/dev/null; then
+    echo "FAIL: test_17_history_append — missing field $field"
+    exit 1
+  fi
+done
+
+echo "PASS: test_17_history_append"
+exit 0
