@@ -2,11 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "docs/workflow/schemas/task-contract.schema.json",
   "title": "Checkpoint Task Contract",
-  "description": "Validates checkpoints/CP03/TASK_CONTRACT.yaml after YAML-to-JSON conversion.",
   "type": "object",
   "required": [
     "CHECKPOINT_ID", "TITLE", "LIFECYCLE_STATUS", "BASE_SHA",
-    "SCOPE", "ACCEPTANCE_CRITERIA", "REQUIRED_TESTS"
+    "SCOPE", "ALLOWED_PATHS", "FORBIDDEN_PATHS",
+    "ACCEPTANCE_CRITERIA", "REQUIRED_TESTS", "REQUIRED_EVIDENCE"
   ],
   "properties": {
     "CHECKPOINT_ID": { "type": "string", "pattern": "^CHECKPOINT_[0-9]+$" },
@@ -36,36 +36,31 @@
     },
     "SCOPE": {
       "type": "object",
-      "required": ["ALLOWED_PATHS", "FORBIDDEN_PATHS"],
+      "required": ["TARGET_ROUTE", "TARGET_VIEWPORT", "ACCEPTANCE_GATE"],
       "properties": {
         "TARGET_ROUTE": { "type": "string" },
         "TARGET_VIEWPORT": { "type": "string" },
         "SCROLL_Y": { "type": "integer" },
-        "ACCEPTANCE_GATE": { "type": "string" },
-        "VISIBLE_SECTIONS": { "type": "array", "items": { "type": "string" } },
-        "OUT_OF_SCOPE": { "type": "array", "items": { "type": "string" } },
-        "ALLOWED_PATHS": { "type": "array", "items": { "type": "string" } },
-        "FORBIDDEN_PATHS": { "type": "array", "items": { "type": "string" } }
+        "ACCEPTANCE_GATE": { "type": "string", "minLength": 1 },
+        "VISIBLE_SECTIONS": { "type": "array", "items": { "type": "string" } }
       }
     },
-    "ACCEPTANCE_CRITERIA": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
+    "OUT_OF_SCOPE": { "type": "array", "items": { "type": "string" } },
+    "ALLOWED_PATHS": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "FORBIDDEN_PATHS": { "type": "array", "items": { "type": "string" } },
+    "ACCEPTANCE_CRITERIA": { "type": "array", "minItems": 1, "items": { "type": "string" } },
     "REQUIRED_TESTS": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "object",
         "required": ["command", "expected_exit_code"],
         "properties": {
-          "command": { "type": "string" },
-          "expected_exit_code": { "type": "integer", "minimum": 0 }
+          "command": { "type": "string", "minLength": 1 },
+          "expected_exit_code": { "type": "integer" }
         }
       }
     },
-    "REQUIRED_EVIDENCE": {
-      "type": "array",
-      "items": { "type": "string" }
-    }
+    "REQUIRED_EVIDENCE": { "type": "array", "minItems": 1, "items": { "type": "string" } }
   }
 }

@@ -4,115 +4,132 @@ set -euo pipefail
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
 SCHEMA="${2:-docs/workflow/schemas/task-contract.schema.json}"
 
-if [ ! -f "$CONTRACT" ]; then
-  ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-  if [ -n "$ROOT" ] && [ -f "$ROOT/$CONTRACT" ]; then
-    CONTRACT="$ROOT/$CONTRACT"
-  else
-    echo "FAIL: Contract file not found: $CONTRACT"
-    exit 1
-  fi
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
 
-if [ ! -f "$SCHEMA" ]; then
-  ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-  if [ -n "$ROOT" ] && [ -f "$ROOT/$SCHEMA" ]; then
-    SCHEMA="$ROOT/$SCHEMA"
-  else
-    echo "FAIL: Schema file not found: $SCHEMA"
-    exit 1
-  fi
-fi
-
-if ! command -v php &> /dev/null; then
-  echo "FAIL: php is required for contract validation"
-  exit 1
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [contract-path] [schema-path]"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
+  echo "  Default schema:  docs/workflow/schemas/task-contract.schema.json"
+  exit 0
 fi
 
 if ! command -v node &> /dev/null; then
-  echo "FAIL: node is required for schema validation"
+  echo "FAIL: node is required for contract validation"
   exit 1
 fi
 
-# 1. Extract and validate scalar fields using grep (always works)
-CHECKPOINT_ID=$(grep '^CHECKPOINT_ID:' "$CONTRACT" | awk -F': ' '{print $2}' | tr -d '["'"'"' ]' || true)
-if [ "$CHECKPOINT_ID" != "CHECKPOINT_3" ]; then
-  echo "FAIL: CHECKPOINT_ID is '${CHECKPOINT_ID:-empty}', expected CHECKPOINT_3"
-  exit 1
-fi
-echo "OK: CHECKPOINT_ID=$CHECKPOINT_ID"
-
-LIFECYCLE=$(grep '^LIFECYCLE_STATUS:' "$CONTRACT" | awk -F': ' '{print $2}' | tr -d '["'"'"' ]' || true)
-VALID=false
-for state in ROADMAP_DEFINED CONTRACT_DRAFTED CONTRACT_APPROVED IMPLEMENTING CI_PENDING CI_FAILED CI_GREEN WAITING_FOR_HERMES REWORK_REQUIRED HERMES_VERIFIED WAITING_FOR_SEMANTIC_REVIEW SEMANTIC_CHANGES_REQUIRED SEMANTIC_APPROVED MERGE_READY MERGED CLOSED; do
-  [ "$LIFECYCLE" = "$state" ] && VALID=true && break
+for f in "$CONTRACT" "$SCHEMA" "$YAML_PARSER"; do
+  if [ ! -f "$f" ]; then
+    echo "FAIL: File not found: $f"
+    exit 1
+  fi
 done
-if [ "$VALID" = false ]; then
-  echo "FAIL: Invalid LIFECYCLE_STATUS '${LIFECYCLE:-empty}'"
+
+CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
+  echo "FAIL: YAML parsing failed"
+  echo "$CONTRACT_JSON"
   exit 1
-fi
-echo "OK: LIFECYCLE_STATUS=$LIFECYCLE"
+}
 
-BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk -F': ' '{print $2}' | tr -d '["'"'"' ]' || true)
-if ! echo "$BASE_SHA" | grep -qE '^[0-9a-f]{40}$'; then
-  echo "FAIL: BASE_SHA '${BASE_SHA:-empty}' is not a valid 40-char SHA"
-  exit 1
-fi
-echo "OK: BASE_SHA=$BASE_SHA"
-
-# 2. Validate scope sections exist
-if ! grep -q '^SCOPE:' "$CONTRACT"; then echo "FAIL: Missing SCOPE section"; exit 1; fi
-if ! grep -q '^ALLOWED_PATHS:' "$CONTRACT"; then echo "FAIL: Missing ALLOWED_PATHS"; exit 1; fi
-if ! grep -q '^FORBIDDEN_PATHS:' "$CONTRACT"; then echo "FAIL: Missing FORBIDDEN_PATHS"; exit 1; fi
-if ! grep -q '^ACCEPTANCE_CRITERIA:' "$CONTRACT"; then echo "FAIL: Missing ACCEPTANCE_CRITERIA"; exit 1; fi
-if ! grep -q '^REQUIRED_TESTS:' "$CONTRACT"; then echo "FAIL: Missing REQUIRED_TESTS"; exit 1; fi
-echo "OK: All required sections present"
-
-# 3. PHP inline structure validation (read via stdin to avoid path issues)
-echo "OK: All sections verified via grep"
-
-# 4. Schema validation via Node
-# Convert backslashes to forward slashes for Node.js path compatibility
-NODE_SCHEMA=$(echo "$SCHEMA" | sed 's|\\|/|g')
-NODE_CONTRACT=$(echo "$CONTRACT" | sed 's|\\|/|g')
-node -e "
+printf '%s\n' "$CONTRACT_JSON" | node -e "
 const fs = require('fs');
-const schema = JSON.parse(fs.readFileSync('$NODE_SCHEMA', 'utf8'));
-const yaml = fs.readFileSync('$NODE_CONTRACT', 'utf8');
-const contract = {};
-const lines = yaml.split('\n');
-for (const line of lines) {
-  const m = line.match(/^([A-Z_]+):\s*(.+)$/);
-  if (m) {
-    let val = m[2].trim();
-    if (val === 'null') contract[m[1]] = null;
-    else if (val === 'true') contract[m[1]] = true;
-    else if (val === 'false') contract[m[1]] = false;
-    else if (/^\d+$/.test(val)) contract[m[1]] = parseInt(val, 10);
-    else contract[m[1]] = val.replace(/^\"|\"$/g, '');
-  }
-}
-const sections = ['SCOPE','ACCEPTANCE_CRITERIA','REQUIRED_TESTS','REQUIRED_EVIDENCE','OUT_OF_SCOPE'];
-for (const s of sections) {
-  if (yaml.includes(s + ':')) contract[s] = s === 'SCOPE' ? {ALLOWED_PATHS:[],FORBIDDEN_PATHS:[]} : [];
-}
+const schema = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+const chunks = [];
+process.stdin.on('data', d => chunks.push(d));
+process.stdin.on('end', () => {
+  const contract = JSON.parse(chunks.join(''));
+  const errors = [];
 
-const errors = [];
-const required = schema.required || [];
-for (const r of required) {
-  if (!(r in contract)) errors.push('Missing required: ' + r);
-}
-for (const [key, def] of Object.entries(schema.properties || {})) {
-  if (key in contract && contract[key] !== null) {
-    if (def.type === 'string' && typeof contract[key] !== 'string') errors.push(key + ': expected string');
-    if (def.enum && !def.enum.includes(contract[key])) errors.push(key + ': invalid enum: ' + contract[key]);
-    if (def.pattern && typeof contract[key] === 'string' && !new RegExp('^'+def.pattern+'$').test(contract[key]))
-      errors.push(key + ': pattern mismatch');
+  const required = schema.required || [];
+  for (const r of required) {
+    if (!(r in contract) || contract[r] === null || contract[r] === undefined) {
+      errors.push('Missing required: ' + r);
+    }
   }
+
+  for (const [key, def] of Object.entries(schema.properties || {})) {
+    if (key in contract && contract[key] !== null && contract[key] !== undefined) {
+      const val = contract[key];
+      if (def.type === 'string' && typeof val !== 'string') {
+        errors.push(key + ': expected string, got ' + typeof val);
+      }
+      if (def.type === 'array' && !Array.isArray(val)) {
+        errors.push(key + ': expected array, got ' + typeof val);
+      }
+      if (def.type === 'object' && (typeof val !== 'object' || Array.isArray(val) || val === null)) {
+        errors.push(key + ': expected object, got ' + typeof val);
+      }
+      if (def.enum && typeof val === 'string' && !def.enum.includes(val)) {
+        errors.push(key + ': invalid enum value: ' + val);
+      }
+      if (def.pattern && typeof val === 'string' && !new RegExp('^' + def.pattern + '\$').test(val)) {
+        errors.push(key + ': pattern mismatch for value: ' + val);
+      }
+      if (def.minItems !== undefined && Array.isArray(val) && val.length < def.minItems) {
+        errors.push(key + ': minItems ' + def.minItems + ', got ' + val.length);
+      }
+      if (def.items && Array.isArray(val)) {
+        val.forEach((item, idx) => {
+          if (def.items.required && typeof item === 'object' && item !== null) {
+            for (const req of def.items.required) {
+              if (!(req in item)) {
+                errors.push(key + '[' + idx + ']: missing required field: ' + req);
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  if ('CANDIDATE_SHA' in contract) {
+    const cs = contract.CANDIDATE_SHA;
+    if (cs !== null && !(typeof cs === 'string' && /^[0-9a-f]{40}\$/.test(cs))) {
+      errors.push('CANDIDATE_SHA: must be 40-char hex or null, got: ' + JSON.stringify(cs));
+    }
+  }
+
+  if ('REVIEWED_SHA' in contract) {
+    const rs = contract.REVIEWED_SHA;
+    if (rs !== null && !(typeof rs === 'string' && /^[0-9a-f]{40}\$/.test(rs))) {
+      errors.push('REVIEWED_SHA: must be 40-char hex or null, got: ' + JSON.stringify(rs));
+    }
+  }
+
+  if ('ALLOWED_PATHS' in contract) {
+    if (!Array.isArray(contract.ALLOWED_PATHS) || contract.ALLOWED_PATHS.length === 0) {
+      errors.push('ALLOWED_PATHS: must be a non-empty array (minItems: 1)');
+    }
+  }
+
+  if ('REQUIRED_EVIDENCE' in contract) {
+    if (!Array.isArray(contract.REQUIRED_EVIDENCE) || contract.REQUIRED_EVIDENCE.length === 0) {
+      errors.push('REQUIRED_EVIDENCE: must be present and non-empty');
+    }
+  } else {
+    errors.push('REQUIRED_EVIDENCE: missing required field');
+  }
+
+  if ('REQUIRED_TESTS' in contract && Array.isArray(contract.REQUIRED_TESTS)) {
+    contract.REQUIRED_TESTS.forEach((test, idx) => {
+      if (!test.command) errors.push('REQUIRED_TESTS[' + idx + ']: missing command');
+      if (test.expected_exit_code === undefined || test.expected_exit_code === null) {
+        errors.push('REQUIRED_TESTS[' + idx + ']: missing expected_exit_code');
+      }
+    });
+  }
+
+  if (errors.length > 0) {
+    errors.forEach(e => console.log('SCHEMA ERROR: ' + e));
+    process.exit(1);
+  }
+  console.log('OK: Schema validation passed');
+});
+" "$SCHEMA" 2>&1 || {
+  echo "FAIL: Schema validation failed"
+  exit 1
 }
-if (errors.length > 0) { errors.forEach(e => console.log('SCHEMA ERROR: '+e)); process.exit(1); }
-console.log('OK: Schema validation passed');
-" 2>&1 || { echo "FAIL: Schema validation failed"; exit 1; }
 
 echo "PASS: validate-contract"
 exit 0
