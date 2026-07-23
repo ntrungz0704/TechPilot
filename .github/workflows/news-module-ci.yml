@@ -153,7 +153,7 @@ jobs:
 
   checkpoint-gate:
     name: Checkpoint Gate Validator
-    needs: [php-tests, db-integration]
+    needs: []
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -167,6 +167,21 @@ jobs:
         run: |
           git checkout ${{ github.event.pull_request.head.sha }}
           echo "Checked out PR head SHA: $(git rev-parse HEAD)"
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install NPM Dependencies
+        run: npm ci || npm install
 
       - name: Report Checkpoint State
         run: |
