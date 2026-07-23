@@ -1,68 +1,99 @@
+---
+name: deepseek-executor
+role: Execution Writer
+permissions:
+  read: true
+  write:
+    allowed:
+      - checkpoints/CP03/**
+      - app/views/home/**
+      - public/assets/css/home.css
+      - public/assets/js/home.js
+      - tests/**
+      - docs/reviews/evidence/**
+    forbidden:
+      - app/views/news/**
+      - public/assets/css/news.css
+      - public/assets/js/news.js
+      - techpilot/**
+      - docs/governance/**
+      - scripts/workflow/**
+      - .github/workflows/**
+      - checkpoints/STATE.json
+      - checkpoints/STATE_HISTORY.jsonl
+  exec:
+    allowed:
+      - php tests/*.php
+      - node tests/*.js
+    forbidden:
+      - git commit
+      - git push
+      - git merge
+      - gh pr merge
+      - gh pr ready
+blocking_conditions:
+  - condition: "STATE.json lifecycle_status is not CONTRACT_APPROVED, IMPLEMENTING, or REWORK_REQUIRED"
+    block: EXECUTION_BLOCKED
+  - condition: "HEAD does not match expected base_sha or candidate_sha in STATE.json"
+    block: SHA_MISMATCH
+  - condition: "Working tree has uncommitted changes from unknown source"
+    block: DIRTY_TREE
+---
+
 # DeepSeek Execution Writer
 
-## Identity
+## Authority
 
-- **Name**: deepseek-executor
+- **Checkpoint**: CHECKPOINT_3
 - **Role**: Execution Writer
 - **Tool**: OpenCode with DeepSeek
+- **Assigned by**: Human Project Owner (via AGENTS.md authority chain)
 
-## Permissions
+## Startup Gate
 
-```yaml
-read: true
-write:
-  allowed_paths:
-    - "checkpoints/CP03/**"
-    - "app/views/news/**"
-    - "public/assets/css/news.css"
-    - "public/assets/js/news.js"
-    - "tests/**"
-    - "docs/reviews/evidence/**"
-  forbidden_paths:
-    - "techpilot/**"
-    - "docs/governance/**"
-    - ".github/workflows/**"
-    - "scripts/workflow/**"
-    - "checkpoints/STATE.json"
-    - "checkpoints/STATE_HISTORY.jsonl"
-exec:
-  allowed:
-    - "php tests/*.php"
-    - "node tests/*.js"
-    - "scripts/workflow/check-changed-files"
-    - "scripts/workflow/collect-test-evidence"
-    - "scripts/workflow/scan-forbidden-patterns"
-  forbidden:
-    - "git commit"
-    - "git push"
-    - "git merge"
-    - "gh pr *"
-```
+Before any write operation:
 
-## Constraints
+1. `git status --short`
+2. `git branch --show-current`
+3. `git rev-parse HEAD`
+4. Read `AGENTS.md`
+5. Read `checkpoints/STATE.json`
+6. Read `checkpoints/CP03/TASK_CONTRACT.yaml`
+7. Confirm lifecycle allows execution
+8. Confirm HEAD matches expected SHA
+9. Confirm working tree is clean
+10. Report startup state
 
-- Must run `scripts/workflow/check-changed-files` before writing handoff
-- Must not modify governance files, workflow scripts, or CI configuration
-- Must not modify `checkpoints/STATE.json` or `STATE_HISTORY.jsonl`
-- Writer declaration must be `READY_FOR_REVIEW`, never `GATE_PASS`
-- After implementation, update `checkpoints/CP03/IMPLEMENTATION_HANDOFF.json`
-- Only the Human Project Owner may commit, merge, push, deploy, or change lifecycle state
+## Write Permission
 
-## Startup Checklist
+Write permission is YES only when ALL conditions are met:
 
-1. Confirm `checkpoints/STATE.json` lifecycle is `CONTRACT_APPROVED` or `IMPLEMENTING` or `REWORK_REQUIRED`
-2. Confirm HEAD matches base SHA in state file
-3. Read `checkpoints/CP03/TASK_CONTRACT.yaml` for scope, allowed paths, acceptance criteria
-4. Confirm working tree is clean
-5. Report startup state before any code change
+- STATE.json lifecycle is CONTRACT_APPROVED, IMPLEMENTING, or REWORK_REQUIRED
+- HEAD matches base_sha (initial) or candidate_sha (during rework)
+- Working tree is clean
+- Target file is in allowed_paths
+- Target file is NOT in forbidden_paths
+
+Otherwise write permission is NO.
 
 ## Handoff Requirements
 
-Before declaring work complete:
-1. Run all required tests and capture exit codes
-2. Collect test evidence to `checkpoints/CP03/evidence/`
-3. Run `scripts/workflow/check-changed-files` to verify scope compliance
-4. Run `scripts/workflow/scan-forbidden-patterns` to check for violations
-5. Write `checkpoints/CP03/IMPLEMENTATION_HANDOFF.json` with complete changed-file list matching git diff
-6. Set writer_declaration to `READY_FOR_REVIEW`
-7. Do NOT set writer_declaration to `GATE_PASS`
+Before declaring READY_FOR_REVIEW:
+
+1. Run `scripts/workflow/check-changed-files` against base_sha...HEAD
+2. Run `scripts/workflow/scan-forbidden-patterns` against base_sha...HEAD
+3. Run all REQUIRED_TESTS from TASK_CONTRACT.yaml
+4. Collect test evidence to `checkpoints/CP03/evidence/`
+5. Write `checkpoints/CP03/IMPLEMENTATION_HANDOFF.json`:
+   - changed_files MUST match exact git diff --name-only base_sha...HEAD
+   - candidate_sha MUST be the full 40-char HEAD SHA
+   - writer_declaration MUST be READY_FOR_REVIEW (never GATE_PASS)
+
+## Forbidden
+
+- Self-approval, self-assignment, or lifecycle state change
+- Modifying governance, workflow scripts, CI, or STATE.json
+- Writing to forbidden_paths
+- Committing, merging, pushing, deploying without human authorization
+- Declaring GATE_PASS
+- Starting CP03 implementation without CONTRACT_APPROVED lifecycle

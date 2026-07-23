@@ -1,39 +1,36 @@
-# CHECKPOINT 3 — Risk Register
-# Status: ROADMAP_DEFINED — risks TBD by Planning Authority (ChatGPT)
+RISKS:
+  - ID: CP03-RISK-001
+    CATEGORY: LAYOUT_TRUNCATION
+    DESCRIPTION: "Hero or Features Bar overflows 764px threshold at 1366x768"
+    SEVERITY: high
+    LIKELIHOOD: probable
+    MITIGATION: "Measure each section height; reduce padding/margin/gap; test at exact viewport"
+    OWNER: deepseek
+    STATUS: open
 
-risks:
-  - id: "CP03-RISK-001"
-    category: "RESPONSIVE_BREAKAGE"
-    description: "Category drawer does not reset correctly across viewport transitions"
-    severity: "medium"
-    likelihood: "probable"
-    mitigation: "Add matchMedia listener tests for each breakpoint boundary"
-    owner: "deepseek"
-    status: "open"
+  - ID: CP03-RISK-002
+    CATEGORY: SCOPE_CREEP
+    DESCRIPTION: "Changes may drift into news module or forbidden paths"
+    SEVERITY: critical
+    LIKELIHOOD: unlikely
+    MITIGATION: "allowed_paths enforcement via check-changed-files; CI fails on violation"
+    OWNER: deepseek
+    STATUS: open
 
-  - id: "CP03-RISK-002"
-    category: "ACCESSIBILITY"
-    description: "Layout compaction may break keyboard focus order or skip landmarks"
-    severity: "medium"
-    likelihood: "possible"
-    mitigation: "Manual keyboard audit and focus-visible style verification"
-    owner: "deepseek"
-    status: "open"
+  - ID: CP03-RISK-003
+    CATEGORY: RESPONSIVE_REGRESSION
+    DESCRIPTION: "Layout compaction at 1366x768 may break other viewports"
+    SEVERITY: medium
+    LIKELIHOOD: possible
+    MITIGATION: "Cross-viewport visual checks; media query audit"
+    OWNER: deepseek
+    STATUS: open
 
-  - id: "CP03-RISK-003"
-    category: "SCOPE_CREEP"
-    description: "Layout changes may cross into backend controller/API territory"
-    severity: "high"
-    likelihood: "unlikely"
-    mitigation: "Strict allowed_paths enforcement via check-changed-files script"
-    owner: "deepseek"
-    status: "open"
-
-  - id: "CP03-RISK-004"
-    category: "GOVERNANCE_VIOLATION"
-    description: "Agent may attempt to modify workflow or governance files"
-    severity: "critical"
-    likelihood: "rare"
-    mitigation: "forbidden_paths in agent definition; CI scan-forbidden-patterns enforcement"
-    owner: "deepseek"
-    status: "open"
+  - ID: CP03-RISK-004
+    CATEGORY: GOVERNANCE_VIOLATION
+    DESCRIPTION: "Agent attempts to modify workflow infrastructure or production code outside scope"
+    SEVERITY: critical
+    LIKELIHOOD: rare
+    MITIGATION: "Agent definitions in .opencode enforce forbidden_paths; CI scan-forbidden-patterns"
+    OWNER: deepseek
+    STATUS: open
