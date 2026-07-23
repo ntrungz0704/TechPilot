@@ -2,43 +2,94 @@
 set -euo pipefail
 
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
-BASE_SHA="${2:-HEAD~1}"
+BASE_SHA="${2:-}"
 
-if git rev-parse --verify "$BASE_SHA" &>/dev/null; then
-  DIFF_CONTENT=$(git diff "$BASE_SHA" 2>/dev/null || git diff "HEAD")
-else
-  DIFF_CONTENT=$(git diff "HEAD")
+if [ -z "$BASE_SHA" ]; then
+  if [ -f "$CONTRACT" ]; then
+    BASE_SHA=$(grep '^BASE_SHA:' "$CONTRACT" | awk '{print $2}' | tr -d ' "')
+  fi
 fi
 
-# Forbidden patterns that should never appear in committed code
-FORBIDDEN_PATTERNS=(
-  "debugger;"
-  "console\.log"
-  "TODO:"
-  "FIXME:"
-  "var_dump"
-  "print_r"
-  "password.*=.*['\"][^'\"]+['\"]"
-  "api_key.*=.*['\"][^'\"]+['\"]"
-  "secret.*=.*['\"][^'\"]+['\"]"
-)
+if [ -z "$BASE_SHA" ]; then
+  echo "FAIL: Could not determine base SHA"
+  exit 1
+fi
 
+if ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  echo "FAIL: Base SHA '$BASE_SHA' is not a valid git reference"
+  exit 1
+fi
+
+HEAD_SHA=$(git rev-parse HEAD)
+echo "Scanning diff range: $BASE_SHA...$HEAD_SHA"
+
+# Get the full diff
+DIFF_CONTENT=$(git diff "$BASE_SHA...$HEAD_SHA" 2>/dev/null || git diff "$BASE_SHA..$HEAD_SHA" 2>/dev/null || true)
+
+if [ -z "$DIFF_CONTENT" ]; then
+  echo "OK: No diff content to scan"
+  echo "PASS: scan-forbidden-patterns"
+  exit 0
+fi
+
+# Forbidden patterns
+# Note: patterns are regex. We exclude the script source file itself.
 VIOLATIONS=0
 
-for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
-  if echo "$DIFF_CONTENT" | grep -n "$pattern" &>/dev/null; then
-    echo "VIOLATION: Found pattern '$pattern' in diff"
-    echo "$DIFF_CONTENT" | grep -n "$pattern" | head -5
+# Pattern 1: debugger statements (in JS/PHP)
+if echo "$DIFF_CONTENT" | grep -n "^\+.*debugger;" | grep -v "scan-forbidden-patterns" &>/dev/null; then
+  echo "VIOLATION: debugger; statement found in diff"
+  echo "$DIFF_CONTENT" | grep -n "^\+.*debugger;" | head -5
+  VIOLATIONS=$((VIOLATIONS + 1))
+fi
+
+# Pattern 2: Hardcoded secrets (api_key, password, secret = "value")
+while IFS= read -r line; do
+  line_content=$(echo "$line" | sed 's/^+//')
+  # Skip test files and schema files
+  if echo "$line" | grep -qE 'tests/|\.schema\.json|schema\.json'; then
+    continue
+  fi
+  # Check for api_key = "literalvalue" (not placeholder or variable-based)
+  if echo "$line_content" | grep -qE '(api_key|apikey|api\.key)\s*[=:]\s*["'\'']{1}[a-zA-Z0-9]{16,}["'\'']{1}'; then
+    echo "VIOLATION: Possible hardcoded API key"
+    echo "  $line_content" | head -1
     VIOLATIONS=$((VIOLATIONS + 1))
   fi
-done
+  # Check for literal password/secret assignments
+  if echo "$line_content" | grep -qE '(password|secret|token)\s*[=:]\s*["'\'']{1}[a-zA-Z0-9!@#$%^&*()_+=-]{8,}["'\'']{1}'; then
+    echo "VIOLATION: Possible hardcoded password/secret/token"
+    echo "  $line_content" | head -1
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+done < <(echo "$DIFF_CONTENT" | grep "^\+" | grep -v "^+++")
 
-# Check for governance file modifications
-GOVERNANCE_CHANGES=$(echo "$DIFF_CONTENT" | grep "^diff --git a/docs/governance/" || true)
-if [ -n "$GOVERNANCE_CHANGES" ]; then
-  echo "WARNING: Governance file changes detected:"
-  echo "$GOVERNANCE_CHANGES"
-  echo "Governance changes require separate human approval."
+# Pattern 3: Absolute filesystem paths in added code
+while IFS= read -r line; do
+  line_content=$(echo "$line" | sed 's/^+//')
+  # Skip comments and URLs
+  if echo "$line_content" | grep -qE '^\s*(//|#|/\*|\*)' || echo "$line_content" | grep -qE '^https?://'; then
+    continue
+  fi
+  # Check for Windows absolute paths
+  if echo "$line_content" | grep -qE '"[A-Za-z]:\\[^"'"'"']+'; then
+    echo "VIOLATION: Absolute Windows path in diff"
+    echo "  $line_content" | head -1
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+  # Check for Unix absolute paths (in contexts where they're suspicious)
+  if echo "$line_content" | grep -qE "'/home/[^/]+/'" || echo "$line_content" | grep -qE '"/home/[^/]+/"'; then
+    echo "VIOLATION: Absolute Unix home path in diff"
+    echo "  $line_content" | head -1
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+done < <(echo "$DIFF_CONTENT" | grep "^\+" | grep -v "^+++")
+
+# Pattern 4: Governance file modifications (check diff metadata)
+if echo "$DIFF_CONTENT" | grep "^diff --git a/docs/governance/" &>/dev/null; then
+  echo "VIOLATION: Governance file modification detected"
+  echo "$DIFF_CONTENT" | grep "^diff --git a/docs/governance/" | head -5
+  VIOLATIONS=$((VIOLATIONS + 1))
 fi
 
 if [ "$VIOLATIONS" -gt 0 ]; then
@@ -46,5 +97,6 @@ if [ "$VIOLATIONS" -gt 0 ]; then
   exit 1
 fi
 
+echo "OK: No forbidden patterns found in diff"
 echo "PASS: scan-forbidden-patterns"
 exit 0

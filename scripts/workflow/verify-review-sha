@@ -2,38 +2,69 @@
 set -euo pipefail
 
 STATE_FILE="checkpoints/STATE.json"
-EXPECTED_SHA="${1:-}"
+LIFECYCLE_CHECK="${1:-}"
+
+if [ ! -f "$STATE_FILE" ]; then
+  echo "SKIPPED_PRECONDITION: State file not found at $STATE_FILE"
+  exit 0
+fi
+
+if ! command -v jq &> /dev/null; then
+  echo "FAIL: jq is required for SHA verification"
+  exit 1
+fi
 
 CURRENT_HEAD=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+REVIEWED_SHA=$(jq -r '.reviewed_sha // "null"' "$STATE_FILE")
+CANDIDATE_SHA=$(jq -r '.candidate_sha // "null"' "$STATE_FILE")
+LIFECYCLE=$(jq -r '.lifecycle_status' "$STATE_FILE")
 
-if [ -n "$EXPECTED_SHA" ]; then
-  if [ "$CURRENT_HEAD" != "$EXPECTED_SHA" ]; then
-    echo "FAIL: HEAD ($CURRENT_HEAD) does not match expected SHA ($EXPECTED_SHA)"
-    exit 1
+echo "Current HEAD: $CURRENT_HEAD"
+echo "Reviewed SHA: $REVIEWED_SHA"
+echo "Candidate SHA: $CANDIDATE_SHA"
+echo "Lifecycle: $LIFECYCLE"
+
+# If lifecycle is at or past review stage, reviewed_sha must not be null
+REVIEW_STAGES=("WAITING_FOR_SEMANTIC_REVIEW" "SEMANTIC_CHANGES_REQUIRED" "SEMANTIC_APPROVED" "MERGE_READY" "MERGED" "CLOSED")
+
+IN_REVIEW_STAGE=false
+for stage in "${REVIEW_STAGES[@]}"; do
+  if [ "$LIFECYCLE" = "$stage" ]; then
+    IN_REVIEW_STAGE=true
+    break
   fi
-  echo "OK: HEAD matches expected SHA"
+done
+
+if [ "$IN_REVIEW_STAGE" = true ] && [ "$REVIEWED_SHA" = "null" ]; then
+  echo "FAIL: Lifecycle is '$LIFECYCLE' but reviewed_sha is null. Review must have a recorded SHA."
+  exit 1
 fi
 
-# Verify against state file if it exists
-if [ -f "$STATE_FILE" ]; then
-  if ! command -v jq &> /dev/null; then
-    echo "SKIPPED_PRECONDITION: jq not available — cannot parse STATE.json"
-    echo "CURRENT_HEAD=$CURRENT_HEAD"
-    echo "PASS: verify-review-sha (limited)"
-    exit 0
-  fi
-  REVIEWED_SHA=$(jq -r '.reviewed_sha // "null"' "$STATE_FILE")
-  if [ "$REVIEWED_SHA" != "null" ] && [ "$REVIEWED_SHA" != "$CURRENT_HEAD" ]; then
-    echo "FAIL: HEAD ($CURRENT_HEAD) does not match reviewed SHA ($REVIEWED_SHA) in state file"
-    echo "New commit detected after review. Review is invalidated."
+# If reviewed_sha is set, HEAD must match it
+if [ "$REVIEWED_SHA" != "null" ]; then
+  if [ "$CURRENT_HEAD" != "$REVIEWED_SHA" ]; then
+    echo "FAIL: HEAD ($CURRENT_HEAD) does not match reviewed SHA ($REVIEWED_SHA)"
+    echo "New commit detected after review. Review is INVALIDATED."
+    echo "If this is intentional, set reviewed_sha=null and transition back to IMPLEMENTING."
     exit 1
   fi
+  echo "OK: HEAD matches reviewed SHA"
+fi
 
-  if [ "$REVIEWED_SHA" != "null" ]; then
-    echo "OK: HEAD matches reviewed SHA in state file"
+# After HERMES_VERIFIED, candidate_sha must equal HEAD
+if [ "$LIFECYCLE" = "WAITING_FOR_SEMANTIC_REVIEW" ] || [ "$LIFECYCLE" = "HERMES_VERIFIED" ]; then
+  if [ "$CANDIDATE_SHA" != "null" ] && [ "$CANDIDATE_SHA" != "$CURRENT_HEAD" ]; then
+    echo "FAIL: HEAD ($CURRENT_HEAD) does not match candidate_sha ($CANDIDATE_SHA)"
+    echo "Candidate SHA mismatch after verification stage."
+    exit 1
   fi
 fi
 
-echo "CURRENT_HEAD=$CURRENT_HEAD"
+# Pre-review: if lifecycle is before review, reviewed_sha=null is OK
+# OK for: ROADMAP_DEFINED, CONTRACT_DRAFTED, CONTRACT_APPROVED, IMPLEMENTING, CI_PENDING, CI_FAILED, CI_GREEN, WAITING_FOR_HERMES, REWORK_REQUIRED
+if [ "$LIFECYCLE" = "WAITING_FOR_HERMES" ] || [ "$LIFECYCLE" = "REWORK_REQUIRED" ] || [ "$LIFECYCLE" = "CI_GREEN" ] || [ "$LIFECYCLE" = "CI_PENDING" ] || [ "$LIFECYCLE" = "CI_FAILED" ] || [ "$LIFECYCLE" = "IMPLEMENTING" ] || [ "$LIFECYCLE" = "ROADMAP_DEFINED" ] || [ "$LIFECYCLE" = "CONTRACT_DRAFTED" ] || [ "$LIFECYCLE" = "CONTRACT_APPROVED" ]; then
+  echo "OK: Lifecycle '$LIFECYCLE' — SHA checks passed (pre-review stage)"
+fi
+
 echo "PASS: verify-review-sha"
 exit 0

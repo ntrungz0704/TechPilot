@@ -1,54 +1,163 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCHEMA="docs/workflow/schemas/task-contract.schema.json"
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+SCHEMA="${2:-docs/workflow/schemas/task-contract.schema.json}"
 
 if [ ! -f "$CONTRACT" ]; then
-  echo "FAIL: Contract not found at $CONTRACT"
+  echo "FAIL: Contract file not found: $CONTRACT"
   exit 1
 fi
 
-# Convert YAML to JSON using PHP (available in the repo)
-if ! command -v php &> /dev/null; then
-  echo "SKIP: php not available, cannot validate YAML contract"
-  exit 0
+if [ ! -f "$SCHEMA" ]; then
+  echo "FAIL: Schema file not found: $SCHEMA"
+  exit 1
 fi
 
-php -r "
-\$yaml = file_get_contents('$CONTRACT');
-// Minimal YAML-to-JSON conversion for our structured format
-// This handles the common subset used by task contracts
-\$json = json_encode(\$yaml);
-if (\$json === false) {
-  echo 'FAIL: Cannot read contract file';
+# YAML parsing via PHP (required in CI; fail if missing)
+if ! command -v php &> /dev/null; then
+  echo "FAIL: php is required for YAML contract validation"
+  exit 1
+fi
+
+# Parse YAML to JSON using PHP
+PARSED=$(php -r '
+$yaml = file_get_contents("'"$CONTRACT"'");
+$lines = explode("\n", $yaml);
+$result = [];
+$current_key = null;
+$current_array = null;
+$in_array = false;
+$in_nested = false;
+$nested_key = null;
+
+foreach ($lines as $line) {
+  $trimmed = trim($line);
+  if ($trimmed === "" || strpos($trimmed, "#") === 0) continue;
+
+  # Top-level key-value
+  if (preg_match("/^([A-Z_]+):\s*(.+)$/", $trimmed, $m)) {
+    $key = $m[1]; $val = trim($m[2]);
+    if ($val === "null") $val = null;
+    elseif ($val === "true") $val = true;
+    elseif ($val === "false") $val = false;
+    elseif (is_numeric($val) && strpos($val, ".") === false) $val = (int)$val;
+    elseif (is_numeric($val)) $val = (float)$val;
+    if (isset($result[$key]) && is_array($result[$key])) {
+      # Append
+    } else {
+      $result[$key] = $val;
+    }
+    $current_key = $key;
+    $in_array = false;
+    $in_nested = false;
+  }
+  # List item under a key
+  elseif (preg_match("/^-\s+(.+)$/", $trimmed, $m)) {
+    $val = trim($m[1]);
+    if ($val === "null") $val = null;
+    elseif ($val === "true") $val = true;
+    elseif ($val === "false") $val = false;
+    elseif (is_numeric($val) && strpos($val, ".") === false) $val = (int)$val;
+    elseif (is_numeric($val)) $val = (float)$val;
+    if ($current_key && !isset($result[$current_key])) {
+      $result[$current_key] = [];
+    }
+    $result[$current_key][] = $val;
+    $in_array = true;
+  }
+  # Nested key (indented)
+  elseif (preg_match("/^\s{2}([A-Z_]+):\s*(.*)$/", $trimmed, $m)) {
+    $nkey = $m[1]; $nval = trim($m[2]);
+    if ($nval === "") $nval = [];
+    elseif ($nval === "null") $nval = null;
+    elseif ($nval === "true") $nval = true;
+    elseif ($nval === "false") $nval = false;
+    elseif (is_numeric($nval) && strpos($nval, ".") === false) $nval = (int)$nval;
+    elseif (is_numeric($nval)) $nval = (float)$nval;
+    if ($current_key && is_array($result[$current_key])) {
+      $result[$current_key][$nkey] = $nval;
+    } elseif ($current_key) {
+      $result[$current_key] = [$nkey => $nval];
+    }
+    $in_nested = true;
+    $nested_key = $nkey;
+  }
+  # Nested list item
+  elseif (preg_match("/^\s{4}-\s+(.+)$/", $trimmed, $m)) {
+    $nval = trim($m[1]);
+    if ($nval === "null") $nval = null;
+    elseif ($nval === "true") $nval = true;
+    elseif ($nval === "false") $nval = false;
+    if ($in_nested && $nested_key && $current_key) {
+      if (!isset($result[$current_key][$nested_key])) $result[$current_key][$nested_key] = [];
+      $result[$current_key][$nested_key][] = $nval;
+    }
+  }
+}
+
+echo json_encode($result, JSON_PRETTY_PRINT);
+' 2>&1) || {
+  echo "FAIL: YAML parse error"
+  echo "$PARSED"
+  exit 1
+}
+
+echo "$PARSED" | php -r '
+$data = json_decode(file_get_contents("php://stdin"), true);
+if ($data === null) {
+  echo "FAIL: Parsed contract is not valid JSON\n";
   exit(1);
 }
-echo 'OK: Contract file is readable';
-" || {
-  echo "FAIL: Contract parse error"
-  exit 1
-}
+echo "OK: Contract parsed as valid JSON\n";
+' || exit 1
 
-if [ -f "$SCHEMA" ] && command -v node &> /dev/null; then
+# Schema validation via Node.js (fail if missing)
+if command -v node &> /dev/null; then
   node -e "
 const fs = require('fs');
 const schema = JSON.parse(fs.readFileSync('$SCHEMA', 'utf8'));
-// Basic structure check
-const contract = { checkpoint_id: 'CHECKPOINT_3' };
-const Ajv = (() => { try { return require('ajv'); } catch(e) { return null; } })();
-if (Ajv) {
-  const ajv = new Ajv();
-  const validate = ajv.compile(schema);
-  // Just validate structure if contract is parseable
-  console.log('OK: Schema loaded, ajv available');
-} else {
-  console.log('OK: Schema exists (ajv not installed, skipping deep validation)');
+const contract = JSON.parse(fs.readFileSync('/dev/stdin', 'utf8') || $(echo "$PARSED" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d))))"));
+
+const required = schema.required || [];
+const props = schema.properties || {};
+const errors = [];
+
+for (const r of required) {
+  if (!(r in contract)) {
+    errors.push('Missing required field: ' + r);
+  }
 }
-"
-elif [ ! -f "$SCHEMA" ]; then
-  echo "SKIP: Schema not found at $SCHEMA"
-  exit 0
+for (const [key, def] of Object.entries(props)) {
+  if (key in contract) {
+    const val = contract[key];
+    if (def.type === 'string' && typeof val !== 'string') {
+      errors.push('Field ' + key + ': expected string, got ' + typeof val);
+    }
+    if (def.type === 'object' && (typeof val !== 'object' || val === null || Array.isArray(val))) {
+      errors.push('Field ' + key + ': expected object');
+    }
+    if (def.type === 'array' && !Array.isArray(val)) {
+      errors.push('Field ' + key + ': expected array');
+    }
+    if (def.pattern && typeof val === 'string' && !new RegExp(def.pattern).test(val)) {
+      errors.push('Field ' + key + ': pattern mismatch: ' + val);
+    }
+    if (def.enum && !def.enum.includes(val)) {
+      errors.push('Field ' + key + ': invalid enum value: ' + val);
+    }
+  }
+}
+
+if (errors.length > 0) {
+  errors.forEach(e => console.log('SCHEMA: ' + e));
+  process.exit(1);
+}
+console.log('OK: Contract passes schema validation');
+" 2>&1 || exit 1
+else
+  echo "FAIL: node is required for schema validation"
+  exit 1
 fi
 
 echo "PASS: validate-contract"
