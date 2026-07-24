@@ -298,6 +298,12 @@ jobs:
       - name: Run Migrations
         run: php scripts/database/migrate.php
 
+      - name: Import Catalog Fixture Data
+        run: |
+          set -euo pipefail
+          test -s tests/fixtures/catalog_ci.sql
+          mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < tests/fixtures/catalog_ci.sql
+
       - name: Seed Minimal Homepage Data
         run: php tests/browser/fixtures/seed-minimal-homepage.php
 
