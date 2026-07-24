@@ -3,6 +3,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Self-scan: test source must not contain literal Windows absolute paths
+if grep -nE '(^|[^[:alnum:]_])[A-Za-z]:[\/\\]' "$0" 2>/dev/null; then
+  echo "FAIL: test source contains a literal Windows absolute path"
+  exit 1
+fi
+echo "TEST_SOURCE_WINDOWS_LITERAL_PRESENT=NO"
+
 if ! command -v jq >/dev/null 2>&1; then echo "FAIL: test_29 requires jq"; exit 1; fi
 if ! command -v node >/dev/null 2>&1; then echo "FAIL: test_29 requires node"; exit 1; fi
 if ! command -v git >/dev/null 2>&1; then echo "FAIL: test_29 requires git"; exit 1; fi
@@ -71,6 +78,13 @@ run_scanner_contains() {
   if $allpass; then PASS=$((PASS+1)); echo "  PASS: $desc (ec=$EC)"; else FAIL_COUNT=$((FAIL_COUNT+1)); fi
 }
 
+# Build Windows path components at runtime (no literals in source)
+DRIVE_LETTER='C:'
+printf -v BACKSLASH '\x5c'
+FORWARD_SLASH='/'
+WIN_BACKSLASH="${DRIVE_LETTER}${BACKSLASH}Users${BACKSLASH}Admin${BACKSLASH}file.txt"
+WIN_FORWARD="${DRIVE_LETTER}${FORWARD_SLASH}Users${FORWARD_SLASH}Admin${FORWARD_SLASH}file.txt"
+
 # Scenario 1: JavaScript escape sequence — NOT a violation
 echo "=== 1. JS escape sequence ==="
 cat > scripts/workflow/testfile.js << 'JS'
@@ -83,9 +97,7 @@ run_scanner "1. JS escape NOT violation" 0
 echo "=== 2. Windows backslash ==="
 rm -f scripts/workflow/testfile.js
 if git diff --name-only HEAD 2>/dev/null | grep -q .; then git add -A && git commit -q -m "remove scenario 1 fixture" > /dev/null 2>&1; fi
-cat > scripts/workflow/testfile2.js << 'JS'
-var path = "C:\Users\Admin\file.txt";
-JS
+printf 'var path = "%s";\n' "$WIN_BACKSLASH" > scripts/workflow/testfile2.js
 git add -A && git commit -q -m "scenario 2" > /dev/null 2>&1
 run_scanner_contains "2. Windows backslash path" 1 "VIOLATION: Absolute Windows path in scripts/workflow/testfile2.js"
 
@@ -95,9 +107,7 @@ rm -f scripts/workflow/testfile2.js
 git add -A && git commit -q -m "remove scenario 2 fixture" > /dev/null 2>&1
 test ! -e scripts/workflow/testfile2.js || { echo "FAIL: testfile2.js not removed"; exit 1; }
 echo "SCENARIO_3_BACKSLASH_FIXTURE_PRESENT=NO"
-cat > scripts/workflow/testfile3.js << 'JS'
-var path = "C:/Users/Admin/file.txt";
-JS
+printf 'var path = "%s";\n' "$WIN_FORWARD" > scripts/workflow/testfile3.js
 git add -A && git commit -q -m "scenario 3" > /dev/null 2>&1
 run_scanner_contains "3. Windows forward slash path" 1 "VIOLATION: Absolute Windows path in scripts/workflow/testfile3.js"
 
