@@ -149,8 +149,16 @@ class ChatbotController extends Controller
             $groupLower = strtolower($userGroup);
 
             // CPU & RAM Text
-            $lCpu = $leftSpecs['CPU'] ?? 'N/A';
-            $rCpu = $rightSpecs['CPU'] ?? 'N/A';
+            $getCPU = function(array $specs, string $name) {
+                if (!empty($specs['CPU'])) return $specs['CPU'];
+                if (!empty($specs['cpu'])) return $specs['cpu'];
+                if (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $name)) {
+                    return $name;
+                }
+                return 'N/A';
+            };
+            $lCpu = $getCPU($leftSpecs, $leftProduct['name']);
+            $rCpu = $getCPU($rightSpecs, $rightProduct['name']);
             $lRam = $leftSpecs['RAM'] ?? '8GB';
             $rRam = $rightSpecs['RAM'] ?? '8GB';
 
@@ -180,7 +188,7 @@ class ChatbotController extends Controller
                     'id' => $leftProduct['id'],
                     'name' => $leftProduct['name'],
                     'price' => number_format($leftProduct['price'], 0, ',', '.') . 'đ',
-                    'image' => $leftProduct['image'],
+                    'image' => productImageUrl($leftProduct['image'], $leftProduct['name']),
                     'slug' => $leftProduct['slug'],
                     'specs' => [
                         'CPU' => $lCpu,
@@ -195,7 +203,7 @@ class ChatbotController extends Controller
                     'id' => $rightProduct['id'],
                     'name' => $rightProduct['name'],
                     'price' => number_format($rightProduct['price'], 0, ',', '.') . 'đ',
-                    'image' => $rightProduct['image'],
+                    'image' => productImageUrl($rightProduct['image'], $rightProduct['name']),
                     'slug' => $rightProduct['slug'],
                     'specs' => [
                         'CPU' => $rCpu,
@@ -453,11 +461,11 @@ class ChatbotController extends Controller
                                 'name' => $p['name'],
                                 'price' => (float)$p['price'],
                                 'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
-                                'image' => $p['image'],
+                                'image' => productImageUrl($p['image'], $p['name']),
                                 'slug' => $p['slug'],
                                 'score' => rand(90, 97),
                                 'specs' => [
-                                    'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? 'N/A',
+                                    'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'N/A'),
                                     'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
                                     'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? '512GB',
                                     'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Onboard'
@@ -618,11 +626,11 @@ class ChatbotController extends Controller
                     'name' => "[{$typeLabel}] " . $p['name'],
                     'price' => (float)$p['price'],
                     'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
-                    'image' => $p['image'],
+                    'image' => productImageUrl($p['image'], $p['name']),
                     'slug' => $p['slug'],
                     'score' => $scoreVal,
                     'specs' => [
-                        'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? 'N/A',
+                        'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'N/A'),
                         'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
                         'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? '512GB',
                         'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Onboard'
@@ -796,11 +804,11 @@ class ChatbotController extends Controller
                         'name' => $p['name'],
                         'price' => (float)$p['price'],
                         'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
-                        'image' => $p['image'],
+                        'image' => productImageUrl($p['image'], $p['name']),
                         'slug' => $p['slug'],
                         'score' => 95,
                         'specs' => [
-                            'CPU' => $specs['CPU'] ?? ($specs['cpu'] ?? 'N/A'),
+                            'CPU' => $specs['CPU'] ?? ($specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'N/A')),
                             'RAM' => $specs['RAM'] ?? ($specs['ram'] ?? 'N/A'),
                             'SSD' => $specs['SSD'] ?? ($specs['ssd'] ?? ($specs['Ổ cứng'] ?? ($specs['o cung'] ?? 'N/A'))),
                             'VGA' => $specs['VGA'] ?? ($specs['vga'] ?? 'N/A')

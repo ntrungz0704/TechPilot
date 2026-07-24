@@ -2,9 +2,9 @@
 *.log
 .DS_Store
 Thumbs.db
+.env
 config/.db_sync_state.json
 scratch/
 /storage/backups/
 *.local.sql
 *.local.json
-
