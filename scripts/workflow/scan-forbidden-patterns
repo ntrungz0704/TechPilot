@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="checkpoints/STATE.json"
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [contract-path]"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
+  exit 0
+fi
+
+for tool in node jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
+
+LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
+echo "OK: Lifecycle: $LIFECYCLE"
+
+HEAD_SHA=$(git rev-parse HEAD)
+BASE_SHA=$(jq -r '.base_sha // ""' "$STATE_FILE")
+
+PRE_APPROVAL=false
+case "$LIFECYCLE" in
+  ROADMAP_DEFINED|CONTRACT_DRAFTED) PRE_APPROVAL=true;;
+esac
+
+if [ "$PRE_APPROVAL" = true ]; then
+  echo "OK: Mode: pre-approval (workflow infrastructure files only)"
+
+  if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ] || ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+    echo "OK: No valid base_sha for diff — nothing to scan"
+    echo "PASS: scan-forbidden-patterns"
+    exit 0
+  fi
+
+  WORKFLOW_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null | grep -E '^(scripts/workflow/|\.opencode/|AGENTS\.md|checkpoints/|docs/workflow/|tests/workflow/)' || true)
+
+  if [ -z "$WORKFLOW_FILES" ]; then
+    echo "OK: No workflow infrastructure files changed — nothing to scan"
+    echo "PASS: scan-forbidden-patterns"
+    exit 0
+  fi
+
+  echo "OK: Scanning workflow files:"
+  echo "$WORKFLOW_FILES"
+
+  VIOLATIONS=0
+
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    [ ! -f "$f" ] && continue
+    if echo "$f" | grep -q 'scan-forbidden-patterns$'; then continue; fi
+
+    if grep -qnE '[A-Za-z]:\\' "$f" 2>/dev/null; then
+      echo "VIOLATION: Absolute Windows path in $f"
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+
+    if grep -qnE '/home/[a-zA-Z0-9_\-]+/' "$f" 2>/dev/null; then
+      echo "VIOLATION: Absolute Unix path in $f"
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+
+    if grep -qnE '(api_key|apikey|password|secret|token)\s*[=:]\s*["'"'"']{1}[a-zA-Z0-9!@#$%^&*()_+\-=/\\]{8,}["'"'"']{1}' "$f" 2>/dev/null; then
+      echo "VIOLATION: Hardcoded credentials in $f"
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+
+    if echo "$f" | grep -qE '^docs/governance/'; then
+      echo "VIOLATION: Governance file modification: $f"
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+  done <<< "$WORKFLOW_FILES"
+
+  if [ "$VIOLATIONS" -gt 0 ]; then
+    echo "FAIL: $VIOLATIONS forbidden pattern violation(s)"
+    exit 1
+  fi
+
+  echo "OK: No forbidden patterns in workflow infrastructure files"
+  echo "PASS: scan-forbidden-patterns"
+  exit 0
+fi
+
+# Full contract enforcement (CONTRACT_APPROVED+)
+echo "OK: Mode: full diff scan"
+
+if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ] || ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  echo "FAIL: No valid base_sha for diff"
+  exit 1
+fi
+
+echo "OK: Scanning diff $BASE_SHA...$HEAD_SHA"
+
+DIFF_OUTPUT=$(git diff "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true)
+
+if [ -z "$DIFF_OUTPUT" ]; then
+  echo "OK: No diff content to scan"
+  echo "PASS: scan-forbidden-patterns"
+  exit 0
+fi
+
+CHANGED_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true)
+
+VIOLATIONS=0
+
+ADDED_LINES=$(echo "$DIFF_OUTPUT" | grep "^\+" | grep -v "^+++" || true)
+
+if echo "$ADDED_LINES" | grep -v 'scan-forbidden-patterns' | grep -v 'grep.*debugger' | grep -qE '^\+\s*debugger;' 2>/dev/null; then
+  echo "VIOLATION: debugger; statement found in diff"
+  echo "$ADDED_LINES" | grep -nE '^\+\s*debugger;' | grep -v 'scan-forbidden-patterns' | head -5
+  VIOLATIONS=$((VIOLATIONS + 1))
+fi
+
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  if echo "$f" | grep -q 'scan-forbidden-patterns$'; then continue; fi
+
+  FILE_DIFF=$(git diff "${BASE_SHA}...${HEAD_SHA}" -- "$f" 2>/dev/null || true)
+  FILE_ADDED=$(echo "$FILE_DIFF" | grep "^\+" | grep -v "^+++" || true)
+
+  if echo "$FILE_ADDED" | grep -qE '[A-Za-z]:\\' 2>/dev/null; then
+    echo "VIOLATION: Absolute Windows path in $f"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+
+  if echo "$FILE_ADDED" | grep -qE '/home/[a-zA-Z0-9_\-]+/' 2>/dev/null; then
+    echo "VIOLATION: Absolute Unix path in $f"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+
+  if echo "$f" | grep -qE 'tests/|\.schema\.json|schema\.json'; then continue; fi
+
+  if echo "$FILE_ADDED" | grep -qE '(api_key|apikey|api\.key)\s*[=:]\s*["'"'"']{1}[a-zA-Z0-9]{16,}["'"'"']{1}' 2>/dev/null; then
+    echo "VIOLATION: Possible hardcoded API key in $f"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+
+  if echo "$FILE_ADDED" | grep -qE '(password|secret|token)\s*[=:]\s*["'"'"']{1}[a-zA-Z0-9!@#$%^&*()_+\-=/\\]{8,}["'"'"']{1}' 2>/dev/null; then
+    echo "VIOLATION: Possible hardcoded credential in $f"
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+done <<< "$CHANGED_FILES"
+
+if echo "$DIFF_OUTPUT" | grep "^diff --git a/docs/governance/" &>/dev/null; then
+  echo "VIOLATION: Governance file modification detected"
+  echo "$DIFF_OUTPUT" | grep "^diff --git a/docs/governance/" | head -5
+  VIOLATIONS=$((VIOLATIONS + 1))
+fi
+
+if [ "$VIOLATIONS" -gt 0 ]; then
+  echo "FAIL: $VIOLATIONS forbidden pattern violation(s) found"
+  exit 1
+fi
+
+echo "OK: No forbidden patterns found in diff"
+echo "PASS: scan-forbidden-patterns"
+exit 0

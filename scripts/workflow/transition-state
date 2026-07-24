@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="checkpoints/STATE.json"
+HISTORY_FILE="checkpoints/STATE_HISTORY.jsonl"
+FROM_STATE="${1:-}"
+TO_STATE="${2:-}"
+ACTOR="${3:-}"
+REASON="${4:-}"
+APPROVAL="${5:-}"
+
+if [ -z "$FROM_STATE" ] || [ -z "$TO_STATE" ] || [ -z "$ACTOR" ]; then
+  echo "FAIL: Usage: $0 <from_state> <to_state> <actor> [reason] [approval-token]"
+  echo "  from_state: Current lifecycle status (e.g. ROADMAP_DEFINED)"
+  echo "  to_state:   Target lifecycle status (e.g. CONTRACT_DRAFTED)"
+  echo "  actor:      Who/what is requesting the transition (e.g. chatgpt, deepseek, human:alice)"
+  echo "  reason:     Short description of why"
+  echo "  approval-token: Required for human-approval transitions (CONTRACT_APPROVED, MERGE_READY, MERGED, CLOSED)"
+  exit 1
+fi
+
+for tool in jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
+
+if [ ! -f "$STATE_FILE" ]; then
+  echo "FAIL: State file not found: $STATE_FILE"
+  exit 1
+fi
+
+CURRENT=$(jq -r '.lifecycle_status' "$STATE_FILE")
+CHECKPOINT_ID=$(jq -r '.checkpoint_id' "$STATE_FILE")
+CURRENT_HEAD=$(git rev-parse HEAD)
+EXISTING_CANDIDATE=$(jq -r '.candidate_sha // "null"' "$STATE_FILE")
+EXISTING_REVIEWED=$(jq -r '.reviewed_sha // "null"' "$STATE_FILE")
+
+if [ "$CURRENT" != "$FROM_STATE" ]; then
+  echo "FAIL: Current state is '$CURRENT', expected '$FROM_STATE'"
+  exit 1
+fi
+
+ALLOWED=0
+while IFS=: read -r FROM TO; do
+  if [ "$FROM" = "$FROM_STATE" ] && [ "$TO" = "$TO_STATE" ]; then
+    ALLOWED=1
+    break
+  fi
+done <<'TRANSITIONS'
+ROADMAP_DEFINED:CONTRACT_DRAFTED
+CONTRACT_DRAFTED:CONTRACT_APPROVED
+CONTRACT_APPROVED:IMPLEMENTING
+IMPLEMENTING:CI_PENDING
+CI_PENDING:CI_FAILED
+CI_PENDING:CI_GREEN
+CI_FAILED:IMPLEMENTING
+CI_GREEN:WAITING_FOR_HERMES
+WAITING_FOR_HERMES:REWORK_REQUIRED
+WAITING_FOR_HERMES:HERMES_VERIFIED
+REWORK_REQUIRED:IMPLEMENTING
+HERMES_VERIFIED:WAITING_FOR_SEMANTIC_REVIEW
+WAITING_FOR_SEMANTIC_REVIEW:SEMANTIC_CHANGES_REQUIRED
+WAITING_FOR_SEMANTIC_REVIEW:SEMANTIC_APPROVED
+SEMANTIC_CHANGES_REQUIRED:IMPLEMENTING
+SEMANTIC_APPROVED:MERGE_READY
+MERGE_READY:MERGED
+MERGED:CLOSED
+TRANSITIONS
+
+if [ "$ALLOWED" -eq 0 ]; then
+  echo "FAIL: Transition '$FROM_STATE' -> '$TO_STATE' is not allowed by state machine"
+  exit 1
+fi
+
+HUMAN_TRANSITIONS="CONTRACT_APPROVED MERGE_READY MERGED CLOSED"
+for ht in $HUMAN_TRANSITIONS; do
+  if [ "$TO_STATE" = "$ht" ]; then
+    if [[ ! "$ACTOR" =~ ^human: ]] && [[ ! "$ACTOR" =~ ^[Hh]uman ]] && [ -z "$APPROVAL" ]; then
+      echo "FAIL: Transition to '$TO_STATE' requires human approval"
+      echo "FAIL: ACTOR must be a human identifier (e.g. 'human:alice') or provide approval-token as 5th argument"
+      exit 1
+    fi
+    echo "OK: Human approval confirmed for transition to $TO_STATE"
+    break
+  fi
+done
+
+if [[ "$FROM_STATE" =~ ^(HERMES_VERIFIED|WAITING_FOR_SEMANTIC_REVIEW|SEMANTIC_APPROVED)$ ]]; then
+  if [ "$EXISTING_REVIEWED" != "null" ] && [ "$EXISTING_REVIEWED" != "$CURRENT_HEAD" ]; then
+    echo "WARNING: HEAD has changed since reviewed_sha was set. Clearing reviewed_sha and candidate_sha."
+    NEW_CANDIDATE="null"
+    NEW_REVIEWED="null"
+  else
+    NEW_CANDIDATE="$EXISTING_CANDIDATE"
+    NEW_REVIEWED="$EXISTING_REVIEWED"
+  fi
+else
+  NEW_CANDIDATE="$EXISTING_CANDIDATE"
+  NEW_REVIEWED="$EXISTING_REVIEWED"
+fi
+
+if [ "$TO_STATE" = "IMPLEMENTING" ] || [ "$TO_STATE" = "CI_PENDING" ]; then
+  NEW_CANDIDATE="$CURRENT_HEAD"
+fi
+
+if [ "$TO_STATE" = "HERMES_VERIFIED" ]; then
+  NEW_REVIEWED="$CURRENT_HEAD"
+  NEW_CANDIDATE="$CURRENT_HEAD"
+fi
+
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+BACKUP="${STATE_FILE}.backup.$$"
+cp "$STATE_FILE" "$BACKUP"
+
+jq \
+  --arg new_status "$TO_STATE" \
+  --arg candidate "$NEW_CANDIDATE" \
+  --arg reviewed "$NEW_REVIEWED" \
+  --arg timestamp "$TIMESTAMP" \
+  '.lifecycle_status = $new_status
+   | .candidate_sha = (if $candidate == "null" then null else $candidate end)
+   | .reviewed_sha = (if $reviewed == "null" then null else $reviewed end)
+   | .last_updated = $timestamp' \
+  "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+
+if ! jq '.' "$STATE_FILE" &>/dev/null; then
+  echo "FAIL: Updated STATE.json is not valid JSON"
+  mv "$BACKUP" "$STATE_FILE"
+  rm -f "$BACKUP" "${STATE_FILE}.tmp"
+  exit 1
+fi
+
+HISTORY_LINE=$(jq -n \
+  --arg ts "$TIMESTAMP" \
+  --arg from "$FROM_STATE" \
+  --arg to "$TO_STATE" \
+  --arg cid "$CHECKPOINT_ID" \
+  --arg actor "$ACTOR" \
+  --arg sha "$CURRENT_HEAD" \
+  --arg reason "${REASON:-Transition executed}" \
+  '{timestamp: $ts, from: $from, to: $to, checkpoint_id: $cid, actor: $actor, head_sha: $sha, reason: $reason}')
+
+if ! echo "$HISTORY_LINE" >> "$HISTORY_FILE"; then
+  echo "FAIL: Could not append to history file"
+  mv "$BACKUP" "$STATE_FILE"
+  rm -f "$BACKUP" "${STATE_FILE}.tmp"
+  exit 1
+fi
+
+rm -f "$BACKUP"
+
+echo "OK: State transitioned: $FROM_STATE -> $TO_STATE"
+echo "OK: History appended to $HISTORY_FILE"
+echo "PASS: transition-state"
+exit 0

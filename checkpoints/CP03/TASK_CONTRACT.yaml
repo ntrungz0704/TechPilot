@@ -1,0 +1,75 @@
+CHECKPOINT_ID: CHECKPOINT_3
+TITLE: "First-fold layout compaction and responsive hardening"
+LIFECYCLE_STATUS: ROADMAP_DEFINED
+BASE_SHA: 039ff0d07ef1c5161a4bb4f459b9b008e5cab0dd
+CANDIDATE_SHA: null
+REVIEWED_SHA: null
+
+SCOPE:
+  TARGET_ROUTE: Homepage
+  TARGET_VIEWPORT: 1366x768
+  SCROLL_Y: 0
+  ACCEPTANCE_GATE: "featuresBar.getBoundingClientRect().bottom <= 764"
+  VISIBLE_SECTIONS:
+    - Topbar
+    - Main Header
+    - Main Navigation
+    - "Hero (full three columns)"
+    - Features Bar (full)
+
+OUT_OF_SCOPE:
+  - Mobile news layout
+  - Category drawer
+  - app/views/news/**
+  - public/assets/css/news.css
+  - public/assets/js/news.js
+  - New features or pages
+  - Database schema changes
+  - Backend controller/API changes
+  - Governance or workflow infrastructure changes
+
+ALLOWED_PATHS:
+  - app/views/home/index.php
+  - public/assets/css/style.css
+  - tests/browser/home_first_fold.spec.js
+  - checkpoints/CP03/IMPLEMENTATION_HANDOFF.json
+  - checkpoints/CP03/evidence/**
+  - docs/reviews/evidence/news-checkpoints/cp3/**
+
+FORBIDDEN_PATHS:
+  - app/views/news/**
+  - public/assets/css/news.css
+  - public/assets/js/news.js
+  - techpilot/**
+  - docs/governance/**
+  - scripts/workflow/**
+  - .github/workflows/**
+  - checkpoints/STATE.json
+  - checkpoints/STATE_HISTORY.jsonl
+
+ACCEPTANCE_CRITERIA:
+  - "viewport 1366x768, window.scrollY === 0"
+  - "Topbar fully visible"
+  - "Main Header fully visible"
+  - "Main Navigation fully visible"
+  - "Hero (three columns) fully visible"
+  - "Features Bar fully visible"
+  - "featuresBar.getBoundingClientRect().bottom <= 764"
+  - "document horizontal overflow == 0"
+  - "Zero console errors"
+  - "Zero uncaught page errors"
+  - "All existing PHP tests pass with exit code 0"
+
+REQUIRED_TESTS:
+  - command: "node tests/browser/home_first_fold.spec.js"
+    expected_exit_code: 0
+  - command: "php tests/CatalogGroupTest.php"
+    expected_exit_code: 0
+
+REQUIRED_EVIDENCE:
+  - "Screenshot of homepage at 1366x768, scrollY=0"
+  - "Screenshot showing all visible sections"
+  - "Console error log showing zero errors"
+  - "featuresBar.getBoundingClientRect().bottom measurement"
+  - "changed-files report matching handoff"
+  - "All test commands, results, and exit codes"

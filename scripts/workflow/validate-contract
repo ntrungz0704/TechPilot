@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+SCHEMA="${2:-docs/workflow/schemas/task-contract.schema.json}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [contract-path] [schema-path]"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
+  echo "  Default schema:  docs/workflow/schemas/task-contract.schema.json"
+  exit 0
+fi
+
+if ! command -v node &> /dev/null; then
+  echo "FAIL: node is required for contract validation"
+  exit 1
+fi
+
+for f in "$CONTRACT" "$SCHEMA" "$YAML_PARSER"; do
+  if [ ! -f "$f" ]; then
+    echo "FAIL: File not found: $f"
+    exit 1
+  fi
+done
+
+CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
+  echo "FAIL: YAML parsing failed"
+  echo "$CONTRACT_JSON"
+  exit 1
+}
+
+printf '%s\n' "$CONTRACT_JSON" | node -e "
+const fs = require('fs');
+const schema = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+const chunks = [];
+process.stdin.on('data', d => chunks.push(d));
+process.stdin.on('end', () => {
+  const contract = JSON.parse(chunks.join(''));
+  const errors = [];
+
+  const required = schema.required || [];
+  for (const r of required) {
+    if (!(r in contract) || contract[r] === null || contract[r] === undefined) {
+      errors.push('Missing required: ' + r);
+    }
+  }
+
+  for (const [key, def] of Object.entries(schema.properties || {})) {
+    if (key in contract && contract[key] !== null && contract[key] !== undefined) {
+      const val = contract[key];
+      if (def.type === 'string' && typeof val !== 'string') {
+        errors.push(key + ': expected string, got ' + typeof val);
+      }
+      if (def.type === 'array' && !Array.isArray(val)) {
+        errors.push(key + ': expected array, got ' + typeof val);
+      }
+      if (def.type === 'object' && (typeof val !== 'object' || Array.isArray(val) || val === null)) {
+        errors.push(key + ': expected object, got ' + typeof val);
+      }
+      if (def.enum && typeof val === 'string' && !def.enum.includes(val)) {
+        errors.push(key + ': invalid enum value: ' + val);
+      }
+      if (def.pattern && typeof val === 'string' && !new RegExp('^' + def.pattern + '\$').test(val)) {
+        errors.push(key + ': pattern mismatch for value: ' + val);
+      }
+      if (def.minItems !== undefined && Array.isArray(val) && val.length < def.minItems) {
+        errors.push(key + ': minItems ' + def.minItems + ', got ' + val.length);
+      }
+      if (def.items && Array.isArray(val)) {
+        val.forEach((item, idx) => {
+          if (def.items.required && typeof item === 'object' && item !== null) {
+            for (const req of def.items.required) {
+              if (!(req in item)) {
+                errors.push(key + '[' + idx + ']: missing required field: ' + req);
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  if ('CANDIDATE_SHA' in contract) {
+    const cs = contract.CANDIDATE_SHA;
+    if (cs !== null && !(typeof cs === 'string' && /^[0-9a-f]{40}\$/.test(cs))) {
+      errors.push('CANDIDATE_SHA: must be 40-char hex or null, got: ' + JSON.stringify(cs));
+    }
+  }
+
+  if ('REVIEWED_SHA' in contract) {
+    const rs = contract.REVIEWED_SHA;
+    if (rs !== null && !(typeof rs === 'string' && /^[0-9a-f]{40}\$/.test(rs))) {
+      errors.push('REVIEWED_SHA: must be 40-char hex or null, got: ' + JSON.stringify(rs));
+    }
+  }
+
+  if ('ALLOWED_PATHS' in contract) {
+    if (!Array.isArray(contract.ALLOWED_PATHS) || contract.ALLOWED_PATHS.length === 0) {
+      errors.push('ALLOWED_PATHS: must be a non-empty array (minItems: 1)');
+    }
+  }
+
+  if ('REQUIRED_EVIDENCE' in contract) {
+    if (!Array.isArray(contract.REQUIRED_EVIDENCE) || contract.REQUIRED_EVIDENCE.length === 0) {
+      errors.push('REQUIRED_EVIDENCE: must be present and non-empty');
+    }
+  } else {
+    errors.push('REQUIRED_EVIDENCE: missing required field');
+  }
+
+  if ('REQUIRED_TESTS' in contract && Array.isArray(contract.REQUIRED_TESTS)) {
+    contract.REQUIRED_TESTS.forEach((test, idx) => {
+      if (!test.command) errors.push('REQUIRED_TESTS[' + idx + ']: missing command');
+      if (test.expected_exit_code === undefined || test.expected_exit_code === null) {
+        errors.push('REQUIRED_TESTS[' + idx + ']: missing expected_exit_code');
+      }
+    });
+  }
+
+  if (errors.length > 0) {
+    errors.forEach(e => console.log('SCHEMA ERROR: ' + e));
+    process.exit(1);
+  }
+  console.log('OK: Schema validation passed');
+});
+" "$SCHEMA" 2>&1 || {
+  echo "FAIL: Schema validation failed"
+  exit 1
+}
+
+echo "PASS: validate-contract"
+exit 0

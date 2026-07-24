@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="checkpoints/STATE.json"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0"
+  echo "  Verifies that SHA fields in STATE.json are consistent with HEAD"
+  exit 0
+fi
+
+for tool in jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
+
+if [ ! -f "$STATE_FILE" ]; then
+  echo "FAIL: State file not found: $STATE_FILE"
+  exit 1
+fi
+
+CURRENT_HEAD=$(git rev-parse HEAD)
+REVIEWED_SHA=$(jq -r '.reviewed_sha // "null"' "$STATE_FILE")
+CANDIDATE_SHA=$(jq -r '.candidate_sha // "null"' "$STATE_FILE")
+LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
+
+echo "OK: Current HEAD: $CURRENT_HEAD"
+echo "OK: Reviewed SHA: $REVIEWED_SHA"
+echo "OK: Candidate SHA: $CANDIDATE_SHA"
+echo "OK: Lifecycle: $LIFECYCLE"
+
+is_40char_hex() {
+  [[ "$1" =~ ^[0-9a-f]{40}$ ]]
+}
+
+case "$LIFECYCLE" in
+  HERMES_VERIFIED|WAITING_FOR_SEMANTIC_REVIEW|SEMANTIC_APPROVED|MERGE_READY)
+    if [ "$REVIEWED_SHA" = "null" ]; then
+      echo "FAIL: Lifecycle '$LIFECYCLE' requires reviewed_sha to be set, but it is null"
+      exit 1
+    fi
+    if ! is_40char_hex "$REVIEWED_SHA"; then
+      echo "FAIL: reviewed_sha '$REVIEWED_SHA' is not a valid 40-char hex SHA"
+      exit 1
+    fi
+    if [ "$CANDIDATE_SHA" = "null" ]; then
+      echo "FAIL: Lifecycle '$LIFECYCLE' requires candidate_sha to be set, but it is null"
+      exit 1
+    fi
+    if ! is_40char_hex "$CANDIDATE_SHA"; then
+      echo "FAIL: candidate_sha '$CANDIDATE_SHA' is not a valid 40-char hex SHA"
+      exit 1
+    fi
+    if [ "$CANDIDATE_SHA" != "$REVIEWED_SHA" ]; then
+      echo "FAIL: candidate_sha ($CANDIDATE_SHA) != reviewed_sha ($REVIEWED_SHA)"
+      exit 1
+    fi
+    if [ "$REVIEWED_SHA" != "$CURRENT_HEAD" ]; then
+      echo "FAIL: reviewed_sha ($REVIEWED_SHA) != HEAD ($CURRENT_HEAD)"
+      echo "FAIL: New commit detected after review. Review is INVALIDATED."
+      exit 1
+    fi
+    echo "OK: candidate_sha === reviewed_sha === HEAD"
+    ;;
+
+  WAITING_FOR_HERMES)
+    if [ "$CANDIDATE_SHA" = "null" ]; then
+      echo "FAIL: Lifecycle '$LIFECYCLE' requires candidate_sha to be set, but it is null"
+      exit 1
+    fi
+    if ! is_40char_hex "$CANDIDATE_SHA"; then
+      echo "FAIL: candidate_sha '$CANDIDATE_SHA' is not a valid 40-char hex SHA"
+      exit 1
+    fi
+    if [ "$CANDIDATE_SHA" != "$CURRENT_HEAD" ]; then
+      echo "FAIL: candidate_sha ($CANDIDATE_SHA) != HEAD ($CURRENT_HEAD)"
+      exit 1
+    fi
+    echo "OK: candidate_sha equals HEAD"
+    ;;
+
+  ROADMAP_DEFINED|CONTRACT_DRAFTED|CONTRACT_APPROVED|IMPLEMENTING|CI_PENDING|CI_FAILED|CI_GREEN|REWORK_REQUIRED|SEMANTIC_CHANGES_REQUIRED)
+    echo "OK: Pre-review lifecycle '$LIFECYCLE' — reviewed_sha=null is acceptable"
+    ;;
+
+  MERGED|CLOSED)
+    if [ "$REVIEWED_SHA" = "null" ]; then
+      echo "FAIL: Lifecycle '$LIFECYCLE' requires reviewed_sha to be set"
+      exit 1
+    fi
+    if ! is_40char_hex "$REVIEWED_SHA"; then
+      echo "FAIL: reviewed_sha '$REVIEWED_SHA' is not a valid 40-char hex SHA"
+      exit 1
+    fi
+    echo "OK: reviewed_sha is set for completed lifecycle"
+    ;;
+
+  *)
+    echo "FAIL: Unknown lifecycle status: $LIFECYCLE"
+    exit 1
+    ;;
+esac
+
+echo "PASS: verify-review-sha"
+exit 0
