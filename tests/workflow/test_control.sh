@@ -33,6 +33,7 @@ MANDATORY_TESTS=(
   "test_26_missing_actor.sh"
   "test_27_missing_reason.sh"
   "test_28_missing_approval.sh"
+  "test_29_windows_path_scan.sh"
 )
 
 MISSING=0
