@@ -33,10 +33,13 @@ FORBIDDEN_PATHS:
 ACCEPTANCE_CRITERIA:
   - "Test criterion"
 REQUIRED_TESTS:
-  - command: "echo hello"
+  - command: node
+    args:
+      - --version
     expected_exit_code: 0
 REQUIRED_EVIDENCE:
-  - "Test evidence item"
+  - id: test_item
+    path: checkpoints/STATE.json
 EOF
 
 if scripts/workflow/validate-contract "$CONTRACT" > /dev/null 2>&1; then

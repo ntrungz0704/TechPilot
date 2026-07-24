@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+MARKER_SCHEMA="docs/workflow/schemas/workflow-remediation-marker.schema.json"
+CLI="$SCRIPT_DIR/lib/contract-cli.js"
+PP="$SCRIPT_DIR/lib/path-policy.js"
+MARKER=""
+CHECK_MODE=""
+
+# Parse args: --marker <path> is REQUIRED
+if [ "${1:-}" = "--marker" ]; then
+  MARKER="${2:-}"
+  if [ -z "$MARKER" ]; then
+    echo "FAIL: --marker requires a path argument"
+    exit 1
+  fi
+  shift 2
+else
+  echo "FAIL: --marker <path> is required"
+  exit 1
+fi
+
+CHECK_MODE="${1:-}"
+if [ -z "$CHECK_MODE" ]; then
+  echo "FAIL: Check mode required (commit|push)"
+  exit 1
+fi
+
+case "$CHECK_MODE" in
+  commit|push) ;;
+  *)
+    echo "FAIL: Unknown check mode '$CHECK_MODE'. Must be 'commit' or 'push'"
+    exit 1
+    ;;
+esac
+
+for tool in node jq git; do
+  if ! command -v "$tool" &>/dev/null; then echo "FAIL: $tool required"; exit 1; fi
+done
+
+if [ ! -f "$MARKER" ]; then echo "FAIL: Marker not found: $MARKER"; exit 1; fi
+
+# Resolve canonical paths using realpath
+resolved_repo=$(cd "$REPO_ROOT" && pwd -P)
+resolved_marker=$(realpath "$MARKER" 2>/dev/null || echo "")
+if [ -z "$resolved_marker" ]; then
+  echo "FAIL: Cannot resolve marker path: $MARKER"
+  exit 1
+fi
+
+# Reject if marker resolves to inside the repository
+if [ "$resolved_marker" = "$resolved_repo" ] || [ "${resolved_marker#${resolved_repo}/}" != "$resolved_marker" ]; then
+  echo "FAIL: Marker '$MARKER' resolves to inside the repository"
+  exit 1
+fi
+if [ ! -f "$MARKER_SCHEMA" ]; then echo "FAIL: Marker schema not found: $MARKER_SCHEMA"; exit 1; fi
+
+# Validate marker schema via AJV
+node "$CLI" validate-json "$MARKER" "$MARKER_SCHEMA" || {
+  echo "FAIL: Marker schema validation failed"
+  exit 1
+}
+
+# Read marker fields
+PURPOSE=$(jq -r '.purpose' "$MARKER")
+APPROVED_BY=$(jq -r '.approved_by' "$MARKER")
+APPROVAL_REF=$(jq -r '.approval_ref' "$MARKER")
+BASE_SHA=$(jq -r '.exact_base_sha' "$MARKER")
+TARGET_BRANCH=$(jq -r '.exact_target_branch' "$MARKER")
+ALLOW_COMMIT=$(jq -r '.allow_commit' "$MARKER")
+ALLOW_PUSH=$(jq -r '.allow_push // "false"' "$MARKER")
+ALLOW_FORCE_PUSH=$(jq -r '.allow_force_push' "$MARKER")
+ALLOW_MERGE=$(jq -r '.allow_merge' "$MARKER")
+ALLOW_MARK_READY=$(jq -r '.allow_mark_ready' "$MARKER")
+
+# Verify purpose
+echo "OK: Purpose: $PURPOSE"
+
+# Verify approved_by is human
+if ! echo "$APPROVED_BY" | grep -qE '^human:'; then echo "FAIL: approved_by must match human:*"; exit 1; fi
+
+# Verify current branch
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
+  echo "FAIL: Current branch '$CURRENT_BRANCH' != marker target '$TARGET_BRANCH'"
+  exit 1
+fi
+
+# Verify base SHA is a valid commit
+if ! git rev-parse --verify "${BASE_SHA}^{commit}" &>/dev/null; then
+  echo "FAIL: Marker base SHA '$BASE_SHA' is not a valid commit"
+  exit 1
+fi
+
+# Verify base SHA equals exact merge-base with origin/feature/hieu-news
+EXPECTED_BASE=$(git merge-base HEAD origin/feature/hieu-news 2>/dev/null || echo "")
+if [ -z "$EXPECTED_BASE" ]; then
+  echo "FAIL: Cannot compute merge-base with origin/feature/hieu-news"
+  exit 1
+fi
+if [ "$BASE_SHA" != "$EXPECTED_BASE" ]; then
+  echo "FAIL: Marker base SHA '$BASE_SHA' does not equal merge-base '$EXPECTED_BASE'"
+  exit 1
+fi
+
+# Verify HEAD is descendant of base SHA
+if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then
+  echo "FAIL: HEAD not descendant of marker base SHA"
+  exit 1
+fi
+
+# Verify allow flags
+case "$CHECK_MODE" in
+  commit)
+    if [ "$ALLOW_COMMIT" != "true" ]; then echo "FAIL: allow_commit not true"; exit 1; fi
+    ;;
+  push)
+    if [ "$ALLOW_COMMIT" != "true" ]; then echo "FAIL: allow_commit not true"; exit 1; fi
+    if [ "$ALLOW_PUSH" != "true" ]; then echo "FAIL: allow_push not true (required for push)"; exit 1; fi
+    ;;
+esac
+if [ "$ALLOW_FORCE_PUSH" = "true" ]; then echo "FAIL: allow_force_push must be false"; exit 1; fi
+if [ "$ALLOW_MERGE" = "true" ]; then echo "FAIL: allow_merge must be false"; exit 1; fi
+if [ "$ALLOW_MARK_READY" = "true" ]; then echo "FAIL: allow_mark_ready must be false"; exit 1; fi
+
+# ── Canonical remediation allowlist ──────────────────────────────────────────
+CANONICAL_PATHS=$(cat <<'PATHEOF'
+package.json
+package-lock.json
+scripts/workflow/**
+tests/workflow/**
+tests/browser/**
+docs/workflow/**
+checkpoints/CP03/TASK_CONTRACT.yaml
+checkpoints/CP03/ARCHITECTURE.md
+.github/workflows/news-module-ci.yml
+.opencode/agents/**
+AGENTS.md
+PATHEOF
+)
+
+# Verify marker approved_paths is subset of canonical paths
+CANONICAL_PATHS_JSON=$(echo "$CANONICAL_PATHS" | jq -R -s 'split("\n") | map(select(length > 0))')
+MARKER_PATHS_JSON=$(jq -r '.approved_paths' "$MARKER")
+
+node "$PP" validate "$MARKER_PATHS_JSON" "$CANONICAL_PATHS_JSON" || {
+  echo "FAIL: Marker approved_paths not subset of canonical remediation allowlist"
+  exit 1
+}
+echo "OK: All marker approved_paths are within canonical remediation allowlist"
+
+# Verify no files outside approved paths
+STRAY_FILES=0
+STRAY_OUTPUT=""
+
+while IFS= read -r -d '' f; do
+  if ! node "$PP" test "$f" "$MARKER_PATHS_JSON" 2>/dev/null; then
+    STRAY_FILES=$((STRAY_FILES+1))
+    STRAY_OUTPUT="$STRAY_OUTPUT  FAIL: File outside approved paths: $f"$'\n'
+  fi
+done < <(git diff --name-only HEAD -z 2>/dev/null)
+
+while IFS= read -r -d '' f; do
+  if ! node "$PP" test "$f" "$MARKER_PATHS_JSON" 2>/dev/null; then
+    STRAY_FILES=$((STRAY_FILES+1))
+    STRAY_OUTPUT="$STRAY_OUTPUT  FAIL: Untracked file outside approved paths: $f"$'\n'
+  fi
+done < <(git ls-files --others --exclude-standard -z 2>/dev/null)
+
+if [ "$STRAY_FILES" -gt 0 ]; then
+  echo -n "$STRAY_OUTPUT"
+  echo "FAIL: $STRAY_FILES file(s) outside approved paths"
+  exit 1
+fi
+
+echo "OK: All remediated files are within approved paths"
+echo "OK: Approved for commit on $CURRENT_BRANCH"
+exit 0

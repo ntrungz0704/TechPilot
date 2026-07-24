@@ -2,87 +2,136 @@
  * CHECKPOINT 3 — First-fold layout geometry test
  * Viewport: 1366x768, scrollY=0
  * Gate: featuresBar.getBoundingClientRect().bottom <= 764
+ *
+ * EXECUTION CONTRACT:
+ *   - MUST be invoked via serve-and-test.sh (server lifecycle wrapper).
+ *   - MUST NOT start or kill any server.
+ *   - Reads TEST_URL environment variable only.
+ *   - Writes evidence to checkpoints/CP03/evidence/geometry-gate.json
+ *     and checkpoints/CP03/evidence/homepage-1366x768.png
  */
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
 const VIEWPORT = { width: 1366, height: 768 };
-const BASE_URL = process.env.TEST_URL || 'http://localhost:8000';
+const BASE_URL = process.env.TEST_URL;
+
+if (!BASE_URL) {
+  console.error('FAIL: TEST_URL is not set — this test must be run via serve-and-test.sh');
+  process.exit(1);
+}
+
+const EVIDENCE_DIR = path.resolve(__dirname, '../../checkpoints/CP03/evidence');
 
 async function run() {
   const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const page = await browser.newPage();
-  const errors = [];
-  
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
-  page.on('pageerror', err => errors.push(err.message));
+  const consoleErrors = [];
+  const pageErrors = [];
+
+  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  page.on('pageerror', err => pageErrors.push(err.message));
 
   let failed = false;
+  const measurements = {};
 
   try {
+    // Ensure evidence directory exists
+    fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+
     await page.setViewport(VIEWPORT);
     await page.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 30000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     await new Promise(r => setTimeout(r, 1000));
 
+    // Take screenshot
+    await page.screenshot({ path: path.join(EVIDENCE_DIR, 'homepage-1366x768.png'), fullPage: false });
+    console.log('OK: Screenshot captured');
+
     // 1. Verify scrollY === 0
-    const scrollY = await page.evaluate(() => window.scrollY);
-    console.log(`window.scrollY: ${scrollY}`);
-    if (scrollY !== 0) { console.log('FAIL: scrollY !== 0'); failed = true; }
+    measurements.scrollY = await page.evaluate(() => window.scrollY);
+    console.log(`window.scrollY: ${measurements.scrollY}`);
+    if (measurements.scrollY !== 0) { console.log('FAIL: scrollY !== 0'); failed = true; }
     else { console.log('PASS: scrollY === 0'); }
 
-    // 2. Verify visible sections
-    const sections = await page.evaluate(() => {
+    // 2. Verify visible sections using exact DOM selectors
+    measurements.sections = await page.evaluate(() => {
       const selectors = {
-        Topbar: 'header .topbar, .topbar, [class*=topbar]',
-        MainHeader: 'header, .main-header, [class*=header]',
-        MainNavigation: 'nav, .main-nav, [class*=nav], #categoryMenu',
-        Hero: '.hero, [class*=hero], #hero, .home-hero',
-        FeaturesBar: '.features, [class*=features], #features, .features-bar'
+        Topbar: '.techpilot-topbar',
+        MainHeader: 'header.site-header',
+        MainNavigation: 'nav.main-nav',
+        HeroContainer: 'section.container.hero-section',
+        HeroLeftColumn: '.hero-section__left',
+        HeroCenterColumn: '.hero-section__center',
+        HeroRightColumn: '.hero-section__right',
+        FeaturesBar: '.features-bar'
       };
       const results = {};
       for (const [name, sel] of Object.entries(selectors)) {
         const el = document.querySelector(sel);
-        if (!el) { results[name] = { found: false }; continue; }
+        if (!el) { results[name] = { found: false, selector: sel }; continue; }
         const rect = el.getBoundingClientRect();
-        const isVisible = rect.top < 768 && rect.bottom > 0 && rect.width > 0 && rect.height > 0;
-        results[name] = { found: true, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, fullyVisible: rect.top >= -1 && rect.bottom <= 770 };
+        results[name] = {
+          found: true,
+          selector: sel,
+          top: Math.round(rect.top),
+          bottom: Math.round(rect.bottom),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          fullyVisible: rect.top >= -1 && rect.bottom <= 770
+        };
       }
       return results;
     });
 
-    for (const [name, info] of Object.entries(sections)) {
-      if (!info.found) { console.log(`FAIL: ${name} not found`); failed = true; }
-      else if (!info.fullyVisible) { 
-        console.log(`FAIL: ${name} not fully visible (top=${info.top}, bottom=${info.bottom})`); 
-        failed = true; 
+    for (const [name, info] of Object.entries(measurements.sections)) {
+      if (!info.found) {
+        console.log(`FAIL: ${name} not found (selector: ${info.selector})`);
+        failed = true;
+      } else if (!info.fullyVisible) {
+        console.log(`FAIL: ${name} not fully visible (top=${info.top}, bottom=${info.bottom})`);
+        failed = true;
+      } else {
+        console.log(`PASS: ${name} fully visible (top=${info.top}, bottom=${info.bottom})`);
       }
-      else { console.log(`PASS: ${name} fully visible`); }
     }
 
     // 3. Verify FeaturesBar gate
-    if (sections.FeaturesBar && sections.FeaturesBar.found) {
-      const fbBottom = sections.FeaturesBar.bottom;
-      console.log(`FeaturesBar bottom: ${fbBottom}, gate: <= 764`);
-      if (fbBottom > 764) { console.log('FAIL: FeaturesBar exceeds gate'); failed = true; }
-      else { console.log('PASS: FeaturesBar within gate'); }
+    if (measurements.sections.FeaturesBar && measurements.sections.FeaturesBar.found) {
+      measurements.featuresBarBottom = measurements.sections.FeaturesBar.bottom;
+      console.log(`FeaturesBar bottom: ${measurements.featuresBarBottom}, gate: <= 764`);
+      if (measurements.featuresBarBottom > 764) {
+        console.log('FAIL: FeaturesBar exceeds gate');
+        failed = true;
+      } else {
+        console.log('PASS: FeaturesBar within gate');
+      }
     }
 
     // 4. Horizontal overflow
-    const overflow = await page.evaluate(() => {
-      const body = document.documentElement || document.body;
-      return body.scrollWidth - body.clientWidth;
+    measurements.horizontalOverflow = await page.evaluate(() => {
+      return (document.documentElement || document.body).scrollWidth -
+             (document.documentElement || document.body).clientWidth;
     });
-    console.log(`Horizontal overflow: ${overflow}px`);
-    if (overflow > 0) { console.log('FAIL: horizontal overflow detected'); failed = true; }
-    else { console.log('PASS: zero horizontal overflow'); }
-
-    // 5. Console errors
-    if (errors.length > 0) {
-      console.log('FAIL: console/page errors detected');
-      errors.forEach(e => console.log(`  ERROR: ${e}`));
+    console.log(`Horizontal overflow: ${measurements.horizontalOverflow}px`);
+    if (measurements.horizontalOverflow > 0) {
+      console.log('FAIL: horizontal overflow detected');
       failed = true;
     } else {
-      console.log('PASS: zero console/page errors');
+      console.log('PASS: zero horizontal overflow');
+    }
+
+    // 5. Console and page errors
+    measurements.consoleErrorCount = consoleErrors.length;
+    measurements.pageErrorCount = pageErrors.length;
+    if (measurements.consoleErrorCount > 0 || measurements.pageErrorCount > 0) {
+      console.log('FAIL: errors detected');
+      consoleErrors.forEach(e => console.log(`  CONSOLE: ${e}`));
+      pageErrors.forEach(e => console.log(`  PAGE: ${e}`));
+      failed = true;
+    } else {
+      console.log('PASS: zero errors');
     }
 
   } catch (e) {
@@ -91,6 +140,22 @@ async function run() {
   } finally {
     await browser.close();
   }
+
+  // Write measurements evidence
+  const evidence = {
+    timestamp: new Date().toISOString(),
+    viewport: VIEWPORT,
+    url: BASE_URL,
+    overallPass: !failed,
+    measurements: measurements,
+    consoleErrors: consoleErrors,
+    pageErrors: pageErrors
+  };
+  fs.writeFileSync(
+    path.join(EVIDENCE_DIR, 'geometry-gate.json'),
+    JSON.stringify(evidence, null, 2)
+  );
+  console.log('OK: Evidence written to geometry-gate.json');
 
   console.log(failed ? 'OVERALL: FAIL' : 'OVERALL: PASS');
   process.exit(failed ? 1 : 0);

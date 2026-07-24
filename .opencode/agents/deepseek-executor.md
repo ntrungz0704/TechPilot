@@ -76,10 +76,11 @@ All other conditions: Write is **NO**.
 
 ## Commit and Push
 
-- Commit and push are **ONLY** allowed when an explicit human-approved execution contract exists (CONTRACT_APPROVED in STATE.json)
-- Never merge, mark PR ready, or self-approve
-- Never change lifecycle status
-- Never modify governance or workflow infrastructure
+- Commit and push are **NEVER** performed by this agent.
+- Human-only action after review approval.
+- Never merge, mark PR ready, or self-approve.
+- Never change lifecycle status.
+- Never modify governance or workflow infrastructure.
 
 ## Handoff
 
