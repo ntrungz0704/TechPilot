@@ -31,6 +31,7 @@ OUT_OF_SCOPE:
 ALLOWED_PATHS:
   - app/views/home/index.php
   - public/assets/css/style.css
+  - public/assets/js/main.js
   - tests/browser/home_first_fold.spec.js
   - checkpoints/CP03/IMPLEMENTATION_HANDOFF.json
   - checkpoints/CP03/evidence/**
@@ -59,6 +60,9 @@ ACCEPTANCE_CRITERIA:
   - "Zero console errors"
   - "Zero uncaught page errors"
   - "All existing PHP tests pass with exit code 0"
+  - "Flash countdown must not cause Temporal Dead Zone or create interval after countdown expired"
+  - "bash tests/browser/serve-and-test.sh exit 0"
+  - "php tests/CatalogGroupTest.php exit 0 with catalog_ci.sql fixture"
 
 REQUIRED_TESTS:
   - command: bash

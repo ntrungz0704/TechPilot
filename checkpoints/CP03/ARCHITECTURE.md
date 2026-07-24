@@ -39,6 +39,7 @@ Therefore every section from Topbar through Features Bar must fit within
 
 - app/views/home/index.php — homepage template
 - public/assets/css/style.css — homepage styles
+- public/assets/js/main.js — countdown timer (affected by TDZ issue)
 
 ## Existing Conventions
 
@@ -46,3 +47,20 @@ Therefore every section from Topbar through Features Bar must fit within
 - Front controller at public/index.php
 - Controller action naming: lowerCamelCase
 - Database: snake_case columns
+
+## Remediation Targets (V13A)
+
+### FIRST_FOLD_GEOMETRY
+- Current FeaturesBar bottom: 829px
+- Required: <= 764px (gate)
+- Affected files: `public/assets/css/style.css`, `app/views/home/index.php`
+
+### COUNTDOWN_TDZ
+- Current error: `Cannot access 'intervalId' before initialization`
+- Source: `public/assets/js/main.js`
+- Affected: Flash countdown timer using `let intervalId` with potential Temporal Dead Zone access
+
+### CATALOG_FIXTURE_PARITY
+- Browser Geometry job currently does not use the same fixture as Catalog CI
+- Catalog CI imports `tests/fixtures/catalog_ci.sql` before running `CatalogGroupTest.php`
+- Đã cập nhật: `news-module-ci.yml` import `catalog_ci.sql` trước minimal homepage seed trong Browser Geometry job.
