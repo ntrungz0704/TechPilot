@@ -54,6 +54,17 @@ SEMANTIC_APPROVED
 
 **Approval invalidation**: Any implementation commit after HERMES_VERIFIED or SEMANTIC_APPROVED resets to IMPLEMENTING and clears reviewed_sha/candidate_sha.
 
+## Commit and Push Authority
+
+| Agent | Commit | Push | Condition |
+|---|---|---|---|
+| DeepSeek Execution Writer | **NEVER** | **NEVER** | Write-only agent. Human commits after review. |
+| Hermes Reviewer | **NEVER** | **NEVER** | Read-only agent. Never writes to git. |
+| Workflow Remediation Executor | YES | YES | Only with validated `WORKFLOW_REMEDIATION_MARKER.json`. Only to `fix/workflow-qa-v3-post-merge`. No force-push, amend, rebase, reset, merge, mark-ready. |
+| Planning Authority (ChatGPT) | **NEVER** | **NEVER** | Drafts contracts and docs only. Never modifies code or git. |
+
+**Approval invalidation**: Any implementation commit after `HERMES_VERIFIED` or `SEMANTIC_APPROVED` resets to `IMPLEMENTING` and clears `reviewed_sha`/`candidate_sha`.
+
 ## Scripts
 
 | Script | Purpose | Expected Failure Mode |

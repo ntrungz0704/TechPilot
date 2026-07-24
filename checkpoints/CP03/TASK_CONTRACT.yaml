@@ -61,15 +61,19 @@ ACCEPTANCE_CRITERIA:
   - "All existing PHP tests pass with exit code 0"
 
 REQUIRED_TESTS:
-  - command: "node tests/browser/home_first_fold.spec.js"
+  - command: bash
+    args:
+      - tests/browser/serve-and-test.sh
     expected_exit_code: 0
-  - command: "php tests/CatalogGroupTest.php"
+  - command: php
+    args:
+      - tests/CatalogGroupTest.php
     expected_exit_code: 0
 
 REQUIRED_EVIDENCE:
-  - "Screenshot of homepage at 1366x768, scrollY=0"
-  - "Screenshot showing all visible sections"
-  - "Console error log showing zero errors"
-  - "featuresBar.getBoundingClientRect().bottom measurement"
-  - "changed-files report matching handoff"
-  - "All test commands, results, and exit codes"
+  - id: homepage_screenshot
+    path: checkpoints/CP03/evidence/homepage-1366x768.png
+  - id: geometry_gate
+    path: checkpoints/CP03/evidence/geometry-gate.json
+  - id: test_summary
+    path: checkpoints/CP03/evidence/test-summary.txt

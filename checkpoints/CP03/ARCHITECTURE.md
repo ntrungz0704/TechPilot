@@ -38,8 +38,7 @@ Therefore every section from Topbar through Features Bar must fit within
 ## Key Files
 
 - app/views/home/index.php — homepage template
-- public/assets/css/home.css — homepage styles
-- public/assets/js/home.js — homepage behavior
+- public/assets/css/style.css — homepage styles
 
 ## Existing Conventions
 
