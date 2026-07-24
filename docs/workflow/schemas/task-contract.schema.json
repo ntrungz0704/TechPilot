@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "docs/workflow/schemas/task-contract.schema.json",
+  "title": "Checkpoint Task Contract",
+  "type": "object",
+  "required": [
+    "CHECKPOINT_ID", "TITLE", "LIFECYCLE_STATUS", "BASE_SHA",
+    "SCOPE", "ALLOWED_PATHS", "FORBIDDEN_PATHS",
+    "ACCEPTANCE_CRITERIA", "REQUIRED_TESTS", "REQUIRED_EVIDENCE"
+  ],
+  "properties": {
+    "CHECKPOINT_ID": { "type": "string", "pattern": "^CHECKPOINT_[0-9]+$" },
+    "TITLE": { "type": "string", "minLength": 1 },
+    "LIFECYCLE_STATUS": {
+      "type": "string",
+      "enum": [
+        "ROADMAP_DEFINED", "CONTRACT_DRAFTED", "CONTRACT_APPROVED",
+        "IMPLEMENTING", "CI_PENDING", "CI_FAILED", "CI_GREEN",
+        "WAITING_FOR_HERMES", "REWORK_REQUIRED", "HERMES_VERIFIED",
+        "WAITING_FOR_SEMANTIC_REVIEW", "SEMANTIC_CHANGES_REQUIRED",
+        "SEMANTIC_APPROVED", "MERGE_READY", "MERGED", "CLOSED"
+      ]
+    },
+    "BASE_SHA": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "CANDIDATE_SHA": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        { "type": "null" }
+      ]
+    },
+    "REVIEWED_SHA": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        { "type": "null" }
+      ]
+    },
+    "SCOPE": {
+      "type": "object",
+      "required": ["TARGET_ROUTE", "TARGET_VIEWPORT", "ACCEPTANCE_GATE"],
+      "properties": {
+        "TARGET_ROUTE": { "type": "string" },
+        "TARGET_VIEWPORT": { "type": "string" },
+        "SCROLL_Y": { "type": "integer" },
+        "ACCEPTANCE_GATE": { "type": "string", "minLength": 1 },
+        "VISIBLE_SECTIONS": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "OUT_OF_SCOPE": { "type": "array", "items": { "type": "string" } },
+    "ALLOWED_PATHS": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "FORBIDDEN_PATHS": { "type": "array", "items": { "type": "string" } },
+    "ACCEPTANCE_CRITERIA": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "REQUIRED_TESTS": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["command", "expected_exit_code"],
+        "properties": {
+          "command": { "type": "string", "minLength": 1 },
+          "expected_exit_code": { "type": "integer" }
+        }
+      }
+    },
+    "REQUIRED_EVIDENCE": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+  }
+}

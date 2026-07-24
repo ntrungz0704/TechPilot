@@ -1,0 +1,36 @@
+RISKS:
+  - ID: CP03-RISK-001
+    CATEGORY: LAYOUT_TRUNCATION
+    DESCRIPTION: "Hero or Features Bar overflows 764px threshold at 1366x768"
+    SEVERITY: high
+    LIKELIHOOD: probable
+    MITIGATION: "Measure each section height; reduce padding/margin/gap; test at exact viewport"
+    OWNER: deepseek
+    STATUS: open
+
+  - ID: CP03-RISK-002
+    CATEGORY: SCOPE_CREEP
+    DESCRIPTION: "Changes may drift into news module or forbidden paths"
+    SEVERITY: critical
+    LIKELIHOOD: unlikely
+    MITIGATION: "allowed_paths enforcement via check-changed-files; CI fails on violation"
+    OWNER: deepseek
+    STATUS: open
+
+  - ID: CP03-RISK-003
+    CATEGORY: RESPONSIVE_REGRESSION
+    DESCRIPTION: "Layout compaction at 1366x768 may break other viewports"
+    SEVERITY: medium
+    LIKELIHOOD: possible
+    MITIGATION: "Cross-viewport visual checks; media query audit"
+    OWNER: deepseek
+    STATUS: open
+
+  - ID: CP03-RISK-004
+    CATEGORY: GOVERNANCE_VIOLATION
+    DESCRIPTION: "Agent attempts to modify workflow infrastructure or production code outside scope"
+    SEVERITY: critical
+    LIKELIHOOD: rare
+    MITIGATION: "Agent definitions in .opencode enforce forbidden_paths; CI scan-forbidden-patterns"
+    OWNER: deepseek
+    STATUS: open

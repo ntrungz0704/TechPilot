@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="checkpoints/STATE.json"
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [contract-path]"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
+  exit 0
+fi
+
+for tool in node jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
+
+HEAD_SHA=$(git rev-parse HEAD)
+BASE_SHA=$(jq -r '.base_sha // ""' "$STATE_FILE")
+
+if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ]; then
+  echo "FAIL: No base_sha in $STATE_FILE"
+  exit 1
+fi
+
+if ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  echo "FAIL: Base SHA '$BASE_SHA' is not a valid git reference"
+  exit 1
+fi
+
+LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
+echo "OK: Lifecycle: $LIFECYCLE"
+
+CHANGED=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true)
+
+if [ -z "$CHANGED" ]; then
+  echo "OK: No changed files in diff ${BASE_SHA}...${HEAD_SHA}"
+  echo "PASS: check-changed-files"
+  exit 0
+fi
+
+echo "OK: Changed files:"
+echo "$CHANGED"
+
+PRE_APPROVAL=false
+case "$LIFECYCLE" in
+  ROADMAP_DEFINED|CONTRACT_DRAFTED) PRE_APPROVAL=true;;
+esac
+
+if [ "$PRE_APPROVAL" = true ]; then
+  echo "OK: Mode: pre-approval (bootstrap allowlist)"
+
+  printf '%s\n' "$CHANGED" | node -e "
+  const chunks = [];
+  process.stdin.on('data', d => chunks.push(d));
+  process.stdin.on('end', () => {
+    const files = chunks.join('').trim().split(/\r?\n/).filter(Boolean);
+    const allowed = [
+      /^checkpoints\//, /^docs\/workflow\//, /^scripts\/workflow\//,
+      /^\.opencode\//, /^AGENTS\.md\$/, /^\.github\/workflows\//,
+      /^tests\/workflow\//
+    ];
+    const violations = [];
+    for (const f of files) {
+      if (!allowed.some(r => r.test(f))) {
+        violations.push('VIOLATION: not in bootstrap allowlist: ' + f);
+      }
+    }
+    if (violations.length > 0) {
+      violations.forEach(v => console.log(v));
+      process.exit(1);
+    }
+    console.log('OK: All files in bootstrap allowlist');
+  });
+  " || {
+    echo "FAIL: Bootstrap allowlist check failed"
+    exit 1
+  }
+
+  echo "PASS: check-changed-files"
+  exit 0
+fi
+
+echo "OK: Mode: full contract enforcement"
+
+if [ ! -f "$CONTRACT" ]; then
+  echo "FAIL: Contract file not found: $CONTRACT"
+  exit 1
+fi
+
+CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
+  echo "FAIL: YAML parsing failed"
+  echo "$CONTRACT_JSON"
+  exit 1
+}
+
+printf '%s\n' "$CHANGED" | node -e "
+const chunks = [];
+process.stdin.on('data', d => chunks.push(d));
+process.stdin.on('end', () => {
+  const files = chunks.join('').trim().split(/\r?\n/).filter(Boolean);
+  const contract = JSON.parse(process.argv[1]);
+  const allowed = contract.ALLOWED_PATHS || [];
+  const forbidden = contract.FORBIDDEN_PATHS || [];
+
+  if (allowed.length === 0) {
+    console.log('FAIL: ALLOWED_PATHS is empty');
+    process.exit(1);
+  }
+
+  function matchesPattern(file, pattern) {
+    if (pattern.endsWith('/**')) {
+      const prefix = pattern.slice(0, -3);
+      return file === prefix || file.startsWith(prefix + '/');
+    }
+    if (pattern.includes('*') || pattern.includes('?')) {
+      let regexStr = pattern.replace(/[.+?^\${}()|[\]\\]/g, '\\$&');
+      regexStr = regexStr
+        .replace(/\\\*\\\*\//g, '(.*/)?')
+        .replace(/\\\*\\\*/g, '.*')
+        .replace(/\\\*/g, '[^/]*')
+        .replace(/\\\?/g, '.');
+      return new RegExp('^' + regexStr + '$').test(file);
+    }
+    return file === pattern;
+  }
+
+  const violations = [];
+  for (const f of files) {
+    const inForbidden = forbidden.some(p => matchesPattern(f, p));
+    const inAllowed = allowed.some(p => matchesPattern(f, p));
+    if (inForbidden) {
+      violations.push('VIOLATION: in forbidden_paths: ' + f);
+    } else if (!inAllowed) {
+      violations.push('VIOLATION: not in allowed_paths: ' + f);
+    }
+  }
+
+  if (violations.length > 0) {
+    violations.forEach(v => console.log(v));
+    process.exit(1);
+  }
+  console.log('OK: All changed files within allowed_paths and not in forbidden_paths');
+});
+" "$CONTRACT_JSON" || {
+  echo "FAIL: Path enforcement failed"
+  exit 1
+}
+
+echo "PASS: check-changed-files"
+exit 0

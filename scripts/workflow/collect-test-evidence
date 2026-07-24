@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+EVIDENCE_DIR="${2:-checkpoints/CP03/evidence}"
+STATE_FILE="checkpoints/STATE.json"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [contract-path] [evidence-dir]"
+  echo "  Default contract:    checkpoints/CP03/TASK_CONTRACT.yaml"
+  echo "  Default evidence dir: checkpoints/CP03/evidence"
+  exit 0
+fi
+
+for tool in node jq git; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
+
+LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
+echo "OK: Lifecycle: $LIFECYCLE"
+
+PRE_APPROVAL=false
+case "$LIFECYCLE" in
+  ROADMAP_DEFINED|CONTRACT_DRAFTED) PRE_APPROVAL=true;;
+esac
+
+if [ "$PRE_APPROVAL" = true ]; then
+  echo "NOT_APPLICABLE: pre-implementation lifecycle"
+  exit 0
+fi
+
+if [ ! -f "$CONTRACT" ]; then
+  echo "FAIL: Contract file not found: $CONTRACT"
+  exit 1
+fi
+
+CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
+  echo "FAIL: YAML parsing failed"
+  echo "$CONTRACT_JSON"
+  exit 1
+}
+
+TESTS=$(printf '%s\n' "$CONTRACT_JSON" | node -e "
+const chunks = [];
+process.stdin.on('data', d => chunks.push(d));
+process.stdin.on('end', () => {
+  const contract = JSON.parse(chunks.join(''));
+  const tests = contract.REQUIRED_TESTS || [];
+  if (tests.length === 0) {
+    console.log('');
+    process.exit(0);
+  }
+  tests.forEach((t, i) => {
+    console.log(JSON.stringify({idx: i, command: t.command, expected_exit_code: t.expected_exit_code}));
+  });
+});
+" 2>&1) || {
+  echo "FAIL: Cannot parse REQUIRED_TESTS from contract"
+  exit 1
+}
+
+if [ -z "$TESTS" ]; then
+  echo "FAIL: No REQUIRED_TESTS found in contract"
+  exit 1
+fi
+
+HEAD_SHA=$(git rev-parse HEAD)
+BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+mkdir -p "$EVIDENCE_DIR"
+SUMMARY_FILE="$EVIDENCE_DIR/test-summary.txt"
+
+{
+  echo "# Test Evidence Collection"
+  echo "Timestamp: $TIMESTAMP"
+  echo "HEAD SHA: $HEAD_SHA"
+  echo "Branch: $BRANCH"
+  echo "Lifecycle: $LIFECYCLE"
+  echo ""
+} > "$SUMMARY_FILE"
+
+ANY_FAILED=0
+
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+
+  IDX=$(node -e "process.stdout.write(String(JSON.parse(process.argv[1]).idx))" "$line" 2>/dev/null || echo "?")
+  CMD=$(node -e "process.stdout.write(JSON.parse(process.argv[1]).command)" "$line" 2>/dev/null || echo "")
+  EXPECTED_EXIT=$(node -e "process.stdout.write(String(JSON.parse(process.argv[1]).expected_exit_code))" "$line" 2>/dev/null || echo "")
+
+  if [ -z "$CMD" ] || [ -z "$EXPECTED_EXIT" ]; then
+    echo "FAIL: Unparseable test entry at index $IDX"
+    {
+      echo "=== Test [$IDX] ==="
+      echo "FAIL: Unparseable test entry"
+      echo ""
+    } >> "$SUMMARY_FILE"
+    ANY_FAILED=1
+    continue
+  fi
+
+  echo "Running: $CMD"
+  read -ra CMD_ARRAY <<< "$CMD"
+
+  set +e
+  OUTPUT=$("${CMD_ARRAY[@]}" 2>&1)
+  ACTUAL_EXIT=$?
+  set -e
+
+  {
+    echo "=== Test [$IDX]: $CMD ==="
+    echo "Command: $CMD"
+    echo "Expected exit code: $EXPECTED_EXIT"
+    echo "Actual exit code: $ACTUAL_EXIT"
+    echo "Output:"
+    echo "$OUTPUT"
+    echo ""
+  } >> "$SUMMARY_FILE"
+
+  if [ "$ACTUAL_EXIT" != "$EXPECTED_EXIT" ]; then
+    echo "FAIL: '$CMD' exited $ACTUAL_EXIT, expected $EXPECTED_EXIT"
+    ANY_FAILED=1
+  else
+    echo "OK: '$CMD' exited $ACTUAL_EXIT (expected $EXPECTED_EXIT)"
+  fi
+done <<< "$TESTS"
+
+{
+  echo "=== Git Status ==="
+  git status --short 2>&1 || true
+  echo ""
+  echo "=== Changed Files (from base) ==="
+  BASE_SHA=$(jq -r '.base_sha // ""' "$STATE_FILE")
+  if [ -n "$BASE_SHA" ] && git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+    git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true
+  fi
+} >> "$SUMMARY_FILE"
+
+echo "OK: Evidence collected at $SUMMARY_FILE"
+
+if [ "$ANY_FAILED" -eq 1 ]; then
+  echo "FAIL: One or more required tests failed"
+  exit 1
+fi
+
+echo "PASS: collect-test-evidence"
+exit 0

