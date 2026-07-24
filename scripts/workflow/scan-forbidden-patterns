@@ -76,7 +76,7 @@ if [ "$PRE_APPROVAL" = true ]; then
     [ ! -f "$f" ] && continue
     if echo "$f" | grep -q 'scan-forbidden-patterns$'; then continue; fi
 
-    if grep -qnE '[A-Za-z]:\\' "$f" 2>/dev/null; then
+    if grep -qnE '(^|[^[:alnum:]_])[A-Za-z]:[\\/]' "$f" 2>/dev/null; then
       echo "VIOLATION: Absolute Windows path in $f"
       VIOLATIONS=$((VIOLATIONS + 1))
     fi
@@ -177,7 +177,7 @@ while IFS= read -r f; do
     FILE_ADDED=""
   fi
 
-  if echo "$FILE_ADDED" | grep -qE '[A-Za-z]:\\' 2>/dev/null; then
+  if echo "$FILE_ADDED" | grep -qE '(^|[^[:alnum:]_])[A-Za-z]:[\\/]' 2>/dev/null; then
     echo "VIOLATION: Absolute Windows path in $f"
     VIOLATIONS=$((VIOLATIONS + 1))
   fi
