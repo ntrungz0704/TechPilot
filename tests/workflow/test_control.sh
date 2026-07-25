@@ -35,6 +35,7 @@ MANDATORY_TESTS=(
   "test_28_missing_approval.sh"
   "test_29_windows_path_scan.sh"
   "test_30_canonical_allowlist.sh"
+  "test_31_bootstrap_exact_production_paths.sh"
 )
 
 MISSING=0

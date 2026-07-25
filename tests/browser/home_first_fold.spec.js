@@ -50,7 +50,7 @@ async function runCountdownScenario(options) {
         req.respond({
           status: 200,
           contentType: 'text/html',
-          body: '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
+          body: '<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="icon" href="data:,"></head><body>' +
             '<div id="flashCountdown" data-end-time="' + endTime + '">' +
             '<div id="cd-h">--</div><div id="cd-m">--</div><div id="cd-s">--</div>' +
             '</div>' +
