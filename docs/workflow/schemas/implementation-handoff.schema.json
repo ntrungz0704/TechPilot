@@ -4,10 +4,11 @@
   "title": "Implementation Handoff",
   "description": "Validates checkpoints/CP03/IMPLEMENTATION_HANDOFF.json — the Writer-to-Reviewer handoff.",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "schema_version", "checkpoint_id", "base_sha",
     "candidate_sha", "changed_files", "test_results",
-    "writer_declaration"
+    "writer_declaration", "evidence_paths"
   ],
   "properties": {
     "schema_version": { "type": "string", "pattern": "^[0-9]+$" },
@@ -28,17 +29,24 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["command", "exit_code", "result"],
+        "required": ["executable", "args", "expected_exit_code", "actual_exit_code", "result"],
         "properties": {
-          "command": { "type": "string" },
-          "exit_code": { "type": "integer" },
-          "result": { "type": "string" },
+          "executable": { "type": "string" },
+          "args": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "expected_exit_code": { "type": "integer" },
+          "actual_exit_code": { "type": "integer" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL"] },
           "evidence_path": { "type": "string" }
         }
       }
     },
     "evidence_paths": {
       "type": "array",
+      "minItems": 1,
       "items": { "type": "string" }
     },
     "writer_declaration": {

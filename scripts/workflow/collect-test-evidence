@@ -1,78 +1,172 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
-EVIDENCE_DIR="${2:-checkpoints/CP03/evidence}"
-STATE_FILE="checkpoints/STATE.json"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
+CLI="$SCRIPT_DIR/lib/contract-cli.js"
+ALLOWLIST="$SCRIPT_DIR/lib/command-allowlist.json"
 
-if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
-  echo "Usage: $0 [contract-path] [evidence-dir]"
+CONTRACT="${2:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+EVIDENCE_DIR="${3:-checkpoints/CP03/evidence}"
+STATE_FILE="checkpoints/STATE.json"
+MODE="${1:-}"
+
+if [ "$MODE" = "-h" ] || [ "$MODE" = "--help" ]; then
+  echo "Usage: $0 [--validate-only|--execute|--infrastructure-verification] [contract-path] [evidence-dir]"
+  echo "  --validate-only:              Parse, validate spec. Never execute. Never skip."
+  echo "  --execute:                    Run all required tests (NOT_APPLICABLE if pre-approval lifecycle)"
+  echo "  --infrastructure-verification: Run all tests regardless of lifecycle (remediation only)"
   echo "  Default contract:    checkpoints/CP03/TASK_CONTRACT.yaml"
   echo "  Default evidence dir: checkpoints/CP03/evidence"
   exit 0
 fi
 
-for tool in node jq git; do
-  if ! command -v "$tool" &> /dev/null; then
+# Reject invalid modes
+case "$MODE" in
+  --validate-only|--execute|--infrastructure-verification) ;;
+  *)
+    echo "FAIL: Invalid mode '$MODE'. Must be --validate-only, --execute, or --infrastructure-verification"
+    exit 1
+    ;;
+esac
+
+for tool in node jq; do
+  if ! command -v "$tool" &>/dev/null; then
     echo "FAIL: $tool is required"
     exit 1
   fi
 done
 
-LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
-echo "OK: Lifecycle: $LIFECYCLE"
-
-PRE_APPROVAL=false
-case "$LIFECYCLE" in
-  ROADMAP_DEFINED|CONTRACT_DRAFTED) PRE_APPROVAL=true;;
-esac
-
-if [ "$PRE_APPROVAL" = true ]; then
-  echo "NOT_APPLICABLE: pre-implementation lifecycle"
-  exit 0
-fi
-
 if [ ! -f "$CONTRACT" ]; then
   echo "FAIL: Contract file not found: $CONTRACT"
   exit 1
 fi
-
-CONTRACT_JSON=$(node "$YAML_PARSER" "$CONTRACT" 2>&1) || {
-  echo "FAIL: YAML parsing failed"
-  echo "$CONTRACT_JSON"
+if [ ! -f "$ALLOWLIST" ]; then
+  echo "FAIL: Command allowlist not found: $ALLOWLIST"
   exit 1
-}
+fi
 
-TESTS=$(printf '%s\n' "$CONTRACT_JSON" | node -e "
-const chunks = [];
-process.stdin.on('data', d => chunks.push(d));
-process.stdin.on('end', () => {
-  const contract = JSON.parse(chunks.join(''));
-  const tests = contract.REQUIRED_TESTS || [];
-  if (tests.length === 0) {
-    console.log('');
-    process.exit(0);
-  }
-  tests.forEach((t, i) => {
-    console.log(JSON.stringify({idx: i, command: t.command, expected_exit_code: t.expected_exit_code}));
-  });
-});
-" 2>&1) || {
+# ── Always validate spec (both modes) ────────────────────────────────────────
+echo "OK: Parsing contract spec via $CLI"
+
+SCHEMA="docs/workflow/schemas/task-contract.schema.json"
+TESTS_JSON=$(node "$CLI" dump-required-tests "$CONTRACT" "$SCHEMA" 2>/dev/null) || {
   echo "FAIL: Cannot parse REQUIRED_TESTS from contract"
   exit 1
 }
 
-if [ -z "$TESTS" ]; then
-  echo "FAIL: No REQUIRED_TESTS found in contract"
+# Parse tests from JSON
+TESTS=$(echo "$TESTS_JSON" | node -e "
+var chunks = [];
+process.stdin.on('data', function(d) { chunks.push(d); });
+process.stdin.on('end', function() {
+  var tests = JSON.parse(chunks.join(''));
+  if (!Array.isArray(tests) || tests.length === 0) {
+    console.log('FAIL: REQUIRED_TESTS is empty or missing');
+    process.exit(1);
+  }
+  tests.forEach(function(t, i) {
+    if (!t.command || !t.args || !Array.isArray(t.args) || t.args.length === 0) {
+      console.log('FAIL: REQUIRED_TESTS[' + i + '] missing command/args');
+      process.exit(1);
+    }
+    if (t.expected_exit_code === undefined || t.expected_exit_code === null) {
+      console.log('FAIL: REQUIRED_TESTS[' + i + '] missing expected_exit_code');
+      process.exit(1);
+    }
+    console.log(JSON.stringify({
+      idx: i,
+      command: t.command,
+      args: t.args,
+      expected_exit_code: t.expected_exit_code
+    }));
+  });
+});
+" 2>&1) || {
+  echo "FAIL: REQUIRED_TESTS validation failed"
+  echo "$TESTS"
   exit 1
+}
+
+# Validate each test against command allowlist
+ALLOWLIST_JSON=$(cat "$ALLOWLIST")
+echo "$TESTS" | while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  CMD=$(echo "$line" | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8').trim()).command)" 2>/dev/null || echo "")
+  ARGS_JSON=$(echo "$line" | node -e "process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8').trim()).args))" 2>/dev/null || echo "[]")
+
+  # Check command is allowed
+  ALLOWED=$(echo "$ALLOWLIST_JSON" | node -e "
+    var al = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+    var cmd = process.argv[1];
+    if (al.allowed_commands.indexOf(cmd) === -1) {
+      console.log('FAIL: command \"' + cmd + '\" not in allowed_commands');
+      process.exit(1);
+    }
+    // Check forbidden patterns
+    al.forbidden_patterns.forEach(function(p) {
+      if (cmd.indexOf(p) !== -1 || (process.argv[2] && process.argv[2].indexOf(p) !== -1)) {
+        console.log('FAIL: Forbidden pattern \"' + p + '\"');
+        process.exit(1);
+      }
+    });
+    console.log('OK');
+  " "$CMD" "$(echo "$ARGS_JSON" | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).join(' '))" 2>/dev/null)" 2>&1) || {
+    echo "FAIL: Command validation: $ALLOWED"
+    exit 1
+  }
+
+  # Validate args
+  echo "$line" | node -e "
+    var t = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+    var args = t.args;
+    var roots = ['tests/', 'tests/browser/fixtures/', 'tests/workflow/'];
+    if (args[0].startsWith('/')) { console.log('FAIL: Absolute path: ' + args[0]); process.exit(1); }
+    if (args[0].indexOf('..') !== -1) { console.log('FAIL: Parent ref: ' + args[0]); process.exit(1); }
+    var validRoot = roots.some(function(r) { return args[0].startsWith(r); });
+    if (!validRoot) { console.log('FAIL: Not in approved test roots: ' + args[0]); process.exit(1); }
+    if (!require('fs').existsSync(args[0])) { console.log('FAIL: File not found: ' + args[0]); process.exit(1); }
+    console.log('OK: args valid');
+  " || exit 1
+done
+
+echo "OK: Spec validation passed"
+
+# ── Infrastructure verification guard ───────────────────────────────────────
+if [ "$MODE" = "--infrastructure-verification" ]; then
+  if [ "${CI:-}" != "true" ]; then echo "FAIL: infrastructure-verification requires CI=true"; exit 1; fi
+  if [ "${GITHUB_EVENT_NAME:-}" != "pull_request" ]; then echo "FAIL: infrastructure-verification requires GITHUB_EVENT_NAME=pull_request"; exit 1; fi
+  if [ "${GITHUB_HEAD_REF:-}" != "fix/workflow-qa-v3-post-merge" ]; then echo "FAIL: infrastructure-verification requires GITHUB_HEAD_REF=fix/workflow-qa-v3-post-merge"; exit 1; fi
+  if [ "${GITHUB_BASE_REF:-}" != "feature/hieu-news" ]; then echo "FAIL: infrastructure-verification requires GITHUB_BASE_REF=feature/hieu-news"; exit 1; fi
 fi
+
+# ── Pre-approval check (only for --execute) ─────────────────────────────────
+if [ "$MODE" = "--execute" ]; then
+  LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE" 2>/dev/null || echo "unknown")
+  case "$LIFECYCLE" in
+    ROADMAP_DEFINED|CONTRACT_DRAFTED)
+      echo "NOT_APPLICABLE: pre-implementation lifecycle ($LIFECYCLE)"
+      exit 0
+      ;;
+  esac
+fi
+
+# ── validate-only mode — stop here ──────────────────────────────────────────
+if [ "$MODE" = "--validate-only" ]; then
+  echo "SPEC_VALIDATED"
+  mkdir -p "$EVIDENCE_DIR"
+  echo "MODE: SPEC_VALIDATION" > "$EVIDENCE_DIR/test-summary.txt"
+  echo "Result: SPEC_VALIDATED (no tests executed)" >> "$EVIDENCE_DIR/test-summary.txt"
+  exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# --execute mode: run required tests
+# ══════════════════════════════════════════════════════════════════════════════
 
 HEAD_SHA=$(git rev-parse HEAD)
 BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+LIFECYCLE=$(jq -r '.lifecycle_status // "unknown"' "$STATE_FILE")
 
 mkdir -p "$EVIDENCE_DIR"
 SUMMARY_FILE="$EVIDENCE_DIR/test-summary.txt"
@@ -83,6 +177,7 @@ SUMMARY_FILE="$EVIDENCE_DIR/test-summary.txt"
   echo "HEAD SHA: $HEAD_SHA"
   echo "Branch: $BRANCH"
   echo "Lifecycle: $LIFECYCLE"
+  echo "Mode: ${MODE#--}"
   echo ""
 } > "$SUMMARY_FILE"
 
@@ -91,32 +186,31 @@ ANY_FAILED=0
 while IFS= read -r line; do
   [ -z "$line" ] && continue
 
-  IDX=$(node -e "process.stdout.write(String(JSON.parse(process.argv[1]).idx))" "$line" 2>/dev/null || echo "?")
-  CMD=$(node -e "process.stdout.write(JSON.parse(process.argv[1]).command)" "$line" 2>/dev/null || echo "")
-  EXPECTED_EXIT=$(node -e "process.stdout.write(String(JSON.parse(process.argv[1]).expected_exit_code))" "$line" 2>/dev/null || echo "")
+  IDX=$(echo "$line" | node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).idx))")
+  CMD=$(echo "$line" | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).command)")
+  ARGS=$(echo "$line" | node -e "var t=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(JSON.stringify(t.args))")
+  EXPECTED_EXIT=$(echo "$line" | node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).expected_exit_code))")
 
-  if [ -z "$CMD" ] || [ -z "$EXPECTED_EXIT" ]; then
-    echo "FAIL: Unparseable test entry at index $IDX"
-    {
-      echo "=== Test [$IDX] ==="
-      echo "FAIL: Unparseable test entry"
-      echo ""
-    } >> "$SUMMARY_FILE"
-    ANY_FAILED=1
-    continue
-  fi
+  ARGS_ARRAY=$(echo "$ARGS" | node -e "var a=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); a.forEach(function(x){process.stdout.write(x+'\\n')})" 2>/dev/null)
 
-  echo "Running: $CMD"
-  read -ra CMD_ARRAY <<< "$CMD"
+  echo "Running: $CMD $(echo "$ARGS_ARRAY" | tr '\n' ' ' | sed 's/ $//')"
+
+  # Build command args array for execution
+  CMD_ARGS=()
+  while IFS= read -r arg; do
+    [ -z "$arg" ] && continue
+    CMD_ARGS+=("$arg")
+  done <<< "$ARGS_ARRAY"
 
   set +e
-  OUTPUT=$("${CMD_ARRAY[@]}" 2>&1)
+  OUTPUT=$("$CMD" "${CMD_ARGS[@]}" 2>&1)
   ACTUAL_EXIT=$?
   set -e
 
   {
-    echo "=== Test [$IDX]: $CMD ==="
+    echo "=== Test [$IDX]: $CMD ${CMD_ARGS[*]} ==="
     echo "Command: $CMD"
+    echo "Args: $ARGS"
     echo "Expected exit code: $EXPECTED_EXIT"
     echo "Actual exit code: $ACTUAL_EXIT"
     echo "Output:"
@@ -125,10 +219,10 @@ while IFS= read -r line; do
   } >> "$SUMMARY_FILE"
 
   if [ "$ACTUAL_EXIT" != "$EXPECTED_EXIT" ]; then
-    echo "FAIL: '$CMD' exited $ACTUAL_EXIT, expected $EXPECTED_EXIT"
+    echo "FAIL: '$CMD ${CMD_ARGS[*]}' exited $ACTUAL_EXIT, expected $EXPECTED_EXIT"
     ANY_FAILED=1
   else
-    echo "OK: '$CMD' exited $ACTUAL_EXIT (expected $EXPECTED_EXIT)"
+    echo "OK: '$CMD ${CMD_ARGS[*]}' exited $ACTUAL_EXIT (expected $EXPECTED_EXIT)"
   fi
 done <<< "$TESTS"
 

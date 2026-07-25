@@ -20,10 +20,11 @@
 ## Role Assignment
 
 | Role | Agent | Permission |
-|---|---|---|
-| **Execution Writer** | DeepSeek (OpenCode) | `allowed_paths` in `.opencode/agents/deepseek-executor.md`. Forbidden: governance, CI, STATE.json |
+|------|-------|------------|
+| **Execution Writer (CP03)** | DeepSeek (OpenCode) | `allowed_paths` in `.opencode/agents/deepseek-executor.md`. Write-only. Never commits. |
 | **Independent Reviewer** | Hermes (Copilot ACP / OpenCode) | Read-only. Output only `checkpoints/CP03/HERMES_VERIFICATION.json`. Never modify production code. |
 | **Planning Authority** | ChatGPT (Web) | Draft contracts, architecture, risk register. Final semantic review. Never modify code. |
+| **Workflow Remediation** | DeepSeek (OpenCode) | `write.allowed` in `.opencode/agents/workflow-remediation-executor.md`. Commit/push only with human-approved execution marker. |
 
 ## Startup Procedure
 
@@ -50,6 +51,8 @@ cat .opencode/agents/<applicable-agent>.md
 ## Forbidden Actions
 
 - Self-approval, self-assignment, or lifecycle status change
-- Commit, merge, push, deploy by AI (human-only)
+- Commit, merge, push, deploy by DeepSeek CP03 Execution Writer (human-only)
+- Workflow Remediation agent commits only with validated execution marker
 - Modification of `docs/governance/`, `.github/workflows/`, `scripts/workflow/`, `checkpoints/STATE.json`, `checkpoints/STATE_HISTORY.jsonl`
 - Modification of production files outside allowed_paths
+- force-push, commit --amend, rebase, reset, merge by any AI agent

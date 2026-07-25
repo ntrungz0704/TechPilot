@@ -5223,3 +5223,91 @@ body {
 .checkout-form .payment-methods .payment-label:has(.payment-radio:checked) .payment-text {
     color: #2563eb;
 }
+
+/* ===== Compact First-Fold for Desktop (1366x768) ===== */
+@media (min-width: 1201px) and (max-height: 820px) {
+    .hero-section {
+        margin-top: 12px;
+        margin-bottom: 16px;
+        height: 480px;
+    }
+
+    .carousel-slide {
+        padding: 28px 50px;
+    }
+
+    .carousel-slide h2 {
+        font-size: 28px;
+        margin-bottom: 4px;
+    }
+
+    .carousel-slide p {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .carousel-slide__specs {
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .carousel-slide__specs li {
+        font-size: 12px;
+        gap: 4px;
+    }
+
+    .carousel-slide__price {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .carousel-slide__price strong {
+        font-size: 20px;
+    }
+
+    .carousel-slide__tag {
+        padding: 3px 8px;
+        font-size: 10px;
+        margin-bottom: 6px;
+    }
+
+    .promo-card {
+        padding: 18px;
+    }
+
+    .promo-card h4 {
+        font-size: 12px;
+    }
+
+    .promo-card p {
+        font-size: 12px;
+    }
+
+    .hero-section__right {
+        gap: 12px;
+    }
+
+    .hero-section__right .promo-card {
+        flex: 1 1 0;
+        height: auto;
+        min-height: 0;
+    }
+
+    .promo-card .btn--sm {
+        padding: 4px 12px;
+        font-size: 12px;
+    }
+
+    .features-bar {
+        padding: 18px 24px;
+        margin-bottom: 24px;
+    }
+
+    .feature-item i {
+        font-size: 24px;
+    }
+
+    .feature-item span {
+        font-size: 13px;
+    }
+}
