@@ -3,34 +3,456 @@ set -euo pipefail
 
 STATE_FILE="checkpoints/STATE.json"
 HISTORY_FILE="checkpoints/STATE_HISTORY.jsonl"
+LOCK_PATH="checkpoints/.state-transition.lock"
+ACQUIRE_LOCK="checkpoints/.state-transition.acquire"
 FROM_STATE="${1:-}"
 TO_STATE="${2:-}"
 ACTOR="${3:-}"
 REASON="${4:-}"
-APPROVAL="${5:-}"
+APPROVED_BY="${5:-}"
+APPROVAL_REF="${6:-}"
 
-if [ -z "$FROM_STATE" ] || [ -z "$TO_STATE" ] || [ -z "$ACTOR" ]; then
-  echo "FAIL: Usage: $0 <from_state> <to_state> <actor> [reason] [approval-token]"
-  echo "  from_state: Current lifecycle status (e.g. ROADMAP_DEFINED)"
-  echo "  to_state:   Target lifecycle status (e.g. CONTRACT_DRAFTED)"
-  echo "  actor:      Who/what is requesting the transition (e.g. chatgpt, deepseek, human:alice)"
-  echo "  reason:     Short description of why"
-  echo "  approval-token: Required for human-approval transitions (CONTRACT_APPROVED, MERGE_READY, MERGED, CLOSED)"
+if [ -z "$FROM_STATE" ] || [ -z "$TO_STATE" ] || [ -z "$ACTOR" ] || [ -z "${REASON:-}" ]; then
+  echo "FAIL: Usage: $0 <from_state> <to_state> <actor> <reason> [approved_by] [approval_ref]"
+  echo "  actor: Who requested the transition (e.g. workflow-test, human:alice)"
+  echo "  reason: Short description of why"
+  echo "  approved_by: Required for human-gated transitions (format: human:username)"
+  echo "  approval_ref: URL or commit SHA for human-gated transitions"
   exit 1
 fi
 
-for tool in jq git; do
-  if ! command -v "$tool" &> /dev/null; then
+for tool in jq git node sha256sum; do
+  if ! command -v "$tool" &>/dev/null; then
     echo "FAIL: $tool is required"
     exit 1
   fi
-done
+done 2>/dev/null || true
+
+# Use shasum on macOS, sha256sum on Linux
+SHACMD="sha256sum"
+if ! command -v sha256sum &>/dev/null; then
+  if command -v shasum &>/dev/null; then
+    SHACMD="shasum -a 256"
+  else
+    echo "FAIL: No SHA-256 tool available"
+    exit 1
+  fi
+fi
 
 if [ ! -f "$STATE_FILE" ]; then
   echo "FAIL: State file not found: $STATE_FILE"
   exit 1
 fi
 
+# ── Fault injection guard (must be before any mutex or write) ─────────────
+SUPPORTED_FAULTS="before_history_replace after_state_replaced"
+if [ -n "${WORKFLOW_TEST_FAULT:-}" ]; then
+  if [ "${WORKFLOW_TEST_MODE:-0}" != "1" ]; then
+    echo "FAIL: WORKFLOW_TEST_FAULT requires WORKFLOW_TEST_MODE=1"
+    exit 1
+  fi
+  _fault_found=false
+  for sf in $SUPPORTED_FAULTS; do
+    if [ "$sf" = "$WORKFLOW_TEST_FAULT" ]; then _fault_found=true; break; fi
+  done
+  if [ "$_fault_found" != true ]; then
+    echo "FAIL: Unknown WORKFLOW_TEST_FAULT value '$WORKFLOW_TEST_FAULT'. Supported: $SUPPORTED_FAULTS"
+    exit 1
+  fi
+fi
+
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+TXID=$(node -e "console.log(require('crypto').randomUUID())" 2>/dev/null || echo "tx-$$-$(date +%s%N)")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WAL (Write-Ahead Log) Transaction
+# ══════════════════════════════════════════════════════════════════════════════
+
+WAL_DIR="checkpoints/.wal-${TXID}"
+
+# ── Helper: acquisition mutex (single atomic entry for all processes) ────────
+ACQUIRE_THRESHOLD=1800
+
+acquire_acquisition_mutex() {
+  local my_txid="$TXID"
+  if mkdir "$ACQUIRE_LOCK" 2>/dev/null; then
+    echo "$$" > "$ACQUIRE_LOCK/pid"
+    echo "$(hostname)" > "$ACQUIRE_LOCK/hostname"
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$ACQUIRE_LOCK/timestamp"
+    echo "$my_txid" > "$ACQUIRE_LOCK/txid"
+    ACQUISITION_OWNED=1
+    return 0
+  fi
+
+  # Lock exists — check staleness (fail-closed)
+  local apid ahost ats atxid
+  apid=$(cat "$ACQUIRE_LOCK/pid" 2>/dev/null || echo "")
+  ahost=$(cat "$ACQUIRE_LOCK/hostname" 2>/dev/null || echo "")
+  ats=$(cat "$ACQUIRE_LOCK/timestamp" 2>/dev/null || echo "")
+  atxid=$(cat "$ACQUIRE_LOCK/txid" 2>/dev/null || echo "")
+
+  for field in "$apid" "$ahost" "$ats" "$atxid"; do
+    if [ -z "$field" ]; then
+      echo "FAIL CRITICAL: Acquisition mutex metadata incomplete — manual intervention required"
+      exit 1
+    fi
+  done
+
+  if ! echo "$apid" | grep -qE '^[0-9]+$'; then
+    echo "FAIL CRITICAL: Acquisition mutex PID not numeric — manual intervention required"
+    exit 1
+  fi
+
+  if [ "$ahost" = "$(hostname)" ]; then
+    if kill -0 "$apid" 2>/dev/null; then
+      echo "FAIL: Acquisition mutex held by PID $apid since $ats"
+      exit 1
+    fi
+  else
+    local aepoch
+    aepoch=$(date -d "$ats" +%s 2>/dev/null || echo "0")
+    if [ "$aepoch" -eq 0 ]; then
+      echo "FAIL CRITICAL: Cannot parse acquisition mutex timestamp"
+      exit 1
+    fi
+    local aage=$(( $(date +%s) - aepoch ))
+    if [ "$aage" -le "$ACQUIRE_THRESHOLD" ]; then
+      echo "FAIL: Remote acquisition mutex PID $apid@$ahost age=${aage}s (threshold=$ACQUIRE_THRESHOLD)"
+      exit 1
+    fi
+  fi
+
+  # Stale — atomic rename (never rm another process's mutex)
+  local rpid rhost rts rtxid
+  rpid=$(cat "$ACQUIRE_LOCK/pid" 2>/dev/null || echo "")
+  rhost=$(cat "$ACQUIRE_LOCK/hostname" 2>/dev/null || echo "")
+  rts=$(cat "$ACQUIRE_LOCK/timestamp" 2>/dev/null || echo "")
+  rtxid=$(cat "$ACQUIRE_LOCK/txid" 2>/dev/null || echo "")
+  if [ "$rpid" != "$apid" ] || [ "$rhost" != "$ahost" ] || [ "$rts" != "$ats" ] || [ "$rtxid" != "$atxid" ]; then
+    echo "FAIL: Acquisition mutex re-acquired (metadata changed) during stale claim"
+    exit 1
+  fi
+
+  local stale_acquire="${ACQUIRE_LOCK}.stale.${atxid}.${apid}"
+  if ! mv "$ACQUIRE_LOCK" "$stale_acquire" 2>/dev/null; then
+    echo "FAIL: Cannot atomically claim stale acquisition mutex — re-acquired by another process"
+    exit 1
+  fi
+
+  if ! mkdir "$ACQUIRE_LOCK" 2>/dev/null; then
+    echo "FAIL CRITICAL: Cannot recreate acquisition mutex after atomic rename — restore required"
+    mv "$stale_acquire" "$ACQUIRE_LOCK" 2>/dev/null || true
+    exit 1
+  fi
+  ACQUISITION_OWNED=1
+  echo "$$" > "$ACQUIRE_LOCK/pid"
+  echo "$(hostname)" > "$ACQUIRE_LOCK/hostname"
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$ACQUIRE_LOCK/timestamp"
+  echo "$my_txid" > "$ACQUIRE_LOCK/txid"
+  rm -rf "$stale_acquire" 2>/dev/null || true
+  echo "WARN: Claimed stale acquisition mutex from PID $apid"
+  return 0
+}
+
+release_acquisition_mutex() {
+  local my_txid
+  my_txid=$(cat "$ACQUIRE_LOCK/txid" 2>/dev/null || echo "")
+  if [ "$my_txid" != "$TXID" ]; then
+    echo "FAIL CRITICAL: Acquisition mutex txid mismatch — not releasing"
+    exit 1
+  fi
+  rm -rf "$ACQUIRE_LOCK" 2>/dev/null || true
+}
+
+# ── Helper: acquire transition lock (must be called inside acquisition mutex) ─
+acquire_transition_lock() {
+  # Only check recovery lock — acquisition mutex prevents TOCTOU
+  local rl="checkpoints/.state-transition.recovery-lock"
+  if [ -d "$rl" ]; then
+    local rpid
+    rpid=$(cat "$rl/pid" 2>/dev/null || echo "0")
+    if [ "$rpid" != "0" ] && kill -0 "$rpid" 2>/dev/null; then
+      echo "FAIL: Recovery lock active (PID $rpid) — cannot create transition lock"
+      exit 1
+    fi
+    rm -rf "$rl"
+  fi
+
+  if mkdir "$LOCK_PATH" 2>/dev/null; then
+    echo "$$" > "$LOCK_PATH/pid"
+    echo "$(hostname)" > "$LOCK_PATH/hostname"
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$LOCK_PATH/timestamp"
+    echo "$TXID" > "$LOCK_PATH/txid"
+    TRANSITION_LOCK_OWNED=1
+    return 0
+  fi
+
+  # Lock exists — check staleness
+  local lpid lhost lts ltxid
+  lpid=$(cat "$LOCK_PATH/pid" 2>/dev/null || echo "")
+  lhost=$(cat "$LOCK_PATH/hostname" 2>/dev/null || echo "")
+  lts=$(cat "$LOCK_PATH/timestamp" 2>/dev/null || echo "")
+  ltxid=$(cat "$LOCK_PATH/txid" 2>/dev/null || echo "")
+
+  for field in "$lpid" "$lhost" "$lts" "$ltxid"; do
+    if [ -z "$field" ]; then
+      echo "FAIL CRITICAL: Transition lock metadata incomplete — manual intervention required"
+      exit 1
+    fi
+  done
+
+  if ! echo "$lpid" | grep -qE '^[0-9]+$'; then
+    echo "FAIL CRITICAL: Transition lock PID not numeric — manual intervention required"
+    exit 1
+  fi
+
+  if [ "$lhost" = "$(hostname)" ]; then
+    if kill -0 "$lpid" 2>/dev/null; then
+      echo "FAIL: Transition lock held by PID $lpid since $lts"
+      exit 1
+    fi
+  else
+    local lepoch
+    lepoch=$(date -d "$lts" +%s 2>/dev/null || echo "0")
+    [ "$lepoch" -eq 0 ] && { echo "FAIL CRITICAL: Cannot parse transition lock timestamp"; exit 1; }
+    local lage=$(( $(date +%s) - lepoch ))
+    if [ "$lage" -le 1800 ]; then
+      echo "FAIL: Remote transition lock PID $lpid@$lhost age=${lage}s (threshold=1800)"
+      exit 1
+    fi
+  fi
+
+  # Claim stale lock
+  local stale="${LOCK_PATH}.stale.${ltxid}.$$"
+  if ! mv "$LOCK_PATH" "$stale" 2>/dev/null; then
+    echo "FAIL: Cannot claim stale transition lock — re-acquired by another process"
+    exit 1
+  fi
+
+  mkdir "$LOCK_PATH"
+  TRANSITION_LOCK_OWNED=1
+  echo "$$" > "$LOCK_PATH/pid"
+  echo "$(hostname)" > "$LOCK_PATH/hostname"
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$LOCK_PATH/timestamp"
+  echo "$TXID" > "$LOCK_PATH/txid"
+  echo "RECOVERED" > "$LOCK_PATH/recovery"
+
+  # Check for multiple WAL directories (ambiguous state)
+  local wal_count
+  wal_count=$(find checkpoints -maxdepth 1 -name ".wal-*" -type d 2>/dev/null | wc -l)
+  if [ "$wal_count" -gt 1 ]; then
+    echo "FAIL CRITICAL: $wal_count WAL directories found — ambiguous state, manual intervention required"
+    TRANSITION_LOCK_OWNED=0
+    rm -rf "$LOCK_PATH"
+    mv "$stale" "$LOCK_PATH" 2>/dev/null || true
+    exit 1
+  fi
+
+  # Check for orphan or unrelated single WAL
+  local old_wal="checkpoints/.wal-${ltxid}"
+  if [ "$wal_count" -eq 1 ]; then
+    local found_wal
+    found_wal=$(find checkpoints -maxdepth 1 -name ".wal-*" -type d 2>/dev/null | head -1)
+    if [ "$found_wal" != "$old_wal" ] && [ -n "$found_wal" ]; then
+      echo "FAIL CRITICAL: Orphan WAL '$found_wal' does not match stale lock txid '$ltxid' — manual intervention required"
+      TRANSITION_LOCK_OWNED=0
+      rm -rf "$LOCK_PATH"
+      mv "$stale" "$LOCK_PATH" 2>/dev/null || true
+      exit 1
+    fi
+  fi
+
+  # Recover WAL matching stale lock's TXID
+  if [ -d "$old_wal" ]; then
+    recover_wal "$old_wal" "$ltxid"
+  fi
+
+  rm -rf "$stale"
+  echo "WARN: Stale transition lock recovered from PID $lpid"
+  return 0
+}
+
+release_transition_lock() {
+  local lock_txid
+  lock_txid=$(cat "$LOCK_PATH/txid" 2>/dev/null || echo "")
+  if [ "$lock_txid" != "$TXID" ]; then
+    echo "FAIL CRITICAL: Transition lock txid ($lock_txid) does not match our txid ($TXID) — not releasing"
+    exit 1
+  fi
+  rm -rf "$LOCK_PATH" 2>/dev/null || true
+}
+
+
+
+recover_wal() {
+  local d="$1"
+  local expected_txid="$2"
+  local mf="$d/manifest.json"
+  if [ ! -f "$mf" ]; then
+    echo "FAIL CRITICAL: WAL directory '$d' missing manifest.json — manual intervention required"
+    exit 1
+  fi
+  local phase
+  phase=$(jq -r '.phase // "UNKNOWN"' "$mf")
+
+  # Verify WAL txid matches expected txid
+  local wal_txid
+  wal_txid=$(jq -r '.txid // ""' "$mf")
+  if [ "$wal_txid" != "$expected_txid" ]; then
+    echo "FAIL CRITICAL: WAL txid '$wal_txid' != expected txid '$expected_txid'"
+    exit 1
+  fi
+
+  local orig_state_sha
+  orig_state_sha=$(jq -r '.state_sha256_orig // ""' "$mf")
+  local orig_history_sha
+  orig_history_sha=$(jq -r '.history_sha256_orig // ""' "$mf")
+
+  case "$phase" in
+    PREPARED)
+      # PREPARED must have both original files and both hashes
+      if [ ! -f "$d/state.json.orig" ] || [ ! -f "$d/history.jsonl.orig" ]; then
+        echo "FAIL CRITICAL: PREPARED WAL missing orig files — manual intervention"
+        exit 1
+      fi
+      if [ -z "$orig_state_sha" ] || [ -z "$orig_history_sha" ]; then
+        echo "FAIL CRITICAL: PREPARED WAL missing orig hashes in manifest — manual intervention"
+        exit 1
+      fi
+      # Verify target files still match original hashes before discarding
+      local actual_state_sha
+      actual_state_sha=$($SHACMD < checkpoints/STATE.json 2>/dev/null | cut -d' ' -f1 || echo "")
+      if [ "$actual_state_sha" != "$orig_state_sha" ]; then
+        echo "FAIL CRITICAL: PREPARED WAL target STATE hash mismatch — manual intervention"
+        exit 1
+      fi
+      local actual_history_sha
+      actual_history_sha=$($SHACMD < checkpoints/STATE_HISTORY.jsonl 2>/dev/null | cut -d' ' -f1 || echo "")
+      if [ "$actual_history_sha" != "$orig_history_sha" ]; then
+        echo "FAIL CRITICAL: PREPARED WAL target HISTORY hash mismatch — manual intervention"
+        exit 1
+      fi
+      rm -rf "$d"
+      echo "WAL RECOVERY: Discarded PREPARED WAL $expected_txid"
+      ;;
+    COMMITTING|STATE_REPLACED)
+      if [ ! -f "$d/state.json.orig" ] || [ ! -f "$d/history.jsonl.orig" ]; then
+        echo "FAIL CRITICAL: $phase WAL missing orig files — manual intervention"
+        exit 1
+      fi
+      if [ -z "$orig_state_sha" ] || [ -z "$orig_history_sha" ]; then
+        echo "FAIL CRITICAL: $phase WAL missing orig hashes in manifest — manual intervention"
+        exit 1
+      fi
+      # Verify target files still match original hashes before restore
+      local pre_state_sha
+      pre_state_sha=$($SHACMD < checkpoints/STATE.json 2>/dev/null | cut -d' ' -f1 || echo "")
+      local pre_history_sha
+      pre_history_sha=$($SHACMD < checkpoints/STATE_HISTORY.jsonl 2>/dev/null | cut -d' ' -f1 || echo "")
+      if [ "$pre_state_sha" != "$orig_state_sha" ] && [ "$pre_state_sha" != "$(jq -r '.state_sha256_new // ""' "$mf")" ]; then
+        echo "FAIL CRITICAL: $phase WAL target STATE ($pre_state_sha) differs from orig ($orig_state_sha) and new — manual intervention"
+        exit 1
+      fi
+      if [ "$pre_history_sha" != "$orig_history_sha" ] && [ "$pre_history_sha" != "$(jq -r '.history_sha256_new // ""' "$mf")" ]; then
+        echo "FAIL CRITICAL: $phase WAL target HISTORY ($pre_history_sha) differs from orig ($orig_history_sha) and new — manual intervention"
+        exit 1
+      fi
+      # Restore originals
+      cp "$d/state.json.orig" checkpoints/STATE.json
+      cp "$d/history.jsonl.orig" checkpoints/STATE_HISTORY.jsonl
+      # Verify restored hashes
+      local restored_state_sha
+      restored_state_sha=$($SHACMD < checkpoints/STATE.json 2>/dev/null | cut -d' ' -f1 || echo "")
+      local restored_history_sha
+      restored_history_sha=$($SHACMD < checkpoints/STATE_HISTORY.jsonl 2>/dev/null | cut -d' ' -f1 || echo "")
+      if [ "$orig_state_sha" != "$restored_state_sha" ]; then
+        echo "FAIL CRITICAL: $phase WAL restore STATE hash mismatch — manual intervention"
+        exit 1
+      fi
+      if [ "$orig_history_sha" != "$restored_history_sha" ]; then
+        echo "FAIL CRITICAL: $phase WAL restore HISTORY hash mismatch — manual intervention"
+        exit 1
+      fi
+      rm -rf "$d"
+      echo "WAL RECOVERY: Restored and verified originals from $phase WAL $expected_txid"
+      ;;
+    COMMITTED)
+      local expected_state
+      expected_state=$(jq -r '.state_sha256_new // ""' "$mf")
+      local expected_history
+      expected_history=$(jq -r '.history_sha256_new // ""' "$mf")
+      if [ -z "$expected_state" ] || [ -z "$expected_history" ]; then
+        echo "FAIL CRITICAL: COMMITTED WAL hashes are empty — manual intervention required"
+        exit 1
+      fi
+      local actual_state
+      actual_state=$($SHACMD < checkpoints/STATE.json 2>/dev/null | cut -d' ' -f1 || echo "")
+      local actual_history
+      actual_history=$($SHACMD < checkpoints/STATE_HISTORY.jsonl 2>/dev/null | cut -d' ' -f1 || echo "")
+      if [ "$expected_state" != "$actual_state" ]; then
+        echo "FAIL CRITICAL: COMMITTED WAL state SHA mismatch — manual intervention"
+        exit 1
+      fi
+      if [ "$expected_history" != "$actual_history" ]; then
+        echo "FAIL CRITICAL: COMMITTED WAL history SHA mismatch — manual intervention"
+        exit 1
+      fi
+      rm -rf "$d"
+      echo "WAL RECOVERY: Verified COMMITTED WAL $expected_txid"
+      ;;
+    *)
+      echo "FAIL CRITICAL: Unknown WAL phase '$phase' — manual intervention"
+      exit 1
+      ;;
+  esac
+}
+
+# ── Helper: rollback ────────────────────────────────────────────────────────
+rollback() {
+  echo "ROLLBACK: Recovering from WAL $WAL_DIR"
+  [ -f "$WAL_DIR/state.json.orig" ] && cp "$WAL_DIR/state.json.orig" "$STATE_FILE"
+  [ -f "$WAL_DIR/history.jsonl.orig" ] && cp "$WAL_DIR/history.jsonl.orig" "$HISTORY_FILE"
+  rm -rf "$WAL_DIR" 2>/dev/null || true
+  release_transition_lock
+  echo "FAIL: Transition rolled back"
+  exit 1
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TRANSACTION BODY
+# ══════════════════════════════════════════════════════════════════════════════
+
+ACQUISITION_OWNED=0
+TRANSITION_LOCK_OWNED=0
+WAL_CREATED=0
+TRANSACTION_COMMITTED=0
+
+cleanup_all() {
+  if [ "$WAL_CREATED" = "1" ] && [ "$TRANSACTION_COMMITTED" = "0" ]; then
+    if [ -d "$WAL_DIR" ]; then
+      rollback
+    fi
+  fi
+  if [ "$TRANSITION_LOCK_OWNED" = "1" ] && [ -d "$LOCK_PATH" ]; then
+    release_transition_lock 2>/dev/null || true
+  fi
+  if [ "$ACQUISITION_OWNED" = "1" ] && [ -d "$ACQUIRE_LOCK" ]; then
+    release_acquisition_mutex 2>/dev/null || true
+  fi
+}
+trap cleanup_all EXIT
+
+# Step 1: Acquire acquisition mutex (single atomic entry point)
+acquire_acquisition_mutex
+
+# Step 2: Inside acquisition mutex, acquire or claim transition lock
+acquire_transition_lock
+
+# Step 3: Release acquisition mutex — transition lock ownership is established
+release_acquisition_mutex
+ACQUISITION_OWNED=0
+
+# ── Read state after lock (WAL recovery may have modified STATE.json) ─────
 CURRENT=$(jq -r '.lifecycle_status' "$STATE_FILE")
 CHECKPOINT_ID=$(jq -r '.checkpoint_id' "$STATE_FILE")
 CURRENT_HEAD=$(git rev-parse HEAD)
@@ -38,15 +460,15 @@ EXISTING_CANDIDATE=$(jq -r '.candidate_sha // "null"' "$STATE_FILE")
 EXISTING_REVIEWED=$(jq -r '.reviewed_sha // "null"' "$STATE_FILE")
 
 if [ "$CURRENT" != "$FROM_STATE" ]; then
-  echo "FAIL: Current state is '$CURRENT', expected '$FROM_STATE'"
+  echo "FAIL: State changed during lock acquisition: current='$CURRENT', expected='$FROM_STATE'"
   exit 1
 fi
 
+# ── Validate transition ─────────────────────────────────────────────────────
 ALLOWED=0
 while IFS=: read -r FROM TO; do
   if [ "$FROM" = "$FROM_STATE" ] && [ "$TO" = "$TO_STATE" ]; then
-    ALLOWED=1
-    break
+    ALLOWED=1; break
   fi
 done <<'TRANSITIONS'
 ROADMAP_DEFINED:CONTRACT_DRAFTED
@@ -74,85 +496,209 @@ if [ "$ALLOWED" -eq 0 ]; then
   exit 1
 fi
 
+# ── Human approval check ────────────────────────────────────────────────────
 HUMAN_TRANSITIONS="CONTRACT_APPROVED MERGE_READY MERGED CLOSED"
 for ht in $HUMAN_TRANSITIONS; do
   if [ "$TO_STATE" = "$ht" ]; then
-    if [[ ! "$ACTOR" =~ ^human: ]] && [[ ! "$ACTOR" =~ ^[Hh]uman ]] && [ -z "$APPROVAL" ]; then
-      echo "FAIL: Transition to '$TO_STATE' requires human approval"
-      echo "FAIL: ACTOR must be a human identifier (e.g. 'human:alice') or provide approval-token as 5th argument"
+    if [ -z "$APPROVED_BY" ] || ! echo "$APPROVED_BY" | grep -qE '^human:[A-Za-z0-9._-]+$'; then
+      echo "FAIL: Transition to '$TO_STATE' requires approved_by matching '^human:[A-Za-z0-9._-]+\$'"
       exit 1
     fi
-    echo "OK: Human approval confirmed for transition to $TO_STATE"
+    if [ -z "$APPROVAL_REF" ]; then
+      echo "FAIL: Transition to '$TO_STATE' requires approval_ref"
+      exit 1
+    fi
+    if ! echo "$APPROVAL_REF" | grep -qE '^https?://' && ! echo "$APPROVAL_REF" | grep -qE '^[0-9a-f]{40}$'; then
+      echo "FAIL: approval_ref must be HTTP/HTTPS URL or 40-char hex SHA"
+      exit 1
+    fi
+    echo "OK: Human approval confirmed: $APPROVED_BY (ref: $APPROVAL_REF)"
     break
   fi
 done
 
-if [[ "$FROM_STATE" =~ ^(HERMES_VERIFIED|WAITING_FOR_SEMANTIC_REVIEW|SEMANTIC_APPROVED)$ ]]; then
+# ── Compute new SHA values ──────────────────────────────────────────────────
+NEW_CANDIDATE="$EXISTING_CANDIDATE"
+NEW_REVIEWED="$EXISTING_REVIEWED"
+INVALIDATION_OCCURRED=false
+
+if echo "$FROM_STATE" | grep -qE '^(HERMES_VERIFIED|WAITING_FOR_SEMANTIC_REVIEW|SEMANTIC_APPROVED)$'; then
   if [ "$EXISTING_REVIEWED" != "null" ] && [ "$EXISTING_REVIEWED" != "$CURRENT_HEAD" ]; then
-    echo "WARNING: HEAD has changed since reviewed_sha was set. Clearing reviewed_sha and candidate_sha."
+    echo "WARNING: HEAD changed since review ($EXISTING_REVIEWED -> $CURRENT_HEAD). Invalidating."
     NEW_CANDIDATE="null"
     NEW_REVIEWED="null"
-  else
-    NEW_CANDIDATE="$EXISTING_CANDIDATE"
-    NEW_REVIEWED="$EXISTING_REVIEWED"
+    TO_STATE="IMPLEMENTING"
+    INVALIDATION_OCCURRED=true
   fi
-else
-  NEW_CANDIDATE="$EXISTING_CANDIDATE"
-  NEW_REVIEWED="$EXISTING_REVIEWED"
 fi
 
-if [ "$TO_STATE" = "IMPLEMENTING" ] || [ "$TO_STATE" = "CI_PENDING" ]; then
+if [ "$INVALIDATION_OCCURRED" != true ] && { [ "$TO_STATE" = "IMPLEMENTING" ] || [ "$TO_STATE" = "CI_PENDING" ]; }; then
   NEW_CANDIDATE="$CURRENT_HEAD"
 fi
 
 if [ "$TO_STATE" = "HERMES_VERIFIED" ]; then
-  NEW_REVIEWED="$CURRENT_HEAD"
   NEW_CANDIDATE="$CURRENT_HEAD"
+  NEW_REVIEWED="$CURRENT_HEAD"
 fi
 
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+# Step 4: Create WAL directory
+mkdir "$WAL_DIR"
+WAL_CREATED=1
 
-BACKUP="${STATE_FILE}.backup.$$"
-cp "$STATE_FILE" "$BACKUP"
+# Step 3: Backup originals
+cp "$STATE_FILE" "$WAL_DIR/state.json.orig"
+cp "$HISTORY_FILE" "$WAL_DIR/history.jsonl.orig"
 
+STATE_ORIG_SHA=$($SHACMD < "$WAL_DIR/state.json.orig" | cut -d' ' -f1)
+HISTORY_ORIG_SHA=$($SHACMD < "$WAL_DIR/history.jsonl.orig" | cut -d' ' -f1)
+
+# Step 4: Write manifest — PHASE: PREPARED
+cat > "$WAL_DIR/manifest.json" <<MANIFEST
+{
+  "txid": "$TXID",
+  "pid": $$,
+  "hostname": "$(hostname)",
+  "timestamp": "$TIMESTAMP",
+  "phase": "PREPARED",
+  "from_state": "$FROM_STATE",
+  "to_state": "$TO_STATE",
+  "state_sha256_orig": "$STATE_ORIG_SHA",
+  "state_sha256_new": "",
+  "history_sha256_orig": "$HISTORY_ORIG_SHA",
+  "history_sha256_new": "",
+  "head_sha": "$CURRENT_HEAD"
+}
+MANIFEST
+
+# Step 5: Build new state content
 jq \
   --arg new_status "$TO_STATE" \
-  --arg candidate "$NEW_CANDIDATE" \
-  --arg reviewed "$NEW_REVIEWED" \
-  --arg timestamp "$TIMESTAMP" \
+  --arg candidate "${NEW_CANDIDATE:-null}" \
+  --arg reviewed "${NEW_REVIEWED:-null}" \
+  --arg ts "$TIMESTAMP" \
   '.lifecycle_status = $new_status
    | .candidate_sha = (if $candidate == "null" then null else $candidate end)
    | .reviewed_sha = (if $reviewed == "null" then null else $reviewed end)
-   | .last_updated = $timestamp' \
-  "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+   | .last_updated = $ts' \
+  "$WAL_DIR/state.json.orig" > "$WAL_DIR/state.json.new"
 
-if ! jq '.' "$STATE_FILE" &>/dev/null; then
-  echo "FAIL: Updated STATE.json is not valid JSON"
-  mv "$BACKUP" "$STATE_FILE"
-  rm -f "$BACKUP" "${STATE_FILE}.tmp"
-  exit 1
-fi
-
-HISTORY_LINE=$(jq -n \
+# Step 6: Build new history content (original + new line)
+HISTORY_LINE=$(jq -nc \
   --arg ts "$TIMESTAMP" \
   --arg from "$FROM_STATE" \
   --arg to "$TO_STATE" \
   --arg cid "$CHECKPOINT_ID" \
   --arg actor "$ACTOR" \
   --arg sha "$CURRENT_HEAD" \
+  --arg cand "${NEW_CANDIDATE:-null}" \
+  --arg rev "${NEW_REVIEWED:-null}" \
   --arg reason "${REASON:-Transition executed}" \
-  '{timestamp: $ts, from: $from, to: $to, checkpoint_id: $cid, actor: $actor, head_sha: $sha, reason: $reason}')
+  --arg approved_by "${APPROVED_BY:-}" \
+  --arg approval_ref "${APPROVAL_REF:-}" \
+  '{
+    timestamp: $ts,
+    from: $from,
+    to: $to,
+    checkpoint_id: $cid,
+    actor: $actor,
+    head_sha: $sha,
+    candidate_sha: (if $cand == "null" then null else $cand end),
+    reviewed_sha: (if $rev == "null" then null else $rev end),
+    reason: $reason,
+    approved_by: (if $approved_by == "" then null else $approved_by end),
+    approval_ref: (if $approval_ref == "" then null else $approval_ref end)
+  }')
 
-if ! echo "$HISTORY_LINE" >> "$HISTORY_FILE"; then
-  echo "FAIL: Could not append to history file"
-  mv "$BACKUP" "$STATE_FILE"
-  rm -f "$BACKUP" "${STATE_FILE}.tmp"
-  exit 1
+cp "$WAL_DIR/history.jsonl.orig" "$WAL_DIR/history.jsonl.new"
+echo "$HISTORY_LINE" >> "$WAL_DIR/history.jsonl.new"
+
+# If invalidation occurred, append invalidation line to staged history
+if [ "$INVALIDATION_OCCURRED" = true ]; then
+  INVALIDATION_LINE=$(jq -nc \
+    --arg ts "$TIMESTAMP" \
+    --arg from "$FROM_STATE" \
+    --arg to "IMPLEMENTING" \
+    --arg cid "$CHECKPOINT_ID" \
+    --arg actor "system" \
+    --arg sha "$CURRENT_HEAD" \
+    --arg reason "HEAD changed from $EXISTING_REVIEWED to $CURRENT_HEAD — approval invalidated" \
+    '{timestamp: $ts, from: $from, to: $to, checkpoint_id: $cid, actor: $actor, head_sha: $sha, candidate_sha: null, reviewed_sha: null, approved_by: null, approval_ref: null, reason: $reason}')
+  echo "$INVALIDATION_LINE" >> "$WAL_DIR/history.jsonl.new"
 fi
 
-rm -f "$BACKUP"
+# Step 7: Validate staged files
+node -e "JSON.parse(require('fs').readFileSync('$WAL_DIR/state.json.new','utf8'))" || {
+  echo "FAIL: Staged STATE.json is not valid JSON"
+  rollback
+}
+
+node -e "
+  var lines = require('fs').readFileSync('$WAL_DIR/history.jsonl.new','utf8').split('\n').filter(function(l){return l.trim()!=''});
+  lines.forEach(function(l,i){
+    try{JSON.parse(l)}catch(e){throw new Error('Line '+(i+1)+' invalid JSONL: '+e.message)}
+  });
+" || {
+  echo "FAIL: Staged HISTORY is not valid JSONL"
+  rollback
+}
+
+# Compute new SHA-256 values
+STATE_NEW_SHA=$($SHACMD < "$WAL_DIR/state.json.new" | cut -d' ' -f1)
+HISTORY_NEW_SHA=$($SHACMD < "$WAL_DIR/history.jsonl.new" | cut -d' ' -f1)
+
+# Step 8: Update manifest — PHASE: COMMITTING (first replace target)
+jq --arg ns "$STATE_NEW_SHA" --arg nh "$HISTORY_NEW_SHA" \
+  '.phase = "COMMITTING" | .state_sha256_new = $ns | .history_sha256_new = $nh' \
+  "$WAL_DIR/manifest.json" > "$WAL_DIR/manifest.tmp" && mv "$WAL_DIR/manifest.tmp" "$WAL_DIR/manifest.json"
+
+# Fault injection: after_state_replaced (for test_25 write-failure simulation)
+if [ "${WORKFLOW_TEST_MODE:-0}" = "1" ] && [ "${WORKFLOW_TEST_FAULT:-}" = "after_state_replaced" ]; then
+  echo "TEST FAULT: after_state_replaced — simulating failure before history replace"
+  rm -f "$WAL_DIR/history.jsonl.new"
+  echo "TEST FAULT: history.jsonl.new removed"
+fi
+
+# Step 9: Replace STATE.json
+if ! cp "$WAL_DIR/state.json.new" "$STATE_FILE"; then
+  echo "FAIL: Could not write STATE.json"
+  rollback
+fi
+
+# Step 10: Update manifest — PHASE: STATE_REPLACED
+jq '.phase = "STATE_REPLACED"' "$WAL_DIR/manifest.json" > "$WAL_DIR/manifest.tmp" && mv "$WAL_DIR/manifest.tmp" "$WAL_DIR/manifest.json"
+
+# Fault injection: before_history_replace (for test_18 real rollback test)
+if [ "${WORKFLOW_TEST_MODE:-0}" = "1" ] && [ "${WORKFLOW_TEST_FAULT:-}" = "before_history_replace" ]; then
+  echo "TEST FAULT: before_history_replace — removing history.jsonl.new"
+  rm -f "$WAL_DIR/history.jsonl.new"
+fi
+# Step 11: Replace HISTORY
+if ! cp "$WAL_DIR/history.jsonl.new" "$HISTORY_FILE"; then
+  echo "FAIL: Could not write HISTORY"
+  rollback
+fi
+
+# Step 12: Update manifest — PHASE: COMMITTED
+jq '.phase = "COMMITTED"' "$WAL_DIR/manifest.json" > "$WAL_DIR/manifest.tmp" && mv "$WAL_DIR/manifest.tmp" "$WAL_DIR/manifest.json"
+TRANSACTION_COMMITTED=1
+
+# Step 13: Verify target hashes
+VERIFY_STATE=$($SHACMD < "$STATE_FILE" | cut -d' ' -f1)
+VERIFY_HISTORY=$($SHACMD < "$HISTORY_FILE" | cut -d' ' -f1)
+
+if [ "$VERIFY_STATE" != "$STATE_NEW_SHA" ]; then
+  echo "FAIL CRITICAL: STATE.json hash mismatch after write"
+  rollback
+fi
+if [ "$VERIFY_HISTORY" != "$HISTORY_NEW_SHA" ]; then
+  echo "FAIL CRITICAL: HISTORY hash mismatch after write"
+  rollback
+fi
+
+# Step 14: Cleanup
+rm -rf "$WAL_DIR"
 
 echo "OK: State transitioned: $FROM_STATE -> $TO_STATE"
-echo "OK: History appended to $HISTORY_FILE"
+echo "OK: History appended"
 echo "PASS: transition-state"
 exit 0

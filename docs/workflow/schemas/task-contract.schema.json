@@ -3,6 +3,7 @@
   "$id": "docs/workflow/schemas/task-contract.schema.json",
   "title": "Checkpoint Task Contract",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "CHECKPOINT_ID", "TITLE", "LIFECYCLE_STATUS", "BASE_SHA",
     "SCOPE", "ALLOWED_PATHS", "FORBIDDEN_PATHS",
@@ -36,10 +37,11 @@
     },
     "SCOPE": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["TARGET_ROUTE", "TARGET_VIEWPORT", "ACCEPTANCE_GATE"],
       "properties": {
-        "TARGET_ROUTE": { "type": "string" },
-        "TARGET_VIEWPORT": { "type": "string" },
+        "TARGET_ROUTE": { "type": "string", "minLength": 1 },
+        "TARGET_VIEWPORT": { "type": "string", "minLength": 1 },
         "SCROLL_Y": { "type": "integer" },
         "ACCEPTANCE_GATE": { "type": "string", "minLength": 1 },
         "VISIBLE_SECTIONS": { "type": "array", "items": { "type": "string" } }
@@ -54,13 +56,33 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["command", "expected_exit_code"],
+        "required": ["command", "args", "expected_exit_code"],
         "properties": {
-          "command": { "type": "string", "minLength": 1 },
+          "command": {
+            "type": "string",
+            "enum": ["node", "php", "bash"]
+          },
+          "args": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
           "expected_exit_code": { "type": "integer" }
         }
       }
     },
-    "REQUIRED_EVIDENCE": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+    "REQUIRED_EVIDENCE": {
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "required": ["id", "path"],
+    "additionalProperties": false,
+    "properties": {
+      "id": { "type": "string", "minLength": 1 },
+      "path": { "type": "string", "minLength": 1 }
+    }
+  }
+}
   }
 }

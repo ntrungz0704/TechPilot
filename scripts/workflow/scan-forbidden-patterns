@@ -5,7 +5,6 @@ STATE_FILE="checkpoints/STATE.json"
 CONTRACT="${1:-checkpoints/CP03/TASK_CONTRACT.yaml}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YAML_PARSER="$SCRIPT_DIR/lib/yaml-to-json.js"
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
   echo "Usage: $0 [contract-path]"
@@ -34,13 +33,32 @@ esac
 if [ "$PRE_APPROVAL" = true ]; then
   echo "OK: Mode: pre-approval (workflow infrastructure files only)"
 
-  if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ] || ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
-    echo "OK: No valid base_sha for diff — nothing to scan"
-    echo "PASS: scan-forbidden-patterns"
-    exit 0
+  if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ]; then
+    echo "FAIL: No base_sha for diff"
+    exit 1
+  fi
+  if echo "$BASE_SHA" | grep -qE '^0{40}$'; then
+    echo "FAIL: Base SHA is all-zeros"
+    exit 1
+  fi
+  if ! git rev-parse --verify "${BASE_SHA}^{commit}" &>/dev/null; then
+    echo "FAIL: Base SHA '$BASE_SHA' is not a valid commit"
+    exit 1
   fi
 
-  WORKFLOW_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null | grep -E '^(scripts/workflow/|\.opencode/|AGENTS\.md|checkpoints/|docs/workflow/|tests/workflow/)' || true)
+  WORKFLOW_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>&1) || {
+    echo "FAIL: git diff failed for ${BASE_SHA}...${HEAD_SHA}"
+    exit 1
+  }
+  if ! FILTERED=$(echo "$WORKFLOW_FILES" | grep -E '^(scripts/workflow/|\.opencode/|AGENTS\.md|checkpoints/|docs/workflow/|tests/workflow/)' 2>/dev/null); then
+    GREP_RC=$?
+    if [ "$GREP_RC" -ne 1 ]; then
+      echo "FAIL: grep error (exit $GREP_RC)"
+      exit 1
+    fi
+    FILTERED=""
+  fi
+  WORKFLOW_FILES="$FILTERED"
 
   if [ -z "$WORKFLOW_FILES" ]; then
     echo "OK: No workflow infrastructure files changed — nothing to scan"
@@ -58,7 +76,7 @@ if [ "$PRE_APPROVAL" = true ]; then
     [ ! -f "$f" ] && continue
     if echo "$f" | grep -q 'scan-forbidden-patterns$'; then continue; fi
 
-    if grep -qnE '[A-Za-z]:\\' "$f" 2>/dev/null; then
+    if grep -qnE '(^|[^[:alnum:]_])[A-Za-z]:[\\/]' "$f" 2>/dev/null; then
       echo "VIOLATION: Absolute Windows path in $f"
       VIOLATIONS=$((VIOLATIONS + 1))
     fi
@@ -99,7 +117,20 @@ fi
 
 echo "OK: Scanning diff $BASE_SHA...$HEAD_SHA"
 
-DIFF_OUTPUT=$(git diff "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true)
+# Validate base SHA is a valid commit
+if echo "$BASE_SHA" | grep -qE '^0{40}$'; then
+  echo "FAIL: Base SHA is all-zeros — invalid reference"
+  exit 1
+fi
+if ! git rev-parse --verify "${BASE_SHA}^{commit}" &>/dev/null; then
+  echo "FAIL: Base SHA '$BASE_SHA' is not a valid commit"
+  exit 1
+fi
+
+DIFF_OUTPUT=$(git diff "${BASE_SHA}...${HEAD_SHA}" 2>&1) || {
+  echo "FAIL: git diff failed for ${BASE_SHA}...${HEAD_SHA}"
+  exit 1
+}
 
 if [ -z "$DIFF_OUTPUT" ]; then
   echo "OK: No diff content to scan"
@@ -107,11 +138,21 @@ if [ -z "$DIFF_OUTPUT" ]; then
   exit 0
 fi
 
-CHANGED_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null || true)
+CHANGED_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>&1) || {
+  echo "FAIL: git diff --name-only failed for ${BASE_SHA}...${HEAD_SHA}"
+  exit 1
+}
 
 VIOLATIONS=0
 
-ADDED_LINES=$(echo "$DIFF_OUTPUT" | grep "^\+" | grep -v "^+++" || true)
+if ! ADDED_LINES=$(echo "$DIFF_OUTPUT" | grep "^\+" | grep -v "^+++" 2>/dev/null); then
+  GREP_RC=$?
+  if [ "$GREP_RC" -ne 1 ]; then
+    echo "FAIL: grep error (exit $GREP_RC)"
+    exit 1
+  fi
+  ADDED_LINES=""
+fi
 
 if echo "$ADDED_LINES" | grep -v 'scan-forbidden-patterns' | grep -v 'grep.*debugger' | grep -qE '^\+\s*debugger;' 2>/dev/null; then
   echo "VIOLATION: debugger; statement found in diff"
@@ -123,10 +164,20 @@ while IFS= read -r f; do
   [ -z "$f" ] && continue
   if echo "$f" | grep -q 'scan-forbidden-patterns$'; then continue; fi
 
-  FILE_DIFF=$(git diff "${BASE_SHA}...${HEAD_SHA}" -- "$f" 2>/dev/null || true)
-  FILE_ADDED=$(echo "$FILE_DIFF" | grep "^\+" | grep -v "^+++" || true)
+  FILE_DIFF=$(git diff "${BASE_SHA}...${HEAD_SHA}" -- "$f" 2>&1) || {
+    echo "FAIL: Cannot diff file $f"
+    exit 1
+  }
+  if ! FILE_ADDED=$(echo "$FILE_DIFF" | grep "^\+" | grep -v "^+++" 2>/dev/null); then
+    GREP_RC=$?
+    if [ "$GREP_RC" -ne 1 ]; then
+      echo "FAIL: grep error (exit $GREP_RC)"
+      exit 1
+    fi
+    FILE_ADDED=""
+  fi
 
-  if echo "$FILE_ADDED" | grep -qE '[A-Za-z]:\\' 2>/dev/null; then
+  if echo "$FILE_ADDED" | grep -qE '(^|[^[:alnum:]_])[A-Za-z]:[\\/]' 2>/dev/null; then
     echo "VIOLATION: Absolute Windows path in $f"
     VIOLATIONS=$((VIOLATIONS + 1))
   fi

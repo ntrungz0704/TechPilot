@@ -31,6 +31,7 @@ OUT_OF_SCOPE:
 ALLOWED_PATHS:
   - app/views/home/index.php
   - public/assets/css/style.css
+  - public/assets/js/main.js
   - tests/browser/home_first_fold.spec.js
   - checkpoints/CP03/IMPLEMENTATION_HANDOFF.json
   - checkpoints/CP03/evidence/**
@@ -59,17 +60,24 @@ ACCEPTANCE_CRITERIA:
   - "Zero console errors"
   - "Zero uncaught page errors"
   - "All existing PHP tests pass with exit code 0"
+  - "Flash countdown must not cause Temporal Dead Zone or create interval after countdown expired"
+  - "bash tests/browser/serve-and-test.sh exit 0"
+  - "php tests/CatalogGroupTest.php exit 0 with catalog_ci.sql fixture"
 
 REQUIRED_TESTS:
-  - command: "node tests/browser/home_first_fold.spec.js"
+  - command: bash
+    args:
+      - tests/browser/serve-and-test.sh
     expected_exit_code: 0
-  - command: "php tests/CatalogGroupTest.php"
+  - command: php
+    args:
+      - tests/CatalogGroupTest.php
     expected_exit_code: 0
 
 REQUIRED_EVIDENCE:
-  - "Screenshot of homepage at 1366x768, scrollY=0"
-  - "Screenshot showing all visible sections"
-  - "Console error log showing zero errors"
-  - "featuresBar.getBoundingClientRect().bottom measurement"
-  - "changed-files report matching handoff"
-  - "All test commands, results, and exit codes"
+  - id: homepage_screenshot
+    path: checkpoints/CP03/evidence/homepage-1366x768.png
+  - id: geometry_gate
+    path: checkpoints/CP03/evidence/geometry-gate.json
+  - id: test_summary
+    path: checkpoints/CP03/evidence/test-summary.txt
