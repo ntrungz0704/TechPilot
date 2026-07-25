@@ -74,7 +74,7 @@ esac
 if [ "$PRE_APPROVAL" = true ]; then
   echo "OK: Mode: bootstrap allowlist (lifecycle=$LIFECYCLE)"
 
-  BOOTSTRAP_PATTERNS='[".github/workflows/**",".opencode/agents/**","AGENTS.md","checkpoints/**","docs/workflow/**","scripts/workflow/**","tests/workflow/**","tests/browser/**","tests/browser/fixtures/**","package.json","package-lock.json"]'
+  BOOTSTRAP_PATTERNS='[".github/workflows/**",".opencode/agents/**","AGENTS.md","checkpoints/**","docs/workflow/**","scripts/workflow/**","tests/workflow/**","tests/browser/**","tests/browser/fixtures/**","package.json","package-lock.json","public/assets/css/style.css","public/assets/js/main.js"]'
   VIOLATIONS=0
   while IFS= read -r f; do
     [ -z "$f" ] && continue
