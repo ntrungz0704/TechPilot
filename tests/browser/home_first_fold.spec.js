@@ -24,6 +24,120 @@ if (!BASE_URL) {
 
 const EVIDENCE_DIR = path.resolve(__dirname, '../../checkpoints/CP03/evidence');
 
+async function runCountdownScenario(options) {
+  const name = options.name;
+  const endTime = options.endTime;
+  const expectedHours = options.expectedHours;
+  const expectedMinutes = options.expectedMinutes;
+  const expectedSeconds = options.expectedSeconds;
+  const expectIntervalCalls = 0;
+
+  console.log('=== COUNTDOWN SCENARIO: ' + name + ' ===');
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  const consoleErrors = [];
+  const pageErrors = [];
+
+  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  page.on('pageerror', err => { pageErrors.push(err.message); });
+
+  let passed = true;
+  try {
+    await page.setRequestInterception(true);
+    page.on('request', req => {
+      const url = new URL(req.url());
+      if (url.pathname === '/__cp03-countdown-test') {
+        req.respond({
+          status: 200,
+          contentType: 'text/html',
+          body: '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
+            '<div id="flashCountdown" data-end-time="' + endTime + '">' +
+            '<div id="cd-h">--</div><div id="cd-m">--</div><div id="cd-s">--</div>' +
+            '</div>' +
+            '<script>window.__countdownIntervalCalls = 0;' +
+            'var __origSI = window.setInterval;' +
+            'window.setInterval = function(fn, ms) {' +
+            '  window.__countdownIntervalCalls++; return __origSI(fn, ms);' +
+            '};</script>' +
+            '</body></html>'
+        });
+      } else { req.continue(); }
+    });
+
+    const mainJs = fs.readFileSync(
+      path.resolve(__dirname, '../../public/assets/js/main.js'), 'utf8'
+    );
+
+    const testUrl = new URL('/__cp03-countdown-test', BASE_URL).toString();
+    await page.goto(testUrl, { waitUntil: 'domcontentloaded' });
+    await page.addScriptTag({ content: mainJs });
+    await page.evaluate(() => { document.dispatchEvent(new Event('DOMContentLoaded')); });
+    await new Promise(r => setTimeout(r, 200));
+
+    const state = await page.evaluate(() => {
+      const h = document.getElementById('cd-h');
+      const m = document.getElementById('cd-m');
+      const s = document.getElementById('cd-s');
+      return {
+        hours: h ? h.textContent : '',
+        minutes: m ? m.textContent : '',
+        seconds: s ? s.textContent : '',
+        intervalCalls: window.__countdownIntervalCalls || 0
+      };
+    });
+
+    console.log(name + '_HOURS=' + state.hours);
+    console.log(name + '_MINUTES=' + state.minutes);
+    console.log(name + '_SECONDS=' + state.seconds);
+    console.log(name + '_INTERVAL_CALLS=' + state.intervalCalls);
+    console.log(name + '_CONSOLE_ERRORS=' + consoleErrors.length);
+    console.log(name + '_PAGE_ERRORS=' + pageErrors.length);
+
+    if (state.intervalCalls > 0) { console.log('FAIL: ' + name + ' created interval'); passed = false; }
+    if (state.hours !== expectedHours || state.minutes !== expectedMinutes || state.seconds !== expectedSeconds) {
+      console.log('FAIL: ' + name + ' expected ' + expectedHours + ':' + expectedMinutes + ':' + expectedSeconds + ' got ' + state.hours + ':' + state.minutes + ':' + state.seconds);
+      passed = false;
+    }
+    if (consoleErrors.length > 0) { console.log('FAIL: ' + name + ' console errors'); passed = false; }
+    if (pageErrors.length > 0) { console.log('FAIL: ' + name + ' page errors'); passed = false; }
+
+    if (passed) console.log('PASS: ' + name);
+
+    return {
+      name: name,
+      passed: passed,
+      hours: state.hours,
+      minutes: state.minutes,
+      seconds: state.seconds,
+      intervalCalls: state.intervalCalls,
+      consoleErrors: consoleErrors.length,
+      pageErrors: pageErrors.length
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
+async function runExpiredCountdownTest() {
+  const expiredResult = await runCountdownScenario({
+    name: 'EXPIRED_COUNTDOWN',
+    endTime: '2020-01-01 00:00:00',
+    expectedHours: '00', expectedMinutes: '00', expectedSeconds: '00'
+  });
+
+  const invalidResult = await runCountdownScenario({
+    name: 'INVALID_COUNTDOWN',
+    endTime: 'not-a-valid-date',
+    expectedHours: '00', expectedMinutes: '00', expectedSeconds: '00'
+  });
+
+  return {
+    expired: expiredResult,
+    invalid: invalidResult,
+    overallPass: expiredResult.passed && invalidResult.passed
+  };
+}
+
 async function run() {
   const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const page = await browser.newPage();
@@ -141,6 +255,20 @@ async function run() {
     await browser.close();
   }
 
+  // Run expired countdown regression test
+  let countdownPass = true;
+  let countdownResults = null;
+  try {
+    countdownResults = await runExpiredCountdownTest();
+    countdownPass = countdownResults.overallPass;
+    console.log('EXPIRED_COUNTDOWN_TEST=' + (countdownResults.expired.passed ? 'PASS' : 'FAIL'));
+    console.log('INVALID_COUNTDOWN_TEST=' + (countdownResults.invalid.passed ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    console.log('FAIL: expired countdown test exception: ' + e.message);
+    countdownPass = false;
+  }
+  if (!countdownPass) failed = true;
+
   // Write measurements evidence
   const evidence = {
     timestamp: new Date().toISOString(),
@@ -151,6 +279,9 @@ async function run() {
     consoleErrors: consoleErrors,
     pageErrors: pageErrors
   };
+  if (countdownResults) {
+    evidence.measurements.countdownRegression = countdownResults;
+  }
   fs.writeFileSync(
     path.join(EVIDENCE_DIR, 'geometry-gate.json'),
     JSON.stringify(evidence, null, 2)
