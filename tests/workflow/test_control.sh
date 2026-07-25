@@ -34,6 +34,7 @@ MANDATORY_TESTS=(
   "test_27_missing_reason.sh"
   "test_28_missing_approval.sh"
   "test_29_windows_path_scan.sh"
+  "test_30_canonical_allowlist.sh"
 )
 
 MISSING=0

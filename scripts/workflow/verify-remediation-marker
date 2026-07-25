@@ -132,6 +132,8 @@ package-lock.json
 scripts/workflow/**
 tests/workflow/**
 tests/browser/**
+public/assets/css/style.css
+public/assets/js/main.js
 docs/workflow/**
 checkpoints/CP03/TASK_CONTRACT.yaml
 checkpoints/CP03/ARCHITECTURE.md
