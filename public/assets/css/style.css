@@ -990,20 +990,22 @@ html.dark-mode .logo-text span {
 }
 
 .hero-section__left {
-    position: relative;
+    position: relative !important;
     height: 100%;
-    z-index: 1001; /* Ensure it stays above the category overlay (z-index 1000) */
+    z-index: 1010 !important;
 }
 
 
 /* Carousel Banner */
 .hero-section__center {
-    position: relative;
+    position: relative !important;
     border-radius: var(--radius-card);
     overflow: hidden;
     box-shadow: var(--shadow-card);
     background-color: #000;
     height: 100%;
+    z-index: 1 !important;
+}
     /* KÃ¡ÂºÂ¿ thÃ¡Â»Â«a chiÃ¡Â»Âu cao 420px */
 }
 
