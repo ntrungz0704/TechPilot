@@ -38,6 +38,9 @@ $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
 // API Notifications
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
 
+// Admin Dashboard Route
+$router->get('/admin', 'AdminController@index');
+
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
 $router->get('/admin/categories/create', 'AdminCategoryController@create');

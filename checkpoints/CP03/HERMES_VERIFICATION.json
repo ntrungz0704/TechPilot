@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "checkpoint_id": "CHECKPOINT_3",
+  "reviewed_sha": null,
+  "reviewer": "hermes",
+  "tool": "copilot-acp",
+  "decision": "PENDING",
+  "findings": [],
+  "verification_details": {
+    "diff_verified": false,
+    "scope_verified": false,
+    "tests_rerun": false,
+    "handoff_validated": false,
+    "sha_verified": false
+  },
+  "limitations": "This review applies only to the exact reviewed commit SHA.",
+  "reviewed_at": null
+}
