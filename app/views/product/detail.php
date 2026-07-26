@@ -22,8 +22,7 @@ function uniqueProductImages(string $mainImg, array $extraImgs, string $catSlug 
         }
     }
     return $unique;
-}
-$galleryImages = uniqueProductImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? '');
+$galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? ''), 0, 4);
 ?>
 
 <section class="container breadcrumb">
