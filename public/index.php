@@ -49,6 +49,7 @@ $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotificati
 
 // Admin Dashboard Route
 $router->get('/admin', 'AdminController@index');
+$router->get('/admin/dashboard', 'AdminController@index');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
@@ -79,8 +80,9 @@ $router->get('/admin/orders', 'AdminOrderController@index');
 $router->get('/admin/orders/detail/{id}', 'AdminOrderController@detail');
 $router->post('/admin/orders/update_status/{id}', 'AdminOrderController@updateStatus');
 
-// Admin User Routes
+// Admin User & Customer Routes
 $router->get('/admin/users', 'AdminUserController@index');
+$router->get('/admin/customers', 'AdminUserController@index');
 $router->post('/admin/users/toggle_status/{id}', 'AdminUserController@toggleStatus');
 $router->post('/admin/users/change_role/{id}', 'AdminUserController@changeRole');
 
