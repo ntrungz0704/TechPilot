@@ -1,156 +1,507 @@
+/**
+ * TechPilot Category Mega Menu & Navigation Controller (V4 Final)
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    const toggleBtn = document.getElementById('categoryMenuToggle');
-    const dropdown = document.getElementById('categoryMegaDropdown') || document.getElementById('categoryStaticMenu');
-    const overlay = document.getElementById('categoryMenuOverlay');
-    
-    if (!toggleBtn || !dropdown) return;
 
-    let isOpen = false;
-    let hoverTimeout = null;
-    let activeRow = null;
-    let activePanelId = null;
+    // Global Active Drawer State Tracker: null | 'mainNav' | 'categoryDrawer'
+    let activeDrawer = null;
+    let lastActiveTrigger = null;
 
-    const sidebarItems = dropdown.querySelectorAll('.category-sidebar__item');
-    const megaPanels = dropdown.querySelectorAll('.category-mega__panel');
+    // DOM Elements
+    const mainNavMenu = document.getElementById('mainNavMenu');
+    const mobileMenuBtn = document.getElementById('mobileMenuToggle');
+    const mainNavCloseBtn = document.getElementById('mobileDrawerClose');
 
-    // 1. OPEN / CLOSE MENU
-    function openMenu() {
-        isOpen = true;
-        
-        // Cập nhật ARIA
-        toggleBtn.setAttribute('aria-expanded', 'true');
-        toggleBtn.classList.add('is-active');
-        
-        if (overlay) overlay.hidden = false;
-        
-        if (!dropdown.classList.contains('is-static')) {
-            dropdown.hidden = false;
+    const categoryDropdown = document.getElementById('categoryMegaDropdown');
+    const categoryStaticMenu = document.getElementById('categoryStaticMenu');
+
+    const categoryTriggers = [
+        document.getElementById('categoryMenuToggle'),
+        document.getElementById('mobileCategoryToggle'),
+        document.getElementById('mobileQuickCatAll'),
+        document.getElementById('mobileBottomNavCats')
+    ].filter(Boolean);
+
+    const categoryOverlays = Array.from(document.querySelectorAll('.category-overlay'));
+    const categoryCloseBtns = Array.from(document.querySelectorAll('.category-drawer-close'));
+
+    // 1. ARIA Targets & Expanded State Synchronization
+    categoryTriggers.forEach(trig => {
+        trig.setAttribute('aria-controls', 'categoryMegaDropdown');
+        trig.setAttribute('aria-expanded', 'false');
+    });
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.setAttribute('aria-controls', 'mainNavMenu');
+        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    // Helper: Body Scroll Lock
+    function updateScrollLock() {
+        if (activeDrawer) {
             document.body.classList.add('category-scroll-locked');
         } else {
-            dropdown.classList.add('is-highlighted');
-        }
-
-        // Reset trạng thái hover khi mở
-        if (sidebarItems.length > 0) {
-            activatePanel(sidebarItems[0]);
-        }
-    }
-
-    function closeMenu() {
-        isOpen = false;
-        
-        toggleBtn.setAttribute('aria-expanded', 'false');
-        toggleBtn.classList.remove('is-active');
-        
-        if (overlay) overlay.hidden = true;
-        
-        if (!dropdown.classList.contains('is-static')) {
-            dropdown.hidden = true;
             document.body.classList.remove('category-scroll-locked');
-        } else {
-            dropdown.classList.remove('is-highlighted');
-        }
-        
-        deactivateAll();
-    }
-
-    function toggleMenu() {
-        if (isOpen) {
-            closeMenu();
-        } else {
-            openMenu();
         }
     }
 
-    // Toggle click
-    toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMenu();
+    // Helper: Overlays
+    function setOverlaysVisible(visible) {
+        categoryOverlays.forEach(ov => {
+            if (visible) {
+                ov.hidden = false;
+                ov.setAttribute('aria-hidden', 'false');
+            } else {
+                ov.hidden = true;
+                ov.setAttribute('aria-hidden', 'true');
+            }
+        });
+    }
+
+    // --- RESPONSIVE STATE SYNCHRONIZATION ---
+    function syncMainNavResponsiveState() {
+        const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
+
+        if (!isDrawerMode) {
+            // Desktop Mode (> 1024px): Display as header nav
+            if (mainNavMenu) {
+                mainNavMenu.classList.remove('is-mobile-open');
+                mainNavMenu.removeAttribute('aria-hidden');
+                mainNavMenu.removeAttribute('inert');
+            }
+            if (mobileMenuBtn) {
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            }
+            if (activeDrawer === 'mainNav') {
+                activeDrawer = null;
+                setOverlaysVisible(false);
+                updateScrollLock();
+            }
+        } else {
+            // Drawer Mode (<= 1024px)
+            if (activeDrawer !== 'mainNav') {
+                if (mainNavMenu) {
+                    mainNavMenu.classList.remove('is-mobile-open');
+                    mainNavMenu.setAttribute('aria-hidden', 'true');
+                    mainNavMenu.setAttribute('inert', '');
+                }
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                }
+            } else {
+                if (mainNavMenu) {
+                    mainNavMenu.classList.add('is-mobile-open');
+                    mainNavMenu.setAttribute('aria-hidden', 'false');
+                    mainNavMenu.removeAttribute('inert');
+                }
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+        }
+    }
+
+    function syncCategoryDrawerResponsiveState() {
+        const isMobileCategoryMode = window.matchMedia('(max-width: 767px)').matches;
+        if (!isMobileCategoryMode) {
+            if (activeDrawer === 'categoryDrawer' || (categoryDropdown && categoryDropdown.classList.contains('is-mobile-open'))) {
+                closeCategoryDrawer(false);
+            }
+        }
+    }
+
+    function syncResponsiveNavigationState() {
+        syncMainNavResponsiveState();
+        syncCategoryDrawerResponsiveState();
+    }
+
+    // --- MAIN NAVIGATION DRAWER CONTROLLER ---
+    function openMainNav(triggerEl) {
+        const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
+        if (!isDrawerMode) return;
+
+        if (activeDrawer === 'categoryDrawer') {
+            closeCategoryDrawer(false);
+        }
+
+        activeDrawer = 'mainNav';
+        lastActiveTrigger = triggerEl || mobileMenuBtn;
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.setAttribute('aria-expanded', 'true');
+        }
+
+        if (mainNavMenu) {
+            mainNavMenu.removeAttribute('inert');
+            mainNavMenu.classList.add('is-mobile-open');
+            mainNavMenu.setAttribute('aria-hidden', 'false');
+        }
+
+        setOverlaysVisible(true);
+        updateScrollLock();
+
+        if (mainNavCloseBtn) {
+            mainNavCloseBtn.focus();
+        }
+    }
+
+    function closeMainNav(restoreFocus = true) {
+        if (!mainNavMenu) return;
+
+        if (activeDrawer === 'mainNav') {
+            activeDrawer = null;
+        }
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        mainNavMenu.classList.remove('is-mobile-open');
+
+        const isDrawerMode = window.matchMedia('(max-width: 1024px)').matches;
+        if (isDrawerMode) {
+            mainNavMenu.setAttribute('aria-hidden', 'true');
+            mainNavMenu.setAttribute('inert', '');
+        } else {
+            mainNavMenu.removeAttribute('aria-hidden');
+            mainNavMenu.removeAttribute('inert');
+        }
+
+        setOverlaysVisible(false);
+        updateScrollLock();
+
+        if (restoreFocus && lastActiveTrigger && typeof lastActiveTrigger.focus === 'function') {
+            lastActiveTrigger.focus();
+        }
+    }
+
+    // --- CATEGORY DRAWER CONTROLLER ---
+    function openCategoryDrawer(triggerEl) {
+        if (activeDrawer === 'mainNav') {
+            closeMainNav(false);
+        }
+
+        activeDrawer = 'categoryDrawer';
+        lastActiveTrigger = triggerEl || categoryTriggers[0];
+
+        categoryTriggers.forEach(trig => {
+            trig.setAttribute('aria-expanded', 'true');
+            trig.classList.add('is-active');
+        });
+
+        if (categoryDropdown) {
+            categoryDropdown.removeAttribute('inert');
+            categoryDropdown.hidden = false;
+            categoryDropdown.setAttribute('aria-hidden', 'false');
+
+            if (window.innerWidth <= 767) {
+                categoryDropdown.classList.add('is-mobile-open');
+            } else {
+                categoryDropdown.classList.add('is-active');
+            }
+        }
+
+        setOverlaysVisible(true);
+        updateScrollLock();
+
+        const closeBtn = categoryDropdown ? categoryDropdown.querySelector('.category-drawer-close') : null;
+        if (closeBtn) {
+            closeBtn.focus();
+        }
+    }
+
+    function closeCategoryDrawer(restoreFocus = true) {
+        if (!categoryDropdown) return;
+
+        if (activeDrawer === 'categoryDrawer') {
+            activeDrawer = null;
+        }
+
+        categoryTriggers.forEach(trig => {
+            trig.setAttribute('aria-expanded', 'false');
+            trig.classList.remove('is-active');
+        });
+
+        categoryDropdown.classList.remove('is-mobile-open', 'is-active');
+        categoryDropdown.hidden = true;
+        categoryDropdown.setAttribute('aria-hidden', 'true');
+        categoryDropdown.setAttribute('inert', '');
+
+        resetPanelsAndAccordions(categoryDropdown);
+
+        setOverlaysVisible(false);
+        updateScrollLock();
+
+        if (restoreFocus && lastActiveTrigger && typeof lastActiveTrigger.focus === 'function') {
+            lastActiveTrigger.focus();
+        }
+    }
+
+    // Event Listeners for Main Nav Triggers
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (activeDrawer === 'mainNav') {
+                closeMainNav(true);
+            } else {
+                openMainNav(mobileMenuBtn);
+            }
+        });
+    }
+
+    if (mainNavCloseBtn) {
+        mainNavCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeMainNav(true);
+        });
+    }
+
+    // Event Listeners for Category Triggers
+    categoryTriggers.forEach(trig => {
+        trig.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (activeDrawer === 'categoryDrawer') {
+                closeCategoryDrawer(true);
+            } else {
+                openCategoryDrawer(trig);
+            }
+        });
     });
 
-    // Đóng khi click ra ngoài hoặc click overlay
-    overlay.addEventListener('click', closeMenu);
+    categoryCloseBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (activeDrawer === 'categoryDrawer') {
+                closeCategoryDrawer(true);
+            } else if (activeDrawer === 'mainNav') {
+                closeMainNav(true);
+            }
+        });
+    });
 
+    categoryOverlays.forEach(ov => {
+        ov.addEventListener('click', () => {
+            if (activeDrawer === 'categoryDrawer') closeCategoryDrawer(true);
+            if (activeDrawer === 'mainNav') closeMainNav(true);
+        });
+    });
+
+    // Global Click Outside Handler
     document.addEventListener('click', (e) => {
-        if (isOpen && !dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
-            closeMenu();
+        const isCatClick = categoryDropdown && categoryDropdown.contains(e.target);
+        const isCatTriggerClick = categoryTriggers.some(t => t.contains(e.target));
+        const isNavClick = mainNavMenu && mainNavMenu.contains(e.target);
+        const isNavTriggerClick = mobileMenuBtn && mobileMenuBtn.contains(e.target);
+
+        if (activeDrawer === 'categoryDrawer' && !isCatClick && !isCatTriggerClick) {
+            closeCategoryDrawer(false);
+        }
+        if (activeDrawer === 'mainNav' && !isNavClick && !isNavTriggerClick) {
+            closeMainNav(false);
         }
     });
 
-    // Đóng khi ấn Escape
+    // Escape Key Listener
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isOpen) {
-            closeMenu();
-            toggleBtn.focus();
+        if (e.key === 'Escape') {
+            if (activeDrawer === 'categoryDrawer') {
+                closeCategoryDrawer(true);
+            } else if (activeDrawer === 'mainNav') {
+                closeMainNav(true);
+            }
         }
     });
 
-    // 2. STATE MACHINE CHO MOUSE HOVER TRONG SIDEBAR
-    function activatePanel(itemEl) {
-        if (!itemEl) return;
-        const targetId = itemEl.getAttribute('data-panel-id');
-        if (targetId === activePanelId) return;
+    // Window Resize / Media Query Listener for Responsive State Sync
+    const mediaQuery1024 = window.matchMedia('(max-width: 1024px)');
+    const mediaQuery767 = window.matchMedia('(max-width: 767px)');
 
-        // Xóa class active cũ
-        if (activeRow) {
-            activeRow.classList.remove('is-active');
+    [mediaQuery1024, mediaQuery767].forEach(mq => {
+        if (mq.addEventListener) {
+            mq.addEventListener('change', syncResponsiveNavigationState);
+        } else if (mq.addListener) {
+            mq.addListener(syncResponsiveNavigationState);
         }
-        megaPanels.forEach(p => p.classList.remove('is-active'));
+    });
+    window.addEventListener('resize', syncResponsiveNavigationState);
 
-        // Set class active mới
-        activeRow = itemEl;
-        activePanelId = targetId;
-        activeRow.classList.add('is-active');
-        
-        const targetPanel = document.getElementById(targetId);
-        if (targetPanel) {
-            targetPanel.classList.add('is-active');
+    // Initial state setup
+    syncResponsiveNavigationState();
+    closeCategoryDrawer(false);
+
+    // --- REUSABLE CATEGORY MENU INITIALIZER ---
+    function initCategoryMenu(rootElement, options = {}) {
+        if (!rootElement) return;
+
+        const isStatic = options.isStatic || false;
+        const rows = rootElement.querySelectorAll('.category-sidebar__row');
+        const megaPanels = rootElement.querySelectorAll('.category-mega__panel');
+        const mobilePanels = rootElement.querySelectorAll('.category-mobile__panel');
+        const accBtns = rootElement.querySelectorAll('.category-mobile-accordion-toggle');
+
+        let activePanelId = null;
+        let hoverTimeout = null;
+
+        function activatePanel(panelId, rowEl) {
+            if (!panelId || !rowEl) return;
+            if (panelId === activePanelId && rowEl.classList.contains('is-active')) return;
+
+            rows.forEach(r => r.classList.remove('is-active'));
+            megaPanels.forEach(p => {
+                p.classList.remove('is-active');
+                p.hidden = true;
+                p.setAttribute('aria-hidden', 'true');
+            });
+
+            rowEl.classList.add('is-active');
+            activePanelId = panelId;
+
+            const targetPanel = rootElement.querySelector(`#${panelId}`);
+            if (targetPanel) {
+                targetPanel.classList.add('is-active');
+                targetPanel.hidden = false;
+                targetPanel.setAttribute('aria-hidden', 'false');
+            }
+
+            rootElement.classList.add('has-active-panel');
         }
-        
-        // Cập nhật state cho container (để static mode biết có mở panel)
-        dropdown.classList.add('has-active-panel');
+
+        function resetMenu() {
+            rows.forEach(r => r.classList.remove('is-active', 'is-accordion-open'));
+            megaPanels.forEach(p => {
+                p.classList.remove('is-active');
+                p.hidden = true;
+                p.setAttribute('aria-hidden', 'true');
+            });
+            mobilePanels.forEach(mp => {
+                mp.hidden = true;
+                mp.setAttribute('aria-hidden', 'true');
+            });
+            accBtns.forEach(b => b.setAttribute('aria-expanded', 'false'));
+            activePanelId = null;
+            rootElement.classList.remove('has-active-panel');
+        }
+
+        // Row Mouseenter & Focus Listener
+        rows.forEach(row => {
+            const panelId = row.getAttribute('data-panel-id');
+            const itemLink = row.querySelector('.category-sidebar__item');
+            const accBtn = row.querySelector('.category-mobile-accordion-toggle');
+
+            if (itemLink) {
+                itemLink.addEventListener('mouseenter', () => {
+                    if (window.innerWidth > 767) {
+                        if (hoverTimeout) clearTimeout(hoverTimeout);
+                        hoverTimeout = setTimeout(() => {
+                            activatePanel(panelId, row);
+                        }, 80);
+                    }
+                });
+
+                itemLink.addEventListener('focus', () => {
+                    if (window.innerWidth > 767) {
+                        activatePanel(panelId, row);
+                    }
+                });
+            }
+
+            // Mobile Exclusive Accordion Toggle
+            if (accBtn) {
+                accBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const targetMobilePanelId = accBtn.getAttribute('aria-controls');
+                    const targetMobilePanel = rootElement.querySelector(`#${targetMobilePanelId}`);
+                    const isCurrentlyOpen = row.classList.contains('is-accordion-open');
+
+                    // Exclusive accordion: Close all other open accordions in this rootElement
+                    rows.forEach(otherRow => {
+                        if (otherRow !== row) {
+                            otherRow.classList.remove('is-accordion-open');
+                            const otherBtn = otherRow.querySelector('.category-mobile-accordion-toggle');
+                            if (otherBtn) {
+                                otherBtn.setAttribute('aria-expanded', 'false');
+                                const otherPanelId = otherBtn.getAttribute('aria-controls');
+                                const otherPanel = rootElement.querySelector(`#${otherPanelId}`);
+                                if (otherPanel) {
+                                    otherPanel.hidden = true;
+                                    otherPanel.setAttribute('aria-hidden', 'true');
+                                }
+                            }
+                        }
+                    });
+
+                    if (isCurrentlyOpen) {
+                        row.classList.remove('is-accordion-open');
+                        accBtn.setAttribute('aria-expanded', 'false');
+                        if (targetMobilePanel) {
+                            targetMobilePanel.hidden = true;
+                            targetMobilePanel.setAttribute('aria-hidden', 'true');
+                        }
+                    } else {
+                        row.classList.add('is-accordion-open');
+                        accBtn.setAttribute('aria-expanded', 'true');
+                        if (targetMobilePanel) {
+                            targetMobilePanel.hidden = false;
+                            targetMobilePanel.setAttribute('aria-hidden', 'false');
+                        }
+                    }
+                });
+            }
+        });
+
+        // Mouseleave container handler for static menu
+        if (isStatic) {
+            rootElement.addEventListener('mouseleave', () => {
+                if (window.innerWidth > 767) {
+                    if (hoverTimeout) clearTimeout(hoverTimeout);
+                    resetMenu();
+                }
+            });
+
+            // Prevent panel closing when hovering over static mega panel area
+            const megaArea = rootElement.querySelector('.category-dropdown__mega');
+            if (megaArea) {
+                megaArea.addEventListener('mouseenter', () => {
+                    if (hoverTimeout) clearTimeout(hoverTimeout);
+                });
+            }
+        }
+
+        return { activatePanel, resetMenu };
     }
 
-    function deactivateAll() {
-        if (activeRow) {
-            activeRow.classList.remove('is-active');
-        }
-        megaPanels.forEach(p => p.classList.remove('is-active'));
-        activeRow = null;
-        activePanelId = null;
-        dropdown.classList.remove('has-active-panel');
+    function resetPanelsAndAccordions(rootEl) {
+        if (!rootEl) return;
+        const rows = rootEl.querySelectorAll('.category-sidebar__row');
+        const megaPanels = rootEl.querySelectorAll('.category-mega__panel');
+        const mobilePanels = rootEl.querySelectorAll('.category-mobile__panel');
+        const accBtns = rootEl.querySelectorAll('.category-mobile-accordion-toggle');
+
+        rows.forEach(r => r.classList.remove('is-active', 'is-accordion-open'));
+        megaPanels.forEach(p => {
+            p.classList.remove('is-active');
+            p.hidden = true;
+            p.setAttribute('aria-hidden', 'true');
+        });
+        mobilePanels.forEach(mp => {
+            mp.hidden = true;
+            mp.setAttribute('aria-hidden', 'true');
+        });
+        accBtns.forEach(b => b.setAttribute('aria-expanded', 'false'));
+        rootEl.classList.remove('has-active-panel');
     }
 
-    // Trên desktop static mode, khi chuột rời khỏi toàn bộ component thì đóng panel
-    dropdown.addEventListener('mouseleave', () => {
-        if (dropdown.classList.contains('is-static')) {
-            if (hoverTimeout) clearTimeout(hoverTimeout);
-            deactivateAll();
-        }
-    });
+    // Initialize Dropdown Menu (#categoryMegaDropdown)
+    if (categoryDropdown) {
+        initCategoryMenu(categoryDropdown, { isStatic: false });
+    }
 
-    sidebarItems.forEach(item => {
-        item.addEventListener('mouseenter', () => {
-            // Dùng timeout nhỏ để chống flicker khi lướt chéo
-            if (hoverTimeout) clearTimeout(hoverTimeout);
-            hoverTimeout = setTimeout(() => {
-                activatePanel(item);
-            }, 100); 
-        });
-
-        item.addEventListener('mouseleave', () => {
-            if (hoverTimeout) clearTimeout(hoverTimeout);
-        });
-
-        // Bật bằng keyboard
-        item.addEventListener('focus', () => {
-            activatePanel(item);
-        });
-    });
-
-    // Ngăn chặn sự cố khi con trỏ di chuyển vào panel
-    dropdown.querySelector('.category-dropdown__mega')?.addEventListener('mouseenter', () => {
-        if (hoverTimeout) clearTimeout(hoverTimeout);
-    });
+    // Initialize Homepage Static Menu (#categoryStaticMenu)
+    if (categoryStaticMenu) {
+        initCategoryMenu(categoryStaticMenu, { isStatic: true });
+    }
 });

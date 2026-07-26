@@ -111,4 +111,40 @@ class ProductController extends Controller
 
         $this->redirect('product/detail/' . $product['slug']);
     }
+
+    /**
+     * API: Trò chuyện AI về sản phẩm cụ thể
+     * POST /product/ai-chat
+     */
+    public function chat(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        $productId = (int)($_POST['product_id'] ?? 0);
+        $question = trim($_POST['q'] ?? '');
+
+        if ($productId <= 0 || $question === '') {
+            echo json_encode(['success' => false, 'message' => 'Yêu cầu không hợp lệ.']);
+            exit;
+        }
+
+        $productModel = $this->model('Product');
+        $product = $productModel->getById($productId);
+
+        if (!$product) {
+            echo json_encode(['success' => false, 'message' => 'Sản phẩm không tồn tại.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/app/services/GeminiService.php';
+        require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
+
+        try {
+            $answer = ProductIntelligenceService::chatProduct($product, $question);
+            echo json_encode(['success' => true, 'answer' => $answer]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
 }

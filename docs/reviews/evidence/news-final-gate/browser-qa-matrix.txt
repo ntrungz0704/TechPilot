@@ -1,0 +1,21 @@
+Browser QA Matrix (Playwright Automated Screenshots):
+
+QA Type: PLAYWRIGHT (Chromium 1.61.1)
+Date: 2026-07-22
+Base URL: http://localhost/TechPilot/public
+
+| Route | Viewport | Result | Screenshot File | Console | Network |
+| :--- | :---: | :---: | :--- | :---: | :---: |
+| /post | 390x844 | PASS | 01-index-mobile-390x844.png | 0 errors | 200 OK |
+| /post | 1440x900 | PASS | 02-index-desktop-1440x900.png | 0 errors | 200 OK |
+| /post?q=rtx | 390x844 | PASS | 03-search-mobile-390x844.png | 0 errors | 200 OK |
+| /post?q=rtx | 1440x900 | PASS | 04-search-desktop-1440x900.png | 0 errors | 200 OK |
+| /post/detail/10-meo-toi-uu-windows-11... | 390x844 | PASS | 05-detail-mobile-390x844.png | 0 errors | 200 OK |
+| /post/detail/10-meo-toi-uu-windows-11... | 1440x900 | PASS | 06-detail-desktop-1440x900.png | 0 errors | 200 OK |
+| /post?q=news-final-gate-no-result... | 390x844 | PASS | 07-empty-state-mobile-390x844.png | 0 errors | 200 OK |
+| /post?page=999 | 1440x900 | PASS | 08-pagination-page999-desktop.png | 0 errors | 200 OK |
+| /post (Dark Mode) | 390x844 | PASS | 09-dark-mode-mobile.png | 0 errors | 200 OK |
+| /post/detail/10-meo-toi-uu-windows-11... (Dark) | 1440x900 | PASS | 10-dark-mode-desktop.png | 0 errors | 200 OK |
+
+Tested Slugs:
+- 10-meo-toi-uu-windows-11-tang-toc-may-tinh-choi-game

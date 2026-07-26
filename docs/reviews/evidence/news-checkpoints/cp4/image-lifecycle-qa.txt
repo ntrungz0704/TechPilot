@@ -1,0 +1,25 @@
+TechPilot News Module - Checkpoint 4 Image Lifecycle QA Report
+===================================================================================
+
+Case A — Image Replacement Success:
+- Upload new image file: posts/new_image_hash.jpg
+- Database UPDATE query executes successfully.
+- DB column `posts.image` updated to trỏ sang new_image_hash.jpg.
+- Old image posts/old_image_hash.jpg deleted from disk in best-effort post-DB transaction step.
+- Result: PASS. New image exists, old image deleted, 0 HTTP 500 errors.
+
+Case B — Upload Failure:
+- Invalid image file format / corrupted upload submitted.
+- UploadService::uploadImage throws Exception before DB query.
+- Catch block renders form with error notice.
+- DB column `posts.image` remains pointing to original image.
+- Original image file remains intact on disk.
+- Result: PASS. Zero partial updates, zero orphan files.
+
+Case C — Forced DB Failure Post Upload:
+- New image file uploaded successfully to posts/temp_new_image.jpg.
+- Database UPDATE statement throws exception (e.g. PDOException / connection reset).
+- Controller catch (Throwable $e) executes cleanup: UploadService::deleteImage('posts/temp_new_image.jpg').
+- Newly uploaded file removed from disk.
+- Original image file and database state preserved 100%.
+- Result: PASS. Zero orphan files, zero uncaught fatal errors, 0 HTTP 500 errors.

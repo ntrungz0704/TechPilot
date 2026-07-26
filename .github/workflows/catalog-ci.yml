@@ -1,0 +1,85 @@
+name: Catalog Virtual Routing & Contract CI
+
+on:
+  push:
+    branches:
+      - feature/hieu-news
+      - main
+  pull_request:
+    branches:
+      - feature/hieu-news
+      - main
+
+jobs:
+  catalog-audit-test:
+    name: Catalog Virtual Routing & Contract Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: techpilot
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install NPM Dependencies for Browser Tests
+        run: npm ci || npm install
+
+      - name: PHP Lint Check (Syntax Error Audit)
+        run: |
+          php -l app/services/CatalogGroupService.php
+          php -l app/services/CategoryMenuService.php
+          php -l app/models/Product.php
+          php -l app/controllers/HomeController.php
+          php -l app/views/layouts/header.php
+          php -l app/views/layouts/partials/category-mega-menu.php
+          php -l tests/CatalogGroupTest.php
+          php -l tests/CatalogMenuUITest.php
+
+      - name: Import Database Fixture Data
+        run: |
+          if [ -f "database/schema.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < database/schema.sql
+          elif [ -f "database/techpilot.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < database/techpilot.sql
+          fi
+          if [ -f "tests/fixtures/catalog_ci.sql" ]; then
+            mysql -h 127.0.0.1 -u root techpilot < tests/fixtures/catalog_ci.sql
+          fi
+
+      - name: Run PHP Integration Tests
+        run: |
+          php tests/CatalogGroupTest.php
+          php tests/CatalogMenuUITest.php
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: techpilot
+          DB_USER: root
+          DB_PASS: ""
+
+      - name: Run Browser UI & Accessibility Audit Suite
+        run: |
+          node tests/browser_ui_test.js
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: techpilot
+          DB_USER: root
+          DB_PASS: ""
