@@ -25,6 +25,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $router = new Router();
 
+// Canonical Category & Product Detail Routes
+$router->get('/category/{slug}', 'HomeController@category');
+$router->get('/product/detail/{slug}', 'ProductController@detail');
+
 // Auth Routes
 $router->get('/auth/forgot', 'AuthController@forgot');
 $router->post('/auth/forgot', 'AuthController@forgot');

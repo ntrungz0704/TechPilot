@@ -85,9 +85,9 @@ $reviews = $reviews ?? [];
             <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
             <div class="product-detail__actions">
                 <div class="qty-selector">
-                    <button type="button" class="qty-btn" onclick="adjustQty(-1)">-</button>
+                    <button type="button" class="qty-btn" id="qtyDecBtn" onclick="adjustQty(-1)" disabled>-</button>
                     <input type="number" name="quantity" value="1" min="1" max="<?= (int)$product['stock'] ?>" id="qtyInput" readonly>
-                    <button type="button" class="qty-btn" onclick="adjustQty(1)">+</button>
+                    <button type="button" class="qty-btn" id="qtyIncBtn" onclick="adjustQty(1)" <?= ((int)$product['stock'] <= 1) ? 'disabled' : '' ?>>+</button>
                 </div>
                 <button type="submit" class="btn btn--outline"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
                 <button type="button" class="btn" onclick="buyNowSubmit()"><i class="fa-solid fa-bolt"></i> Mua ngay</button>
@@ -293,11 +293,17 @@ $reviews = $reviews ?? [];
 
     function adjustQty(amount) {
         const input = document.getElementById('qtyInput');
-        let val = parseInt(input.value) + amount;
+        if (!input) return;
+        let val = (parseInt(input.value) || 1) + amount;
         const max = parseInt(input.getAttribute('max')) || 100;
         if (val < 1) val = 1;
         if (val > max) val = max;
         input.value = val;
+
+        const decBtn = document.getElementById('qtyDecBtn');
+        const incBtn = document.getElementById('qtyIncBtn');
+        if (decBtn) decBtn.disabled = (val <= 1);
+        if (incBtn) incBtn.disabled = (val >= max);
     }
 
     function buyNowSubmit() {
