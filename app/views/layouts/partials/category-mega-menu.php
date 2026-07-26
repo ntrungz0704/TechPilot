@@ -45,7 +45,7 @@ $formatRangeName = function (string $name): string {
                 $icon = !empty($cat['icon']) ? $cat['icon'] : 'fa-solid fa-list';
                 $megaColumns = $cat['mega_columns'] ?? [];
                 $hasMega = !empty($megaColumns);
-                $virtualUrl = url('home/search?cat=' . urlencode($slug));
+                $virtualUrl = url('category/' . urlencode($slug));
                 $key = !empty($slug) ? $slug : $catId;
                 $prefix = $isStatic ? 'static-' : '';
                 $panelId = 'panel-' . $prefix . $key;
@@ -124,7 +124,7 @@ $formatRangeName = function (string $name): string {
                 $groupName = !empty($cat['name']) ? $cat['name'] : '';
                 $megaColumns = $cat['mega_columns'] ?? [];
                 if (empty($megaColumns)) continue;
-                $virtualUrl = url('home/search?cat=' . urlencode($slug));
+                $virtualUrl = url('category/' . urlencode($slug));
                 $key = !empty($slug) ? $slug : $catId;
                 $prefix = $isStatic ? 'static-' : '';
                 $panelId = 'panel-' . $prefix . $key;

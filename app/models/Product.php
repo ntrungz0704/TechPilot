@@ -1139,19 +1139,20 @@ class Product
                 $slugs = [];
                 switch (strtolower($tab)) {
                     case 'laptop':
-                        $slugs = ['laptop-gaming', 'laptop-van-phong'];
+                        $slugs = ['laptop'];
                         break;
                     case 'gaming':
-                        $slugs = ['gaming-gear', 'laptop-gaming'];
+                    case 'gaming-gear':
+                        $slugs = ['keyboard', 'mouse', 'chair', 'headset', 'speaker'];
                         break;
                     case 'components':
-                        $slugs = ['pc-linh-kien'];
+                        $slugs = ['mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'];
                         break;
                     case 'monitor':
-                        $slugs = ['man-hinh'];
+                        $slugs = ['monitor'];
                         break;
                     case 'accessories':
-                        $slugs = ['gaming-gear', 'office-gear'];
+                        $slugs = ['accessories', 'console', 'office-equipment', 'power-bank'];
                         break;
                     default:
                         return $this->getBestSellers($limit);
@@ -1162,8 +1163,9 @@ class Product
                         FROM products p
                         JOIN categories c ON p.category_id = c.id
                         LEFT JOIN brands b ON p.brand_id = b.id
-                        WHERE (c.slug IN ($inQuery) OR c.parent_id IN (SELECT id FROM categories WHERE slug IN ($inQuery)))
-                        ORDER BY p.id DESC LIMIT ?";
+                        WHERE p.status = 'active' AND c.status = 'active'
+                          AND c.slug IN ($inQuery)
+                        ORDER BY p.sold_count DESC, p.created_at DESC LIMIT ?";
 
                 $stmt = $this->db->prepare($sql);
                 foreach ($slugs as $k => $slug) {
@@ -1444,8 +1446,8 @@ class Product
                 $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';
             } elseif ($sort === 'newest') {
                 $sortClause = 'p.created_at DESC, p.id DESC';
-            } elseif ($sort === 'name_asc') {
-                $sortClause = 'p.name ASC';
+            } elseif ($sort === 'best_selling' || $sort === 'best-selling') {
+                $sortClause = 'p.sold_count DESC, p.id DESC';
             } elseif ($sort === 'rating') {
                 $sortClause = 'p.rating DESC, p.id DESC';
             } elseif (!empty($remainingKeyword)) {
