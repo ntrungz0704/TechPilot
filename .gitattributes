@@ -1,0 +1,9 @@
+# GitHub Linguist Configuration for TechPilot
+*.php linguist-language=PHP
+*.html linguist-language=HTML
+*.css linguist-language=CSS
+*.js linguist-language=JavaScript
+docs/* linguist-documentation
+tests/* linguist-vendored
+scripts/* linguist-vendored
+database/* linguist-vendored
