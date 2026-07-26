@@ -200,31 +200,61 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== 6. FLASH SALE ===== -->
-<section class="container section section-flash-sale">
-    <div class="section__head section__head--flash">
-        <h2><i class="fa-solid fa-bolt"></i> FLASH SALE</h2>
-        <div class="countdown" id="flashCountdown" data-end-time="<?= (!empty($flashSale) && isset($flashSale[0]['end_time'])) ? e($flashSale[0]['end_time']) : '' ?>">
-            <div class="countdown-box">
-                <span class="countdown-box__num" id="cd-h">02</span>
-                <span class="countdown-box__label">Giờ</span>
-            </div>
-            <div class="countdown-separator">:</div>
-            <div class="countdown-box">
-                <span class="countdown-box__num" id="cd-m">15</span>
-                <span class="countdown-box__label">Phút</span>
-            </div>
-            <div class="countdown-separator">:</div>
-            <div class="countdown-box">
-                <span class="countdown-box__num" id="cd-s">30</span>
-                <span class="countdown-box__label">Giây</span>
+<section class="flash-sale-section container">
+    <header class="flash-sale-header">
+        <div class="flash-sale-heading">
+            <h2 class="flash-sale-title">
+                <span class="flash-sale-icon" aria-hidden="true">⚡</span>
+                FLASH SALE
+            </h2>
+
+            <span class="flash-sale-ending-text" id="flashEndingText">Kết thúc sau</span>
+
+            <div
+                class="flash-sale-countdown countdown"
+                id="flashCountdown"
+                data-end-time="<?= (!empty($flashSale) && isset($flashSale[0]['end_time'])) ? e($flashSale[0]['end_time']) : '' ?>"
+                aria-label="Thời gian Flash Sale còn lại"
+                aria-live="polite"
+            >
+                <div class="countdown-unit">
+                    <strong id="cd-h" data-countdown-hours>00</strong>
+                    <span>GIỜ</span>
+                </div>
+
+                <span class="countdown-separator">:</span>
+
+                <div class="countdown-unit">
+                    <strong id="cd-m" data-countdown-minutes>00</strong>
+                    <span>PHÚT</span>
+                </div>
+
+                <span class="countdown-separator">:</span>
+
+                <div class="countdown-unit">
+                    <strong id="cd-s" data-countdown-seconds>00</strong>
+                    <span>GIÂY</span>
+                </div>
             </div>
         </div>
-        <a href="<?= url('home/search') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
-    </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($flashSale as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+
+        <a class="flash-sale-view-all" href="<?= url('home/search?promo=1') ?>">
+            Xem tất cả
+            <span aria-hidden="true">→</span>
+        </a>
+    </header>
+
+    <div class="product-grid product-grid--6 flash-sale-products">
+        <?php if (!empty($flashSale)): ?>
+            <?php foreach ($flashSale as $p): ?>
+                <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="flash-sale-empty" style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-secondary);">
+                <i class="fa-solid fa-clock" style="font-size: 32px; margin-bottom: 10px; color: var(--primary);"></i>
+                <p>Hiện chưa có chương trình Flash Sale nào đang diễn ra.</p>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 
