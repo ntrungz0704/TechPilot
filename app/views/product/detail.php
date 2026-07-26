@@ -8,17 +8,22 @@ $reviews = $reviews ?? [];
 require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
 
 // Unique product images helper
-function uniqueProductImages(string $mainImg, array $extraImgs): array {
-    $unique = [$mainImg];
-    foreach ($extraImgs as $imgObj) {
-        $url = is_array($imgObj) ? ($imgObj['image_url'] ?? '') : (string)$imgObj;
-        if (!empty($url) && !in_array($url, $unique)) {
-            $unique[] = $url;
+function uniqueProductImages(string $mainImg, array $extraImgs, string $catSlug = ''): array {
+    $unique = [];
+    $seenUrls = [];
+    $allRaw = array_merge([$mainImg], array_map(fn($o) => is_array($o) ? ($o['image_url'] ?? $o['image_path'] ?? '') : (string)$o, $extraImgs));
+    foreach ($allRaw as $raw) {
+        $raw = trim($raw);
+        if ($raw === '') continue;
+        $resolved = productImageUrl($raw, $catSlug);
+        if (!in_array($resolved, $seenUrls)) {
+            $seenUrls[] = $resolved;
+            $unique[] = $raw;
         }
     }
-    return array_filter($unique);
+    return $unique;
 }
-$galleryImages = uniqueProductImages($product['image'] ?? '', $productImages);
+$galleryImages = uniqueProductImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? '');
 ?>
 
 <section class="container breadcrumb">
@@ -145,7 +150,12 @@ $galleryImages = uniqueProductImages($product['image'] ?? '', $productImages);
     <!-- Panel Mô tả -->
     <div class="product-tabs__panel is-active" id="tab-desc">
         <div style="line-height: 1.8; color: var(--text-primary);">
-            <?= nl2br(e($product['description'] ?? 'Đang cập nhật thông tin chi tiết.')) ?>
+            <?php 
+            $desc = $product['description'] ?? 'Đang cập nhật thông tin chi tiết.';
+            $descClean = html_entity_decode($desc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $hasHtml = $descClean !== strip_tags($descClean);
+            ?>
+            <?= $hasHtml ? $descClean : nl2br(e($descClean)) ?>
         </div>
     </div>
 
