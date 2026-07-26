@@ -26,6 +26,20 @@
 | **Planning Authority** | ChatGPT (Web) | Draft contracts, architecture, risk register. Final semantic review. Never modify code. |
 | **Workflow Remediation** | DeepSeek (OpenCode) | `write.allowed` in `.opencode/agents/workflow-remediation-executor.md`. Commit/push only with human-approved execution marker. |
 
+## Administrator-Authorized Product Image Migration
+
+The repository administrator may authorize Codex directly to perform a product-image
+migration. When that authorization is given in the active conversation, Codex is the
+execution owner for that migration and may modify the necessary application, database,
+asset, script, test, and documentation files; create a dedicated migration branch; and
+commit and push the resulting changes.
+
+This override applies only to the explicitly authorized migration. It does not permit
+force-push, commit amendment, rebase, reset, merge, changing checkpoint lifecycle
+files, or deletion of an image before its replacement, references, and manifest have
+been verified. Existing unrelated working-tree changes must be preserved unless the
+administrator explicitly identifies them as in scope.
+
 ## Startup Procedure
 
 Every session MUST run:
@@ -47,6 +61,10 @@ cat .opencode/agents/<applicable-agent>.md
 - Working tree has uncommitted changes from unknown source
 - Multiple agents modifying the same files concurrently
 - Governance files being modified without explicit human approval
+
+An administrator-authorized product-image migration is not blocked by the CP03
+lifecycle or CP03 path allowlist; it must still preserve unrelated changes and follow
+the safety conditions in the administrator override above.
 
 ## Forbidden Actions
 
