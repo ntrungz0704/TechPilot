@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#090D16" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="320" rx="12" fill="url(#bgGrad)"/>
+  <rect x="2" y="2" width="396" height="316" rx="10" fill="none" stroke="#EAB308" stroke-width="2" stroke-opacity="0.3"/>
+  <g>
+    <rect x="80" y="60" width="240" height="200" rx="10" fill="#1E293B" stroke="#EAB308" stroke-width="4"/><rect x="110" y="90" width="40" height="30" fill="#0F172A"/><rect x="170" y="90" width="40" height="30" fill="#0F172A"/><rect x="230" y="90" width="40" height="30" fill="#0F172A"/><rect x="110" y="150" width="60" height="40" fill="#0F172A"/>
+  </g>
+  <rect x="20" y="270" width="360" height="36" rx="6" fill="#0F172A" fill-opacity="0.85" stroke="#EAB308" stroke-width="1.5"/>
+  <text x="200" y="293" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC" text-anchor="middle">
+    Nguồn máy tính PSU • Góc 2/4: Cụm Cổng dây Full Modular
+  </text>
+</svg>

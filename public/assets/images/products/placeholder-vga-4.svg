@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#090D16" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="320" rx="12" fill="url(#bgGrad)"/>
+  <rect x="2" y="2" width="396" height="316" rx="10" fill="none" stroke="#EF4444" stroke-width="2" stroke-opacity="0.3"/>
+  <g>
+    <rect x="40" y="80" width="320" height="160" rx="8" fill="#1F2937" stroke="#EF4444" stroke-width="4"/><rect x="80" y="220" width="160" height="15" fill="#F59E0B"/><rect x="45" y="100" width="25" height="120" fill="#9CA3AF"/>
+  </g>
+  <rect x="20" y="270" width="360" height="36" rx="6" fill="#0F172A" fill-opacity="0.85" stroke="#EF4444" stroke-width="1.5"/>
+  <text x="200" y="293" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC" text-anchor="middle">
+    Card màn hình VGA • Góc 4/4: Chân cắm PCIe & Cổng xuất hình
+  </text>
+</svg>
