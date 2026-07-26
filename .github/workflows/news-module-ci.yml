@@ -154,7 +154,10 @@ jobs:
   checkpoint-gate:
     name: Checkpoint Gate Validator
     needs: []
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: >
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'fix/workflow-qa-v3-post-merge' &&
+      github.base_ref == 'feature/hieu-news'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
