@@ -36,6 +36,9 @@ class CheckoutController extends Controller
         $shipping = $subtotal > 0 ? 30000 : 0;
         $total = $subtotal + $shipping;
 
+        $addressModel = $this->model('Address');
+        $savedAddresses = $addressModel->allForUser((int)$user['id']);
+
         // Sinh submit token để chống double submit đơn hàng
         if (empty($_SESSION['submit_token'])) {
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
@@ -47,6 +50,7 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $total,
+            'savedAddresses' => $savedAddresses,
         ]);
     }
 
@@ -169,6 +173,10 @@ class CheckoutController extends Controller
         $note = trim($_POST['note'] ?? '');
         $paymentMethod = trim($_POST['payment_method'] ?? 'COD');
 
+        if (!in_array($paymentMethod, ['COD', 'VNPAY'], true)) {
+            $paymentMethod = 'COD';
+        }
+
         $subtotal = 0.0;
         foreach ($cart as $item) {
             $quantity = max(1, (int)($item['quantity'] ?? 1));
@@ -196,6 +204,7 @@ class CheckoutController extends Controller
             'address' => $address,
             'note' => $note,
             'payment_method' => $paymentMethod,
+            'payment_status' => $paymentMethod === 'VNPAY' ? 'pending' : 'unpaid',
             'subtotal' => $subtotal,
             'shipping_fee' => $shipping,
             'discount_amount' => $discountAmount,
@@ -218,6 +227,7 @@ class CheckoutController extends Controller
             'address' => $address,
             'note' => $note,
             'payment_method' => $paymentMethod,
+            'payment_status' => $paymentMethod === 'VNPAY' ? 'pending' : 'unpaid',
             'order_code' => $order['order_code'] ?? '',
             'status' => $order['status'] ?? 'pending',
             'items' => $cart,
@@ -228,9 +238,38 @@ class CheckoutController extends Controller
             'created_at' => date('d/m/Y H:i'),
         ];
 
+        if (isset($_POST['save_address']) && (int)($_POST['saved_address_id'] ?? 0) === 0) {
+            $addressModel = $this->model('Address');
+            $userId = (int)$user['id'];
+            if (!$addressModel->exists($userId, $customerName, $phone, $address)) {
+                $addressModel->create($userId, [
+                    'recipient_name' => $customerName,
+                    'phone' => $phone,
+                    'address_line' => $address,
+                    'ward' => '',
+                    'district' => '',
+                    'province' => '',
+                    'is_default' => empty($addressModel->allForUser($userId)),
+                ]);
+            }
+        }
+
         unset($_SESSION['cart']);
         unset($_SESSION['applied_coupon']);
         unset($_SESSION['checkout_error']);
+        if ($paymentMethod === 'VNPAY') {
+            require_once ROOT_PATH . '/app/services/VnpayService.php';
+            try {
+                $paymentUrl = (new VnpayService())->createPaymentUrl([
+                    'order_code' => $order['order_code'],
+                    'total' => $total,
+                ]);
+                header('Location: ' . $paymentUrl);
+                exit;
+            } catch (Throwable $e) {
+                $_SESSION['last_order']['payment_error'] = 'VNPay chưa được cấu hình. Vui lòng liên hệ cửa hàng.';
+            }
+        }
         $this->redirect('checkout/success');
     }
 

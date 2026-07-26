@@ -3,7 +3,7 @@
 /**
  * Cấu hình kết nối cơ sở dữ liệu (PDO - MySQL)
  * Hỗ trợ nạp file config/database.local.php nếu tồn tại.
- * Tự động khởi tạo CSDL và đồng bộ dữ liệu (Auto DB Import & Sync) khi có thay đổi tệp techpilot.sql.
+ * Việc tạo schema/import dữ liệu phải chạy thủ công, không thực hiện trong request web.
  */
 
 // Polyfills for missing mbstring extension
@@ -32,7 +32,7 @@ if (!class_exists('Database')) {
         private const HOST    = '127.0.0.1';
         private const DBNAME  = 'techpilot';
         private const USER    = 'root';
-        private const PASS    = 'a1032004km';
+        private const PASS = '';
         private const CHARSET = 'utf8mb4';
 
         public static function getConnection(): ?PDO
