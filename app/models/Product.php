@@ -946,22 +946,98 @@ class Product
                          SELECT oi.product_id, SUM(oi.quantity) as total_sold
                          FROM order_items oi
                          INNER JOIN orders o ON oi.order_id = o.id
+                         WHERE o.status = \'completed\'
                          GROUP BY oi.product_id
                      ) sold_data ON sold_data.product_id = p.id
-                     WHERE p.status = \'active\' AND fs.status = \'active\' AND fs.end_time > NOW()
+                     WHERE p.status = \'active\' 
+                       AND p.verification_status = \'verified\'
+                       AND fs.status = \'active\' 
+                       AND fs.start_time <= NOW()
+                       AND fs.end_time > NOW()
                      ORDER BY p.id DESC LIMIT :limit'
                 );
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
-            } catch (Exception $e) {}
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            } catch (Exception $e) {
+                error_log("getFlashSale error: " . $e->getMessage());
+            }
         }
 
-        $samples = array_filter(self::getSampleProducts(), fn($p) => !empty($p['is_flash_sale']));
-        return array_slice(array_values($samples), 0, $limit);
+        return [];
+    }
+
+    /** Lấy sản phẩm nổi bật (Hot Products) */
+    public function getFeaturedProducts(int $limit = 6): array
+    {
+        if ($this->db !== null) {
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                     FROM products p
+                     JOIN categories c ON p.category_id = c.id
+                     LEFT JOIN brands b ON p.brand_id = b.id
+                     WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
+                     ORDER BY p.rating DESC, p.id DESC
+                     LIMIT :limit"
+                );
+                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            } catch (Exception $e) {
+                error_log("getFeaturedProducts error: " . $e->getMessage());
+            }
+        }
+        return [];
+    }
+
+    /** Lấy sản phẩm mới nhất (New Arrivals - by ID / date) */
+    public function getNewProducts(int $limit = 6): array
+    {
+        if ($this->db !== null) {
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                     FROM products p
+                     JOIN categories c ON p.category_id = c.id
+                     LEFT JOIN brands b ON p.brand_id = b.id
+                     WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
+                     ORDER BY p.id DESC
+                     LIMIT :limit"
+                );
+                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            } catch (Exception $e) {
+                error_log("getNewProducts error: " . $e->getMessage());
+            }
+        }
+        return [];
+    }
+
+    /** Lấy sản phẩm đang khuyến mãi (Sale Products) */
+    public function getPromoProducts(int $limit = 6): array
+    {
+        if ($this->db !== null) {
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                     FROM products p
+                     JOIN categories c ON p.category_id = c.id
+                     LEFT JOIN brands b ON p.brand_id = b.id
+                     WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
+                       AND p.sale_price IS NOT NULL AND p.sale_price < p.price
+                     ORDER BY ((p.price - p.sale_price) / p.price) DESC, p.id DESC
+                     LIMIT :limit"
+                );
+                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            } catch (Exception $e) {
+                error_log("getPromoProducts error: " . $e->getMessage());
+            }
+        }
+        return [];
     }
 
 

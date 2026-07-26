@@ -59,6 +59,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (sEl) sEl.textContent = '00';
             countdownEl.classList.add('is-expired');
             if (endingTextEl) endingTextEl.textContent = 'Đã kết thúc';
+            const flashSection = document.querySelector('.flash-sale-section');
+            if (flashSection) {
+                flashSection.style.display = 'none';
+            }
         }
 
         if (!endTimeStr) {

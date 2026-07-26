@@ -22,6 +22,11 @@ $bestSellersComponents = $bestSellersComponents ?? [];
 $bestSellersMonitor = $bestSellersMonitor ?? [];
 $bestSellersAccessories = $bestSellersAccessories ?? [];
 
+// Layout Hot, New, Promo
+$featuredProducts = $featuredProducts ?? [];
+$newProducts = $newProducts ?? [];
+$promoProducts = $promoProducts ?? [];
+
 // Khác
 $brands = $brands ?? [];
 $posts = $posts ?? [];
@@ -199,6 +204,7 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
+<?php if (!empty($flashSale)): ?>
 <!-- ===== 6. FLASH SALE ===== -->
 <section class="flash-sale-section container">
     <header class="flash-sale-header">
@@ -245,18 +251,27 @@ $reviews = $reviews ?? [];
     </header>
 
     <div class="product-grid product-grid--6 flash-sale-products">
-        <?php if (!empty($flashSale)): ?>
-            <?php foreach ($flashSale as $p): ?>
-                <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="flash-sale-empty" style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-secondary);">
-                <i class="fa-solid fa-clock" style="font-size: 32px; margin-bottom: 10px; color: var(--primary);"></i>
-                <p>Hiện chưa có chương trình Flash Sale nào đang diễn ra.</p>
-            </div>
-        <?php endif; ?>
+        <?php foreach ($flashSale as $p): ?>
+            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+        <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
+
+<?php if (!empty($featuredProducts)): ?>
+<!-- ===== SẢN PHẨM NỔI BẬT (HOT) ===== -->
+<section class="container section">
+    <div class="section__head">
+        <h2><i class="fa-solid fa-fire" style="color: #ff4757; margin-right: 8px;"></i>Sản phẩm nổi bật</h2>
+        <a href="<?= url('home/search?sort=popular') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+    <div class="product-grid product-grid--6">
+        <?php foreach ($featuredProducts as $p): ?>
+            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- ===== 7. POPULAR CATEGORIES ===== -->
 <section class="container section">
@@ -368,6 +383,21 @@ $reviews = $reviews ?? [];
         </div>
     </div>
 </section>
+
+<?php if (!empty($newProducts)): ?>
+<!-- ===== SẢN PHẨM MỚI VỀ (NEW ARRIVALS) ===== -->
+<section class="container section">
+    <div class="section__head">
+        <h2><i class="fa-solid fa-sparkles" style="color: #2ed573; margin-right: 8px;"></i>Sản phẩm mới về</h2>
+        <a href="<?= url('home/search?sort=newest') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+    <div class="product-grid product-grid--6">
+        <?php foreach ($newProducts as $p): ?>
+            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- ===== 9. TRIPLE PROMOTION BANNER ===== -->
 <section class="container section">
