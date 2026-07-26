@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const categoryDropdown = document.getElementById('categoryMegaDropdown');
     const categoryStaticMenu = document.getElementById('categoryStaticMenu');
+    let staticMenuController = null;
 
     const categoryTriggers = [
         document.getElementById('categoryMenuToggle'),
@@ -262,6 +263,32 @@ document.addEventListener('DOMContentLoaded', () => {
         trig.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+
+            // Nếu trên Trang chủ (đang có Bảng Danh mục bên trái ở ảnh 2)
+            if (categoryStaticMenu && window.innerWidth > 767) {
+                // Đóng dropdown popup cũ nếu đang mở
+                if (activeDrawer === 'categoryDrawer') {
+                    closeCategoryDrawer(false);
+                }
+
+                // Cuộn mượt và làm sáng bảng danh mục bên trái (ảnh 2)
+                categoryStaticMenu.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                categoryStaticMenu.classList.add('is-highlighted');
+                setTimeout(() => {
+                    categoryStaticMenu.classList.remove('is-highlighted');
+                }, 1600);
+
+                // Mở menu con của mục đầu tiên nếu chưa mở mục nào
+                if (staticMenuController) {
+                    const firstRow = categoryStaticMenu.querySelector('.category-sidebar__row');
+                    if (firstRow) {
+                        const panelId = firstRow.getAttribute('data-panel-id');
+                        staticMenuController.activatePanel(panelId, firstRow);
+                    }
+                }
+                return;
+            }
+
             if (activeDrawer === 'categoryDrawer') {
                 closeCategoryDrawer(true);
             } else {
@@ -362,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetPanel) {
                 targetPanel.classList.add('is-active');
                 targetPanel.hidden = false;
+                targetPanel.removeAttribute('hidden');
                 targetPanel.setAttribute('aria-hidden', 'false');
             }
 
@@ -384,25 +412,38 @@ document.addEventListener('DOMContentLoaded', () => {
             rootElement.classList.remove('has-active-panel');
         }
 
-        // Row Mouseenter & Focus Listener
+        // Row Mouseenter, Click & Focus Listeners (Hỗ trợ cả Hover & Click mở menu con)
+        let staticLeaveTimer = null;
+
         rows.forEach(row => {
             const panelId = row.getAttribute('data-panel-id');
             const itemLink = row.querySelector('.category-sidebar__item');
             const accBtn = row.querySelector('.category-mobile-accordion-toggle');
 
-            if (itemLink) {
-                itemLink.addEventListener('mouseenter', () => {
-                    if (window.innerWidth > 767) {
-                        if (hoverTimeout) clearTimeout(hoverTimeout);
-                        hoverTimeout = setTimeout(() => {
-                            activatePanel(panelId, row);
-                        }, 80);
+            function handleRowActivate() {
+                if (window.innerWidth > 767) {
+                    if (staticLeaveTimer) {
+                        clearTimeout(staticLeaveTimer);
+                        staticLeaveTimer = null;
                     }
-                });
+                    if (hoverTimeout) clearTimeout(hoverTimeout);
+                    activatePanel(panelId, row);
+                }
+            }
 
-                itemLink.addEventListener('focus', () => {
+            row.addEventListener('mouseenter', handleRowActivate);
+
+            if (itemLink) {
+                itemLink.addEventListener('focus', handleRowActivate);
+                itemLink.addEventListener('click', (e) => {
                     if (window.innerWidth > 767) {
-                        activatePanel(panelId, row);
+                        const targetPanel = rootElement.querySelector(`#${panelId}`);
+                        const isCurrentlyActive = row.classList.contains('is-active') && targetPanel && targetPanel.classList.contains('is-active');
+
+                        if (!isCurrentlyActive) {
+                            e.preventDefault();
+                            handleRowActivate();
+                        }
                     }
                 });
             }
@@ -453,21 +494,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Mouseleave container handler for static menu
+        // Mouseleave container handler for static menu (Grace period 200ms)
         if (isStatic) {
-            rootElement.addEventListener('mouseleave', () => {
-                if (window.innerWidth > 767) {
-                    if (hoverTimeout) clearTimeout(hoverTimeout);
-                    resetMenu();
-                }
-            });
-
-            // Prevent panel closing when hovering over static mega panel area
             const megaArea = rootElement.querySelector('.category-dropdown__mega');
+
+            function handleStaticMouseLeave(e) {
+                if (window.innerWidth > 767) {
+                    const related = e.relatedTarget;
+                    if (related && (rootElement.contains(related) || (megaArea && megaArea.contains(related)))) {
+                        return;
+                    }
+                    if (staticLeaveTimer) clearTimeout(staticLeaveTimer);
+                    staticLeaveTimer = setTimeout(() => {
+                        resetMenu();
+                    }, 200);
+                }
+            }
+
+            function handleStaticMouseEnter() {
+                if (staticLeaveTimer) {
+                    clearTimeout(staticLeaveTimer);
+                    staticLeaveTimer = null;
+                }
+            }
+
+            rootElement.addEventListener('mouseleave', handleStaticMouseLeave);
+            rootElement.addEventListener('mouseenter', handleStaticMouseEnter);
+
             if (megaArea) {
-                megaArea.addEventListener('mouseenter', () => {
-                    if (hoverTimeout) clearTimeout(hoverTimeout);
-                });
+                megaArea.addEventListener('mouseleave', handleStaticMouseLeave);
+                megaArea.addEventListener('mouseenter', handleStaticMouseEnter);
             }
         }
 
@@ -502,6 +558,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Homepage Static Menu (#categoryStaticMenu)
     if (categoryStaticMenu) {
-        initCategoryMenu(categoryStaticMenu, { isStatic: true });
+        staticMenuController = initCategoryMenu(categoryStaticMenu, { isStatic: true });
     }
 });

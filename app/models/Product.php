@@ -937,7 +937,8 @@ class Product
                             fsi.discount_price as discount_price,
                             fsi.allocation_quantity as fs_stock,
                             COALESCE(sold_data.total_sold, 0) as fs_sold,
-                            fs.end_time as end_time
+                            fs.end_time as end_time,
+                            fs.end_time as end_date
                      FROM products p
                      INNER JOIN flash_sale_items fsi ON p.id = fsi.product_id
                      INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
@@ -947,7 +948,7 @@ class Product
                          INNER JOIN orders o ON oi.order_id = o.id
                          GROUP BY oi.product_id
                      ) sold_data ON sold_data.product_id = p.id
-                     WHERE (p.is_flash_sale = 1 OR p.sale_price IS NOT NULL)
+                     WHERE p.status = \'active\' AND fs.status = \'active\' AND fs.end_time > NOW()
                      ORDER BY p.id DESC LIMIT :limit'
                 );
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
