@@ -98,6 +98,23 @@ class Order
 
                 $dbStock = (int)$dbProduct['stock'];
                 $dbPrice = (float)$dbProduct['price'];
+
+                // Kiểm tra giá ưu đãi Flash Sale đang active nếu có
+                $fsStmt = $this->db->prepare(
+                    "SELECT fsi.discount_price 
+                     FROM flash_sale_items fsi
+                     JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
+                     WHERE fsi.product_id = :product_id 
+                       AND fs.status = 'active'
+                       AND fs.start_time <= NOW()
+                       AND fs.end_time > NOW()
+                     LIMIT 1"
+                );
+                $fsStmt->execute([':product_id' => $productId]);
+                $fsItem = $fsStmt->fetch(PDO::FETCH_ASSOC);
+                if ($fsItem && !empty($fsItem['discount_price']) && (float)$fsItem['discount_price'] > 0) {
+                    $dbPrice = (float)$fsItem['discount_price'];
+                }
                 $dbName = $dbProduct['name'];
 
                 // 2. Kiểm tra tồn kho
