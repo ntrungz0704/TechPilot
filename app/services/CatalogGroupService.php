@@ -16,7 +16,7 @@ class CatalogGroupService
             'virtual_slug'    => 'laptop',
             'icon'            => 'fa-solid fa-laptop',
             'source_slugs'    => ['laptop'],
-            'group_aliases'   => ['laptop', 'may-tinh-xach-tay', 'lap'],
+            'group_aliases'   => ['laptop', 'may-tinh-xach-tay', 'lap', 'laptop-gaming', 'laptop-van-phong'],
         ],
         'pc' => [
             'key'             => 'pc',
@@ -24,7 +24,7 @@ class CatalogGroupService
             'virtual_slug'    => 'pc',
             'icon'            => 'fa-solid fa-desktop',
             'source_slugs'    => ['pc'],
-            'group_aliases'   => ['pc', 'pc-gaming', 'pc-van-phong', 'may-bo', 'may-tinh-de-ban'],
+            'group_aliases'   => ['pc', 'pc-gaming', 'pc-van-phong', 'may-bo', 'may-tinh-de-ban', 'pc-build-san'],
         ],
         'pc-linh-kien' => [
             'key'             => 'pc-linh-kien',

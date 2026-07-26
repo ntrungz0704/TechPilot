@@ -28,11 +28,28 @@
                             <td><span class="badge badge--success" style="background-color: #E0F2FE; color: #0369A1;"><?= (int)$fs['item_count'] ?> sản phẩm</span></td>
                             <td>
                                 <?php
+                                $now = date('Y-m-d H:i:s');
                                 $statusClass = 'badge--warning';
                                 $statusLabel = 'Bản nháp';
-                                if ($fs['status'] === 'active') { $statusClass = 'badge--success'; $statusLabel = 'Đang chạy'; }
-                                if ($fs['status'] === 'ended') { $statusClass = 'badge--danger'; $statusLabel = 'Đã kết thúc'; }
-                                if ($fs['status'] === 'cancelled') { $statusClass = 'badge--danger'; $statusLabel = 'Đã huỷ'; }
+
+                                if ($fs['status'] === 'active') {
+                                    if ($fs['start_time'] > $now) {
+                                        $statusClass = 'badge--info';
+                                        $statusLabel = 'Sắp diễn ra';
+                                    } elseif ($fs['end_time'] < $now) {
+                                        $statusClass = 'badge--danger';
+                                        $statusLabel = 'Đã kết thúc';
+                                    } else {
+                                        $statusClass = 'badge--success';
+                                        $statusLabel = 'Đang chạy';
+                                    }
+                                } elseif ($fs['status'] === 'ended') {
+                                    $statusClass = 'badge--danger';
+                                    $statusLabel = 'Đã kết thúc';
+                                } elseif ($fs['status'] === 'cancelled') {
+                                    $statusClass = 'badge--danger';
+                                    $statusLabel = 'Đã huỷ';
+                                }
                                 ?>
                                 <span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                             </td>
