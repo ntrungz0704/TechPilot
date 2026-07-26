@@ -120,11 +120,7 @@ jobs:
 
       - name: Import Database Schema
         run: |
-          if [ -f "database/techpilot.sql" ]; then
-            mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/techpilot.sql
-          else
-            mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/schema.sql
-          fi
+          mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/techpilot.sql || mysql -h 127.0.0.1 -P 3306 -u root -proot techpilot < database/schema.sql
 
       - name: Run Non-Destructive Migrations
         run: php scripts/database/migrate.php

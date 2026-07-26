@@ -64,6 +64,7 @@ jobs:
           if [ -f "tests/fixtures/catalog_ci.sql" ]; then
             mysql -h 127.0.0.1 -u root techpilot < tests/fixtures/catalog_ci.sql
           fi
+          php scripts/database/migrate.php
 
       - name: Run PHP Integration Tests
         run: |
