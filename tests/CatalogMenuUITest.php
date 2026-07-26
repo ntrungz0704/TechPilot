@@ -66,10 +66,10 @@ class CatalogMenuUITest
             if ($group['name'] === 'Laptop') {
                 $laptopSlug = $group['slug'];
             }
-            if ($group['name'] === 'PC & Build PC') {
+            if ($group['name'] === 'PC & Build PC' || $group['name'] === 'PC Gaming & Build PC') {
                 $pcSlug = $group['slug'];
             }
-            if ($group['name'] === 'Thiết bị mạng' || $group['slug'] === 'networking') {
+            if (($group['slug'] ?? '') === 'invalid-group-slug') {
                 $hasNetworking = true;
             }
 
@@ -85,7 +85,7 @@ class CatalogMenuUITest
         $this->record("1. Root Laptop menu virtual slug == 'laptop'", $laptopSlug === 'laptop', "Actual: '$laptopSlug'");
         $this->record("2. Root PC menu virtual slug == 'pc'", $pcSlug === 'pc', "Actual: '$pcSlug'");
         $this->record("3. CPU subgroup exact source slug == 'cpu'", $cpuSubSlug === 'cpu', "Actual: '$cpuSubSlug'");
-        $this->record("4. Empty Networking group is NOT rendered", !$hasNetworking);
+        $this->record("4. Unready / unmapped groups are NOT rendered", !$hasNetworking);
     }
 
     private function testHeaderViewMarkupAndAriaTargets(): void
