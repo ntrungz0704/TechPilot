@@ -3,6 +3,10 @@
 *.html linguist-language=HTML
 *.css linguist-language=CSS
 *.js linguist-language=JavaScript
+*.sh linguist-detectable=false
+*.sh linguist-vendored=true
+*.bash linguist-detectable=false
+*.bash linguist-vendored=true
 docs/* linguist-documentation
 tests/* linguist-vendored
 scripts/* linguist-vendored
