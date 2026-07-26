@@ -1,0 +1,35 @@
+========================================================
+=== TECHPILOT NEWS DB INTEGRATION TEST SUITE          ===
+========================================================
+
+--- 1. Testing Production Search Methods & Weighted Relevance ---
+[PASS] countAll returns 5 matching items for search term 'news-it-acedf5e5-RTX 5090'
+[PASS] getAll returns exactly 5 items
+[PASS] Rank 1 is Exact Title Match (score 100)
+[PASS] Rank 2 is Prefix Title Match (score 80)
+[PASS] Rank 3 is Title Contains Match (score 60)
+[PASS] Rank 4 is Summary-only Match (score 30)
+[PASS] Rank 5 is Content-only Match (score 10)
+
+--- 2. Testing LIKE Wildcard Escaping (!, %, _, quotes, backslash) ---
+[PASS] Searching literal '%' matches ONLY 1 item containing '100%'
+[PASS] Matches correct 'GPU 100% hieu nang' fixture
+[PASS] Searching literal '_' matches ONLY 1 item containing 'laptop_sinh_vien'
+[PASS] Matches correct 'laptop_sinh_vien' fixture
+[PASS] Searching literal '!' matches ONLY 1 item containing 'Bang!'
+[PASS] Matches correct 'Bang! Special' fixture
+[PASS] SQL injection single quote input cleanly returns 0 matches without error
+[PASS] Backslash input cleanly returns 0 matches without PDO error
+[PASS] <script> input cleanly returns 0 matches without execution
+
+--- 3. Testing Combined Filter Criteria (Type + Category + Search) ---
+[PASS] Filtered countAll for review + pc-linh-kien + search term returns 2
+[PASS] Filtered getAll returns 2 items
+
+--- 4. Testing incrementViews updated_at Preservation ---
+[PASS] incrementViews increments views count by 1 (10 -> 11)
+[PASS] incrementViews PRESERVES updated_at timestamp ('2026-07-22 03:20:04' === '2026-07-22 03:20:04')
+
+════════════════════════════════════════════════════════
+Database Integration Results: 20 passed, 0 failed
+════════════════════════════════════════════════════════

@@ -15,7 +15,7 @@ class HomeController extends Controller
             'pageTitle'              => 'Trang chủ - TechPilot',
             'categories'             => $productModel->getCategories(),
             'flashSale'              => $productModel->getFlashSale(6),
-            
+
             // Các danh mục sản phẩm lớn ở trang chủ
             'laptopGaming'           => $productModel->getByCategorySlug('laptop-gaming', 6),
             'laptopVanPhong'         => $productModel->getByCategorySlug('laptop-van-phong', 6),
@@ -71,27 +71,18 @@ class HomeController extends Controller
             $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
         );
 
+        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+
         $pageTitle = 'Kết quả tìm kiếm';
         if ($promoOnly) {
             $pageTitle = 'Sản phẩm đang Khuyến mãi';
         } elseif (!empty($keyword) && !empty($categorySlug)) {
-            $categoryName = '';
-            foreach ($productModel->getCategories() as $cat) {
-                if ($cat['slug'] === $categorySlug) {
-                    $categoryName = $cat['name'];
-                    break;
-                }
-            }
-            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . ($categoryName ?: $categorySlug);
+            $categoryName = CatalogGroupService::getDisplayName($categorySlug);
+            $pageTitle = 'Tìm kiếm: ' . $keyword . ' trong ' . $categoryName;
         } elseif (!empty($keyword)) {
             $pageTitle = 'Tìm kiếm: ' . $keyword;
         } elseif (!empty($categorySlug)) {
-            foreach ($productModel->getCategories() as $cat) {
-                if ($cat['slug'] === $categorySlug) {
-                    $pageTitle = $cat['name'];
-                    break;
-                }
-            }
+            $pageTitle = CatalogGroupService::getDisplayName($categorySlug);
         }
 
         $this->render('home/search', [
@@ -174,6 +165,13 @@ class HomeController extends Controller
         }, $all);
 
         echo json_encode($products);
+    }
+
+    public function trade_in(): void
+    {
+        $this->render('home/trade_in', [
+            'pageTitle' => 'Thu cũ đổi mới máy cũ - TechPilot'
+        ]);
     }
 
     public function notFound(): void

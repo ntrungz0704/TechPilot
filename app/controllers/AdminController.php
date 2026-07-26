@@ -4,10 +4,12 @@ class AdminController extends Controller
 {
     public function index(): void
     {
+        $this->requireAdmin();
+
         // 1. Thống kê số lượng chung
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
-        
+
         $stats = [
             'total_users'    => 0,
             'total_products' => 0,
@@ -21,13 +23,13 @@ class AdminController extends Controller
         if ($db) {
             // Tổng số khách hàng
             $stats['total_users'] = (int)$db->query('SELECT COUNT(*) FROM users WHERE role = \'customer\'')->fetchColumn();
-            
+
             // Tổng số sản phẩm
             $stats['total_products'] = (int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn();
-            
+
             // Tổng số đơn hàng
             $stats['total_orders'] = (int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
-            
+
             // Doanh thu từ các đơn hàng đã hoàn thành (completed)
             $stats['total_revenue'] = (float)$db->query('SELECT SUM(total_amount) FROM orders WHERE status = \'completed\'')->fetchColumn();
 

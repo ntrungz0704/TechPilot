@@ -1,0 +1,22 @@
+Command: php tests/MarkdownRendererTest.php
+Exit code: 0
+Passed: 35, Failed: 0, Skipped: 0
+
+Command: php tests/EditorialExperienceTest.php
+Exit code: 0
+Passed: 42, Failed: 0, Skipped: 0
+
+Command: php tests/test_absolute_url.php
+Exit code: 0
+Passed: 9, Failed: 0, Skipped: 0
+
+Command: php tests/test_author_cases.php
+Exit code: 0
+Passed: 3, Failed: 0, Skipped: 0
+
+Command: php tests/NewsModuleRegressionTest.php
+Exit code: 0
+Passed: 42, Failed: 0, Skipped: 0
+
+PHP Version: 8.3.26
+All 131 unit and regression test cases passed with exit code 0.

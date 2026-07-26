@@ -168,7 +168,7 @@ $reviews = $reviews ?? [];
                 <h4>THU CŨ ĐỔI MỚI MÁY CŨ</h4>
                 <p>Trợ giá lên tới 6 triệu đồng</p>
             </div>
-            <a href="<?= url('post') ?>" class="btn btn--sm">Xem chi tiết</a>
+            <a href="<?= url('thu-cu-doi-moi') ?>" class="btn btn--sm">Xem chi tiết</a>
         </div>
     </div>
 </section>
@@ -571,7 +571,11 @@ $reviews = $reviews ?? [];
                 </a>
                 <div class="news-card__body">
                     <span class="news-card__date"><i class="fa-regular fa-clock"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?></span>
-                    <h3 class="news-card__title"><?= e($post['title']) ?></h3>
+                    <h3 class="news-card__title">
+                        <a href="<?= url('post/detail/' . e($post['slug'])) ?>" style="text-decoration: none; color: inherit;">
+                            <?= e($post['title']) ?>
+                        </a>
+                    </h3>
                     <p class="news-card__summary"><?= e($post['summary']) ?></p>
                 </div>
             </div>

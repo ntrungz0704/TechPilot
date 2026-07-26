@@ -1,0 +1,24 @@
+Browser QA Type: MANUAL
+Date: 2026-07-22
+Environment: Local Laragon (http://localhost/TechPilot/public/)
+
+Tested Routes:
+- /post
+- /post?page=1
+- /post?page=999 (clamped to page 3)
+- /post?q=rtx
+- /post?q=%
+- /post?q=_
+- /post?q=!
+- /post?q=100%25
+- /post?q=laptop_sinh_vien
+- /post?type=review&category=laptop&q=laptop
+- /post/detail/10-meo-toi-uu-windows-11-tang-toc-may-tinh-choi-game
+- /post/detail/so-sanh-intel-i9-14900k-vs-amd-ryzen-7-7800x3d-vua-gaming
+- /post/detail/non-existent-slug (404 handled gracefully)
+
+Console Findings:
+- Uncaught JavaScript errors: 0
+- Unhandled promise rejections: 0
+- CSS/Selector syntax errors: 0
+- Notes: Desktop TOC and Mobile TOC operate without DOM conflicts or missing elements.

@@ -45,6 +45,8 @@ class AuthController extends Controller
                     $redirect = trim($_GET['redirect'] ?? '');
                     if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
                         $this->redirect($redirect);
+                    } elseif (($user['role'] ?? '') === 'admin') {
+                        $this->redirect('/admin');
                     } else {
                         $this->redirect('/');
                     }

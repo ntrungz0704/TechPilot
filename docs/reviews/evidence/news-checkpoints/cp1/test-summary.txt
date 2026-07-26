@@ -1,0 +1,24 @@
+========================================================
+=== CP1 CHECKPOINT VERIFICATION SUMMARY               ===
+========================================================
+Checkpoint: CP1_EMPTY_ARTICLE_FALLBACK
+Target Branch: feature/hieu-news
+
+Screenshots Captured:
+1. 01-rich-detail-desktop.png (1440x900) - PASS (Rich article body, TOC & CTAs rendered)
+2. 02-rich-detail-mobile.png (390x844) - PASS (Rich article body & Mobile TOC rendered)
+3. 03-empty-fallback-desktop.png (1440x900) - PASS (Renders "Nội dung đang được cập nhật", no TOC/CTA/Sources/Author Box)
+4. 04-empty-fallback-mobile.png (390x844) - PASS (Renders "Nội dung đang được cập nhật", no TOC/CTA/Sources/Author Box)
+
+HTML & PHP Code Quality Verification:
+- Raw PHP code string printed outside tags: REMOVED
+- Undefined variable warnings: NONE
+- Controller helper PostController::hasRenderableArticleContent: VERIFIED
+- Desktop TOC suppression on empty content: VERIFIED
+- Mobile TOC suppression on empty content: VERIFIED
+- CTA box suppression on empty content: VERIFIED
+- Sources block suppression on empty content: VERIFIED
+- Body author box suppression on empty content: VERIFIED
+- Inline fallback CSS style attributes: REMOVED (Replaced with .article-content-empty in news.css)
+- Console Errors: 0
+- HTTP 500 Errors: 0

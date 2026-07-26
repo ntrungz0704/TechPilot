@@ -3,9 +3,9 @@
 -- Fresh-install schema for MySQL 8 / MariaDB 10.6+
 -- ============================================================================
 
-DROP DATABASE IF EXISTS techpilot;
-CREATE DATABASE techpilot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE techpilot;
+-- SAFETY: The caller must explicitly select or provide the target database.
+-- This schema must never create, drop, or switch databases.
+-- Example: mysql <database_name> < database/schema.sql
 
 -- 1. users (Người dùng)
 CREATE TABLE IF NOT EXISTS users (
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
     address TEXT DEFAULT NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    remember_token VARCHAR(100) DEFAULT NULL,
+    remember_token VARCHAR(255) DEFAULT NULL,
     reset_token VARCHAR(100) DEFAULT NULL,
     reset_token_expiry DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -263,7 +263,6 @@ CREATE TABLE IF NOT EXISTS flash_sale_items (
     CONSTRAINT fk_flash_sale_items_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
     UNIQUE KEY uq_campaign_product (flash_sale_id, product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- 14. banners (Quảng cáo)
 CREATE TABLE IF NOT EXISTS banners (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -422,11 +421,13 @@ INSERT INTO banners (title, image, link, type, position) VALUES
 ('Trả góp 0% lãi suất - Thủ tục nhanh gọn', 'promo-banner-2.jpg', '#', 'long_banner', 1);
 
 -- 6. Nạp bài viết tin tức công nghệ (posts)
-INSERT INTO posts (title, slug, summary, content, image, created_at) VALUES 
-('Đánh giá chi tiết NVIDIA RTX 50 Series: Bước nhảy vọt hiệu năng AI', 'nvidia-rtx-50-series-danh-gia', 'Những thông tin mới nhất về hiệu năng, giá bán và ngày ra mắt card đồ họa thế hệ tiếp theo của NVIDIA.', 'Kiến trúc mới mang lại băng thông siêu cao, tích hợp Tensor Core thế hệ thứ 5 giúp tối ưu hóa thuật toán AI...', 'news-rtx-50.jpg', NOW() - INTERVAL 1 DAY),
-('Intel Core Ultra 9: CPU thế hệ mới dành cho các dòng laptop mỏng nhẹ 2026', 'intel-core-ultra-9-laptop-thin-light', 'Dòng chip sở hữu NPU chuyên biệt phục vụ các tác vụ trí tuệ nhân tạo trực tiếp trên thiết bị.', 'Dòng vi xử lý mới tiết kiệm năng lượng hơn, card đồ họa Arc tích hợp mạnh mẽ sẵn sàng thay thế card rời phân khúc phổ thông...', 'news-intel-ultra.jpg', NOW() - INTERVAL 3 DAY),
-('Hướng dẫn tự build PC gaming 20 triệu chiến tốt mọi game esport năm nay', 'huong-dan-build-pc-20-trieu', 'Lựa chọn linh kiện chuẩn nhất, tối ưu ngân sách tốt nhất tránh nghẽn cổ chai.', 'Tập trung chi phí vào CPU Core i5 / Ryzen 5 và card đồ họa GTX 1660 Super hoặc RTX 3060 cũ giúp bạn chơi game tối ưu nhất...', 'news-build-pc.jpg', NOW() - INTERVAL 5 DAY),
-('Top 5 chuột gaming không dây siêu nhẹ đáng mua nhất thời điểm hiện tại', 'top-5-chuot-gaming-khong-day-sieu-nhe', 'Điểm danh các gương mặt vàng từ Razer, Logitech, Corsair được game thủ chuyên nghiệp tin dùng.', 'Razer DeathAdder V3 Pro, Logitech G Pro X Superlight 2 đang dẫn đầu cuộc đua chuột siêu nhẹ dưới 60 gram...', 'news-mouse-gaming.jpg', NOW() - INTERVAL 7 DAY);
+INSERT INTO posts (title, slug, summary, content, image, category_slug, post_type, author_name, created_at) VALUES 
+('Đánh giá chi tiết NVIDIA RTX 50 Series: Bước nhảy vọt hiệu năng AI', 'nvidia-rtx-50-series-danh-gia', 'Những thông tin mới nhất về hiệu năng, giá bán và ngày ra mắt card đồ họa thế hệ tiếp theo của NVIDIA.', 'Kiến trúc mới mang lại băng thông siêu cao, tích hợp Tensor Core thế hệ thứ 5 giúp tối ưu hóa thuật toán AI...', 'news-rtx-50.jpg', 'pc-linh-kien', 'news', 'Đội ngũ TechPilot', NOW() - INTERVAL 1 DAY),
+('Intel Core Ultra 9: CPU thế hệ mới dành cho các dòng laptop mỏng nhẹ 2026', 'intel-core-ultra-9-laptop-thin-light', 'Dòng chip sở hữu NPU chuyên biệt phục vụ các tác vụ trí tuệ nhân tạo trực tiếp trên thiết bị.', 'Dòng vi xử lý mới tiết kiệm năng lượng hơn, card đồ họa Arc tích hợp mạnh mẽ sẵn sàng thay thế card rời phân khúc phổ thông...', 'news-intel-ultra.jpg', 'laptop', 'news', 'Đội ngũ TechPilot', NOW() - INTERVAL 3 DAY),
+('Hướng dẫn tự build PC gaming 20 triệu chiến tốt mọi game esport năm nay', 'huong-dan-build-pc-20-trieu', 'Lựa chọn linh kiện chuẩn nhất, tối ưu ngân sách tốt nhất tránh nghẽn cổ chai.', 'Tập trung chi phí vào CPU Core i5 / Ryzen 5 và card đồ họa GTX 1660 Super hoặc RTX 3060 cũ giúp bạn chơi game tối ưu nhất...', 'news-build-pc.jpg', 'pc-gaming', 'guide', 'Ban biên tập TechPilot', NOW() - INTERVAL 5 DAY),
+('Top 5 chuột gaming không dây siêu nhẹ đáng mua nhất thời điểm hiện tại', 'top-5-chuot-gaming-khong-day-sieu-nhe', 'Điểm danh các gương mặt vàng từ Razer, Logitech, Corsair được game thủ chuyên nghiệp tin dùng.', 'Razer DeathAdder V3 Pro, Logitech G Pro X Superlight 2 đang dẫn đầu cuộc đua chuột siêu nhẹ dưới 60 gram...', 'news-mouse-gaming.jpg', 'gaming-gear', 'review', 'Ban biên tập TechPilot', NOW() - INTERVAL 7 DAY),
+('10 mẹo tối ưu Windows 11 giúp tăng tốc máy tính và chơi game mượt hơn 2026', '10-meo-toi-uu-windows-11-tang-toc-may-tinh-choi-game', 'Hướng dẫn chi tiết các bước tối ưu hóa hệ điều hành Windows 11 giúp giảm ngốn RAM, tắt ứng dụng chạy ngầm và tăng FPS khi chơi game.', 'Tắt bớt Startup Apps, bật Game Mode, tối ưu Virtual Memory, vô hiệu hóa Telemetry và các mẹo dọn dẹp bộ nhớ đệm giúp máy tính của bạn vận hành trơn tru nhất...', 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?q=80&w=800&auto=format&fit=crop', 'pc-linh-kien', 'howto', 'Ban biên tập TechPilot', NOW() - INTERVAL 2 DAY),
+('So sánh Intel Core i9-14900K vs AMD Ryzen 7 7800X3D: Đâu là Vua Gaming 2026?', 'so-sanh-intel-i9-14900k-vs-amd-ryzen-7-7800x3d-vua-gaming', 'So sánh toàn diện về hiệu năng chơi game, điện năng tiêu thụ, nhiệt độ và hiệu quả chi phí giữa hai vi xử lý cao cấp hàng đầu hiện nay.', 'AMD Ryzen 7 7800X3D vượt trội trong hầu hết tựa game eSport và AAA nhờ 3D V-Cache, trong khi Intel Core i9-14900K lại đa năng hơn cho đồ họa nặng...', 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?q=80&w=800&auto=format&fit=crop', 'pc-gaming', 'comparison', 'Đội ngũ TechPilot', NOW() - INTERVAL 4 DAY);
 
 -- 7. Nạp bài đánh giá mẫu (reviews)
 INSERT INTO reviews (product_id, user_id, reviewer_name, rating, comment) VALUES 
