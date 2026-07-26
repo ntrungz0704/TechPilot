@@ -16,7 +16,7 @@ class ProductController extends Controller
         }
 
         $specs = json_decode($product['specs'] ?? '{}', true) ?: [];
-        $related = $productModel->getRelated((int)$product['category_id'], (int)$product['id'], 6);
+        $related = $productModel->getRelated((int)$product['category_id'], (int)$product['id'], 6, (float)($product['price'] ?? 0));
         $productImages = $productModel->getProductImages((int)$product['id']);
         $reviews = $reviewModel->getByProduct((int)$product['id']);
 
