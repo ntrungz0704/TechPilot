@@ -83,8 +83,8 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=25.0') ?>">
-    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=5.0') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=30.0') ?>">
+    <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=10.0') ?>">
     <?php foreach ($pageStyles ?? [] as $stylesheet): ?>
         <link rel="stylesheet" href="<?= url($stylesheet) ?>">
     <?php endforeach; ?>
