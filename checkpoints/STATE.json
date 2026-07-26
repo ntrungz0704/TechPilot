@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "checkpoint_id": "CHECKPOINT_3",
+  "title": "First-fold layout compaction and responsive hardening",
+  "lifecycle_status": "ROADMAP_DEFINED",
+  "branch": "feature/hieu-news",
+  "base_sha": "039ff0d07ef1c5161a4bb4f459b9b008e5cab0dd",
+  "candidate_sha": null,
+  "reviewed_sha": null,
+  "merged_sha": null,
+  "writer": {
+    "assigned": false,
+    "member": null,
+    "tool": "deepseek"
+  },
+  "reviewer": {
+    "assigned": false,
+    "member": null,
+    "tool": "hermes"
+  },
+  "semantic_authority": "chatgpt",
+  "last_updated": "2026-07-24T00:00:00Z",
+  "state_history_ref": "checkpoints/STATE_HISTORY.jsonl"
+}

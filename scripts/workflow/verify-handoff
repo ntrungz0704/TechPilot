@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLI="$SCRIPT_DIR/lib/contract-cli.js"
+
+HANDOFF="${1:-checkpoints/CP03/IMPLEMENTATION_HANDOFF.json}"
+CONTRACT="${2:-checkpoints/CP03/TASK_CONTRACT.yaml}"
+SCHEMA="docs/workflow/schemas/implementation-handoff.schema.json"
+STATE_FILE="checkpoints/STATE.json"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "Usage: $0 [handoff-path] [contract-path]"
+  echo "  Default handoff:  checkpoints/CP03/IMPLEMENTATION_HANDOFF.json"
+  echo "  Default contract: checkpoints/CP03/TASK_CONTRACT.yaml"
+  exit 0
+fi
+
+for tool in node jq git; do
+  if ! command -v "$tool" &>/dev/null; then
+    echo "FAIL: $tool is required"
+    exit 1
+  fi
+done
+
+if [ ! -f "$HANDOFF" ]; then
+  echo "FAIL: Handoff file not found: $HANDOFF"
+  exit 1
+fi
+if [ ! -f "$SCHEMA" ]; then
+  echo "FAIL: Schema file not found: $SCHEMA"
+  exit 1
+fi
+
+# Fail closed if caller provided a contract path that does not exist
+if [ -n "${2:-}" ] && [ ! -f "$CONTRACT" ]; then
+  echo "FAIL: Contract file not found: $CONTRACT"
+  exit 1
+fi
+
+# Cleanup temp files on exit
+TMP_CLEANUP=()
+cleanup_tmp() {
+  for f in "${TMP_CLEANUP[@]}"; do
+    [ -f "$f" ] && rm -f "$f" 2>/dev/null || true
+  done
+}
+trap cleanup_tmp EXIT
+
+# ── Validate handoff JSON against schema ────────────────────────────────────
+node "$CLI" validate-json "$HANDOFF" "$SCHEMA" || {
+  echo "FAIL: Handoff schema validation failed"
+  exit 1
+}
+
+# ── Verify writer_declaration ───────────────────────────────────────────────
+WRITER_DECL=$(jq -r '.writer_declaration' "$HANDOFF")
+if [ "$WRITER_DECL" = "PENDING_IMPLEMENTATION" ]; then
+  echo "FAIL: Handoff is in PENDING_IMPLEMENTATION state. Must be complete."
+  exit 1
+fi
+if [ "$WRITER_DECL" != "READY_FOR_REVIEW" ]; then
+  echo "FAIL: Invalid writer_declaration '$WRITER_DECL'. Must be READY_FOR_REVIEW"
+  exit 1
+fi
+echo "OK: writer_declaration=$WRITER_DECL"
+
+# ── Verify candidate_sha ────────────────────────────────────────────────────
+CANDIDATE_SHA=$(jq -r '.candidate_sha' "$HANDOFF")
+if [ "$CANDIDATE_SHA" = "CANDIDATE_COMMIT_PENDING_HUMAN_COMMIT" ]; then
+  echo "FAIL: candidate_sha is a placeholder. Must be an actual commit SHA."
+  exit 1
+fi
+if ! echo "$CANDIDATE_SHA" | grep -qE '^[0-9a-f]{40}$'; then
+  echo "FAIL: candidate_sha '$CANDIDATE_SHA' is not a valid 40-char hex SHA"
+  exit 1
+fi
+HEAD_SHA=$(git rev-parse HEAD)
+if [ "$CANDIDATE_SHA" != "$HEAD_SHA" ]; then
+  echo "FAIL: Handoff candidate_sha ($CANDIDATE_SHA) != HEAD ($HEAD_SHA)"
+  exit 1
+fi
+echo "OK: candidate_sha matches HEAD"
+
+# ── Verify base_sha ─────────────────────────────────────────────────────────
+BASE_SHA=$(jq -r '.base_sha // ""' "$STATE_FILE")
+if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "null" ] || ! git rev-parse --verify "$BASE_SHA" &>/dev/null; then
+  echo "FAIL: Cannot verify changed_files: invalid or missing base_sha in $STATE_FILE"
+  exit 1
+fi
+
+# ── Verify changed_files exact set equality ─────────────────────────────────
+HANDOFF_FILES=$(jq -r '.changed_files[]' "$HANDOFF" 2>/dev/null | sort)
+GIT_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" 2>/dev/null | sort)
+
+if [ "$HANDOFF_FILES" != "$GIT_FILES" ]; then
+  echo "FAIL: Handoff changed_files does not equal git diff ${BASE_SHA}...${HEAD_SHA}"
+  echo "--- Handoff claims ---"
+  echo "$HANDOFF_FILES"
+  echo "--- Git diff shows ---"
+  echo "$GIT_FILES"
+  exit 1
+fi
+echo "OK: changed_files matches git diff exactly"
+
+# ── Verify evidence_paths (ALWAYS, not only when contract exists) ─────────
+HANDOFF_EVIDENCE_PATHS=$(jq -r '.evidence_paths[]' "$HANDOFF" 2>/dev/null || true)
+if [ -z "$HANDOFF_EVIDENCE_PATHS" ]; then
+  echo "FAIL: evidence_paths must be a non-empty array"
+  exit 1
+fi
+
+# Verify each evidence file actually exists on disk (always)
+while IFS= read -r epath; do
+  [ -z "$epath" ] && continue
+  if [ ! -f "$epath" ]; then
+    echo "FAIL: Evidence path does not exist: $epath"
+    exit 1
+  fi
+done <<< "$HANDOFF_EVIDENCE_PATHS"
+echo "OK: All evidence files exist"
+
+# ── Verify REQUIRED_EVIDENCE structured entries from contract ────────────
+if [ -f "$CONTRACT" ]; then
+  SCHEMA="docs/workflow/schemas/task-contract.schema.json"
+  CONTRACT_EVIDENCE_ENTRIES=$(node "$CLI" dump-required-evidence-entries "$CONTRACT" "$SCHEMA" 2>/dev/null) || {
+    echo "FAIL: Cannot parse REQUIRED_EVIDENCE entries from contract"
+    exit 1
+  }
+
+  echo "$CONTRACT_EVIDENCE_ENTRIES" | node -e "
+  var chunks = [];
+  process.stdin.on('data', function(d) { chunks.push(d); });
+  process.stdin.on('end', function() {
+    var entries = JSON.parse(chunks.join(''));
+    var handoffList = process.argv[1].split('\n').filter(Boolean);
+    var errors = [];
+    if (entries.length === 0) {
+      errors.push('No structured REQUIRED_EVIDENCE entries (must contain id and path)');
+    }
+    entries.forEach(function(r) {
+      if (!r.id) { errors.push('Missing id in REQUIRED_EVIDENCE entry'); return; }
+      if (!r.path) { errors.push('Missing path in REQUIRED_EVIDENCE entry id=' + r.id); return; }
+      if (handoffList.indexOf(r.path) === -1) {
+        errors.push('Missing required evidence path ' + r.path + ' (id=' + r.id + ') in handoff evidence_paths');
+      }
+    });
+    if (errors.length > 0) {
+      errors.forEach(function(e) { console.log('FAIL: ' + e); });
+      process.exit(1);
+    }
+    console.log('OK: All REQUIRED_EVIDENCE entries present with valid id=' + entries.map(function(e){return e.id}).join(', '));
+  });
+  " "$HANDOFF_EVIDENCE_PATHS" || {
+    echo "FAIL: Required evidence entries verification failed"
+    exit 1
+  }
+fi
+
+# ── Verify REQUIRED_TESTS exact set equality ────────────────────────────────
+if [ -f "$CONTRACT" ]; then
+  SCHEMA="docs/workflow/schemas/task-contract.schema.json"
+  CONTRACT_TESTS=$(node "$CLI" dump-required-tests "$CONTRACT" "$SCHEMA" 2>/dev/null) || {
+    echo "FAIL: Cannot parse REQUIRED_TESTS from contract"
+    exit 1
+  }
+
+  HANDOFF_TESTS=$(jq -c '.test_results[]' "$HANDOFF" 2>/dev/null || true)
+
+  # Build contract test keys (command + args joined)
+  echo "$CONTRACT_TESTS" | node -e "
+  var chunks = [];
+  process.stdin.on('data', function(d) { chunks.push(d); });
+  process.stdin.on('end', function() {
+    var tests = JSON.parse(chunks.join(''));
+    var keys = {};
+    tests.forEach(function(t) { keys[t.command + ' ' + (t.args||[]).join(' ')] = t; });
+    console.log(JSON.stringify(keys));
+  });
+  "   > /tmp/handoff-verify-keys-$$.json
+  TMP_CLEANUP+=("/tmp/handoff-verify-keys-$$.json")
+
+  # Build handoff test keys
+  echo "$HANDOFF_TESTS" | node -e "
+  var chunks = [];
+  process.stdin.on('data', function(d) { chunks.push(d); });
+  process.stdin.on('end', function() {
+    var lines = chunks.join('').trim().split('\n').filter(Boolean);
+    var results = {};
+    lines.forEach(function(l) {
+      try { var t = JSON.parse(l); results[t.executable + ' ' + (t.args||[]).join(' ')] = t; } catch(e) {}
+    });
+    console.log(JSON.stringify(results));
+  });
+  " > /tmp/handoff-verify-results-$$.json
+  TMP_CLEANUP+=("/tmp/handoff-verify-results-$$.json")
+
+  CONTRACT_KEYS=$(cat /tmp/handoff-verify-keys-$$.json)
+  HANDOFF_KEYS=$(cat /tmp/handoff-verify-results-$$.json)
+
+  node -e "
+  var ck = JSON.parse(process.argv[1]);
+  var hr = JSON.parse(process.argv[2]);
+  var errors = [];
+
+  // Check every contract test exists in handoff
+  Object.keys(ck).forEach(function(key) {
+    var ht = hr[key];
+    if (!ht) {
+      errors.push('MISSING: Contract test not in handoff: ' + key);
+    } else {
+      // Check expected_exit_code matches
+      if (ht.expected_exit_code === undefined || ht.expected_exit_code === null) {
+        errors.push('MISSING: expected_exit_code for test: ' + key);
+      } else if (ht.expected_exit_code !== ck[key].expected_exit_code) {
+        errors.push('MISMATCH: ' + key + ' expected_exit_code ' + ck[key].expected_exit_code + ' got ' + ht.expected_exit_code);
+      }
+      // Check actual_exit_code is present
+      if (ht.actual_exit_code === undefined || ht.actual_exit_code === null) {
+        errors.push('MISSING: actual_exit_code for test: ' + key);
+      }
+      // Check result field is valid
+      if (ht.result !== 'PASS' && ht.result !== 'FAIL') {
+        errors.push('INVALID: result for test: ' + key + ' must be PASS or FAIL');
+      }
+      // Consistency: PASS requires actual_exit_code == expected_exit_code
+      if (ht.result === 'PASS' && ht.actual_exit_code !== ck[key].expected_exit_code) {
+        errors.push('CONTRADICTION: ' + key + ' result=PASS but actual_exit_code=' + ht.actual_exit_code + ' != expected=' + ck[key].expected_exit_code);
+      }
+      // Consistency: FAIL requires actual_exit_code != expected_exit_code
+      if (ht.result === 'FAIL' && ht.actual_exit_code === ck[key].expected_exit_code) {
+        errors.push('CONTRADICTION: ' + key + ' result=FAIL but actual_exit_code==expected_exit_code=' + ck[key].expected_exit_code);
+      }
+    }
+  });
+
+  // Check every handoff test exists in contract
+  Object.keys(hr).forEach(function(key) {
+    if (!ck[key]) {
+      errors.push('EXTRA: Handoff test not in contract: ' + key);
+    }
+  });
+
+  if (errors.length > 0) {
+    errors.forEach(function(e) { console.log('FAIL: ' + e); });
+    process.exit(1);
+  }
+  console.log('OK: All REQUIRED_TESTS match handoff test_results (exact set)');
+  " "$CONTRACT_KEYS" "$HANDOFF_KEYS" || {
+    echo "FAIL: Contract test verification failed"
+    rm -f /tmp/handoff-verify-keys-$$.json /tmp/handoff-verify-results-$$.json
+    exit 1
+  }
+
+  rm -f /tmp/handoff-verify-keys-$$.json /tmp/handoff-verify-results-$$.json
+fi
+
+echo "PASS: verify-handoff"
+exit 0
