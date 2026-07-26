@@ -1,6 +1,6 @@
 <?php
 /**
- * Category Navigation - Tier 1 Content Categories & Tier 2 Topic Filters
+ * Category Navigation - AAA Standard Streamlined Filter Bar
  * Variables: $currentType (string), $currentCategory (string), $currentTag (string), $currentQ (string)
  */
 $currentType     = $currentType     ?? '';
@@ -8,7 +8,7 @@ $currentCategory = $currentCategory ?? '';
 $currentTag      = $currentTag      ?? '';
 $currentQ        = $currentQ        ?? '';
 
-// ── Xử lý Normalized Nav State (chỉ dùng để active highlight UI) ────────────────
+// Normalize state
 $navType     = $currentType;
 $navCategory = $currentCategory;
 
@@ -30,54 +30,63 @@ if (empty($navType) && empty($navCategory) && !empty($currentTag)) {
     }
 }
 
-// Tầng 1: Loại nội dung (Content Types)
-$contentTypes = [
-    '' => [
-        'title' => 'Tất cả nội dung',
-        'icon'  => 'fa-solid fa-layer-group',
+// Danh sách các Filter Pill 1-click tinh gọn chuẩn AAA
+$filterPills = [
+    [
+        'key'       => 'all',
+        'title'     => 'Tất cả',
+        'icon'      => 'fa-solid fa-layer-group',
+        'is_active' => (empty($navType) && empty($navCategory)),
+        'params'    => [],
     ],
-    'news' => [
-        'title' => 'Ra mắt & Xu hướng',
-        'icon'  => 'fa-solid fa-bolt',
+    [
+        'key'       => 'ai',
+        'title'     => '✨ AI & Copilot+',
+        'icon'      => 'fa-solid fa-wand-magic-sparkles',
+        'is_ai'     => true,
+        'is_active' => ($navCategory === 'ai-cong-nghe-moi' || $navCategory === 'ai'),
+        'params'    => ['category' => 'ai-cong-nghe-moi'],
     ],
-    'review' => [
-        'title' => 'Đánh giá & Review',
-        'icon'  => 'fa-solid fa-star',
+    [
+        'key'       => 'review',
+        'title'     => 'Đánh giá & Review',
+        'icon'      => 'fa-solid fa-star',
+        'is_active' => (empty($navCategory) && $navType === 'review'),
+        'params'    => ['type' => 'review'],
     ],
-    'guide' => [
-        'title' => 'Tư vấn chọn mua',
-        'icon'  => 'fa-solid fa-compass',
+    [
+        'key'       => 'guide',
+        'title'     => 'Tư vấn chọn mua',
+        'icon'      => 'fa-solid fa-compass',
+        'is_active' => (empty($navCategory) && $navType === 'guide'),
+        'params'    => ['type' => 'guide'],
     ],
-    'howto' => [
-        'title' => 'Mẹo hay & Thủ thuật',
-        'icon'  => 'fa-solid fa-wand-magic-sparkles',
+    [
+        'key'       => 'howto',
+        'title'     => 'Mẹo hay & Thủ thuật',
+        'icon'      => 'fa-solid fa-sliders',
+        'is_active' => (empty($navCategory) && $navType === 'howto'),
+        'params'    => ['type' => 'howto'],
     ],
-    'comparison' => [
-        'title' => 'So sánh sản phẩm',
-        'icon'  => 'fa-solid fa-code-compare',
+    [
+        'key'       => 'comparison',
+        'title'     => 'So sánh sản phẩm',
+        'icon'      => 'fa-solid fa-code-compare',
+        'is_active' => (empty($navCategory) && $navType === 'comparison'),
+        'params'    => ['type' => 'comparison'],
     ],
-];
-
-// Tầng 2: Chủ đề thiết bị (Device Topics)
-$topics = [
-    ''                 => 'Tất cả thiết bị',
-    'laptop'           => 'Laptop',
-    'pc-gaming'        => 'PC Gaming',
-    'pc-linh-kien'     => 'PC & Linh kiện',
-    'man-hinh'         => 'Màn hình',
-    'gaming-gear'      => 'Gaming Gear',
-    'ai-cong-nghe-moi' => 'AI & Công nghệ',
 ];
 ?>
 
-<div class="news-category-section">
+<div class="news-category-section news-category-section--aaa">
     <!-- Intro Header & Search Form -->
     <header class="news-intro-header">
         <div class="news-intro-text">
-            <h1 class="news-intro-title">Tin Tức & Điểm Tin Công Nghệ</h1>
+            <h1 class="news-intro-title">Tin Tức Công Nghệ</h1>
+            <p class="news-intro-desc">Cập nhật tin tức, đánh giá phần cứng & hướng dẫn chọn mua mới nhất</p>
         </div>
 
-        <!-- Header Search Form (sử dụng RAW variables) -->
+        <!-- Header Search Form -->
         <form action="<?= url('post') ?>" method="get" class="news-search-form">
             <?php if (!empty($currentType)): ?>
                 <input type="hidden" name="type" value="<?= e($currentType) ?>">
@@ -85,16 +94,13 @@ $topics = [
             <?php if (!empty($currentCategory)): ?>
                 <input type="hidden" name="category" value="<?= e($currentCategory) ?>">
             <?php endif; ?>
-            <?php if (empty($currentType) && empty($currentCategory) && !empty($currentTag)): ?>
-                <input type="hidden" name="tag" value="<?= e($currentTag) ?>">
-            <?php endif; ?>
 
             <div class="news-search-input-wrapper">
                 <input
                     type="text"
                     name="q"
                     value="<?= e($currentQ) ?>"
-                    placeholder="Tìm bài viết, hướng dẫn..."
+                    placeholder="Tìm bài viết, thủ thuật..."
                     aria-label="Tìm kiếm bài viết"
                     required
                     maxlength="150"
@@ -103,16 +109,8 @@ $topics = [
                     <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                 </button>
                 <?php if (!empty($currentQ)): ?>
-                    <?php
-                    $clearParams = [];
-                    if (!empty($currentType))     $clearParams['type']     = $currentType;
-                    if (!empty($currentCategory)) $clearParams['category'] = $currentCategory;
-                    if (empty($currentType) && empty($currentCategory) && !empty($currentTag)) {
-                        $clearParams['tag'] = $currentTag;
-                    }
-                    ?>
                     <a
-                        href="<?= url('post' . (!empty($clearParams) ? '?' . http_build_query($clearParams) : '')) ?>"
+                        href="<?= url('post' . (!empty($currentCategory) ? '?category=' . urlencode($currentCategory) : (!empty($currentType) ? '?type=' . urlencode($currentType) : ''))) ?>"
                         class="news-search-clear-btn"
                         aria-label="Xóa từ khóa tìm kiếm"
                     >
@@ -123,72 +121,29 @@ $topics = [
         </form>
     </header>
 
-    <!-- Filter Control Group: Content Type Tabs & Topic Select Form -->
+    <!-- Filter Bar: 1-Click Streamlined Pills -->
     <div class="news-filter-controls">
-        <!-- Tier 1: Content Category Tabs -->
-        <nav class="news-type-pills" aria-label="Loại nội dung">
-            <?php foreach ($contentTypes as $typeKey => $info): ?>
+        <nav class="news-type-pills news-type-pills--streamlined" aria-label="Bộ lọc bài viết">
+            <?php foreach ($filterPills as $pill): ?>
                 <?php
-                $isActive = ($navType === $typeKey);
-                $query = [];
-                if (!empty($typeKey)) {
-                    $query['type'] = $typeKey;
-                }
-                if (!empty($currentCategory)) {
-                    $query['category'] = $currentCategory;
-                }
+                $queryParams = $pill['params'];
                 if (!empty($currentQ)) {
-                    $query['q'] = $currentQ;
+                    $queryParams['q'] = $currentQ;
                 }
-                // Loại bỏ tag khi người dùng chủ động chọn tab type mới
-                $linkUrl = url('post' . (!empty($query) ? '?' . http_build_query($query) : ''));
+                $linkUrl = url('post' . (!empty($queryParams) ? '?' . http_build_query($queryParams) : ''));
+                $isActive = $pill['is_active'];
+                $aiClass = !empty($pill['is_ai']) ? 'news-type-pill--ai' : '';
                 ?>
                 <a
                     href="<?= $linkUrl ?>"
-                    class="news-type-pill <?= $isActive ? 'is-active' : '' ?>"
+                    class="news-type-pill <?= $aiClass ?> <?= $isActive ? 'is-active' : '' ?>"
                     <?= $isActive ? 'aria-current="page"' : '' ?>
                 >
-                    <i class="<?= e($info['icon']) ?>" aria-hidden="true"></i>
-                    <span><?= e($info['title']) ?></span>
+                    <i class="<?= e($pill['icon']) ?>" aria-hidden="true"></i>
+                    <span><?= e($pill['title']) ?></span>
                 </a>
             <?php endforeach; ?>
         </nav>
-
-        <!-- Tier 2: Native GET Form cho Device Topics (Sử dụng RAW variables cho hidden inputs) -->
-        <form action="<?= url('post') ?>" method="get" class="news-topic-form">
-            <?php if (!empty($currentType)): ?>
-                <input type="hidden" name="type" value="<?= e($currentType) ?>">
-            <?php endif; ?>
-            <?php if (!empty($currentQ)): ?>
-                <input type="hidden" name="q" value="<?= e($currentQ) ?>">
-            <?php endif; ?>
-
-            <div class="news-topic-select-wrapper">
-                <label for="newsTopicSelect" class="news-topic-label">
-                    <i class="fa-solid fa-filter" aria-hidden="true"></i> Chủ đề:
-                </label>
-                <select name="category" id="newsTopicSelect" class="news-topic-select">
-                    <?php foreach ($topics as $catKey => $catName): ?>
-                        <?php
-                        $isCatActive = false;
-                        if (empty($catKey)) {
-                            $isCatActive = empty($navCategory);
-                        } else {
-                            $isCatActive = ($navCategory === $catKey)
-                                || ($catKey === 'pc-gaming' && $navCategory === 'gaming')
-                                || ($catKey === 'ai-cong-nghe-moi' && $navCategory === 'ai');
-                        }
-                        ?>
-                        <option value="<?= e($catKey) ?>" <?= $isCatActive ? 'selected' : '' ?>>
-                            <?= e($catName) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" class="news-topic-submit-btn btn btn--primary btn--sm">
-                    Áp dụng
-                </button>
-            </div>
-        </form>
     </div>
 
     <!-- Instance Mobile cho Hot Topics (< 1024px) -->

@@ -3,9 +3,9 @@
 -- Fresh-install schema for MySQL 8 / MariaDB 10.6+
 -- ============================================================================
 
-DROP DATABASE IF EXISTS techpilot;
-CREATE DATABASE techpilot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE techpilot;
+-- SAFETY: The caller must explicitly select or provide the target database.
+-- This schema must never create, drop, or switch databases.
+-- Example: mysql <database_name> < database/schema.sql
 
 -- 1. users (Người dùng)
 CREATE TABLE IF NOT EXISTS users (
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
     address TEXT DEFAULT NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    remember_token VARCHAR(100) DEFAULT NULL,
+    remember_token VARCHAR(255) DEFAULT NULL,
     reset_token VARCHAR(100) DEFAULT NULL,
     reset_token_expiry DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

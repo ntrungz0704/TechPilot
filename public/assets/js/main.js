@@ -7,12 +7,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function applyTheme(isDark) {
         document.documentElement.classList.toggle('dark-mode', isDark);
-        if (themeToggle) {
-            const icon = themeToggle.querySelector('i');
-            if (icon) {
-                icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-            }
+
+        if (!themeToggle) return;
+
+        const icon = themeToggle.querySelector('i');
+        const nextActionLabel = isDark
+            ? 'Chuyển sang giao diện sáng'
+            : 'Chuyển sang giao diện tối';
+
+        if (icon) {
+            icon.className = isDark
+                ? 'fa-solid fa-sun'
+                : 'fa-solid fa-moon';
+
+            icon.setAttribute('aria-hidden', 'true');
         }
+
+        themeToggle.setAttribute('aria-label', nextActionLabel);
+        themeToggle.setAttribute('title', nextActionLabel);
+        themeToggle.setAttribute('aria-pressed', String(isDark));
     }
 
     if (savedTheme) {
@@ -39,20 +52,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function pad(n) { return n.toString().padStart(2, '0'); }
 
-        // Chuẩn hoá định dạng "YYYY-MM-DD HH:MM:SS" thành ISO 8601 múi giờ +07:00 (Asia/Ho_Chi_Minh)
         const isoStr = endTimeStr.replace(' ', 'T') + '+07:00';
         const end = new Date(isoStr);
+        const endMs = end.getTime();
+        let intervalId = null;
+
+        function renderZero() {
+            if (hEl) hEl.textContent = '00';
+            if (mEl) mEl.textContent = '00';
+            if (sEl) sEl.textContent = '00';
+        }
 
         function tick() {
-            const now = new Date();
-            const diffMs = end.getTime() - now.getTime();
-            
+            if (!Number.isFinite(endMs)) {
+                renderZero();
+                if (intervalId !== null) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+                return false;
+            }
+
+            const diffMs = endMs - Date.now();
+
             if (diffMs <= 0) {
-                if (hEl) hEl.textContent = '00';
-                if (mEl) mEl.textContent = '00';
-                if (sEl) sEl.textContent = '00';
-                clearInterval(intervalId);
-                return;
+                renderZero();
+                if (intervalId !== null) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+                return false;
             }
 
             const totalSeconds = Math.floor(diffMs / 1000);
@@ -63,10 +92,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (hEl) hEl.textContent = pad(h);
             if (mEl) mEl.textContent = pad(m);
             if (sEl) sEl.textContent = pad(s);
+            return true;
         }
 
-        tick();
-        const intervalId = setInterval(tick, 1000);
+        if (tick()) {
+            intervalId = setInterval(tick, 1000);
+        }
     }
 
     /* ============ HERO CAROUSEL ============ */
