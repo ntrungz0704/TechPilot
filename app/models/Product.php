@@ -1080,20 +1080,23 @@ class Product
         return [];
     }
 
-    /** Lấy sản phẩm liên quan (cùng danh mục, khác id hiện tại) */
-    public function getRelated(int $categoryId, int $excludeId, int $limit = 4): array
+    /** Lấy sản phẩm liên quan (cùng danh mục, khác id hiện tại, tương đồng giá và rating) */
+    public function getRelated(int $categoryId, int $excludeId, int $limit = 6, float $currentPrice = 0): array
     {
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, b.name as brand_name
+                    'SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.category_id = :cat AND p.id != :id
-                     ORDER BY RAND() LIMIT :limit'
+                     LEFT JOIN categories c ON p.category_id = c.id
+                     WHERE p.category_id = :cat AND p.id != :id AND p.status = \'active\'
+                     ORDER BY ABS(p.price - :price) ASC, p.rating DESC, p.id DESC
+                     LIMIT :limit'
                 );
                 $stmt->bindValue(':cat', $categoryId, PDO::PARAM_INT);
                 $stmt->bindValue(':id', $excludeId, PDO::PARAM_INT);
+                $stmt->bindValue(':price', $currentPrice);
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();

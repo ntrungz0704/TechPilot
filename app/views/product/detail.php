@@ -4,11 +4,26 @@ $specs = $specs ?? [];
 $related = $related ?? [];
 $productImages = $productImages ?? [];
 $reviews = $reviews ?? [];
+
+require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
+
+// Unique product images helper
+function uniqueProductImages(string $mainImg, array $extraImgs): array {
+    $unique = [$mainImg];
+    foreach ($extraImgs as $imgObj) {
+        $url = is_array($imgObj) ? ($imgObj['image_url'] ?? '') : (string)$imgObj;
+        if (!empty($url) && !in_array($url, $unique)) {
+            $unique[] = $url;
+        }
+    }
+    return array_filter($unique);
+}
+$galleryImages = uniqueProductImages($product['image'] ?? '', $productImages);
 ?>
 
 <section class="container breadcrumb">
     <a href="<?= url('/') ?>">Trang chủ</a> <i class="fa-solid fa-chevron-right"></i>
-    <a href="<?= url('home/search?cat=' . e($product['category_slug'] ?? '')) ?>"><?= e($product['category_name'] ?? 'Danh mục') ?></a> <i class="fa-solid fa-chevron-right"></i>
+    <a href="<?= url('category/' . e($product['category_slug'] ?? '')) ?>"><?= e($product['category_name'] ?? 'Danh mục') ?></a> <i class="fa-solid fa-chevron-right"></i>
     <span><?= e($product['name']) ?></span>
 </section>
 
@@ -19,28 +34,17 @@ $reviews = $reviews ?? [];
             <?php if (!empty($product['discount_percent']) && $product['discount_percent'] > 0): ?>
                 <span class="product-card__badge">-<?= (int)$product['discount_percent'] ?>%</span>
             <?php endif; ?>
-            <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
+            <img src="<?= e(productImageUrl($galleryImages[0] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
         </div>
-        <div class="product-detail__thumbs">
-            <!-- Thêm ảnh đại diện gốc vào danh sách thumbnail -->
-            <div class="product-detail__thumb is-active" onclick="changeProductImage('<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
-                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
-            </div>
-            <!-- Hiển thị các ảnh chi tiết nếu có -->
-            <?php foreach ($productImages as $img): ?>
-                <div class="product-detail__thumb" onclick="changeProductImage('<?= e(productImageUrl($img['image_url'], $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
-                    <img src="<?= e(productImageUrl($img['image_url'], $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="Detail" class="product-detail__thumb-image">
-                </div>
-            <?php endforeach; ?>
-            <!-- Fallback điền thêm thumbnail cho đầy giao diện -->
-            <?php if (count($productImages) < 3): ?>
-                <?php for ($i = 0; $i < (3 - count($productImages)); $i++): ?>
-                    <div class="product-detail__thumb" onclick="changeProductImage('<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
-                        <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="Detail" class="product-detail__thumb-image">
+        <?php if (count($galleryImages) > 1): ?>
+            <div class="product-detail__thumbs">
+                <?php foreach ($galleryImages as $idx => $imgUrl): ?>
+                    <div class="product-detail__thumb <?= $idx === 0 ? 'is-active' : '' ?>" onclick="changeProductImage('<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
+                        <img src="<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
                     </div>
-                <?php endfor; ?>
-            <?php endif; ?>
-        </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 
     <!-- Product Info -->
@@ -62,6 +66,27 @@ $reviews = $reviews ?? [];
         </div>
 
         <p class="product-detail__short-desc"><?= e($product['short_desc'] ?? 'Đang cập nhật mô tả ngắn cho sản phẩm này.') ?></p>
+
+        <!-- Key Highlight Spec Chips -->
+        <?php if (!empty($specs)): ?>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 15px 0;">
+                <?php 
+                $countChip = 0;
+                foreach ($specs as $sKey => $sVal):
+                    if ($countChip >= 4) break;
+                    if (in_array($sKey, ['gpu_model', 'vram_gb', 'vram_type', 'recommended_psu_w', 'warranty_months', 'cpu_model', 'socket', 'screen_size_inch', 'refresh_rate_hz'])):
+                        $countChip++;
+                ?>
+                    <div style="background-color: var(--bg-card, #F8FAFC); border: 1px solid var(--border, #E2E8F0); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-size: 11px; color: var(--text-secondary, #64748B); font-weight: 600; text-transform: uppercase;"><?= ProductSpecPresenter::getLabel($sKey) ?></span>
+                        <strong style="font-size: 13px; color: var(--primary, #2563EB); font-weight: 700;"><?= ProductSpecPresenter::formatValue($sKey, $sVal) ?></strong>
+                    </div>
+                <?php 
+                    endif;
+                endforeach; 
+                ?>
+            </div>
+        <?php endif; ?>
 
         <div class="product-detail__price">
             <span class="price-now"><?= formatPrice($product['price']) ?></span>
@@ -96,7 +121,7 @@ $reviews = $reviews ?? [];
 
         <div class="product-detail__perks">
             <div><i class="fa-solid fa-truck-fast"></i> Miễn phí giao hàng toàn quốc</div>
-            <div><i class="fa-solid fa-shield-heart"></i> Bảo hành chính hãng 12 tháng</div>
+            <div><i class="fa-solid fa-shield-heart"></i> Bảo hành chính hãng <?= (int)($product['warranty_months'] ?? 36) ?> tháng</div>
             <div><i class="fa-solid fa-rotate-left"></i> Đổi trả dễ dàng trong 7 ngày đầu</div>
             <div><i class="fa-solid fa-money-bill-wave"></i> Thanh toán khi nhận hàng (COD)</div>
         </div>
@@ -119,7 +144,9 @@ $reviews = $reviews ?? [];
     </button>
     <!-- Panel Mô tả -->
     <div class="product-tabs__panel is-active" id="tab-desc">
-        <p><?= nl2br(e($product['description'] ?? 'Đang cập nhật thông tin chi tiết.')) ?></p>
+        <div style="line-height: 1.8; color: var(--text-primary);">
+            <?= nl2br(e($product['description'] ?? 'Đang cập nhật thông tin chi tiết.')) ?>
+        </div>
     </div>
 
     <!-- Accordion Trigger 2 (Thông số kỹ thuật) -->
@@ -129,22 +156,24 @@ $reviews = $reviews ?? [];
     </button>
     <!-- Panel Thông số -->
     <div class="product-tabs__panel" id="tab-specs">
-        <table class="specs-table">
-            <tbody>
-                <?php if (!empty($specs)): ?>
-                    <?php foreach ($specs as $key => $value): ?>
-                        <tr>
-                            <th><?= e($key) ?></th>
-                            <td><?= e($value) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="2" style="text-align: center;">Chưa cập nhật thông số kỹ thuật chi tiết.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+        <?php 
+        $groupedSpecs = ProductSpecPresenter::getGroupedSpecs($product['category_slug'] ?? '', $specs);
+        ?>
+        <?php foreach ($groupedSpecs as $groupTitle => $groupItems): ?>
+            <?php if (!empty($groupItems)): ?>
+                <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 20px 0 10px 0; border-left: 4px solid var(--primary); padding-left: 10px;"><?= e($groupTitle) ?></h4>
+                <table class="specs-table" style="margin-bottom: 20px;">
+                    <tbody>
+                        <?php foreach ($groupItems as $sLabel => $sValue): ?>
+                            <tr>
+                                <th style="width: 35%;"><?= e(is_string($sLabel) ? ProductSpecPresenter::getLabel($sLabel) : $sLabel) ?></th>
+                                <td><?= e($sValue) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        <?php endforeach; ?>
 
         <?php 
         $fpsList = ProductIntelligenceService::estimateFps($specs, $product['category_slug'] ?? $product['category_name'] ?? '');
