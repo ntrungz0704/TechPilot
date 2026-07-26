@@ -1,4 +1,4 @@
-<?php
+    <?php
 
 class AdminBannerController extends Controller
 {
