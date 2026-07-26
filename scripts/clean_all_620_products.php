@@ -481,10 +481,10 @@ foreach (range(1, 20) as $catId) {
             ':id'           => $pId
         ]);
 
-        // Insert distinct gallery images for thumbnails
+        // Insert distinct gallery images for thumbnails (max 3 extra gallery images for max 4 total thumbnails)
         $clearGalleryStmt->execute([':id' => $pId]);
-        $usedGalleryImgs = [];
-        for ($g = 0; $g < count($imgList); $g++) {
+        $usedGalleryImgs = [$mainImage];
+        for ($g = 1; $g < count($imgList); $g++) {
             $gImg = $imgList[($idx + $g) % count($imgList)];
             if (!in_array($gImg, $usedGalleryImgs)) {
                 $usedGalleryImgs[] = $gImg;
@@ -492,6 +492,7 @@ foreach (range(1, 20) as $catId) {
                     ':id'  => $pId,
                     ':url' => $gImg
                 ]);
+                if (count($usedGalleryImgs) >= 4) break;
             }
         }
     }
