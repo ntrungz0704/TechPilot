@@ -98,3 +98,41 @@ All workflow scripts must:
 - NOT accept placeholder data as valid
 - NOT silently skip enforcement steps
 - Log clear failure reason to stdout/stderr
+
+## Historical checkpoint reconciliation
+
+### Applicability
+
+Active checkpoints continue to use STATE.json, STATE_HISTORY.jsonl,
+IMPLEMENTATION_HANDOFF.json, HERMES_VERIFICATION.json, SEMANTIC_REVIEW.md
+and the full state-machine process as normal.
+
+A historical reconciliation document is allowed only when a checkpoint was
+completed before or outside the current state-machine recording process.
+
+### Requirements for a reconciliation document
+
+A reconciliation document must cite immutable GitHub evidence:
+
+- Exact PR number
+- Exact remediation branch name and target branch name
+- Exact validated remediation HEAD SHA
+- Exact merge commit SHA
+- Successful CI run numbers with links or identifiers
+
+### What a reconciliation document cannot do
+
+A reconciliation document is documentation only and cannot:
+
+- Transition lifecycle state
+- Create or simulate approval
+- Bypass an active checkpoint gate
+- Authorize a merge
+- Replace required human review
+- Establish a generic bypass mechanism
+
+### CP03 reference
+
+The canonical CP03 historical reconciliation record is:
+
+checkpoints/CP03/HISTORICAL_RECONCILIATION.md

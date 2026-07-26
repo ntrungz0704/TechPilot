@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
     address TEXT DEFAULT NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    remember_token VARCHAR(100) DEFAULT NULL,
+    remember_token VARCHAR(255) DEFAULT NULL,
     reset_token VARCHAR(100) DEFAULT NULL,
     reset_token_expiry DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
