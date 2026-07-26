@@ -59,6 +59,12 @@
                 </form>
             </div>
 
+            <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-card);">
+                <h3 style="margin-top:0"><i class="fa-solid fa-location-dot" style="color:var(--primary)"></i> Sổ địa chỉ</h3>
+                <p style="color:var(--text-secondary)">Quản lý các địa chỉ nhận hàng và chọn nhanh khi thanh toán.</p>
+                <a class="btn" href="<?= url('profile/addresses') ?>">Quản lý địa chỉ</a>
+            </div>
+
             <!-- Hộp 2: Đổi mật khẩu -->
             <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-card);">
                 <div style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 20px;">
