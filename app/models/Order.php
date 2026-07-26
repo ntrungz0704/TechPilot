@@ -40,8 +40,8 @@ class Order
             $discountAmount = isset($payload['discount_amount']) ? (float)$payload['discount_amount'] : 0.0;
 
             $stmt = $this->db->prepare(
-                'INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, subtotal, discount_amount, shipping_fee, total_amount, status)
-                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status)'
+                'INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status)
+                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status)'
             );
 
             $stmt->execute([
@@ -53,6 +53,7 @@ class Order
                 ':address' => $payload['address'] ?? '',
                 ':note' => $payload['note'] ?? '',
                 ':payment_method' => $payload['payment_method'] ?? 'COD',
+                ':payment_status' => $payload['payment_status'] ?? 'unpaid',
                 ':subtotal' => (float)($payload['subtotal'] ?? 0),
                 ':discount_amount' => $discountAmount,
                 ':shipping_fee' => (float)($payload['shipping_fee'] ?? 0),
@@ -169,6 +170,21 @@ class Order
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getByCode(string $orderCode): array|false
+    {
+        if ($this->useFallback) return false;
+        $stmt = $this->db->prepare('SELECT * FROM orders WHERE order_code = :code LIMIT 1');
+        $stmt->execute([':code' => $orderCode]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updatePayment(string $orderCode, string $status): bool
+    {
+        if ($this->useFallback || !in_array($status, ['pending', 'paid', 'failed'], true)) return false;
+        $stmt = $this->db->prepare("UPDATE orders SET payment_status = :status WHERE order_code = :code AND payment_method = 'VNPAY' AND payment_status <> 'paid'");
+        return $stmt->execute([':status' => $status, ':code' => $orderCode]);
+    }
+
     public function getById(int $id, int $userId): array|false
     {
         if ($this->useFallback) {
@@ -185,7 +201,7 @@ class Order
         }
 
         // Lấy chi tiết sản phẩm của đơn hàng
-        $itemStmt = $this->db->prepare('SELECT * FROM order_items WHERE order_id = :order_id');
+        $itemStmt = $this->db->prepare('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = :order_id');
         $itemStmt->execute([':order_id' => $id]);
         $order['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
 
