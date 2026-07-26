@@ -82,7 +82,7 @@ class AiAssistantController extends Controller
                     FROM products p
                     LEFT JOIN brands b ON p.brand_id = b.id
                     LEFT JOIN categories c ON p.category_id = c.id
-                    WHERE p.status = 'active' AND p.stock > 0 AND p.price <= ? AND p.category_id IN ($placeholders)";
+                    WHERE p.status = 'active' AND p.verification_status = 'verified' AND p.stock > 0 AND p.price <= ? AND p.category_id IN ($placeholders)";
             
             $stmt = $this->db->prepare($sql);
             $params = array_merge([$maxBudget], $categoryIds);
