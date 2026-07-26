@@ -933,11 +933,11 @@ class Product
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, 
-                            fsi.discount_price as discount_price, 
-                            fsi.allocation_quantity as fs_stock, 
+                    'SELECT p.*,
+                            fsi.discount_price as discount_price,
+                            fsi.allocation_quantity as fs_stock,
                             COALESCE(sold_data.total_sold, 0) as fs_sold,
-                            fs.end_time as end_time 
+                            fs.end_time as end_time
                      FROM products p
                      INNER JOIN flash_sale_items fsi ON p.id = fsi.product_id
                      INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
@@ -967,31 +967,45 @@ class Product
     /** Lấy sản phẩm theo slug danh mục (hỗ trợ cả danh mục con) */
     public function getByCategorySlug(string $slug, int $limit = 6): array
     {
-        if ($this->db !== null) {
-            try {
-                $stmt = $this->db->prepare(
-                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
-                     FROM products p
-                     JOIN categories c ON p.category_id = c.id
-                     LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE c.slug = :slug OR c.parent_id IN (SELECT id FROM categories WHERE slug = :slug)
-                     ORDER BY p.id DESC LIMIT :limit'
-                );
-                $stmt->bindValue(':slug', $slug);
-                $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-                $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
-            } catch (Exception $e) {}
+        if ($this->db === null) {
+            return [];
         }
 
-        $samples = array_filter(self::getSampleProducts(), fn($p) => ($p['category_slug'] ?? '') === $slug);
-        if (empty($samples)) {
-            return array_slice(self::getSampleProducts(), 0, $limit);
+        try {
+            require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+            $sourceSlugs = CatalogGroupService::resolveSourceSlugs($slug);
+
+            if (empty($sourceSlugs)) {
+                return [];
+            }
+
+            $placeholders = [];
+            $params = [];
+            foreach ($sourceSlugs as $i => $sSlug) {
+                $pName = ':sSlug_' . $i;
+                $params[$pName] = $sSlug;
+                $placeholders[] = $pName;
+            }
+
+            $inClause = implode(', ', $placeholders);
+            $sql = "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                    FROM products p
+                    JOIN categories c ON p.category_id = c.id
+                    LEFT JOIN brands b ON p.brand_id = b.id
+                    WHERE p.status = 'active' AND c.status = 'active' AND c.slug IN ($inClause)
+                    ORDER BY p.id DESC LIMIT :limit";
+
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k, $v);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("getByCategorySlug error for slug '$slug': " . $e->getMessage());
+            return [];
         }
-        return array_slice(array_values($samples), 0, $limit);
     }
 
     /** Lấy 1 sản phẩm theo id */
@@ -1000,10 +1014,10 @@ class Product
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
-                     FROM products p 
-                     LEFT JOIN categories c ON p.category_id = c.id 
-                     LEFT JOIN brands b ON p.brand_id = b.id 
+                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                     FROM products p
+                     LEFT JOIN categories c ON p.category_id = c.id
+                     LEFT JOIN brands b ON p.brand_id = b.id
                      WHERE p.id = :id LIMIT 1'
                 );
                 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -1029,10 +1043,10 @@ class Product
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name 
-                     FROM products p 
-                     LEFT JOIN categories c ON p.category_id = c.id 
-                     LEFT JOIN brands b ON p.brand_id = b.id 
+                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                     FROM products p
+                     LEFT JOIN categories c ON p.category_id = c.id
+                     LEFT JOIN brands b ON p.brand_id = b.id
                      WHERE p.slug = :slug LIMIT 1'
                 );
                 $stmt->bindValue(':slug', $slug);
@@ -1071,10 +1085,10 @@ class Product
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, b.name as brand_name 
+                    'SELECT p.*, b.name as brand_name
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.category_id = :cat AND p.id != :id 
+                     WHERE p.category_id = :cat AND p.id != :id
                      ORDER BY RAND() LIMIT :limit'
                 );
                 $stmt->bindValue(':cat', $categoryId, PDO::PARAM_INT);
@@ -1143,7 +1157,7 @@ class Product
                 }
 
                 $inQuery = implode(',', array_fill(0, count($slugs), '?'));
-                $sql = "SELECT p.*, b.name as brand_name 
+                $sql = "SELECT p.*, b.name as brand_name
                         FROM products p
                         JOIN categories c ON p.category_id = c.id
                         LEFT JOIN brands b ON p.brand_id = b.id
@@ -1264,51 +1278,17 @@ class Product
         bool $inStockOnly = false,
         bool $promoOnly = false
     ): array {
-        $conditions = ["p.status = 'active'"];
+        $conditions = ["p.status = 'active'", "c.status = 'active'"];
         $params = [];
 
-        // 1. Phân loại từ khóa theo bí danh danh mục (Category Aliases)
+        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+
+        // 1. Phân loại từ khóa theo bí danh danh mục từ CatalogGroupService (Single Source of Truth)
         $normalized = $this->normalizeSearchKeyword($keyword);
         $normalizedNoAccent = $this->removeVietnameseAccents($normalized);
 
         $matchedCategorySlugs = [];
-        $aliases = [
-            'laptop gaming'     => ['laptop-gaming'],
-            'laptop van phong'  => ['laptop-van-phong'],
-            'laptop văn phòng'  => ['laptop-van-phong'],
-            'máy tính xách tay' => ['laptop-gaming', 'laptop-van-phong'],
-            'may tinh xach tay' => ['laptop-gaming', 'laptop-van-phong'],
-            'máy tính để bàn'   => ['pc-build-san'],
-            'may tinh de ban'   => ['pc-build-san'],
-            'gaming gear'       => ['gaming-gear'],
-            'linh kiện'         => ['linh-kien-pc'],
-            'linh kien'         => ['linh-kien-pc'],
-            'màn hình'          => ['man-hinh'],
-            'man hinh'          => ['man-hinh'],
-            'laptop'            => ['laptop-gaming', 'laptop-van-phong'],
-            'máy bộ'            => ['pc-build-san'],
-            'may bo'            => ['pc-build-san'],
-            'lap'               => ['laptop-gaming', 'laptop-van-phong'],
-            'pc'                => ['pc-build-san'],
-            'cpu'               => ['cpu'],
-            'mainboard'         => ['mainboard'],
-            'main'              => ['mainboard'],
-            'ram'               => ['ram'],
-            'vga'               => ['vga'],
-            'card màn hình'     => ['vga'],
-            'card man hinh'     => ['vga'],
-            'card đồ họa'       => ['vga'],
-            'card do hoa'       => ['vga'],
-            'ssd'               => ['ssd'],
-            'hdd'               => ['hdd'],
-            'psu'               => ['psu'],
-            'nguồn'             => ['psu'],
-            'nguon'             => ['psu'],
-            'case'              => ['case'],
-            'vỏ máy'            => ['case'],
-            'tản nhiệt'         => ['tan-nhiet'],
-            'tan nhiet'         => ['tan-nhiet']
-        ];
+        $aliases = CatalogGroupService::getKeywordAliasMap();
 
         // Sắp xếp alias dài hơn lên trước
         uksort($aliases, function($a, $b) {
@@ -1340,8 +1320,8 @@ class Product
         $remainingKeyword = trim(preg_replace('/\s+/u', ' ', $remainingKeyword));
         $matchedCategorySlugs = array_unique($matchedCategorySlugs);
 
-        // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL
-        $urlSlugs = !empty($categorySlug) ? [$categorySlug] : [];
+        // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL (thông qua CatalogGroupService::resolveSourceSlugs)
+        $urlSlugs = !empty($categorySlug) ? CatalogGroupService::resolveSourceSlugs($categorySlug) : [];
         $hasCategoryConstraint = !empty($categorySlug) || !empty($matchedCategorySlugs);
 
         if ($hasCategoryConstraint) {
@@ -1357,15 +1337,13 @@ class Product
                 // Giao rỗng -> 0 kết quả
                 $conditions[] = '1 = 0';
             } else {
-                $catConditions = [];
+                $placeholders = [];
                 foreach ($targetSlugs as $i => $slug) {
                     $pName = ':catSlug_' . $i;
                     $params[$pName] = $slug;
-                    $pNameParent = ':catSlugParent_' . $i;
-                    $params[$pNameParent] = $slug;
-                    $catConditions[] = "(c.slug = $pName OR c.parent_id IN (SELECT id FROM categories WHERE slug = $pNameParent AND status = 'active'))";
+                    $placeholders[] = $pName;
                 }
-                $conditions[] = '(' . implode(' OR ', $catConditions) . ')';
+                $conditions[] = 'c.slug IN (' . implode(', ', $placeholders) . ')';
             }
         }
 
@@ -1566,7 +1544,7 @@ class Product
             try {
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $stmt = $this->db->prepare(
-                    "SELECT p.*, b.name as brand_name, c.name as category_name 
+                    "SELECT p.*, b.name as brand_name, c.name as category_name
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
                      LEFT JOIN categories c ON p.category_id = c.id

@@ -1,5 +1,3 @@
-<?php include ROOT_PATH . '/app/views/layouts/header.php'; ?>
-
 <!-- Nhập Google Font và CSS riêng cho AI Assistant -->
 <style>
     .ai-assistant-container {
@@ -785,4 +783,3 @@
     }
 </script>
 
-<?php include ROOT_PATH . '/app/views/layouts/footer.php'; ?>

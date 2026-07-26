@@ -38,12 +38,12 @@ if (!class_exists('Database')) {
         public static function getConnection(): ?PDO
         {
             if (self::$instance === null) {
-                $host = self::HOST;
-                $dbname = self::DBNAME;
-                $user = self::USER;
-                $pass = self::PASS;
+                $host = getenv('DB_HOST') ?: self::HOST;
+                $dbname = getenv('DB_NAME') ?: self::DBNAME;
+                $user = getenv('DB_USER') !== false ? getenv('DB_USER') : self::USER;
+                $pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : self::PASS;
                 $charset = self::CHARSET;
-                $port = null;
+                $port = getenv('DB_PORT') ?: null;
 
                 $localConfigFile = __DIR__ . '/database.local.php';
                 if (file_exists($localConfigFile)) {
@@ -54,7 +54,7 @@ if (!class_exists('Database')) {
                         $user = $localConfig['username'] ?? $localConfig['user'] ?? $user;
                         $pass = $localConfig['password'] ?? $localConfig['pass'] ?? $pass;
                         $charset = $localConfig['charset'] ?? $charset;
-                        $port = $localConfig['port'] ?? null;
+                        $port = $localConfig['port'] ?? $port;
                     }
                 }
 

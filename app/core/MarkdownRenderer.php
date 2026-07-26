@@ -29,6 +29,9 @@ class MarkdownRenderer
 
         $markdown = str_replace("\r\n", "\n", $markdown);
 
+        // ── Step 0: Isolate headings with double newlines so preg_split handles single-newline headings ──
+        $markdown = preg_replace('/(?<=\n|^)(#{1,6}\s+[^\n]+)(?=\n|$)/', "\n\n$1\n\n", $markdown);
+
         // ── Step 1: Tokenize code fences TRƯỚC khi split ──────────────────
         $markdown = preg_replace_callback(
             '/^```([^\n]*)?\n(.*?)^```[ \t]*$/ms',

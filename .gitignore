@@ -8,3 +8,4 @@ scratch/
 /storage/backups/
 *.local.sql
 *.local.json
+node_modules/
