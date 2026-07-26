@@ -15,6 +15,9 @@ class HomeController extends Controller
             'pageTitle'              => 'Trang chủ - TechPilot',
             'categories'             => $productModel->getCategories(),
             'flashSale'              => $productModel->getFlashSale(6),
+            'featuredProducts'       => $productModel->getFeaturedProducts(6),
+            'newProducts'            => $productModel->getNewProducts(6),
+            'promoProducts'          => $productModel->getPromoProducts(6),
 
             // Các danh mục sản phẩm lớn ở trang chủ
             'laptopGaming'           => $productModel->getByCategorySlug('laptop-gaming', 6),
