@@ -308,7 +308,7 @@
     padding: 0;
     width: 100%;
     height: 100%;
-    z-index: 1001;
+    z-index: 20;
 }
 
 .category-dropdown.is-static .category-dropdown__inner {
@@ -370,7 +370,7 @@ html.dark-mode .category-dropdown.is-static .category-dropdown__sidebar {
     display: none;
     background: #ffffff;
     border: 1px solid var(--border);
-    z-index: 1020 !important;
+    z-index: 30 !important;
 }
 
 html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
