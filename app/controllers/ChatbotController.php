@@ -701,7 +701,7 @@ class ChatbotController extends Controller
         }
 
         // Kiểm tra hỏi về chính sách Thu cũ đổi mới / Lên đời máy
-        if ($this->hasKeywords($q, ['thu cu doi moi', 'doi cu lay moi', 'thu cu', 'doi cu', 'len doi', 'trade in', 'doi may'])) {
+        if ($this->hasKeywords($q, ['thu cu doi moi', 'doi cu lay moi', 'thu cu', 'doi cu', 'len doi', 'trade in', 'doi may', 'len doi may', 'nang cap may'])) {
             return [
                 'success' => true,
                 'type' => 'text',
