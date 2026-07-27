@@ -15,7 +15,7 @@ class CatalogGroupService
             'name'            => 'Laptop',
             'virtual_slug'    => 'laptop',
             'icon'            => 'fa-solid fa-laptop',
-            'source_slugs'    => ['laptop', 'laptop-gaming', 'laptop-van-phong'],
+            'source_slugs'    => ['laptop'],
             'group_aliases'   => ['laptop', 'may-tinh-xach-tay', 'lap', 'laptop-gaming', 'laptop-van-phong'],
         ],
         'pc' => [
@@ -23,7 +23,7 @@ class CatalogGroupService
             'name'            => 'PC & Build PC',
             'virtual_slug'    => 'pc',
             'icon'            => 'fa-solid fa-desktop',
-            'source_slugs'    => ['pc', 'pc-build-san', 'may-tinh-bo'],
+            'source_slugs'    => ['pc'],
             'group_aliases'   => ['pc', 'pc-gaming', 'pc-van-phong', 'may-bo', 'may-tinh-de-ban', 'pc-build-san'],
         ],
         'pc-linh-kien' => [
@@ -31,7 +31,7 @@ class CatalogGroupService
             'name'            => 'Linh kiện PC',
             'virtual_slug'    => 'pc-linh-kien',
             'icon'            => 'fa-solid fa-microchip',
-            'source_slugs'    => ['pc-linh-kien', 'mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'],
+            'source_slugs'    => ['mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'],
             'group_aliases'   => ['pc-linh-kien', 'linh-kien-pc', 'linh-kien'],
         ],
         'man-hinh' => [
@@ -39,7 +39,7 @@ class CatalogGroupService
             'name'            => 'Màn hình',
             'virtual_slug'    => 'man-hinh',
             'icon'            => 'fa-solid fa-tv',
-            'source_slugs'    => ['man-hinh', 'monitor'],
+            'source_slugs'    => ['monitor'],
             'group_aliases'   => ['man-hinh', 'monitor'],
         ],
         'gaming-gear' => [
@@ -47,7 +47,7 @@ class CatalogGroupService
             'name'            => 'Gaming Gear',
             'virtual_slug'    => 'gaming-gear',
             'icon'            => 'fa-solid fa-gamepad',
-            'source_slugs'    => ['gaming-gear', 'keyboard', 'mouse', 'chair', 'headset', 'speaker'],
+            'source_slugs'    => ['keyboard', 'mouse', 'chair', 'headset', 'speaker'],
             'group_aliases'   => ['gaming-gear', 'gear'],
         ],
         'office-gear' => [
@@ -55,7 +55,7 @@ class CatalogGroupService
             'name'            => 'Thiết bị văn phòng',
             'virtual_slug'    => 'office-gear',
             'icon'            => 'fa-solid fa-print',
-            'source_slugs'    => ['office-gear', 'office-equipment', 'power-bank'],
+            'source_slugs'    => ['office-equipment', 'power-bank'],
             'group_aliases'   => ['office-gear', 'thiet-bi-van-phong'],
         ],
         'networking' => [
@@ -63,7 +63,7 @@ class CatalogGroupService
             'name'            => 'Thiết bị mạng',
             'virtual_slug'    => 'networking',
             'icon'            => 'fa-solid fa-wifi',
-            'source_slugs'    => ['networking', 'accessories', 'office-equipment'],
+            'source_slugs'    => ['accessories', 'office-equipment'],
             'group_aliases'   => ['networking', 'thiet-bi-mang'],
         ],
     ];

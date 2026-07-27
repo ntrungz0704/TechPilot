@@ -43,22 +43,19 @@ $formatRangeName = function (string $name): string {
                 $slug = !empty($cat['slug']) ? $cat['slug'] : '';
                 $name = !empty($cat['name']) ? $cat['name'] : '';
                 $icon = !empty($cat['icon']) ? $cat['icon'] : 'fa-solid fa-list';
-                $rawMega = $cat['mega_columns'] ?? [];
-                $megaColumns = array_filter($rawMega, function($items) {
-                    return is_array($items) && count($items) > 0;
-                });
+                $megaColumns = $cat['mega_columns'] ?? [];
                 $hasMega = !empty($megaColumns);
                 $virtualUrl = url('category/' . urlencode($slug));
                 $key = !empty($slug) ? $slug : $catId;
                 $prefix = $isStatic ? 'static-' : '';
-                $panelId = $hasMega ? ('panel-' . $prefix . $key) : '';
+                $panelId = 'panel-' . $prefix . $key;
                 $accordionBtnId = 'acc-btn-' . $prefix . $key;
                 ?>
-                <div class="category-sidebar__row" <?= $hasMega ? 'data-panel-id="' . $panelId . '"' : '' ?>>
+                <div class="category-sidebar__row" data-panel-id="<?= $panelId ?>">
                     <div class="category-sidebar__item-wrapper">
                         <a href="<?= $virtualUrl ?>"
                            class="category-sidebar__item"
-                           <?= $hasMega ? 'data-panel-id="' . $panelId . '"' : '' ?>>
+                           data-panel-id="<?= $panelId ?>">
                             <div class="category-sidebar__item-left">
                                 <i class="<?= e($icon) ?> category-icon" aria-hidden="true"></i>
                                 <span><?= e($name) ?></span>
@@ -125,10 +122,7 @@ $formatRangeName = function (string $name): string {
                 $catId = $cat['id'] ?? 0;
                 $slug = !empty($cat['slug']) ? $cat['slug'] : '';
                 $groupName = !empty($cat['name']) ? $cat['name'] : '';
-                $rawMega = $cat['mega_columns'] ?? [];
-                $megaColumns = array_filter($rawMega, function($items) {
-                    return is_array($items) && count($items) > 0;
-                });
+                $megaColumns = $cat['mega_columns'] ?? [];
                 if (empty($megaColumns)) continue;
                 $virtualUrl = url('category/' . urlencode($slug));
                 $key = !empty($slug) ? $slug : $catId;
