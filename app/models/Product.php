@@ -1146,14 +1146,27 @@ class Product
     /** Lấy danh sách ảnh phụ từ product_images */
     public function getProductImages(int $productId): array
     {
+        $images = [];
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->prepare('SELECT * FROM product_images WHERE product_id = :product_id');
+                $stmt = $this->db->prepare('SELECT * FROM product_images WHERE product_id = :product_id ORDER BY position ASC, id ASC');
                 $stmt->execute([':product_id' => $productId]);
-                return $stmt->fetchAll();
+                $images = $stmt->fetchAll();
             } catch (Exception $e) {}
         }
-        return [];
+        
+        // Ensure exactly 4 images exist
+        if (count($images) < 4) {
+            $mainProduct = $this->getById($productId);
+            $mainImage = $mainProduct['image'] ?? 'placeholder.png';
+            
+            // Pad array up to 4 images using the main image
+            while (count($images) < 4) {
+                $images[] = ['image_url' => $mainImage];
+            }
+        }
+        
+        return array_slice($images, 0, 4);
     }
 
     /** Lấy sản phẩm liên quan (cùng danh mục, khác id hiện tại, tương đồng giá và rating) */

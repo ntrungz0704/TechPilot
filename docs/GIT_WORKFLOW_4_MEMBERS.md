@@ -77,14 +77,7 @@ git push -u origin trung/feature-layout-mobile
 Khi xảy ra xung đột mã nguồn (`Merge Conflict`), tuyệt đối **KHÔNG** được tự ý chọn "Accept All Incoming" hoặc "Accept Current Change" một cách máy móc. Hãy thực hiện theo các bước sau:
 
 1. **Xác định file bị xung đột**: Chạy lệnh `git status` để tìm các file có trạng thái `both modified`.
-2. **Mở file xung đột**: Tìm các thẻ đánh dấu:
-   ```
-   <<<<<<< HEAD
-   Mã nguồn hiện tại của bạn
-   =======
-   Mã nguồn mới của người khác
-   >>>>>>> develop
-   ```
+2. **Mở file xung đột**: Xóa các marker báo hiệu conflict.
 3. **Trao đổi trực tiếp**: Nói chuyện với thành viên đã viết đoạn code xung đột để thống nhất giải pháp giữ lại phần code nào hoặc kết hợp cả hai.
 4. **Kiểm tra lại hệ thống**: Sau khi sửa thủ công, hãy chạy thử dự án (`php -S 127.0.0.1:8000 router.php`) để đảm bảo giao diện và logic hoạt động hoàn toàn bình thường trước khi commit.
 5. **Hoàn tất merge**:
