@@ -2,93 +2,32 @@
 
 /**
  * ProductSpecPresenter - Single Source of Truth for converting raw JSON specs into Vietnamese labels with units and grouped technical tables.
+ * Powered by config/product-spec-schemas.php for 20 tech categories.
  */
 class ProductSpecPresenter
 {
-    private static array $specLabels = [
-        // Common & General
-        'manufacturer' => 'Hãng sản xuất',
-        'series' => 'Dòng sản phẩm',
-        'warranty_months' => 'Thời gian bảo hành',
-        'use_case_fit' => 'Nhu cầu phù hợp',
-
-        // VGA Specs
-        'gpu_model' => 'Chip đồ họa (GPU)',
-        'architecture' => 'Kiến trúc',
-        'vram_gb' => 'Dung lượng VRAM',
-        'vram_type' => 'Loại bộ nhớ (VRAM)',
-        'memory_bus_bit' => 'Bus bộ nhớ',
-        'boost_clock_mhz' => 'Xung nhịp Boost',
-        'power_draw_w' => 'Công suất tiêu thụ',
-        'recommended_psu_w' => 'Khuyên dùng nguồn (PSU)',
-        'power_connectors' => 'Đầu cấp nguồn',
-        'length_mm' => 'Chiều dài',
-        'width_mm' => 'Chiều rộng',
-        'height_mm' => 'Chiều cao',
-        'slot_width' => 'Độ dày (Slot)',
-        'display_outputs' => 'Cổng xuất hình',
-        'max_resolution' => 'Độ phân giải tối đa',
-
-        // CPU Specs
-        'socket' => 'Socket hỗ trợ',
-        'cores' => 'Số nhân',
-        'threads' => 'Số luồng',
-        'base_clock_ghz' => 'Xung cơ bản',
-        'boost_clock_ghz' => 'Xung Boost tối đa',
-        'tdp_w' => 'Công suất tỏa nhiệt (TDP)',
-        'supported_ram_types' => 'Loại RAM hỗ trợ',
-
-        // Mainboard Specs
-        'chipset' => 'Chipset',
-        'form_factor' => 'Kích thước Mainboard',
-        'ram_type' => 'Chuẩn RAM hỗ trợ',
-        'dimm_slots' => 'Số khe cắm RAM',
-        'max_ram_gb' => 'Dung lượng RAM tối đa',
-
-        // RAM Specs
-        'capacity_gb' => 'Dung lượng RAM',
-        'speed_mhz' => 'Tốc độ bus (Speed)',
-        'cas_latency' => 'Độ trễ (CAS Latency)',
-
-        // Storage Specs
-        'storage_type' => 'Loại ổ cứng',
-        'interface' => 'Chuẩn kết nối',
-        'read_speed_mbps' => 'Tốc độ đọc tối đa',
-        'write_speed_mbps' => 'Tốc độ ghi tối đa',
-
-        // Monitor Specs
-        'screen_size_inch' => 'Kích thước màn hình',
-        'resolution' => 'Độ phân giải',
-        'panel_type' => 'Tấm nền (Panel)',
-        'refresh_rate_hz' => 'Tần số quét',
-        'response_time_ms' => 'Thời gian phản hồi',
-
-        // Laptop & PC Specs
-        'cpu_model' => 'Vi xử lý (CPU)',
-        'storage_capacity_gb' => 'Dung lượng ổ cứng',
-        'psu_wattage' => 'Công suất nguồn',
-
-        // Peripherals Specs
-        'layout' => 'Bố cục (Layout)',
-        'switch_type' => 'Loại Switch',
-        'rgb' => 'Đèn LED RGB',
-        'max_dpi' => 'Độ phân giải mắt đọc (DPI)',
-        'weight_g' => 'Trọng lượng',
-        'max_load_kg' => 'Tải trọng tối đa',
-        'material' => 'Chất liệu',
-        'recline_degree' => 'Góc ngả lưng',
-        'driver_mm' => 'Kích thước Màng loa (Driver)',
-        'surround' => 'Công nghệ âm thanh',
-        'channels' => 'Kênh âm thanh',
-        'total_power_w' => 'Tổng công suất (RMS)',
-        'capacity_mah' => 'Dung lượng pin',
-        'max_output_w' => 'Công suất sạc tối đa'
-    ];
+    private static ?array $schemas = null;
 
     /**
-     * Chuyển đổi giá trị specs thô thành chuỗi Tiếng Việt có đơn vị.
+     * Tải Registry Schemas cho 20 Danh mục sản phẩm.
      */
-    public static function formatValue(string $key, mixed $value): string
+    public static function getSchemas(): array
+    {
+        if (self::$schemas === null) {
+            $path = ROOT_PATH . '/config/product-spec-schemas.php';
+            if (file_exists($path)) {
+                self::$schemas = require $path;
+            } else {
+                self::$schemas = [];
+            }
+        }
+        return self::$schemas;
+    }
+
+    /**
+     * Chuyển đổi giá trị specs thô thành chuỗi Tiếng Việt có đơn vị chuẩn.
+     */
+    public static function formatValue(string $key, mixed $value, string $customUnit = ''): string
     {
         if ($value === null || $value === '') {
             return 'Đang cập nhật';
@@ -104,24 +43,41 @@ class ProductSpecPresenter
 
         $valStr = (string)$value;
 
+        // Nếu đã có đơn vị tùy chỉnh từ schema
+        if ($customUnit !== '') {
+            return $valStr . ' ' . $customUnit;
+        }
+
+        // Quy tắc chuẩn hóa đơn vị theo key
         switch ($key) {
             case 'vram_gb':
             case 'capacity_gb':
             case 'storage_capacity_gb':
             case 'ram_capacity_gb':
             case 'max_ram_gb':
+            case 'gpu_vram_gb':
+            case 'memory_gb':
                 return $valStr . ' GB';
 
             case 'memory_bus_bit':
                 return $valStr . '-bit';
 
             case 'boost_clock_mhz':
+            case 'base_clock_mhz':
             case 'speed_mhz':
-            case 'refresh_rate_hz':
+            case 'ram_speed_mhz':
+            case 'max_ram_speed_mhz':
+            case 'polling_rate_hz':
                 return $valStr . ' MHz';
+
+            case 'refresh_rate_hz':
+            case 'maximum_refresh_rate_hz':
+                return $valStr . ' Hz'; // ĐÃ SỬA: Hz CHUẨN XÁC!
 
             case 'base_clock_ghz':
             case 'boost_clock_ghz':
+            case 'cpu_base_clock_ghz':
+            case 'cpu_boost_clock_ghz':
                 return $valStr . ' GHz';
 
             case 'power_draw_w':
@@ -131,11 +87,16 @@ class ProductSpecPresenter
             case 'total_power_w':
             case 'max_output_w':
             case 'wattage':
+            case 'maximum_total_output_w':
+            case 'tdp_capacity_w':
                 return $valStr . ' W';
 
             case 'length_mm':
             case 'width_mm':
             case 'height_mm':
+            case 'dimensions_mm':
+            case 'radiator_size_mm':
+            case 'driver_mm':
                 return $valStr . ' mm';
 
             case 'screen_size_inch':
@@ -149,6 +110,7 @@ class ProductSpecPresenter
                 return $valStr . ' MB/s';
 
             case 'max_load_kg':
+            case 'weight_kg':
                 return $valStr . ' kg';
 
             case 'weight_g':
@@ -163,9 +125,11 @@ class ProductSpecPresenter
             case 'slot_width':
                 return $valStr . ' Slot';
 
+            case 'cpu_cores':
             case 'cores':
                 return $valStr . ' nhân';
 
+            case 'cpu_threads':
             case 'threads':
                 return $valStr . ' luồng';
 
@@ -177,49 +141,105 @@ class ProductSpecPresenter
     /**
      * Lấy tên nhãn Tiếng Việt của thuộc tính.
      */
-    public static function getLabel(string $key): string
+    public static function getLabel(string $key, ?string $categorySlug = null): string
     {
-        return self::$specLabels[$key] ?? ucfirst(str_replace('_', ' ', $key));
+        if ($categorySlug !== null) {
+            $schemas = self::getSchemas();
+            $catKey = strtolower(trim($categorySlug));
+            if (isset($schemas[$catKey])) {
+                foreach ($schemas[$catKey]['groups'] as $groupName => $fields) {
+                    if (isset($fields[$key]['label'])) {
+                        return $fields[$key]['label'];
+                    }
+                }
+            }
+        }
+
+        // Từ điển bổ sung cho các key tự do
+        $defaultLabels = [
+            'manufacturer' => 'Hãng sản xuất',
+            'series' => 'Dòng sản phẩm',
+            'warranty_months' => 'Bảo hành',
+            'cpu_model' => 'Vi xử lý (CPU)',
+            'gpu_model' => 'Card đồ họa (GPU)',
+            'ram_capacity_gb' => 'Dung lượng RAM',
+            'storage_capacity_gb' => 'Dung lượng ổ cứng',
+            'screen_size_inch' => 'Màn hình',
+            'refresh_rate_hz' => 'Tần số quét',
+        ];
+
+        return $defaultLabels[$key] ?? ucfirst(str_replace('_', ' ', $key));
     }
 
     /**
-     * Phân nhóm thông số kỹ thuật theo từng Category để hiển thị bảng chuyên nghiệp.
+     * Phân nhóm thông số kỹ thuật theo 20 Category Schemas để hiển thị bảng chuyên nghiệp.
      */
     public static function getGroupedSpecs(string $categorySlug, array $specs): array
     {
-        $slug = strtolower(trim($categorySlug));
-
-        if ($slug === 'vga') {
-            return [
-                'Thông tin GPU' => [
-                    'gpu_model' => self::formatValue('gpu_model', $specs['gpu_model'] ?? null),
-                    'architecture' => self::formatValue('architecture', $specs['architecture'] ?? null),
-                    'boost_clock_mhz' => self::formatValue('boost_clock_mhz', $specs['boost_clock_mhz'] ?? null),
-                ],
-                'Bộ nhớ Đồ họa (VRAM)' => [
-                    'vram_gb' => self::formatValue('vram_gb', $specs['vram_gb'] ?? null),
-                    'vram_type' => self::formatValue('vram_type', $specs['vram_type'] ?? null),
-                    'memory_bus_bit' => self::formatValue('memory_bus_bit', $specs['memory_bus_bit'] ?? null),
-                ],
-                'Nguồn & Tương thích' => [
-                    'power_draw_w' => self::formatValue('power_draw_w', $specs['power_draw_w'] ?? null),
-                    'recommended_psu_w' => self::formatValue('recommended_psu_w', $specs['recommended_psu_w'] ?? null),
-                    'power_connectors' => self::formatValue('power_connectors', $specs['power_connectors'] ?? null),
-                    'length_mm' => self::formatValue('length_mm', $specs['length_mm'] ?? null),
-                    'slot_width' => self::formatValue('slot_width', $specs['slot_width'] ?? null),
-                ],
-                'Cổng kết nối' => [
-                    'display_outputs' => self::formatValue('display_outputs', $specs['display_outputs'] ?? null),
-                    'max_resolution' => self::formatValue('max_resolution', $specs['max_resolution'] ?? null),
-                    'warranty_months' => self::formatValue('warranty_months', $specs['warranty_months'] ?? 36),
-                ]
-            ];
+        $catKey = strtolower(trim($categorySlug));
+        // Ánh xạ slug ảo nếu có
+        $aliasMap = [
+            'may-tinh' => 'pc',
+            'pc-gaming' => 'pc',
+            'linh-kien-pc' => 'vga',
+            'man-hinh' => 'monitor',
+            'gaming-gear' => 'keyboard',
+            'thiet-bi-van-phong' => 'office-equipment',
+        ];
+        if (isset($aliasMap[$catKey])) {
+            $catKey = $aliasMap[$catKey];
         }
 
-        // General Grouping for other categories
+        $schemas = self::getSchemas();
+
+        if (isset($schemas[$catKey])) {
+            $schemaDef = $schemas[$catKey];
+            $grouped = [];
+
+            foreach ($schemaDef['groups'] as $groupName => $fields) {
+                $groupItems = [];
+                foreach ($fields as $fieldKey => $fieldMeta) {
+                    $rawVal = $specs[$fieldKey] ?? null;
+                    if ($rawVal !== null && $rawVal !== '') {
+                        $label = $fieldMeta['label'] ?? self::getLabel($fieldKey);
+                        $unit = $fieldMeta['unit'] ?? '';
+                        $groupItems[$label] = self::formatValue($fieldKey, $rawVal, $unit);
+                    }
+                }
+                if (!empty($groupItems)) {
+                    $grouped[$groupName] = $groupItems;
+                }
+            }
+
+            // Nếu có các thuộc tính phụ nằm ngoài schema
+            $extraItems = [];
+            foreach ($specs as $key => $val) {
+                $found = false;
+                foreach ($schemaDef['groups'] as $fields) {
+                    if (isset($fields[$key])) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found && $val !== null && $val !== '') {
+                    $extraItems[self::getLabel($key, $catKey)] = self::formatValue($key, $val);
+                }
+            }
+            if (!empty($extraItems)) {
+                $grouped['Thông tin bổ sung'] = $extraItems;
+            }
+
+            if (!empty($grouped)) {
+                return $grouped;
+            }
+        }
+
+        // Tự động phân nhóm mặc định nếu không khớp schema cụ thể
         $grouped = ['Thông số chính' => []];
         foreach ($specs as $key => $val) {
-            $grouped['Thông số chính'][self::getLabel($key)] = self::formatValue($key, $val);
+            if ($val !== null && $val !== '') {
+                $grouped['Thông số chính'][self::getLabel($key, $catKey)] = self::formatValue($key, $val);
+            }
         }
         return $grouped;
     }

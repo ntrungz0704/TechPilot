@@ -150,6 +150,37 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
     </button>
     <!-- Panel Mô tả -->
     <div class="product-tabs__panel is-active" id="tab-desc">
+        <?php 
+        $highlights = json_decode($product['highlights'] ?? '[]', true) ?: [];
+        $limitations = json_decode($product['limitations'] ?? '[]', true) ?: [];
+        ?>
+
+        <?php if (!empty($highlights)): ?>
+            <div style="background-color: rgba(10, 91, 255, 0.04); border: 1px solid rgba(10, 91, 255, 0.15); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 700; color: var(--primary, #0A5BFF); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-check"></i> Đặc điểm nổi bật
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 13.5px;">
+                    <?php foreach ($highlights as $hl): ?>
+                        <li style="margin-bottom: 4px;"><?= e($hl) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($limitations)): ?>
+            <div style="background-color: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 700; color: #D97706; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Điểm cần cân nhắc (Hạn chế)
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 13.5px;">
+                    <?php foreach ($limitations as $lim): ?>
+                        <li style="margin-bottom: 4px;"><?= e($lim) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
         <div style="line-height: 1.8; color: var(--text-primary);">
             <?php 
             $desc = $product['description'] ?? 'Đang cập nhật thông tin chi tiết.';
