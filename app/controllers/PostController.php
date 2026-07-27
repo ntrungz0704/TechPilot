@@ -71,10 +71,6 @@ class PostController extends Controller
         $offset = ($page - 1) * $limit;
         $posts  = $this->postModel->getAll($offset, $limit, $type, $category, $tag, $q, $excludeFeaturedId);
 
-        if (empty($posts) && empty($type) && empty($category) && empty($tag) && empty($q)) {
-            $posts = $this->postModel->getAll(0, $limit, '', '', '', '', null);
-        }
-
         // Sidebar: lấy popular gần đây, loại trừ tất cả ID đã dùng ở hero (lấy 10 bài cho sidebar cuộn)
         $popular = $this->postModel->getPopularRecent(12, 30, $usedHeroIds);
         $filteredPopular = array_slice($popular, 0, 10); // tối đa 10 cho sidebar cuộn

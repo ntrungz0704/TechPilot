@@ -29,12 +29,6 @@ $router = new Router();
 $router->get('/category/{slug}', 'HomeController@category');
 $router->get('/product/detail/{slug}', 'ProductController@detail');
 
-// PC Builder Routes
-$router->get('/build-pc', 'PcBuilderController@index');
-$router->get('/pc-builder', 'PcBuilderController@index');
-$router->get('/pc-builder/products', 'PcBuilderController@getProducts');
-$router->get('/api/pc-builder/products', 'PcBuilderController@getProducts');
-
 // Auth Routes
 $router->get('/auth/forgot', 'AuthController@forgot');
 $router->post('/auth/forgot', 'AuthController@forgot');
@@ -134,7 +128,7 @@ $router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
 // PC Builder Routes
 $router->get('/build-pc', 'PcBuilderController@index');
 $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
-$router->post('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
+$router->get('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
 $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 
 // News Routes

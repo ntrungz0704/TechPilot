@@ -249,12 +249,8 @@ if (!function_exists('productImageUrl')) {
                 $phName = 'placeholder-component.png';
                 break;
         }
-        $localPhPath = ROOT_PATH . '/public/assets/images/products/' . $phName;
-        if (file_exists($localPhPath) && !is_dir($localPhPath)) {
-            return url('assets/images/products/' . $phName);
-        }
         
-        return 'https://placehold.co/400x400?text=' . urlencode(ucfirst($type));
+        return url('assets/images/products/' . $phName);
     }
 }
 
@@ -413,11 +409,7 @@ if (!function_exists('postImageUrl')) {
         $image = trim((string)$image);
 
         if ($image === '') {
-            $localPhPath = ROOT_PATH . '/public/assets/images/products/placeholder-component.png';
-            if (file_exists($localPhPath) && !is_dir($localPhPath)) {
-                return url('assets/images/products/placeholder-component.png');
-            }
-            return 'https://placehold.co/400x400?text=Post';
+            return url('assets/images/products/placeholder-component.png');
         }
 
         // 1. URL tuyệt đối (https:// hoặc http://)
@@ -446,48 +438,7 @@ if (!function_exists('postImageUrl')) {
         }
 
         // 5. Không tìm thấy → placeholder
-        $localPhPath = ROOT_PATH . '/public/assets/images/products/placeholder-component.png';
-        if (file_exists($localPhPath) && !is_dir($localPhPath)) {
-            return url('assets/images/products/placeholder-component.png');
-        }
-        return 'https://placehold.co/400x400?text=Post';
-    }
-}
-
-/**
- * Tạo URL logo thương hiệu chuẩn hóa và an toàn.
- */
-if (!function_exists('brandLogoUrl')) {
-    function brandLogoUrl(array $brand): ?string
-    {
-        $logo = trim((string)($brand['logo'] ?? ''));
-        $slug = trim((string)($brand['slug'] ?? ''));
-
-        if ($logo !== '') {
-            $logo = str_replace(['..', '\\'], ['', '/'], $logo);
-            $candidates = [
-                ROOT_PATH . '/public/assets/images/brands/' . ltrim($logo, '/'),
-                ROOT_PATH . '/public/assets/images/' . ltrim($logo, '/'),
-            ];
-            foreach ($candidates as $cand) {
-                if (file_exists($cand) && !is_dir($cand)) {
-                    $rel = str_replace(ROOT_PATH . '/public/', '', str_replace('\\', '/', $cand));
-                    return url($rel);
-                }
-            }
-        }
-
-        if ($slug !== '') {
-            $exts = ['png', 'svg', 'jpg', 'webp'];
-            foreach ($exts as $ext) {
-                $cand = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.' . $ext;
-                if (file_exists($cand) && !is_dir($cand)) {
-                    return url('assets/images/brands/' . $slug . '.' . $ext);
-                }
-            }
-        }
-
-        return null;
+        return url('assets/images/products/placeholder-component.png');
     }
 }
 
