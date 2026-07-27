@@ -483,15 +483,7 @@ Nếu Git báo conflict:
 git status
 ```
 
-File conflict có thể chứa:
-
-```text
-<<<<<<< HEAD
-Code trên nhánh cá nhân
-=======
-Code từ develop
->>>>>>> origin/develop
-```
+File conflict sẽ báo hiệu file nào bị lỗi.
 
 ### Bước 2 — Trao đổi với người viết đoạn code liên quan
 
@@ -499,18 +491,12 @@ Không bấm **Accept All Current** hoặc **Accept All Incoming** nếu chưa h
 
 ### Bước 3 — Xóa marker và kiểm tra lại file
 
-Sau khi sửa, file không được còn các dòng:
-
-```text
-<<<<<<<
-=======
->>>>>>>
-```
+Sau khi sửa, file không được còn các marker conflict.
 
 Tìm toàn dự án:
 
 ```bash
-git grep -n "<<<<<<<\|=======\|>>>>>>>"
+git grep -n "<<<<<<<"
 ```
 
 ### Bước 4 — Đánh dấu đã giải quyết và hoàn tất merge
