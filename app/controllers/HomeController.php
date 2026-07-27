@@ -14,7 +14,7 @@ class HomeController extends Controller
             'isHome'                 => true,
             'pageTitle'              => 'Trang chủ - TechPilot',
             'categories'             => $productModel->getCategories(),
-            'flashSale'              => $productModel->getFlashSale(6),
+            'flashSale'              => $productModel->getFlashSale(20),
             'featuredProducts'       => $productModel->getFeaturedProducts(6),
             'newProducts'            => $productModel->getNewProducts(6),
             'promoProducts'          => $productModel->getPromoProducts(6),

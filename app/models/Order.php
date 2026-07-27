@@ -153,7 +153,16 @@ class Order
                     $clearItemsStmt = $this->db->prepare("DELETE FROM cart_items WHERE cart_id = :cart_id");
                     $clearItemsStmt->execute([':cart_id' => $cartId]);
                 }
-            }
+            // Gửi thông báo cho Admin khi có đơn hàng mới
+            try {
+                $adminNotif = $this->db->prepare(
+                    'INSERT INTO notifications (user_id, title, content) VALUES (1, :title, :content)'
+                );
+                $adminNotif->execute([
+                    ':title' => 'Đơn hàng mới #' . $orderCode,
+                    ':content' => 'Khách hàng ' . ($payload['customer_name'] ?? 'Khách') . ' vừa đặt đơn hàng #' . $orderCode . ' tổng trị giá ' . number_format((float)($payload['total_amount'] ?? 0), 0, ',', '.') . 'đ.'
+                ]);
+            } catch (Throwable $e) {}
 
             $this->db->commit();
 

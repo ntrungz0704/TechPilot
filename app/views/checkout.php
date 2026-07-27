@@ -119,11 +119,42 @@ $savedAddresses = $savedAddresses ?? [];
                 <button type="button" id="applyCouponBtn" class="btn btn--sm" style="padding: 0 15px; font-size: 13px;">Áp dụng</button>
             </div>
             <p id="couponMsg" style="margin: 6px 0 0 0; font-size: 12px; display: none;"></p>
+
+            <!-- Recommended Available Coupons List -->
+            <?php if (!empty($availableCoupons)): ?>
+                <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <span style="font-size: 12.5px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-ticket"></i> Mã giảm giá gợi ý cho đơn hàng:
+                    </span>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <?php foreach ($availableCoupons as $ac): ?>
+                            <div style="background: rgba(37, 99, 235, 0.04); border: 1px dashed var(--primary); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 12.5px; color: var(--primary); display: block;"><?= e($ac['code']) ?></strong>
+                                    <small style="font-size: 11px; color: var(--text-secondary);">
+                                        <?= $ac['type'] === 'percent' ? 'Giảm ' . (int)$ac['discount_value'] . '%' : 'Giảm ' . formatPrice($ac['discount_value']) ?>
+                                        (Đơn từ <?= formatPrice($ac['min_order_value']) ?>)
+                                    </small>
+                                </div>
+                                <button type="button" class="btn btn--outline btn--sm" style="font-size: 11px; padding: 4px 10px; font-weight: 700;" onclick="applyVoucherCode('<?= e($ac['code']) ?>')">Dùng ngay</button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </aside>
 </section>
 
 <script>
+    function applyVoucherCode(code) {
+        const couponInput = document.getElementById('couponInput');
+        const applyBtn = document.getElementById('applyCouponBtn');
+        if (couponInput && applyBtn) {
+            couponInput.value = code;
+            applyBtn.click();
+        }
+    }
     document.addEventListener('DOMContentLoaded', function() {
         const savedAddress = document.getElementById('savedAddress');
         if (savedAddress) savedAddress.addEventListener('change', function() {

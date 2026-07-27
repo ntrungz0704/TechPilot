@@ -1465,7 +1465,7 @@ class Product
 
         // 5.5. Promotion Only (Khuyến mãi)
         if ($promoOnly) {
-            $conditions[] = '(COALESCE(NULLIF(p.sale_price, 0), p.price) < p.price OR (p.old_price IS NOT NULL AND p.old_price > p.price) OR p.is_flash_sale = 1)';
+            $conditions[] = '(p.is_flash_sale = 1 OR p.id IN (SELECT product_id FROM flash_sale_items fsi JOIN flash_sales fs ON fsi.flash_sale_id = fs.id WHERE fs.status = \'active\') OR (p.sale_price IS NOT NULL AND p.sale_price > 0 AND (p.price - p.sale_price)/p.price >= 0.10))';
         }
 
         if (!empty($remainingKeyword)) {

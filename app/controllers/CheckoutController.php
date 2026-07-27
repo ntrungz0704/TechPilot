@@ -43,13 +43,23 @@ class CheckoutController extends Controller
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
         }
 
+        // Lấy danh sách Mã giảm giá khả dụng
+        $availableCoupons = [];
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if ($db) {
+            $cStmt = $db->prepare("SELECT * FROM coupons WHERE status = 'active' AND start_date <= NOW() AND end_date >= NOW() ORDER BY min_order_value ASC");
+            $cStmt->execute();
+            $availableCoupons = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         $this->render('checkout', [
             'pageTitle' => 'Thanh toán',
             'cartItems' => $items,
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $total,
-
+            'availableCoupons' => $availableCoupons
         ]);
     }
 
@@ -92,6 +102,23 @@ class CheckoutController extends Controller
         if ($maxQty !== null && $usedQty >= $maxQty) {
             echo json_encode(['success' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.']);
             exit;
+        }
+
+        // Kiểm tra xem mỗi tài khoản đã dùng mã này quá số lần cho phép chưa
+        $user = currentUser();
+        if ($user) {
+            $userUsageStmt = $db->prepare("
+                SELECT COUNT(*) FROM orders 
+                WHERE user_id = :user_id AND coupon_id = :coupon_id AND status != 'cancelled'
+            ");
+            $userUsageStmt->execute([':user_id' => (int)$user['id'], ':coupon_id' => (int)$coupon['id']]);
+            $usedByUser = (int)$userUsageStmt->fetchColumn();
+
+            $maxPerUser = $coupon['usage_limit_per_user'] !== null ? (int)$coupon['usage_limit_per_user'] : 1;
+            if ($usedByUser >= $maxPerUser) {
+                echo json_encode(['success' => false, 'message' => 'Tài khoản của bạn đã sử dụng mã giảm giá này cho một đơn hàng trước đây.']);
+                exit;
+            }
         }
 
         $minOrder = (float)$coupon['min_order_value'];

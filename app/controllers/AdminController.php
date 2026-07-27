@@ -52,4 +52,36 @@ class AdminController extends Controller
             'recentOrders'     => $recentOrders
         ]);
     }
+
+    public function notifications(): void
+    {
+        header('Content-Type: application/json');
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        $items = [];
+        $unreadCount = 0;
+        if ($db) {
+            $stmt = $db->prepare('SELECT * FROM notifications WHERE user_id = 1 ORDER BY id DESC LIMIT 10');
+            $stmt->execute();
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmt2 = $db->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = 1 AND is_read = 0');
+            $stmt2->execute();
+            $unreadCount = (int)$stmt2->fetchColumn();
+        }
+        echo json_encode(['success' => true, 'unread' => $unreadCount, 'items' => $items]);
+        exit;
+    }
+
+    public function markReadNotifications(): void
+    {
+        header('Content-Type: application/json');
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if ($db) {
+            $db->exec('UPDATE notifications SET is_read = 1 WHERE user_id = 1');
+        }
+        echo json_encode(['success' => true]);
+        exit;
+    }
 }
