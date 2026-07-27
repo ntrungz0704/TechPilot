@@ -19,7 +19,7 @@ class GeminiService
         $apiKey = trim($config['api_key'] ?? '');
 
         if ($apiKey !== '') {
-            return self::sendApiRequest($apiKey, $prompt);
+            return self::sendApiRequest($apiKey, $prompt, $contextData);
         }
 
         // Chế độ Mock dự phòng thông minh khi chưa có API Key
@@ -29,7 +29,7 @@ class GeminiService
     /**
      * Gửi yêu cầu HTTP POST thực tế tới Google Gemini API
      */
-    private static function sendApiRequest(string $apiKey, string $prompt): string
+    private static function sendApiRequest(string $apiKey, string $prompt, ?array $contextData = null): string
     {
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
         
@@ -62,6 +62,10 @@ class GeminiService
         }
 
         if ($httpCode !== 200) {
+            if ($httpCode === 429 || $httpCode === 503) {
+                // Hết quota / server quá tải -> tự động dùng Mock thay vì báo lỗi
+                return self::generateMockResponse($prompt, $contextData);
+            }
             $errData = json_decode($response, true);
             $errMessage = $errData['error']['message'] ?? 'Lỗi không xác định từ máy chủ API.';
             return "🤖 [Lỗi API HTTP {$httpCode}] {$errMessage}";

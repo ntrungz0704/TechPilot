@@ -950,7 +950,6 @@ class Product
                          GROUP BY oi.product_id
                      ) sold_data ON sold_data.product_id = p.id
                      WHERE p.status = \'active\' 
-                       AND p.verification_status = \'verified\'
                        AND fs.status = \'active\' 
                        AND fs.start_time <= NOW()
                        AND fs.end_time > NOW()
@@ -977,7 +976,7 @@ class Product
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
+                     WHERE p.status = 'active' AND c.status = 'active'
                      ORDER BY p.rating DESC, p.id DESC
                      LIMIT :limit"
                 );
@@ -1001,7 +1000,7 @@ class Product
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
+                     WHERE p.status = 'active' AND c.status = 'active'
                      ORDER BY p.id DESC
                      LIMIT :limit"
                 );
@@ -1025,7 +1024,7 @@ class Product
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
+                     WHERE p.status = 'active' AND c.status = 'active'
                        AND p.sale_price IS NOT NULL AND p.sale_price < p.price
                      ORDER BY ((p.price - p.sale_price) / p.price) DESC, p.id DESC
                      LIMIT :limit"
@@ -1069,7 +1068,7 @@ class Product
                     FROM products p
                     JOIN categories c ON p.category_id = c.id
                     LEFT JOIN brands b ON p.brand_id = b.id
-                    WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active' AND c.slug IN ($inClause)
+                    WHERE p.status = 'active' AND c.status = 'active' AND c.slug IN ($inClause)
                     ORDER BY p.id DESC LIMIT :limit";
 
             $stmt = $this->db->prepare($sql);
@@ -1360,10 +1359,6 @@ class Product
      * Xây dựng điều kiện WHERE và các tham số bindings.
      * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
      */
-    /**
-     * Xây dựng điều kiện WHERE và các tham số bindings.
-     * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
-     */
     protected function buildSearchQueryConditions(
         string $keyword = '',
         string $categorySlug = '',
@@ -1373,7 +1368,7 @@ class Product
         bool $inStockOnly = false,
         bool $promoOnly = false
     ): array {
-        $conditions = ["p.status = 'active'", "p.verification_status = 'verified'", "c.status = 'active'"];
+        $conditions = ["p.status = 'active'", "c.status = 'active'"];
         $params = [];
 
         require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
