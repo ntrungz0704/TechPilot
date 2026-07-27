@@ -57,6 +57,26 @@ class User
         return $stmt->fetch();
     }
 
+    /** Kiểm tra số điện thoại đã tồn tại chưa */
+    public function findByPhone(string $phone): array|false
+    {
+        $phone = trim($phone);
+        if ($phone === '') return false;
+        if ($this->useFallback) {
+            foreach ($_SESSION['_fallback_users'] as $user) {
+                if (($user['phone'] ?? '') === $phone) {
+                    return $user;
+                }
+            }
+            return false;
+        }
+
+        $stmt = $this->db->prepare('SELECT * FROM users WHERE phone = :phone LIMIT 1');
+        $stmt->bindValue(':phone', $phone);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
+
     /** Tạo tài khoản mới, trả về true/false */
     public function create(string $fullName, string $email, string $phone, string $password, string $role = 'customer'): bool
     {

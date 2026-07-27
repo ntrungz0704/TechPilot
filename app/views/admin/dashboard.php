@@ -277,7 +277,7 @@
         <div class="low-stock-list" style="display: flex; flex-direction: column; gap: 12px;">
             <?php if (!empty($lowStockProducts)): ?>
                 <?php foreach (array_slice($lowStockProducts, 0, 7) as $prod): ?>
-                    <div class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: #FFFFFF; transition: var(--transition);">
+                    <a href="<?= url('admin/products/edit/' . (int)$prod['id']) ?>" class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: #FFFFFF; transition: var(--transition); text-decoration: none;">
                         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
                             <!-- Product Mini Image -->
                             <img src="<?= productImageUrl($prod['image'] ?? '', $prod['name'] ?? '') ?>" alt="<?= e($prod['name']) ?>" style="width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: #FFFFFF; flex-shrink: 0;" onerror="this.src='https://placehold.co/100x100?text=SP'">
@@ -289,7 +289,7 @@
                         <div style="text-align: right; flex-shrink: 0;">
                             <span class="badge badge--danger" style="background-color: #FEE2E2; color: #EF4444; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 700; display: inline-block;">Còn <?= (int)$prod['stock'] ?></span>
                         </div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="empty-state" style="border: 1px dashed var(--border); border-radius: var(--radius-elem); padding: 30px; text-align: center; color: var(--text-secondary);">
