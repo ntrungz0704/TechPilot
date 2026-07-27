@@ -207,50 +207,50 @@ if (!function_exists('productImageUrl')) {
 
         switch ($type) {
             case 'laptop':
-                $phName = 'placeholder-laptop.png';
+                $phName = 'laptop.png';
                 break;
             case 'pc':
-                $phName = 'placeholder-desktop-pc.png';
+                $phName = 'pc.jpg';
                 break;
             case 'printer':
-                $phName = 'placeholder-printer.png';
+                $phName = 'printer-canon.jpg';
                 break;
             case 'projector':
-                $phName = 'placeholder-projector.png';
+                $phName = 'pc.jpg';
                 break;
             case 'cpu':
-                $phName = 'placeholder-cpu.png';
+                $phName = 'ram.jpg';
                 break;
             case 'motherboard':
-                $phName = 'placeholder-motherboard.png';
+                $phName = 'mainboard-tuf.jpg';
                 break;
             case 'gpu':
-                $phName = 'placeholder-gpu.png';
+                $phName = 'rtx-4070-super.jpg';
                 break;
             case 'ssd':
-                $phName = 'placeholder-ssd.png';
+                $phName = 'ssd-samsung.jpg';
                 break;
             case 'ram':
-                $phName = 'placeholder-ram.png';
+                $phName = 'ram.jpg';
                 break;
             case 'psu':
-                $phName = 'placeholder-psu.png';
+                $phName = 'pc.jpg';
                 break;
             case 'monitor':
-                $phName = 'placeholder-monitor.png';
+                $phName = 'monitor-asus.jpg';
                 break;
             case 'network':
-                $phName = 'placeholder-network.png';
+                $phName = 'router-tplink.jpg';
                 break;
             case 'accessory':
-                $phName = 'placeholder-accessory.png';
+                $phName = 'logitech-g-pro.jpg';
                 break;
             default:
-                $phName = 'placeholder-component.png';
+                $phName = 'pc.jpg';
                 break;
         }
         
-        return url('assets/images/products/' . $phName);
+        return url('assets/images/' . $phName);
     }
 }
 

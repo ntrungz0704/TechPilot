@@ -322,3 +322,30 @@ CREATE TABLE IF NOT EXISTS return_items (
     resolution ENUM('refund', 'replace', 'repair') DEFAULT 'refund',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 20. user_behavior_logs (AI Shopping Assistant raw log)
+CREATE TABLE IF NOT EXISTS user_behavior_logs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    target_type VARCHAR(50) NULL,
+    target_id INT UNSIGNED NULL,
+    metadata JSON NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_behavior_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 21. user_interest_profiles (AI Shopping Assistant user profile)
+CREATE TABLE IF NOT EXISTS user_interest_profiles (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    brand_scores JSON NULL,
+    category_scores JSON NULL,
+    budget_min DECIMAL(12,0) DEFAULT 0,
+    budget_max DECIMAL(12,0) DEFAULT 0,
+    last_keywords JSON NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_profile_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
