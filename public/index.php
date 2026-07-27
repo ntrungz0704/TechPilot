@@ -44,8 +44,9 @@ $router->post('/profile/repay', 'ProfileController@repay');
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
 
-// API Notifications
+// API Notifications & Wishlist
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
+$router->post('/wishlist/toggle', 'WishlistController@toggle');
 
 // Admin Dashboard Route
 $router->get('/admin', 'AdminController@index');

@@ -199,6 +199,52 @@
         });
     </script>
 
+    <script>
+        function toggleWishlist(productId, btn) {
+            const metaCsrf = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = metaCsrf ? metaCsrf.getAttribute('content') : '';
+
+            fetch('<?= url("wishlist/toggle") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `product_id=${productId}&csrf_token=${encodeURIComponent(csrfToken)}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    if (data.requireLogin) {
+                        window.location.href = '<?= url("auth/login") ?>';
+                    } else {
+                        alert(data.message || 'Có lỗi xảy ra.');
+                    }
+                    return;
+                }
+
+                if (btn) {
+                    const icon = btn.querySelector('i') || btn;
+                    if (data.inWishlist) {
+                        icon.className = 'fa-solid fa-heart';
+                        icon.style.color = '#EF4444';
+                        btn.classList.add('is-active');
+                    } else {
+                        icon.className = 'fa-regular fa-heart';
+                        icon.style.color = '';
+                        btn.classList.remove('is-active');
+                    }
+                }
+
+                const wlBadge = document.getElementById('wishlistBadge');
+                if (wlBadge) {
+                    wlBadge.textContent = data.count;
+                    wlBadge.style.display = data.count > 0 ? 'flex' : 'none';
+                }
+            })
+            .catch(err => console.error('Wishlist toggle error:', err));
+        }
+    </script>
+
     <?php if (currentUser()): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -282,37 +328,6 @@
                     setTimeout(() => toast.remove(), 300);
                 }
             }, 7000);
-        }
-
-        function checkNotifications() {
-            fetch('<?= url("api/notifications/unread") ?>')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // Cập nhật số lượng trên chuông ở Header
-                        const bellLink = document.querySelector('.header-actions__notifications');
-                        if (bellLink) {
-                            let badge = bellLink.querySelector('.notification-badge');
-                            if (data.count > 0) {
-                                if (!badge) {
-                                    badge = document.createElement('span');
-                                    badge.className = 'notification-badge';
-                                    badge.style.cssText = 'position: absolute; top: 0; right: 0; background-color: #EF4444; color: #FFFFFF; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-card); padding: 0 3px; transform: translate(30%, -30%);';
-                                    bellLink.appendChild(badge);
-                                }
-                                badge.textContent = data.count;
-                            } else {
-                                if (badge) badge.remove();
-                            }
-                        }
-
-                        // Hiển thị popup toast cho thông báo mới
-                        if (data.notifications && data.notifications.length > 0) {
-                            data.notifications.forEach(showToast);
-                        }
-                    }
-                })
-                .catch(err => console.error("Error polling notifications:", err));
         }
 
         function checkNotifications() {
