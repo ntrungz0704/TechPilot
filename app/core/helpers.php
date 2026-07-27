@@ -171,6 +171,19 @@ if (!function_exists('productImageUrl')) {
                 return url('assets/images/products/' . basename($image));
             }
 
+            // Subfolder check across 20 category folders
+            $categories = [
+                'laptop', 'pc', 'monitor', 'mainboard', 'cpu', 'vga', 'ram', 'storage', 
+                'case', 'cooling', 'psu', 'keyboard', 'mouse', 'chair', 'headset', 
+                'speaker', 'console', 'accessories', 'office-equipment', 'power-bank'
+            ];
+            foreach ($categories as $cat) {
+                $subPath = ROOT_PATH . '/public/assets/images/products/' . $cat . '/' . basename($image);
+                if (file_exists($subPath) && !is_dir($subPath)) {
+                    return url('assets/images/products/' . $cat . '/' . basename($image));
+                }
+            }
+
             // Resolve placeholder-{category}-{N}.ext → {category}_{N}.jpg/.png
             $bn = basename($image);
             if (preg_match('/^placeholder-([a-z\-]+)-(\d+)\.\w+$/i', $bn, $m)) {
