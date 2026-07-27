@@ -29,6 +29,12 @@ $router = new Router();
 $router->get('/category/{slug}', 'HomeController@category');
 $router->get('/product/detail/{slug}', 'ProductController@detail');
 
+// PC Builder Routes
+$router->get('/build-pc', 'PcBuilderController@index');
+$router->get('/pc-builder', 'PcBuilderController@index');
+$router->get('/pc-builder/products', 'PcBuilderController@getProducts');
+$router->get('/api/pc-builder/products', 'PcBuilderController@getProducts');
+
 // Auth Routes
 $router->get('/auth/forgot', 'AuthController@forgot');
 $router->post('/auth/forgot', 'AuthController@forgot');

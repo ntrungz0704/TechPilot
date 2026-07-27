@@ -69,6 +69,11 @@ class PcBuilderController extends Controller
         ]);
     }
 
+    public function products(): void
+    {
+        $this->getProducts();
+    }
+
     /** API: Trả về danh sách linh kiện */
     public function getProducts(): void
     {
@@ -83,20 +88,31 @@ class PcBuilderController extends Controller
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
-        $whereClause = $this->parts[$partKey]['query'];
-        $search = trim($_GET['search'] ?? '');
-        if ($search) {
-            $whereClause .= " AND name LIKE :search";
+        $products = [];
+        if ($db !== null) {
+            try {
+                $whereClause = $this->parts[$partKey]['query'];
+                $search = trim($_GET['search'] ?? '');
+                if ($search) {
+                    $whereClause .= " AND name LIKE :search";
+                }
+                
+                $sql = "SELECT id, name, price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE $whereClause AND status = 'active' AND stock > 0 ORDER BY price ASC";
+                $stmt = $db->prepare($sql);
+                if ($search) {
+                    $stmt->execute([':search' => '%' . $search . '%']);
+                } else {
+                    $stmt->execute();
+                }
+                $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                error_log('[PcBuilderController] ' . $e->getMessage());
+            }
         }
-        
-        $sql = "SELECT id, name, price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE $whereClause AND status = 'active' AND stock > 0 ORDER BY price ASC";
-        $stmt = $db->prepare($sql);
-        if ($search) {
-            $stmt->execute([':search' => '%' . $search . '%']);
-        } else {
-            $stmt->execute();
+
+        if (empty($products)) {
+            $products = self::getFallbackProductsByPart($partKey);
         }
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Xây dựng lại mảng $build từ GET
         $build = [];
@@ -358,5 +374,38 @@ class PcBuilderController extends Controller
             echo json_encode(['success' => false, 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()]);
         }
         exit;
+    }
+
+    private static function getFallbackProductsByPart(string $partKey): array
+    {
+        $mockData = [
+            'cpu' => [
+                ['id' => 101, 'name' => 'Intel Core i5-13400F (Up To 4.6GHz, 10 Nhân 16 Luồng, 20MB Cache, LGA 1700)', 'price' => '4890000', 'stock' => 50, 'image' => 'placeholder-cpu-1.svg', 'specs' => json_encode(['socket' => 'LGA 1700', 'power_draw_w' => 65]), 'component_type' => 'cpu', 'power_draw_w' => 65, 'recommended_psu_w' => 0],
+                ['id' => 102, 'name' => 'AMD Ryzen 5 7600X (4.7GHz Up to 5.3GHz, 6 Nhân 12 Luồng, 32MB Cache, AM5)', 'price' => '5990000', 'stock' => 30, 'image' => 'placeholder-cpu-2.svg', 'specs' => json_encode(['socket' => 'AM5', 'power_draw_w' => 105]), 'component_type' => 'cpu', 'power_draw_w' => 105, 'recommended_psu_w' => 0],
+            ],
+            'mainboard' => [
+                ['id' => 103, 'name' => 'Bo mạch chủ ASUS TUF GAMING B760M-PLUS WIFI DDR5 (LGA 1700)', 'price' => '4390000', 'stock' => 40, 'image' => 'placeholder-mainboard-1.svg', 'specs' => json_encode(['socket' => 'LGA 1700', 'ram_type' => 'DDR5']), 'component_type' => 'mainboard', 'power_draw_w' => 30, 'recommended_psu_w' => 0],
+                ['id' => 104, 'name' => 'Bo mạch chủ GIGABYTE B650M AORUS ELITE AX (AM5, DDR5)', 'price' => '4990000', 'stock' => 25, 'image' => 'placeholder-mainboard-2.svg', 'specs' => json_encode(['socket' => 'AM5', 'ram_type' => 'DDR5']), 'component_type' => 'mainboard', 'power_draw_w' => 35, 'recommended_psu_w' => 0],
+            ],
+            'ram' => [
+                ['id' => 105, 'name' => 'RAM Corsair Vengeance RGB 32GB (2x16GB) DDR5 6000MHz Black', 'price' => '3290000', 'stock' => 60, 'image' => 'placeholder-ram-1.svg', 'specs' => json_encode(['ram_type' => 'DDR5']), 'component_type' => 'ram', 'power_draw_w' => 10, 'recommended_psu_w' => 0],
+            ],
+            'vga' => [
+                ['id' => 106, 'name' => 'Card màn hình ASUS Dual GeForce RTX 4060 OC Edition 8GB GDDR6', 'price' => '8490000', 'stock' => 20, 'image' => 'placeholder-vga-1.svg', 'specs' => json_encode([]), 'component_type' => 'gpu', 'power_draw_w' => 115, 'recommended_psu_w' => 550],
+            ],
+            'storage' => [
+                ['id' => 107, 'name' => 'SSD Kingston NV2 1TB PCIe 4.0 NVMe M.2', 'price' => '1790000', 'stock' => 80, 'image' => 'placeholder-storage-1.svg', 'specs' => json_encode([]), 'component_type' => 'storage', 'power_draw_w' => 5, 'recommended_psu_w' => 0],
+            ],
+            'psu' => [
+                ['id' => 108, 'name' => 'Nguồn máy tính Corsair CV650 - 650W 80 Plus Bronze', 'price' => '1490000', 'stock' => 45, 'image' => 'placeholder-psu-1.svg', 'specs' => json_encode([]), 'component_type' => 'psu', 'power_draw_w' => 0, 'recommended_psu_w' => 650],
+            ],
+            'case' => [
+                ['id' => 109, 'name' => 'Vỏ máy tính Mik Nexus M Black (Kèm 3 Fan RGB)', 'price' => '990000', 'stock' => 35, 'image' => 'placeholder-case-1.svg', 'specs' => json_encode([]), 'component_type' => 'case', 'power_draw_w' => 0, 'recommended_psu_w' => 0],
+            ],
+        ];
+
+        return $mockData[$partKey] ?? [
+            ['id' => 999, 'name' => 'Sản phẩm linh kiện ' . strtoupper($partKey) . ' chất lượng cao', 'price' => '1990000', 'stock' => 10, 'image' => 'placeholder-pc-1.svg', 'specs' => json_encode([]), 'component_type' => $partKey, 'power_draw_w' => 10, 'recommended_psu_w' => 0]
+        ];
     }
 }

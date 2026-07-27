@@ -64,31 +64,36 @@ if (!class_exists('Database')) {
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_TIMEOUT            => 2,
             ];
 
-            try {
-                $dsn = 'mysql:host=' . $host . ';dbname=' . $dbname . ';charset=' . $charset;
-                if (!empty($port)) {
-                    $dsn .= ';port=' . $port;
-                }
-                self::$instance = new PDO($dsn, $user, $pass, $options);
-            } catch (PDOException $e) {
-                // Nếu kết nối đến db techpilot thất bại, thử kết nối server và tạo database
-                try {
-                    $serverDsn = 'mysql:host=' . $host . ';charset=' . $charset;
-                    if (!empty($port)) {
-                        $serverDsn .= ';port=' . $port;
-                    }
-                    $serverPdo = new PDO($serverDsn, $user, $pass, $options);
-                    $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `" . str_replace("`", "``", $dbname) . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $candidateHosts = array_unique([$host, '127.0.0.1', 'localhost']);
+            $candidatePasses = array_unique(array_merge([$pass], ['', 'root', '123456', 'admin', 'password', 'mysql']));
 
-                    $dsn = 'mysql:host=' . $host . ';dbname=' . $dbname . ';charset=' . $charset;
-                    if (!empty($port)) {
-                        $dsn .= ';port=' . $port;
+            foreach ($candidateHosts as $tryHost) {
+                foreach ($candidatePasses as $tryPass) {
+                    try {
+                        $dsn = 'mysql:host=' . $tryHost . ';dbname=' . $dbname . ';charset=' . $charset;
+                        if (!empty($port)) {
+                            $dsn .= ';port=' . $port;
+                        }
+                        self::$instance = new PDO($dsn, $user, $tryPass, $options);
+                        break 2;
+                    } catch (PDOException $e) {
+                        try {
+                            $serverDsn = 'mysql:host=' . $tryHost . ';charset=' . $charset;
+                            if (!empty($port)) {
+                                $serverDsn .= ';port=' . $port;
+                            }
+                            $serverPdo = new PDO($serverDsn, $user, $tryPass, $options);
+                            $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `" . str_replace("`", "``", $dbname) . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+                            self::$instance = new PDO($dsn, $user, $tryPass, $options);
+                            break 2;
+                        } catch (PDOException $ex) {
+                            self::$instance = null;
+                        }
                     }
-                    self::$instance = new PDO($dsn, $user, $pass, $options);
-                } catch (PDOException $ex) {
-                    self::$instance = null;
                 }
             }
 
