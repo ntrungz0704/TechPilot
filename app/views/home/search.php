@@ -117,29 +117,53 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
 
             <?php
             $currentPage = $page ?? 1;
-            $totalPages = ceil($totalResults / $limit);
+            $totalPages = (int)ceil($totalResults / $limit);
             if ($totalPages > 1):
+                $startPage = max(2, $currentPage - 2);
+                $endPage   = min($totalPages - 1, $currentPage + 2);
             ?>
                 <div class="pagination">
                     <?php if ($currentPage > 1): ?>
-                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage - 1 ?>)" class="pagination__btn"><i class="fa-solid fa-chevron-left"></i></a>
+                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage - 1 ?>)" class="pagination__btn" aria-label="Trang trước"><i class="fa-solid fa-chevron-left"></i></a>
                     <?php endif; ?>
 
-                    <?php
-                    // Hiển thị danh sách các số trang
-                    for ($i = 1; $i <= $totalPages; $i++):
-                        if ($i === $currentPage):
-                    ?>
-                            <span class="pagination__item is-active"><?= $i ?></span>
+                    <!-- Trang đầu tiên -->
+                    <?php if ($currentPage === 1): ?>
+                        <span class="pagination__item is-active">1</span>
                     <?php else: ?>
+                        <a href="javascript:void(0)" onclick="goToPage(1)" class="pagination__item">1</a>
+                    <?php endif; ?>
+
+                    <!-- Dấu ba chấm đầu -->
+                    <?php if ($startPage > 2): ?>
+                        <span class="pagination__dots">&hellip;</span>
+                    <?php endif; ?>
+
+                    <!-- Các trang ở giữa -->
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                        <?php if ($i === $currentPage): ?>
+                            <span class="pagination__item is-active"><?= $i ?></span>
+                        <?php else: ?>
                             <a href="javascript:void(0)" onclick="goToPage(<?= $i ?>)" class="pagination__item"><?= $i ?></a>
-                    <?php
-                        endif;
-                    endfor;
-                    ?>
+                        <?php endif; ?>
+                    <?php endfor; ?>
+
+                    <!-- Dấu ba chấm cuối -->
+                    <?php if ($endPage < $totalPages - 1): ?>
+                        <span class="pagination__dots">&hellip;</span>
+                    <?php endif; ?>
+
+                    <!-- Trang cuối cùng -->
+                    <?php if ($totalPages > 1): ?>
+                        <?php if ($currentPage === $totalPages): ?>
+                            <span class="pagination__item is-active"><?= $totalPages ?></span>
+                        <?php else: ?>
+                            <a href="javascript:void(0)" onclick="goToPage(<?= $totalPages ?>)" class="pagination__item"><?= $totalPages ?></a>
+                        <?php endif; ?>
+                    <?php endif; ?>
 
                     <?php if ($currentPage < $totalPages): ?>
-                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage + 1 ?>)" class="pagination__btn"><i class="fa-solid fa-chevron-right"></i></a>
+                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage + 1 ?>)" class="pagination__btn" aria-label="Trang sau"><i class="fa-solid fa-chevron-right"></i></a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -173,10 +197,10 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         window.location.href = u.toString();
     }
 
-    function goToPage(pageNum) {
-        const u = new URL(window.location.href);
-        u.searchParams.set('page', pageNum);
-        window.location.href = u.toString();
+    function goToPage(p) {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', p);
+        window.location.search = urlParams.toString();
     }
 </script>
 
@@ -205,6 +229,17 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         cursor: pointer;
         text-decoration: none;
         transition: var(--transition);
+    }
+
+    .pagination__dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 40px;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 16px;
     }
 
     .pagination__item:hover,
