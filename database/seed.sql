@@ -216,6 +216,9 @@ INSERT INTO posts (title, slug, summary, content, image, category_slug, post_typ
 ('10 mẹo tối ưu Windows 11 giúp tăng tốc máy tính và chơi game mượt hơn 2026', '10-meo-toi-uu-windows-11-tang-toc-may-tinh-choi-game', 'Hướng dẫn chi tiết các bước tối ưu hóa hệ điều hành Windows 11 giúp giảm ngốn RAM, tắt ứng dụng chạy ngầm và tăng FPS khi chơi game.', 'Tắt bớt Startup Apps, bật Game Mode, tối ưu Virtual Memory, vô hiệu hóa Telemetry và các mẹo dọn dẹp bộ nhớ đệm giúp máy tính của bạn vận hành trơn tru nhất...', 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?q=80&w=800&auto=format&fit=crop', 'pc-linh-kien', 'howto', 'Ban biên tập TechPilot', NOW() - INTERVAL 2 DAY),
 ('So sánh Intel Core i9-14900K vs AMD Ryzen 7 7800X3D: Đâu là Vua Gaming 2026?', 'so-sanh-intel-i9-14900k-vs-amd-ryzen-7-7800x3d-vua-gaming', 'So sánh toàn diện về hiệu năng chơi game, điện năng tiêu thụ, nhiệt độ và hiệu quả chi phí giữa hai vi xử lý cao cấp hàng đầu hiện nay.', 'AMD Ryzen 7 7800X3D vượt trội trong hầu hết tựa game eSport và AAA nhờ 3D V-Cache, trong khi Intel Core i9-14900K lại đa năng hơn cho đồ họa nặng...', 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?q=80&w=800&auto=format&fit=crop', 'pc-gaming', 'comparison', 'Đội ngũ TechPilot', NOW() - INTERVAL 4 DAY);
 
+UPDATE posts SET status = 'published', published_at = COALESCE(published_at, created_at, NOW());
+UPDATE posts SET is_featured = 1 WHERE slug = 'nvidia-rtx-50-series-danh-gia';
+
 -- 7. Đánh giá mẫu (reviews)
 INSERT INTO reviews (product_id, user_id, reviewer_name, rating, comment) VALUES 
 (1, NULL, 'Nguyễn Hoàng Nam', 5.0, 'Sản phẩm chính hãng, màn hình OLED siêu đẹp, chơi game mượt mà cực kỳ thích! Giao hàng nhanh.'),

@@ -78,7 +78,7 @@ class Post
     /** Lấy bài viết tiêu điểm (mới nhất hoặc is_featured) */
     public function getFeatured(): ?array
     {
-        if ($this->db === null) return null;
+        if ($this->db === null) return self::getFallbackPosts()[0] ?? null;
 
         // Cố gắng tìm bài featured
         $stmt = $this->db->prepare('SELECT * FROM posts WHERE status = "published" AND is_featured = 1 ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 1');
@@ -92,7 +92,7 @@ class Post
             $post = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
-        return $post ?: null;
+        return $post ?: (self::getFallbackPosts()[0] ?? null);
     }
 
     /** Lấy danh sách bài viết phổ biến (nhiều lượt xem nhất, ưu tiên 30 ngày gần đây) */
@@ -134,7 +134,7 @@ class Post
      */
     public function getPopularRecent(int $limit = 5, int $days = 30, array $excludeIds = []): array
     {
-        if ($this->db === null) return [];
+        if ($this->db === null) return self::getFallbackPosts();
 
         // Clamp inputs
         $limit = max(1, min(50, $limit));
@@ -281,7 +281,7 @@ class Post
     /** Đếm số lượng bài viết để phân trang (hỗ trợ excludeId để đồng bộ với getAll) */
     public function countAll(string $type = '', string $category = '', string $tag = '', string $q = '', ?int $excludeId = null): int
     {
-        if ($this->db === null) return 0;
+        if ($this->db === null) return count(self::getFallbackPosts());
 
         $sql = 'SELECT COUNT(*) FROM posts WHERE status = "published"';
         $params = [];
@@ -302,13 +302,14 @@ class Post
         }
 
         $stmt->execute();
-        return (int)$stmt->fetchColumn();
+        $count = (int)$stmt->fetchColumn();
+        return $count > 0 ? $count : count(self::getFallbackPosts());
     }
 
     /** Lấy danh sách bài viết phân trang */
     public function getAll(int $offset, int $limit, string $type = '', string $category = '', string $tag = '', string $q = '', ?int $excludeId = null): array
     {
-        if ($this->db === null) return [];
+        if ($this->db === null) return self::getFallbackPosts();
 
         $params = [];
         $filterWhere = $this->buildFilterWhereClause($type, $category, $tag, $q, $params);
@@ -357,7 +358,62 @@ class Post
         }
 
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return !empty($posts) ? $posts : self::getFallbackPosts();
+    }
+
+    public static function getFallbackPosts(): array
+    {
+        return [
+            [
+                'id' => 1,
+                'title' => 'Đánh giá chi tiết NVIDIA RTX 50 Series: Bước nhảy vọt hiệu năng AI',
+                'slug' => 'nvidia-rtx-50-series-danh-gia',
+                'summary' => 'Những thông tin mới nhất về hiệu năng, giá bán và ngày ra mắt card đồ họa thế hệ tiếp theo của NVIDIA.',
+                'content' => 'Kiến trúc mới mang lại băng thông siêu cao, tích hợp Tensor Core thế hệ thứ 5 giúp tối ưu hóa thuật toán AI...',
+                'image' => 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?q=80&w=800&auto=format&fit=crop',
+                'category_slug' => 'pc-linh-kien',
+                'post_type' => 'news',
+                'author_name' => 'Đội ngũ TechPilot',
+                'status' => 'published',
+                'is_featured' => 1,
+                'published_at' => date('Y-m-d H:i:s', strtotime('-1 day')),
+                'created_at' => date('Y-m-d H:i:s', strtotime('-1 day')),
+                'views' => 1520,
+            ],
+            [
+                'id' => 2,
+                'title' => 'Intel Core Ultra 9: CPU thế hệ mới dành cho các dòng laptop mỏng nhẹ 2026',
+                'slug' => 'intel-core-ultra-9-laptop-thin-light',
+                'summary' => 'Dòng chip sở hữu NPU chuyên biệt phục vụ các tác vụ trí tuệ nhân tạo trực tiếp trên thiết bị.',
+                'content' => 'Dòng vi xử lý mới tiết kiệm năng lượng hơn, card đồ họa Arc tích hợp mạnh mẽ sẵn sàng thay thế card rời...',
+                'image' => 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop',
+                'category_slug' => 'laptop',
+                'post_type' => 'news',
+                'author_name' => 'Đội ngũ TechPilot',
+                'status' => 'published',
+                'is_featured' => 0,
+                'published_at' => date('Y-m-d H:i:s', strtotime('-3 days')),
+                'created_at' => date('Y-m-d H:i:s', strtotime('-3 days')),
+                'views' => 980,
+            ],
+            [
+                'id' => 3,
+                'title' => 'Hướng dẫn tự build PC gaming 20 triệu chiến tốt mọi game esport năm nay',
+                'slug' => 'huong-dan-build-pc-20-trieu',
+                'summary' => 'Lựa chọn linh kiện chuẩn nhất, tối ưu ngân sách tốt nhất tránh nghẽn cổ chai.',
+                'content' => 'Tập trung chi phí vào CPU Core i5 / Ryzen 5 và card đồ họa RTX 3060 giúp bạn chơi game tối ưu nhất...',
+                'image' => 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=800&auto=format&fit=crop',
+                'category_slug' => 'pc-gaming',
+                'post_type' => 'guide',
+                'author_name' => 'Ban biên tập TechPilot',
+                'status' => 'published',
+                'is_featured' => 0,
+                'published_at' => date('Y-m-d H:i:s', strtotime('-5 days')),
+                'created_at' => date('Y-m-d H:i:s', strtotime('-5 days')),
+                'views' => 2100,
+            ]
+        ];
     }
 
 
