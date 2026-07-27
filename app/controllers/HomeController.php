@@ -107,46 +107,11 @@ class HomeController extends Controller
     }
 
 
-    /** Trang danh mục */
+    /** Trang danh mục — redirect sang search để dùng chung giao diện */
     public function category(string $slug = ''): void
     {
-        require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
-        $productModel = $this->model('Product');
-
-        // 1. Thử resolve virtual group slug (man-hinh, gaming-gear, pc-linh-kien...)
-        $groupKey = CatalogGroupService::resolveGroupKey($slug);
-        $categoryName = '';
-
-        if ($groupKey !== null) {
-            // Virtual group → lấy display name từ service
-            $categoryName = CatalogGroupService::getDisplayName($slug);
-        } else {
-            // Exact DB slug (laptop, pc, monitor...)
-            $categories = $productModel->getCategories();
-            foreach ($categories as $cat) {
-                if ($cat['slug'] === $slug) {
-                    $categoryName = $cat['name'];
-                    break;
-                }
-            }
-        }
-
-        if (empty($categoryName)) {
-            $this->notFound();
-            return;
-        }
-
-        // getByCategory() đã dùng CatalogGroupService::resolveSourceSlugs() bên trong
-        $products = $productModel->getByCategory($slug, 24);
-
-        $this->render('home/search', [
-            'pageTitle'    => $categoryName,
-            'keyword'      => '',
-            'categorySlug' => $slug,
-            'products'     => $products,
-            'categories'   => $productModel->getCategories(),
-            'totalResults' => count($products),
-        ]);
+        header('Location: ' . url('home/search?cat=' . urlencode($slug)), true, 301);
+        exit;
     }
 
     /** Tìm kiếm AJAX realtime */
