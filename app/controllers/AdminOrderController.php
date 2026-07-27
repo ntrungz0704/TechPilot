@@ -126,8 +126,8 @@ class AdminOrderController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Lấy trạng thái hiện tại của đơn hàng
-            $stmt = $db->prepare('SELECT status, payment_method, payment_status FROM orders WHERE id = :id LIMIT 1');
+            // Lấy thông tin hiện tại của đơn hàng
+            $stmt = $db->prepare('SELECT id, user_id, order_code, status, payment_method, payment_status FROM orders WHERE id = :id LIMIT 1');
             $stmt->execute([':id' => $id]);
             $currentOrder = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -224,8 +224,9 @@ class AdminOrderController extends Controller
                 ]);
 
                 // Tạo thông báo cho khách hàng
-                if (!empty($orderData['user_id'])) {
-                    $title = 'Cập nhật đơn hàng #' . $orderData['order_code'];
+                if (!empty($currentOrder['user_id'])) {
+                    $orderCode = $currentOrder['order_code'] ?? ('#' . $id);
+                    $title = 'Cập nhật đơn hàng #' . $orderCode;
                     $statusLabel = [
                         'pending'    => 'Chờ xử lý (Pending)',
                         'confirmed'  => 'Đã xác nhận (Confirmed)',
@@ -235,11 +236,11 @@ class AdminOrderController extends Controller
                         'cancelled'  => 'Đã huỷ (Cancelled)',
                     ][$newStatus] ?? $newStatus;
                     
-                    $content = "Đơn hàng #{$orderData['order_code']} của bạn đã được chuyển sang trạng thái: {$statusLabel}.";
+                    $content = "Đơn hàng #{$orderCode} của bạn đã được chuyển sang trạng thái: {$statusLabel}.";
                     
                     $notifStmt = $db->prepare('INSERT INTO notifications (user_id, title, content, is_read) VALUES (:user_id, :title, :content, 0)');
                     $notifStmt->execute([
-                        ':user_id' => (int)$orderData['user_id'],
+                        ':user_id' => (int)$currentOrder['user_id'],
                         ':title'   => $title,
                         ':content' => $content
                     ]);
