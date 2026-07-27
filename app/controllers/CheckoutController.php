@@ -36,8 +36,7 @@ class CheckoutController extends Controller
         $shipping = $subtotal > 0 ? 30000 : 0;
         $total = $subtotal + $shipping;
 
-        $addressModel = $this->model('Address');
-        $savedAddresses = $addressModel->allForUser((int)$user['id']);
+
 
         // Sinh submit token để chống double submit đơn hàng
         if (empty($_SESSION['submit_token'])) {
@@ -50,7 +49,7 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $total,
-            'savedAddresses' => $savedAddresses,
+
         ]);
     }
 
@@ -238,21 +237,7 @@ class CheckoutController extends Controller
             'created_at' => date('d/m/Y H:i'),
         ];
 
-        if (isset($_POST['save_address']) && (int)($_POST['saved_address_id'] ?? 0) === 0) {
-            $addressModel = $this->model('Address');
-            $userId = (int)$user['id'];
-            if (!$addressModel->exists($userId, $customerName, $phone, $address)) {
-                $addressModel->create($userId, [
-                    'recipient_name' => $customerName,
-                    'phone' => $phone,
-                    'address_line' => $address,
-                    'ward' => '',
-                    'district' => '',
-                    'province' => '',
-                    'is_default' => empty($addressModel->allForUser($userId)),
-                ]);
-            }
-        }
+
 
         unset($_SESSION['cart']);
         unset($_SESSION['applied_coupon']);

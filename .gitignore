@@ -1,12 +1,28 @@
+# === Credentials & Environment ===
 /config/database.local.php
 /config/vnpay.local.php
-*.log
-.DS_Store
-Thumbs.db
 .env
-config/.db_sync_state.json
-scratch/
-/storage/backups/
 *.local.sql
 *.local.json
+config/.db_sync_state.json
+
+# === Runtime & Temp ===
+*.log
+/storage/backups/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Node ===
 node_modules/
+package-lock.json
+
+# === Agent / IDE artifacts (must never be committed) ===
+.opencode/
+checkpoints/
+scratch/
+*.html.snapshot
+scratch_*.php
+homepage*.html

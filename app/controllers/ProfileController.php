@@ -6,7 +6,7 @@ require_once ROOT_PATH . '/app/models/Notification.php';
 require_once ROOT_PATH . '/app/models/ReturnRequest.php';
 require_once ROOT_PATH . '/app/models/User.php';
 require_once ROOT_PATH . '/app/models/Wishlist.php';
-require_once ROOT_PATH . '/app/models/Address.php';
+
 
 class ProfileController extends Controller
 {
@@ -15,7 +15,7 @@ class ProfileController extends Controller
     private ReturnRequest $returnModel;
     private User $userModel;
     private Wishlist $wishlistModel;
-    private Address $addressModel;
+
 
     public function __construct()
     {
@@ -24,46 +24,10 @@ class ProfileController extends Controller
         $this->returnModel = new ReturnRequest();
         $this->userModel = new User();
         $this->wishlistModel = new Wishlist();
-        $this->addressModel = new Address();
+
     }
 
-    public function addresses(): void
-    {
-        $user = $this->requireLogin();
-        $this->render('profile/addresses', [
-            'pageTitle' => 'Sổ địa chỉ',
-            'addresses' => $this->addressModel->allForUser((int)$user['id']),
-            'flashes' => pullFlashes(),
-        ], false);
-    }
 
-    public function save_address(): void
-    {
-        $user = $this->requireLogin();
-        $fields = ['recipient_name','phone','address_line','ward','district','province'];
-        $data = [];
-        foreach ($fields as $field) $data[$field] = trim((string)($_POST[$field] ?? ''));
-        $data['is_default'] = isset($_POST['is_default']);
-
-        if ($data['recipient_name'] === '' || !preg_match('/^[0-9+ .()-]{8,20}$/', $data['phone']) || $data['address_line'] === '' || $data['province'] === '') {
-            flash('error', 'Vui lòng nhập đầy đủ tên người nhận, số điện thoại hợp lệ và địa chỉ.');
-        } else {
-            $id = (int)($_POST['id'] ?? 0);
-            $ok = $id > 0
-                ? $this->addressModel->update($id, (int)$user['id'], $data)
-                : $this->addressModel->create((int)$user['id'], $data);
-            flash($ok ? 'success' : 'error', $ok ? 'Đã lưu địa chỉ.' : 'Không thể lưu địa chỉ.');
-        }
-        $this->redirect('profile/addresses');
-    }
-
-    public function delete_address(): void
-    {
-        $user = $this->requireLogin();
-        $ok = $this->addressModel->delete((int)($_POST['id'] ?? 0), (int)$user['id']);
-        flash($ok ? 'success' : 'error', $ok ? 'Đã xóa địa chỉ.' : 'Không tìm thấy địa chỉ.');
-        $this->redirect('profile/addresses');
-    }
 
     private function requireLogin(): array
     {
