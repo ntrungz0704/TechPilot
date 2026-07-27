@@ -455,6 +455,43 @@ if (!function_exists('postImageUrl')) {
 }
 
 /**
+ * Tạo URL logo thương hiệu chuẩn hóa và an toàn.
+ */
+if (!function_exists('brandLogoUrl')) {
+    function brandLogoUrl(array $brand): ?string
+    {
+        $logo = trim((string)($brand['logo'] ?? ''));
+        $slug = trim((string)($brand['slug'] ?? ''));
+
+        if ($logo !== '') {
+            $logo = str_replace(['..', '\\'], ['', '/'], $logo);
+            $candidates = [
+                ROOT_PATH . '/public/assets/images/brands/' . ltrim($logo, '/'),
+                ROOT_PATH . '/public/assets/images/' . ltrim($logo, '/'),
+            ];
+            foreach ($candidates as $cand) {
+                if (file_exists($cand) && !is_dir($cand)) {
+                    $rel = str_replace(ROOT_PATH . '/public/', '', str_replace('\\', '/', $cand));
+                    return url($rel);
+                }
+            }
+        }
+
+        if ($slug !== '') {
+            $exts = ['png', 'svg', 'jpg', 'webp'];
+            foreach ($exts as $ext) {
+                $cand = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.' . $ext;
+                if (file_exists($cand) && !is_dir($cand)) {
+                    return url('assets/images/brands/' . $slug . '.' . $ext);
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+/**
  * Trả về nhãn loại bài viết (post_type).
  */
 if (!function_exists('postTypeLabel')) {

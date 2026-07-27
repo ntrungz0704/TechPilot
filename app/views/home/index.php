@@ -669,21 +669,23 @@ $reviews = $reviews ?? [];
     <div class="brand-slider">
         <div class="brand-slider__track">
             <?php 
-            // Nhân đôi danh sách thương hiệu để hiệu ứng chạy marquee cuộn mượt không bị đứt đoạn
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
-                $slug = $brand['slug'] ?? '';
-                $logoFile = !empty($slug) ? $slug . '.png' : str_replace(['-logo.png', '.png'], ['.png', '.png'], $brand['logo'] ?? '');
-                if (!str_contains($logoFile, '.')) {
-                    $logoFile .= '.png';
-                }
+                $logoUrl = brandLogoUrl($brand);
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                    <span class="brand-name-fallback" style="display:none; align-items:center; gap:6px; font-weight:700; color:#1e293b; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">
-                        <i class="fa-solid fa-shield-halved" style="color:var(--primary); font-size:13px;"></i>
-                        <?= e($brand['name']) ?>
-                    </span>
+                    <?php if ($logoUrl): ?>
+                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                        <span class="brand-name-fallback" style="display:none; align-items:center; gap:6px; font-weight:700; color:#1e293b; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">
+                            <i class="fa-solid fa-shield-halved" style="color:var(--primary); font-size:13px;"></i>
+                            <?= e($brand['name']) ?>
+                        </span>
+                    <?php else: ?>
+                        <span class="brand-name-fallback" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#1e293b; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">
+                            <i class="fa-solid fa-shield-halved" style="color:var(--primary); font-size:13px;"></i>
+                            <?= e($brand['name']) ?>
+                        </span>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>

@@ -43,19 +43,22 @@ $formatRangeName = function (string $name): string {
                 $slug = !empty($cat['slug']) ? $cat['slug'] : '';
                 $name = !empty($cat['name']) ? $cat['name'] : '';
                 $icon = !empty($cat['icon']) ? $cat['icon'] : 'fa-solid fa-list';
-                $megaColumns = $cat['mega_columns'] ?? [];
+                $rawMega = $cat['mega_columns'] ?? [];
+                $megaColumns = array_filter($rawMega, function($items) {
+                    return is_array($items) && count($items) > 0;
+                });
                 $hasMega = !empty($megaColumns);
                 $virtualUrl = url('category/' . urlencode($slug));
                 $key = !empty($slug) ? $slug : $catId;
                 $prefix = $isStatic ? 'static-' : '';
-                $panelId = 'panel-' . $prefix . $key;
+                $panelId = $hasMega ? ('panel-' . $prefix . $key) : '';
                 $accordionBtnId = 'acc-btn-' . $prefix . $key;
                 ?>
-                <div class="category-sidebar__row" data-panel-id="<?= $panelId ?>">
+                <div class="category-sidebar__row" <?= $hasMega ? 'data-panel-id="' . $panelId . '"' : '' ?>>
                     <div class="category-sidebar__item-wrapper">
                         <a href="<?= $virtualUrl ?>"
                            class="category-sidebar__item"
-                           data-panel-id="<?= $panelId ?>">
+                           <?= $hasMega ? 'data-panel-id="' . $panelId . '"' : '' ?>>
                             <div class="category-sidebar__item-left">
                                 <i class="<?= e($icon) ?> category-icon" aria-hidden="true"></i>
                                 <span><?= e($name) ?></span>
