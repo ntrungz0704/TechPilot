@@ -174,7 +174,7 @@ if (!function_exists('productImageUrl')) {
         
         // 2. Select placeholder based on productType
         $productType = strtolower(trim((string)$productType));
-        $phName = 'placeholder-component.webp';
+        $phName = 'placeholder-component.png';
         
         $type = 'component';
         if (str_contains($productType, 'laptop') || str_contains($productType, 'zephyrus') || str_contains($productType, 'pavilion') || str_contains($productType, 'gram') || str_contains($productType, 'ideapad') || str_contains($productType, 'g16') || str_contains($productType, 'zenbook')) {
@@ -207,46 +207,46 @@ if (!function_exists('productImageUrl')) {
 
         switch ($type) {
             case 'laptop':
-                $phName = 'placeholder-laptop.webp';
+                $phName = 'placeholder-laptop.png';
                 break;
             case 'pc':
-                $phName = 'placeholder-desktop-pc.webp';
+                $phName = 'placeholder-desktop-pc.png';
                 break;
             case 'printer':
-                $phName = 'placeholder-printer.webp';
+                $phName = 'placeholder-printer.png';
                 break;
             case 'projector':
-                $phName = 'placeholder-projector.webp';
+                $phName = 'placeholder-projector.png';
                 break;
             case 'cpu':
-                $phName = 'placeholder-cpu.webp';
+                $phName = 'placeholder-cpu.png';
                 break;
             case 'motherboard':
-                $phName = 'placeholder-motherboard.webp';
+                $phName = 'placeholder-motherboard.png';
                 break;
             case 'gpu':
-                $phName = 'placeholder-gpu.webp';
+                $phName = 'placeholder-gpu.png';
                 break;
             case 'ssd':
-                $phName = 'placeholder-ssd.webp';
+                $phName = 'placeholder-ssd.png';
                 break;
             case 'ram':
-                $phName = 'placeholder-ram.webp';
+                $phName = 'placeholder-ram.png';
                 break;
             case 'psu':
-                $phName = 'placeholder-psu.webp';
+                $phName = 'placeholder-psu.png';
                 break;
             case 'monitor':
-                $phName = 'placeholder-monitor.webp';
+                $phName = 'placeholder-monitor.png';
                 break;
             case 'network':
-                $phName = 'placeholder-network.webp';
+                $phName = 'placeholder-network.png';
                 break;
             case 'accessory':
-                $phName = 'placeholder-accessory.webp';
+                $phName = 'placeholder-accessory.png';
                 break;
             default:
-                $phName = 'placeholder-component.webp';
+                $phName = 'placeholder-component.png';
                 break;
         }
         
@@ -409,7 +409,7 @@ if (!function_exists('postImageUrl')) {
         $image = trim((string)$image);
 
         if ($image === '') {
-            return url('assets/images/products/placeholder-component.webp');
+            return url('assets/images/products/placeholder-component.png');
         }
 
         // 1. URL tuyệt đối (https:// hoặc http://)
@@ -438,7 +438,7 @@ if (!function_exists('postImageUrl')) {
         }
 
         // 5. Không tìm thấy → placeholder
-        return url('assets/images/products/placeholder-component.webp');
+        return url('assets/images/products/placeholder-component.png');
     }
 }
 
