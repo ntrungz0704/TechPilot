@@ -249,3 +249,12 @@ INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocat
 (1, 16, 5490000.00, 8, 0, 1),
 (1, 17, 18990000.00, 10, 0, 1),
 (1, 18, 27990000.00, 5, 0, 1);
+
+-- 11. Cập nhật trạng thái kiểm định cho sản phẩm đã seed
+UPDATE products
+SET
+    verification_status = 'verified',
+    verification_score = 100,
+    verified_at = COALESCE(verified_at, NOW())
+WHERE status = 'active';
+

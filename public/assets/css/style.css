@@ -989,6 +989,10 @@ html.dark-mode .logo-text span {
     height: 530px;
 }
 
+.hero-section--without-category {
+    grid-template-columns: 1fr 300px;
+}
+
 .hero-section__left {
     position: relative !important;
     height: 100%;

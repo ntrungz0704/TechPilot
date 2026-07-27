@@ -62,10 +62,30 @@ class CategoryMenuService
                 ];
             }
 
+            if (empty($menuTree)) {
+                return self::getFallbackMenuTree();
+            }
+
             return $menuTree;
         } catch (Exception $e) {
-            error_log('CategoryMenuService error: ' . $e->getMessage());
-            return []; // Mảng rỗng an toàn khi DB unavailable
+            error_log('[CategoryMenuService] ' . $e->getCode() . ' - ' . $e->getMessage());
+            return self::getFallbackMenuTree();
         }
+    }
+
+    /**
+     * Fallback top-level category menu khi DB chưa sẵn sàng
+     */
+    private static function getFallbackMenuTree(): array
+    {
+        return [
+            ['id' => 'laptop', 'name' => 'Laptop', 'slug' => 'laptop', 'icon' => 'fa-solid fa-laptop', 'mega_columns' => []],
+            ['id' => 'pc', 'name' => 'PC & Build PC', 'slug' => 'pc', 'icon' => 'fa-solid fa-desktop', 'mega_columns' => []],
+            ['id' => 'pc-linh-kien', 'name' => 'Linh kiện PC', 'slug' => 'pc-linh-kien', 'icon' => 'fa-solid fa-microchip', 'mega_columns' => []],
+            ['id' => 'man-hinh', 'name' => 'Màn hình', 'slug' => 'man-hinh', 'icon' => 'fa-solid fa-tv', 'mega_columns' => []],
+            ['id' => 'gaming-gear', 'name' => 'Gaming Gear', 'slug' => 'gaming-gear', 'icon' => 'fa-solid fa-gamepad', 'mega_columns' => []],
+            ['id' => 'office-gear', 'name' => 'Thiết bị văn phòng', 'slug' => 'office-gear', 'icon' => 'fa-solid fa-print', 'mega_columns' => []],
+            ['id' => 'networking', 'name' => 'Thiết bị mạng', 'slug' => 'networking', 'icon' => 'fa-solid fa-wifi', 'mega_columns' => []],
+        ];
     }
 }

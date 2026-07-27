@@ -205,27 +205,19 @@ Không bắt đầu sửa code nếu tên nhánh đang là `main`, `develop` ho�
 ### Cách 1 — phpMyAdmin
 
 1. Mở phpMyAdmin.
-2. Tạo database tên `techpilot` với charset `utf8mb4`.
+2. Tạo database tên `techpilot` với charset `utf8mb4_unicode_ci`.
 3. Chọn database `techpilot`.
-4. Chọn tab **Import**.
-5. Chọn file `database/schema.sql`.
-6. Bấm **Import/Go**.
+4. Chọn tab **Import** và chọn file `database/schema.sql`, bấm **Go**.
+5. Tiếp tục chọn tab **Import** và chọn file `database/seed.sql`, bấm **Go**.
 
 ### Cách 2 — MySQL CLI
 
-Nếu `schema.sql` tự tạo database:
-
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-Nếu đã tạo database `techpilot` trước:
-
 ```bash
 mysql -u root -p techpilot < database/schema.sql
+mysql -u root -p techpilot < database/seed.sql
 ```
 
-Sau khi import, kiểm tra các bảng cốt lõi như `users`, `categories`, `brands`, `products`, `carts`, `orders` và `posts` đã tồn tại.
+Sau khi import cả 2 file, kiểm tra các bảng cốt lõi như `users`, `categories`, `brands`, `products`, `carts`, `orders` và `posts` đã có dữ liệu mẫu.
 
 ---
 
