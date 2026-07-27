@@ -1178,4 +1178,70 @@ class ChatbotController extends Controller
         }
         return false;
     }
+
+    /**
+     * API Standard POST /api/chat - Structured Database Grounded Chatbot Endpoint.
+     */
+    public function apiChat(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'code' => 'INVALID_METHOD', 'message' => 'Vui lòng sử dụng phương thức POST.']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $message = trim($input['message'] ?? '');
+        $productId = !empty($input['product_id']) ? (int)$input['product_id'] : null;
+        $pageContext = trim($input['page_context'] ?? '');
+
+        if ($message === '') {
+            echo json_encode(['success' => false, 'code' => 'EMPTY_MESSAGE', 'message' => 'Nội dung tin nhắn không được để trống.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/app/services/ChatIntentClassifier.php';
+        require_once ROOT_PATH . '/app/services/ProductKnowledgeService.php';
+        require_once ROOT_PATH . '/app/services/GeminiService.php';
+
+        $intent = ChatIntentClassifier::classify($message, $productId, $pageContext);
+        $contextData = [];
+        $grounding = 'general';
+
+        if ($productId !== null) {
+            $prodContext = ProductKnowledgeService::getProductContext($productId);
+            if ($prodContext) {
+                $contextData['current_product'] = $prodContext;
+                $grounding = 'database';
+            }
+        }
+
+        if ($intent === ChatIntentClassifier::INTENT_PRODUCT_RECOMMENDATION) {
+            $candidates = ProductKnowledgeService::getCandidateProducts($message, null, 5);
+            if (!empty($candidates)) {
+                $contextData['store_candidates'] = $candidates;
+                $grounding = 'database';
+            }
+        }
+
+        $aiResult = GeminiService::callGemini($message, $contextData);
+
+        if (!$aiResult['success']) {
+            echo json_encode([
+                'success' => false,
+                'code' => $aiResult['code'] ?? 'AI_ERROR',
+                'message' => $aiResult['message'] ?? 'Lỗi không xác định từ Trợ lý AI.'
+            ]);
+            exit;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'answer' => $aiResult['answer'],
+            'intent' => $intent,
+            'grounding' => $grounding
+        ]);
+        exit;
+    }
 }

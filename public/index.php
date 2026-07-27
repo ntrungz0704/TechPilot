@@ -14,12 +14,15 @@ $url = $_GET['url'] ?? '';
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Chấp nhận cả 2 tên field: csrf_token (mặc định) và _csrf (legacy)
-    $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
-    $savedToken = $_SESSION['csrf_token'] ?? '';
-    if ($token === '' || !hash_equals($savedToken, $token)) {
-        http_response_code(403);
-        die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+    // Exclude /api/chat if needed or validate token from header / JSON input
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($uri, '/api/chat') === false) {
+        $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        $savedToken = $_SESSION['csrf_token'] ?? '';
+        if ($token === '' || !hash_equals($savedToken, $token)) {
+            http_response_code(403);
+            die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+        }
     }
 }
 
@@ -44,9 +47,10 @@ $router->post('/profile/repay', 'ProfileController@repay');
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
 
-// API Notifications & Wishlist
+// API Notifications & Wishlist & Chatbot
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
 $router->post('/wishlist/toggle', 'WishlistController@toggle');
+$router->post('/api/chat', 'ChatbotController@apiChat');
 
 // Admin Dashboard Route
 $router->get('/admin', 'AdminController@index');
