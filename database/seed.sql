@@ -1,3 +1,5 @@
+SET FOREIGN_KEY_CHECKS=0;
+
 -- ============================================================================
 -- TechPilot Full Seed Data (Restored Catalog & Parity Dataset)
 -- Run after database/schema.sql on a clean database
@@ -225,3 +227,6 @@ INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocat
 
 -- 11. C?p nh?t tr?ng thái ki?m d?nh cho s?n ph?m dã seed
 UPDATE products SET verification_status = 'verified', verification_score = 100, verified_at = COALESCE(verified_at, NOW()) WHERE status = 'active';
+
+
+SET FOREIGN_KEY_CHECKS=1;
