@@ -250,12 +250,75 @@ $reviews = $reviews ?? [];
         </a>
     </header>
 
-    <div class="product-grid product-grid--6 flash-sale-products">
-        <?php foreach ($flashSale as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div style="position: relative;" class="flash-sale-wrapper">
+        <!-- Navigation Arrows -->
+        <button type="button" class="flash-arrow flash-prev" id="flashPrevBtn" aria-label="Sản phẩm trước" style="position: absolute; left: -18px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: #FFFFFF; color: var(--text-primary); font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button type="button" class="flash-arrow flash-next" id="flashNextBtn" aria-label="Sản phẩm tiếp" style="position: absolute; right: -18px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: #FFFFFF; color: var(--text-primary); font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+
+        <div id="flashSaleTrack" class="flash-sale-products" style="display: flex; gap: 16px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; padding: 4px 0;">
+            <?php foreach ($flashSale as $p): ?>
+                <div style="flex: 0 0 calc((100% - 80px) / 6); min-width: 190px;">
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const track = document.getElementById('flashSaleTrack');
+    const prevBtn = document.getElementById('flashPrevBtn');
+    const nextBtn = document.getElementById('flashNextBtn');
+    if (!track || !prevBtn || !nextBtn) return;
+
+    const scrollStep = 220;
+    let autoPlayTimer = null;
+
+    function scrollNext() {
+        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+            track.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+            track.scrollBy({ left: scrollStep * 2, behavior: 'smooth' });
+        }
+    }
+
+    function scrollPrev() {
+        if (track.scrollLeft <= 10) {
+            track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
+        } else {
+            track.scrollBy({ left: -scrollStep * 2, behavior: 'smooth' });
+        }
+    }
+
+    nextBtn.addEventListener('click', function() {
+        scrollNext();
+        resetAutoPlay();
+    });
+
+    prevBtn.addEventListener('click', function() {
+        scrollPrev();
+        resetAutoPlay();
+    });
+
+    function startAutoPlay() {
+        autoPlayTimer = setInterval(scrollNext, 3500);
+    }
+
+    function resetAutoPlay() {
+        clearInterval(autoPlayTimer);
+        startAutoPlay();
+    }
+
+    startAutoPlay();
+    track.addEventListener('mouseenter', () => clearInterval(autoPlayTimer));
+    track.addEventListener('mouseleave', startAutoPlay);
+});
+</script>
 <?php endif; ?>
 
 <?php if (!empty($featuredProducts)): ?>

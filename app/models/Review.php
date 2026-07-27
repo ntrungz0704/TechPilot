@@ -78,14 +78,28 @@ class Review
 
         $stmt = $this->db->prepare(
             'INSERT INTO reviews (product_id, user_id, reviewer_name, rating, comment, status)
-             VALUES (:product_id, :user_id, :reviewer_name, :rating, :comment, \'published\')'
+             VALUES (:product_id, :user_id, :reviewer_name, :rating, :comment, \'pending\')'
         );
-        return $stmt->execute([
+        $result = $stmt->execute([
             ':product_id' => $productId,
             ':user_id' => $userId,
             ':reviewer_name' => $reviewerName,
             ':rating' => $rating,
             ':comment' => $cleanComment
         ]);
+
+        if ($result) {
+            try {
+                $notifStmt = $this->db->prepare(
+                    'INSERT INTO notifications (user_id, title, content) VALUES (1, :title, :content)'
+                );
+                $notifStmt->execute([
+                    ':title' => 'Đánh giá mới chờ phê duyệt',
+                    ':content' => 'Khách hàng ' . $reviewerName . ' vừa đánh giá ' . $rating . ' sao cho sản phẩm ID #' . $productId . ': "' . mb_substr($cleanComment, 0, 80) . '"'
+                ]);
+            } catch (Throwable $e) {}
+        }
+
+        return $result;
     }
 }

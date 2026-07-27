@@ -55,6 +55,8 @@ $router->post('/api/chat', 'ChatbotController@apiChat');
 // Admin Dashboard Route
 $router->get('/admin', 'AdminController@index');
 $router->get('/admin/dashboard', 'AdminController@index');
+$router->get('/api/admin/notifications', 'AdminController@notifications');
+$router->post('/api/admin/notifications/mark_read', 'AdminController@markReadNotifications');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
