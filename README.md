@@ -48,7 +48,7 @@ TechPilot/
 │   ├── models/           # Truy vấn và xử lý dữ liệu
 │   └── views/            # Giao diện PHP
 ├── config/               # Cấu hình ứng dụng và database
-├── database/             # schema.sql và dữ liệu mẫu
+├── database/             # seed.sql — schema + toàn bộ dữ liệu mẫu
 ├── public/               # CSS, JavaScript, hình ảnh và public entry point
 ├── docs/                 # Tài liệu dự án nếu có
 ├── index.php             # Entry point ở thư mục gốc nếu dự án sử dụng
@@ -200,32 +200,35 @@ Không bắt đầu sửa code nếu tên nhánh đang là `main`, `develop` ho�
 
 ## 7. Khởi tạo cơ sở dữ liệu
 
-> **Cảnh báo:** Đọc đầu file `database/schema.sql` trước khi chạy. Nếu file có `DROP DATABASE`, nó có thể xóa toàn bộ database cũ. Chỉ import vào database local/test, không chạy trên database production đang có đơn hàng.
+File `database/seed.sql` chứa **toàn bộ schema và dữ liệu mẫu** (651 sản phẩm, 20 danh mục, 36 thương hiệu, 6 bài viết, 2604 ảnh sản phẩm, Flash Sale, mã giảm giá, tài khoản mẫu). File có `DROP TABLE IF EXISTS` nên sẽ **xóa và tạo lại toàn bộ bảng** — chỉ chạy trên database local/test.
 
 ### Cách 1 — phpMyAdmin
 
 1. Mở phpMyAdmin.
-2. Tạo database tên `techpilot` với charset `utf8mb4`.
+2. Tạo database tên `techpilot` với charset `utf8mb4_unicode_ci`.
 3. Chọn database `techpilot`.
 4. Chọn tab **Import**.
-5. Chọn file `database/schema.sql`.
+5. Chọn file `database/seed.sql`.
 6. Bấm **Import/Go**.
 
-### Cách 2 — MySQL CLI
+### Cách 2 — MySQL CLI (khuyến nghị)
 
-Nếu `schema.sql` tự tạo database:
-
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-Nếu đã tạo database `techpilot` trước:
+Tạo database và import:
 
 ```bash
-mysql -u root -p techpilot < database/schema.sql
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS techpilot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p --default-character-set=utf8mb4 techpilot < database/seed.sql
 ```
 
-Sau khi import, kiểm tra các bảng cốt lõi như `users`, `categories`, `brands`, `products`, `carts`, `orders` và `posts` đã tồn tại.
+Sau khi import, kiểm tra nhanh:
+
+```bash
+mysql -u root -p -e "SELECT COUNT(*) FROM techpilot.products; SELECT COUNT(*) FROM techpilot.posts; SELECT COUNT(*) FROM techpilot.users;"
+```
+
+Kết quả đúng: **651 products**, **6 posts**, **7 users**.
+
+> **Lưu ý:** File `seed.sql` đã có `SET NAMES utf8mb4` ở đầu. Nếu tiếng Việt bị lỗi sau import, chạy lại với flag `--default-character-set=utf8mb4`.
 
 ---
 
@@ -280,31 +283,46 @@ Không duy trì hai bản code riêng, ví dụ một bản ở ổ D và một 
 
 ## 10. Tài khoản thử nghiệm local
 
-Các tài khoản sau chỉ dùng trong môi trường development sau khi import đúng seed:
+Các tài khoản sau chỉ dùng trong môi trường development sau khi import đúng `database/seed.sql`:
 
 ### Admin
 
 ```text
 Email: admin@techpilot.vn
-Mật khẩu seed: admin123
+Mật khẩu: Admin@123
 ```
 
 ### Customer
 
 ```text
-Email: customer@gmail.com
-Mật khẩu seed: admin123
+Email: customer@techpilot.vn
+Mật khẩu: Customer@123
 ```
 
-> `admin123` là mật khẩu yếu. Không được dùng những tài khoản/mật khẩu này khi triển khai public. Trước khi deploy phải đổi mật khẩu, tắt hoặc xóa tài khoản seed và không ghi credential production trong README.
+Cũng có thể tự đăng ký tài khoản mới qua trang `/auth/register`.
+
+> Đây là tài khoản phát triển. Trước khi deploy phải đổi mật khẩu, tắt hoặc xóa tài khoản seed và không ghi credential production trong README.
 
 Nếu đăng nhập thất bại, kiểm tra:
 
-- Database đã import đúng chưa.
-- Email có tồn tại trong bảng `users` không.
-- Password trong DB có được tạo bằng `password_hash()` không.
-- Role/status của tài khoản có đúng không.
-- Ứng dụng đang kết nối đúng database không.
+- Database đã import đúng `seed.sql` chưa.
+- Email có tồn tại trong bảng `users` không: `SELECT email, role FROM users;`
+- Ứng dụng đang kết nối đúng database `techpilot` không.
+
+### Dữ liệu mẫu sau khi import
+
+| Bảng | Số lượng |
+|---|---|
+| categories | 20 |
+| brands | 36 |
+| products | 651 |
+| product_images | 2604 |
+| posts (tin tức) | 6 |
+| reviews | 6 |
+| users | 7 |
+| flash_sales | 1 |
+| flash_sale_items | 6 |
+| coupons | 2 |
 
 ---
 
