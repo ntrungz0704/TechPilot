@@ -35,14 +35,16 @@ $reviews = $reviews ?? [];
 
 <!-- ===== 4. HERO SECTION ===== -->
 <div class="home-page-wrapper">
-<section class="container hero-section">
+<section class="container hero-section <?= empty($globalCategoryMenu) ? 'hero-section--without-category' : '' ?>">
     <!-- Left: Vertical Category Menu -->
+    <?php if (!empty($globalCategoryMenu)): ?>
     <div class="hero-section__left" id="heroCategorySlot">
         <?php 
         $isStatic = true; 
         require ROOT_PATH . '/app/views/layouts/partials/category-mega-menu.php'; 
         ?>
     </div>
+    <?php endif; ?>
 
     <!-- Center: Large Hero Banner Carousel -->
     <div class="hero-section__center" id="heroCarousel">
@@ -677,7 +679,7 @@ $reviews = $reviews ?? [];
                 }
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
+                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy" onerror="this.src='https://placehold.co/100x40?text=<?= urlencode(e($brand['name'])) ?>'">
                 </div>
             <?php endforeach; ?>
         </div>

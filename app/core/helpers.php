@@ -249,8 +249,12 @@ if (!function_exists('productImageUrl')) {
                 $phName = 'placeholder-component.png';
                 break;
         }
+        $localPhPath = ROOT_PATH . '/public/assets/images/products/' . $phName;
+        if (file_exists($localPhPath) && !is_dir($localPhPath)) {
+            return url('assets/images/products/' . $phName);
+        }
         
-        return url('assets/images/products/' . $phName);
+        return 'https://placehold.co/400x400?text=' . urlencode(ucfirst($type));
     }
 }
 
@@ -409,7 +413,11 @@ if (!function_exists('postImageUrl')) {
         $image = trim((string)$image);
 
         if ($image === '') {
-            return url('assets/images/products/placeholder-component.png');
+            $localPhPath = ROOT_PATH . '/public/assets/images/products/placeholder-component.png';
+            if (file_exists($localPhPath) && !is_dir($localPhPath)) {
+                return url('assets/images/products/placeholder-component.png');
+            }
+            return 'https://placehold.co/400x400?text=Post';
         }
 
         // 1. URL tuyệt đối (https:// hoặc http://)
@@ -438,7 +446,11 @@ if (!function_exists('postImageUrl')) {
         }
 
         // 5. Không tìm thấy → placeholder
-        return url('assets/images/products/placeholder-component.png');
+        $localPhPath = ROOT_PATH . '/public/assets/images/products/placeholder-component.png';
+        if (file_exists($localPhPath) && !is_dir($localPhPath)) {
+            return url('assets/images/products/placeholder-component.png');
+        }
+        return 'https://placehold.co/400x400?text=Post';
     }
 }
 
