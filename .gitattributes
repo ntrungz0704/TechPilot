@@ -6,5 +6,9 @@
 
 docs/* linguist-documentation
 tests/* linguist-vendored
-scripts/* linguist-vendored
-database/* linguist-vendored
+scripts/** linguist-vendored
+database/** linguist-vendored
+tools/** linguist-vendored
+*.sh linguist-detectable=false
+*.cmd linguist-detectable=false
+*.bat linguist-detectable=false
