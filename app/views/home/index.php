@@ -510,6 +510,7 @@ $reviews = $reviews ?? [];
     </script>
 </section>
 
+<?php if (!empty($laptopGaming)): ?>
 <!-- ===== LAPTOP GAMING ===== -->
 <section class="container section desktop-only-section">
     <div class="section__head">
@@ -522,6 +523,7 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <!-- ===== BANNER GIAO HÀNG MIỄN PHÍ ===== -->
 <section class="container section desktop-only-section">
@@ -534,6 +536,7 @@ $reviews = $reviews ?? [];
     </div>
 </section>
 
+<?php if (!empty($laptopVanPhong)): ?>
 <!-- ===== LAPTOP VĂN PHÒNG ===== -->
 <section class="container section desktop-only-section">
     <div class="section__head">
@@ -546,7 +549,9 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if (!empty($pcBuildSan)): ?>
 <!-- ===== PC BUILD SẴN ===== -->
 <section class="container section desktop-only-section">
     <div class="section__head">
@@ -559,7 +564,9 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if (!empty($pcLinhKien)): ?>
 <!-- ===== 10. PC COMPONENTS ===== -->
 <section class="container section desktop-only-section">
     <div class="section__head">
@@ -572,7 +579,9 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if (!empty($gamingGear)): ?>
 <!-- ===== 11. GAMING GEAR ===== -->
 <section class="container section desktop-only-section">
     <div class="section__head">
@@ -585,7 +594,9 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if (!empty($monHinh)): ?>
 <!-- ===== MÀN HÌNH ===== -->
 <section class="container section desktop-only-section">
     <div class="section__head">
@@ -598,7 +609,9 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if (!empty($apple)): ?>
 <!-- ===== MÁY TÍNH BỘ ===== -->
 <section class="container section section-apple-zone">
     <div class="section__head">
@@ -616,7 +629,9 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if (!empty($posts)): ?>
 <!-- ===== 12. TECHNOLOGY NEWS ===== -->
 <section class="container section">
     <div class="section__head">
@@ -642,6 +657,7 @@ $reviews = $reviews ?? [];
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <!-- ===== 13. FEATURED BRANDS (ĐỐI TÁC CHIẾN LƯỢC) ===== -->
 <section class="container section desktop-only-section">
