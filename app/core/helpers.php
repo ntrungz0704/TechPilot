@@ -149,7 +149,7 @@ if (!function_exists('absoluteUrl')) {
 }
 
 if (!function_exists('productImageUrl')) {
-    function productImageUrl(?string $image = '', ?string $productType = ''): string
+    function productImageUrl(?string $image = '', ?string $productType = '', ?int $productId = null): string
     {
         $image = trim((string)$image);
         
@@ -169,6 +169,31 @@ if (!function_exists('productImageUrl')) {
             $legacyPathProducts = ROOT_PATH . '/public/assets/images/products/' . basename($image);
             if (file_exists($legacyPathProducts) && !is_dir($legacyPathProducts)) {
                 return url('assets/images/products/' . basename($image));
+            }
+
+            // Resolve placeholder-{category}-{N}.ext → {category}_{N}.jpg/.png
+            $bn = basename($image);
+            if (preg_match('/^placeholder-([a-z\-]+)-(\d+)\.\w+$/i', $bn, $m)) {
+                $cat = $m[1];   // e.g. 'cpu', 'laptop', 'office-equipment'
+                $num = $m[2];   // e.g. '1', '2'
+                $productsDir = ROOT_PATH . '/public/assets/images/products/';
+                foreach (['png', 'jpg', 'webp'] as $ext) {
+                    $realFile = $cat . '_' . $num . '.' . $ext;
+                    if (file_exists($productsDir . $realFile)) {
+                        return url('assets/images/products/' . $realFile);
+                    }
+                }
+            }
+
+            // Resolve by product ID: prod_{id}.jpg/.png
+            if ($productId !== null && $productId > 0) {
+                $productsDir = $productsDir ?? ROOT_PATH . '/public/assets/images/products/';
+                foreach (['png', 'jpg', 'webp'] as $ext) {
+                    $realFile = 'prod_' . $productId . '.' . $ext;
+                    if (file_exists($productsDir . $realFile)) {
+                        return url('assets/images/products/' . $realFile);
+                    }
+                }
             }
         }
         

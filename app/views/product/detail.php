@@ -28,7 +28,7 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
 
 <section class="container breadcrumb">
     <a href="<?= url('/') ?>">Trang chủ</a> <i class="fa-solid fa-chevron-right"></i>
-    <a href="<?= url('category/' . e($product['category_slug'] ?? '')) ?>"><?= e($product['category_name'] ?? 'Danh mục') ?></a> <i class="fa-solid fa-chevron-right"></i>
+    <a href="<?= url('home/search?cat=' . e($product['category_slug'] ?? '')) ?>"><?= e($product['category_name'] ?? 'Danh mục') ?></a> <i class="fa-solid fa-chevron-right"></i>
     <span><?= e($product['name']) ?></span>
 </section>
 
