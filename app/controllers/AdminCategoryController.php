@@ -13,10 +13,10 @@ class AdminCategoryController extends Controller
 
         if ($db) {
             if ($search !== '') {
-                $stmt = $db->prepare('SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count FROM categories c WHERE c.name LIKE :search ORDER BY c.sort_order ASC, c.id DESC');
+                $stmt = $db->prepare('SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id OR category_id IN (SELECT id FROM categories WHERE parent_id = c.id)) as product_count FROM categories c WHERE c.name LIKE :search ORDER BY c.sort_order ASC, c.id DESC');
                 $stmt->execute([':search' => '%' . $search . '%']);
             } else {
-                $stmt = $db->prepare('SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count FROM categories c ORDER BY c.sort_order ASC, c.id DESC');
+                $stmt = $db->prepare('SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id OR category_id IN (SELECT id FROM categories WHERE parent_id = c.id)) as product_count FROM categories c ORDER BY c.sort_order ASC, c.id DESC');
                 $stmt->execute();
             }
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);

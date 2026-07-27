@@ -122,16 +122,49 @@
 
     <!-- Pagination -->
     <?php if ($totalPages > 1): ?>
-        <div style="display: flex; justify-content: center; gap: 8px; margin-top: 25px;">
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <?php
-                // Giữ lại bộ lọc query string khi phân trang
-                $query = $_GET;
-                $query['page'] = $i;
-                $pageUrl = url('admin/products?' . http_build_query($query));
-                ?>
-                <a href="<?= $pageUrl ?>" class="btn <?= $page === $i ? '' : 'btn--outline' ?>" style="padding: 6px 12px; font-size: 13px;"><?= $i ?></a>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 25px; flex-wrap: wrap;">
+            <!-- Prev Arrow -->
+            <?php if ($page > 1): 
+                $q = $_GET; $q['page'] = $page - 1; 
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;" title="Trang trước"><i class="fa-solid fa-chevron-left"></i></a>
+            <?php endif; ?>
+
+            <?php
+            $window = 2;
+            $startPage = max(1, $page - $window);
+            $endPage = min($totalPages, $page + $window);
+
+            if ($startPage > 1): 
+                $q = $_GET; $q['page'] = 1;
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;">1</a>
+                <?php if ($startPage > 2): ?>
+                    <span style="padding: 6px 8px; color: var(--text-secondary); font-weight: 700;">...</span>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php for ($i = $startPage; $i <= $endPage; $i++): 
+                $q = $_GET; $q['page'] = $i;
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn <?= $page === $i ? '' : 'btn--outline' ?>" style="padding: 6px 12px; font-size: 13px; font-weight: 700;"><?= $i ?></a>
             <?php endfor; ?>
+
+            <?php if ($endPage < $totalPages): 
+                $q = $_GET; $q['page'] = $totalPages;
+            ?>
+                <?php if ($endPage < $totalPages - 1): ?>
+                    <span style="padding: 6px 8px; color: var(--text-secondary); font-weight: 700;">...</span>
+                <?php endif; ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;"><?= $totalPages ?></a>
+            <?php endif; ?>
+
+            <!-- Next Arrow -->
+            <?php if ($page < $totalPages): 
+                $q = $_GET; $q['page'] = $page + 1; 
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;" title="Trang sau"><i class="fa-solid fa-chevron-right"></i></a>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
