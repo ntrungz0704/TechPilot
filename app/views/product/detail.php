@@ -121,6 +121,7 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
                 </div>
                 <button type="submit" class="btn btn--outline"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
                 <button type="button" class="btn" onclick="buyNowSubmit()"><i class="fa-solid fa-bolt"></i> Mua ngay</button>
+                <button type="button" class="btn btn--light" onclick="toggleWishlist(<?= (int)($product['id'] ?? 0) ?>, this)" title="Thêm vào danh sách yêu thích" style="padding: 0 16px; border-radius: var(--radius-elem); display: flex; align-items: center; justify-content: center;"><i class="fa-regular fa-heart" style="font-size: 18px;"></i></button>
             </div>
         </form>
 

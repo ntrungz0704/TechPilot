@@ -693,7 +693,7 @@ CREATE TABLE `wishlists` (
   KEY `idx_wishlists_user` (`user_id`),
   CONSTRAINT `fk_wishlists_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_wishlists_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -702,6 +702,7 @@ CREATE TABLE `wishlists` (
 
 LOCK TABLES `wishlists` WRITE;
 /*!40000 ALTER TABLE `wishlists` DISABLE KEYS */;
+INSERT INTO `wishlists` VALUES (2,8,100,'2026-07-27 18:07:08');
 /*!40000 ALTER TABLE `wishlists` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -718,4 +719,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-28  0:38:42
+-- Dump completed on 2026-07-28  1:07:15
