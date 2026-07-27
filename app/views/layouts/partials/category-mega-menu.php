@@ -125,7 +125,10 @@ $formatRangeName = function (string $name): string {
                 $catId = $cat['id'] ?? 0;
                 $slug = !empty($cat['slug']) ? $cat['slug'] : '';
                 $groupName = !empty($cat['name']) ? $cat['name'] : '';
-                $megaColumns = $cat['mega_columns'] ?? [];
+                $rawMega = $cat['mega_columns'] ?? [];
+                $megaColumns = array_filter($rawMega, function($items) {
+                    return is_array($items) && count($items) > 0;
+                });
                 if (empty($megaColumns)) continue;
                 $virtualUrl = url('category/' . urlencode($slug));
                 $key = !empty($slug) ? $slug : $catId;
