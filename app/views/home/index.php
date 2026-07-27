@@ -512,7 +512,7 @@ $reviews = $reviews ?? [];
 
 <?php if (!empty($laptopGaming)): ?>
 <!-- ===== LAPTOP GAMING ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>Laptop Gaming</h2>
         <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -526,7 +526,7 @@ $reviews = $reviews ?? [];
 <?php endif; ?>
 
 <!-- ===== BANNER GIAO HÀNG MIỄN PHÍ ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="promo-banner" style="background-image: url('<?= url('assets/images/installment-banner.jpg') ?>');">
         <div class="promo-banner__content">
             <h3>GIAO HÀNG MIỄN PHÍ TOÀN QUỐC</h3>
@@ -538,7 +538,7 @@ $reviews = $reviews ?? [];
 
 <?php if (!empty($laptopVanPhong)): ?>
 <!-- ===== LAPTOP VĂN PHÒNG ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>Laptop Văn Phòng</h2>
         <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -553,7 +553,7 @@ $reviews = $reviews ?? [];
 
 <?php if (!empty($pcBuildSan)): ?>
 <!-- ===== PC BUILD SẴN ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>PC Build Sẵn</h2>
         <a href="<?= url('home/search?cat=pc-build-san') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -568,7 +568,7 @@ $reviews = $reviews ?? [];
 
 <?php if (!empty($pcLinhKien)): ?>
 <!-- ===== 10. PC COMPONENTS ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>Linh Kiện PC</h2>
         <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -583,7 +583,7 @@ $reviews = $reviews ?? [];
 
 <?php if (!empty($gamingGear)): ?>
 <!-- ===== 11. GAMING GEAR ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>Gaming Gear</h2>
         <a href="<?= url('home/search?cat=gaming-gear') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -598,7 +598,7 @@ $reviews = $reviews ?? [];
 
 <?php if (!empty($monHinh)): ?>
 <!-- ===== MÀN HÌNH ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>Màn Hình</h2>
         <a href="<?= url('home/search?cat=man-hinh') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
@@ -660,7 +660,7 @@ $reviews = $reviews ?? [];
 <?php endif; ?>
 
 <!-- ===== 13. FEATURED BRANDS (ĐỐI TÁC CHIẾN LƯỢC) ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head section__head--brand-partners">
         <h2>ĐỐI TÁC CHIẾN LƯỢC</h2>
     </div>
@@ -671,9 +671,9 @@ $reviews = $reviews ?? [];
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
                 $slug = $brand['slug'] ?? '';
-                $logoFile = !empty($slug) ? $slug . '.svg' : str_replace(['-logo.svg', '.png'], ['.svg', '.svg'], $brand['logo'] ?? '');
+                $logoFile = !empty($slug) ? $slug . '.png' : str_replace(['-logo.png', '.png'], ['.png', '.png'], $brand['logo'] ?? '');
                 if (!str_contains($logoFile, '.')) {
-                    $logoFile .= '.svg';
+                    $logoFile .= '.png';
                 }
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
@@ -685,7 +685,7 @@ $reviews = $reviews ?? [];
 </section>
 
 <!-- ===== ĐÁNH GIÁ KHÁCH HÀNG ===== -->
-<section class="container section desktop-only-section">
+<section class="container section">
     <div class="section__head">
         <h2>Khách hàng nói gì về TechPilot</h2>
     </div>
