@@ -32,7 +32,11 @@ if (!is_dir($migrationsDir)) {
 }
 
 $files = glob($migrationsDir . '/*.sql');
-sort($files);
+if ($files === false) {
+    fwrite(STDERR, "Error: Could not read migrations directory.\n");
+    exit(1);
+}
+sort($files, SORT_STRING);
 
 $stmt = $db->query("SELECT migration FROM migrations");
 $executed = $stmt->fetchAll(PDO::FETCH_COLUMN);
