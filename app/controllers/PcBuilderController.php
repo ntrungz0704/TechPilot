@@ -7,57 +7,57 @@ require_once ROOT_PATH . '/app/services/PcCompatibilityService.php';
 
 class PcBuilderController extends Controller
 {
-    // Cấu hình các bộ phận cần build và query tương ứng trong DB
+    // Cấu hình các bộ phận cần build và query tương ứng trong DB (dùng category_id)
     private array $parts = [
         'cpu' => [
             'name' => 'Bộ vi xử lý (CPU)',
             'icon' => 'fa-solid fa-microchip',
-            'query' => "component_type = 'cpu'"
+            'query' => "category_id = 5"
         ],
         'mainboard' => [
             'name' => 'Bo mạch chủ (Mainboard)',
             'icon' => 'fa-solid fa-clone', 
-            'query' => "component_type = 'mainboard'"
+            'query' => "category_id = 4"
         ],
         'ram' => [
             'name' => 'Bộ nhớ trong (RAM)',
             'icon' => 'fa-solid fa-server',
-            'query' => "component_type = 'ram'"
+            'query' => "category_id = 7"
         ],
         'vga' => [
             'name' => 'Card màn hình (VGA)',
             'icon' => 'fa-solid fa-sd-card',
-            'query' => "component_type = 'gpu'"
+            'query' => "category_id = 6"
         ],
         'storage' => [
             'name' => 'Ổ cứng (SSD/HDD)',
             'icon' => 'fa-solid fa-database',
-            'query' => "component_type = 'storage'"
+            'query' => "category_id = 8"
         ],
         'psu' => [
             'name' => 'Nguồn máy tính (PSU)',
             'icon' => 'fa-solid fa-plug',
-            'query' => "component_type = 'psu'"
+            'query' => "category_id = 11"
         ],
         'case' => [
             'name' => 'Vỏ máy tính (Case)',
             'icon' => 'fa-solid fa-box',
-            'query' => "component_type = 'case'"
+            'query' => "category_id = 9"
         ],
         'cooler' => [
             'name' => 'Tản nhiệt PC',
             'icon' => 'fa-solid fa-fan',
-            'query' => "component_type = 'cpu_cooler'"
+            'query' => "category_id = 10"
         ],
         'monitor' => [
             'name' => 'Màn hình',
             'icon' => 'fa-solid fa-tv',
-            'query' => "component_type = 'monitor' OR category_id = 5"
+            'query' => "category_id = 3"
         ],
         'gear' => [
             'name' => 'Gaming Gear',
             'icon' => 'fa-solid fa-keyboard',
-            'query' => "component_type = 'gear' OR category_id = 7"
+            'query' => "category_id IN (12, 13)"
         ]
     ];
 
@@ -89,7 +89,7 @@ class PcBuilderController extends Controller
             $whereClause .= " AND name LIKE :search";
         }
         
-        $sql = "SELECT id, name, price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE $whereClause AND status = 'active' AND stock > 0 ORDER BY price ASC";
+        $sql = "SELECT id, name, price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE ($whereClause) AND status = 'active' AND stock > 0 ORDER BY price ASC";
         $stmt = $db->prepare($sql);
         if ($search) {
             $stmt->execute([':search' => '%' . $search . '%']);

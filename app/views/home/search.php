@@ -81,7 +81,7 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
 
         <div class="search-widget">
             <h3>Khoảng giá bán</h3>
-            <div class="price-range">
+            <form class="price-range" onsubmit="event.preventDefault(); applyPriceFilter(document.querySelector('.price-slider').value);">
                 <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
                 <div class="price-display">
                     <span>0đ</span>

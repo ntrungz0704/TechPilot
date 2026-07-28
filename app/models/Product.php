@@ -1474,9 +1474,15 @@ class Product
             foreach ($words as $i => $word) {
                 $pNameName = ':search_word_name_' . $i;
                 $pNameBrand = ':search_word_brand_' . $i;
-                $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand)";
+                $pNameDesc = ':search_word_desc_' . $i;
+                $pNameCat = ':search_word_cat_' . $i;
+                
+                $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(p.description) LIKE $pNameDesc OR LOWER(p.short_desc) LIKE $pNameDesc OR LOWER(c.name) LIKE $pNameCat)";
+                
                 $params[$pNameName] = '%' . $word . '%';
                 $params[$pNameBrand] = '%' . $word . '%';
+                $params[$pNameDesc] = '%' . $word . '%';
+                $params[$pNameCat] = '%' . $word . '%';
             }
             if (!empty($wordConditions)) {
                 $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';

@@ -153,6 +153,8 @@ class Order
                     $clearItemsStmt = $this->db->prepare("DELETE FROM cart_items WHERE cart_id = :cart_id");
                     $clearItemsStmt->execute([':cart_id' => $cartId]);
                 }
+            }
+
             // Gửi thông báo cho Admin khi có đơn hàng mới
             try {
                 $adminNotif = $this->db->prepare(
