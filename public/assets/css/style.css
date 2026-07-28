@@ -1498,7 +1498,8 @@ html.dark-mode .logo-text span {
 }
 
 .product-card__image {
-    max-height: 80%;
+    max-height: 90%;
+    max-width: 90%;
     object-fit: contain;
     transition: var(--transition);
 }
@@ -2660,16 +2661,16 @@ html.dark-mode .logo-text span {
 }
 
 .brand-logo-card {
-    min-width: 150px;
-    height: 64px;
+    min-width: 160px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #fff !important;
     border: 1px solid #E5E7EB !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     transition: var(--transition);
-    padding: 10px 20px;
+    padding: 12px 24px;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
@@ -2688,8 +2689,8 @@ html.dark-mode .brand-logo-card {
 }
 
 .brand-logo-card img {
-    max-height: 42px;
-    max-width: 120px;
+    max-height: 56px;
+    max-width: 140px;
     object-fit: contain;
     opacity: 0.95;
     transition: var(--transition);
@@ -4183,7 +4184,8 @@ body {
     }
 
     .product-card__image {
-        height: 120px !important;
+        max-height: 85% !important;
+        max-width: 85% !important;
     }
 
     .product-card__name {

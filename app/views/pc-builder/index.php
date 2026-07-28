@@ -652,7 +652,7 @@
                     '&cpu_id=' + cpuId + 
                     '&mainboard_id=' + mainboardId + 
                     '&ram_id=' + ramId +
-                    '&gpu_id=' + gpuId +
+                    '&vga_id=' + gpuId +
                     '&cooler_id=' + coolerId +
                     '&case_id=' + caseId +
                     '&storage_id=' + storageId;
@@ -781,16 +781,24 @@
         const psuId = pcConfig.psu ? pcConfig.psu.id : 0;
         const storageId = pcConfig.storage ? pcConfig.storage.id : 0;
 
-        const url = '<?= url("pc-builder/analysis") ?>?cpu_id=' + cpuId + 
-                    '&mainboard_id=' + mainboardId + 
-                    '&ram_id=' + ramId +
-                    '&gpu_id=' + gpuId +
-                    '&cooler_id=' + coolerId +
-                    '&case_id=' + caseId +
-                    '&psu_id=' + psuId +
-                    '&storage_id=' + storageId;
+        const payload = {
+            cpu: cpuId,
+            mainboard: mainboardId,
+            ram: ramId,
+            vga: gpuId,
+            cooler: coolerId,
+            case: caseId,
+            psu: psuId,
+            storage: storageId
+        };
 
-        fetch(url)
+        const url = '<?= url("pc-builder/analysis") ?>';
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
