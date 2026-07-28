@@ -670,7 +670,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'TechPilot Administrator','admin@techpilot.vn','0901234567','$2y$12$DYww/gB8eNZbFm7ZFRxyQu7AiUoF1RaSlt2.Bpetlfp9G./zotiz2','admin',NULL,'active','2026-07-26 13:45:00','2026-07-26 13:45:00',NULL,NULL,NULL);
+INSERT INTO `users` VALUES (1,'TechPilot Administrator','admin@techpilot.vn','0901234567','$2y$12$O8Z5a/sowJ/nQWlgvwh0i.kF5Cz1cn20ToGQwphXIYdMYurat7nN2','admin',NULL,'active','2026-07-26 13:45:00','2026-07-28 01:29:03',NULL,NULL,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -717,4 +717,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-28  8:27:00
+-- Dump completed on 2026-07-28  8:29:13
