@@ -285,18 +285,18 @@ Không duy trì hai bản code riêng, ví dụ một bản ở ổ D và một 
 
 Các tài khoản sau chỉ dùng trong môi trường development sau khi import đúng `database/seed.sql`:
 
-### Admin
+### Admin (Quản trị viên)
 
 ```text
 Email: admin@techpilot.vn
-Mật khẩu: Admin@123
+Mật khẩu: admin123
 ```
 
-### Customer
+### Customer (Khách hàng)
 
 ```text
-Email: customer@techpilot.vn
-Mật khẩu: Customer@123
+Email: ntrungz0704@gmail.com
+Mật khẩu: Matkhau1607
 ```
 
 Cũng có thể tự đăng ký tài khoản mới qua trang `/auth/register`.
