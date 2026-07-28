@@ -79,6 +79,8 @@ class CatalogGroupService
         'máy tính xách tay' => ['laptop'],
         'may tinh xach tay' => ['laptop'],
         'lap'               => ['laptop'],
+        'máy tính'          => ['laptop', 'pc'],
+        'may tinh'          => ['laptop', 'pc'],
 
         'pc'                => ['pc'],
         'pc build sẵn'      => ['pc'],
@@ -87,6 +89,8 @@ class CatalogGroupService
         'may bo'            => ['pc'],
         'máy tính để bàn'   => ['pc'],
         'may tinh de ban'   => ['pc'],
+        'máy tính'          => ['pc', 'laptop'],
+        'may tinh'          => ['pc', 'laptop'],
 
         'linh kiện'         => ['mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'],
         'linh kien'         => ['mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'],

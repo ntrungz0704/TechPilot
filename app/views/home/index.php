@@ -98,7 +98,7 @@ $reviews = $reviews ?? [];
                 <div class="carousel-slide__price">
                     Chỉ từ <strong>125.000.000đ</strong>
                 </div>
-                <a href="<?= url('product/detail/pc-gaming-ultra') ?>" class="btn btn--light">Build ngay <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="<?= url('build-pc') ?>" class="btn btn--light">Build ngay <i class="fa-solid fa-arrow-right"></i></a>
             </div>
         </div>
 
@@ -283,7 +283,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
             track.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-            track.scrollBy({ left: scrollStep * 2, behavior: 'smooth' });
+            const cardWidth = track.querySelector('.product-card-wrapper') ? track.querySelector('.product-card-wrapper').getBoundingClientRect().width + 16 : scrollStep;
+            track.scrollBy({ left: cardWidth, behavior: 'smooth' });
         }
     }
 
@@ -291,7 +292,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (track.scrollLeft <= 10) {
             track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
         } else {
-            track.scrollBy({ left: -scrollStep * 2, behavior: 'smooth' });
+            const cardWidth = track.querySelector('.product-card-wrapper') ? track.querySelector('.product-card-wrapper').getBoundingClientRect().width + 16 : scrollStep;
+            track.scrollBy({ left: -cardWidth, behavior: 'smooth' });
         }
     }
 
@@ -344,31 +346,31 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <?php
     $popularCategoriesList = [
-        ['name' => 'Laptop', 'slug' => 'laptop', 'query' => 'laptop'],
-        ['name' => 'PC', 'slug' => 'pc', 'query' => 'pc'],
-        ['name' => 'Màn hình', 'slug' => 'man-hinh', 'query' => 'man-hinh'],
-        ['name' => 'Mainboard', 'slug' => 'mainboard', 'query' => 'mainboard'],
-        ['name' => 'CPU', 'slug' => 'cpu', 'query' => 'cpu'],
-        ['name' => 'VGA', 'slug' => 'vga', 'query' => 'vga'],
-        ['name' => 'RAM', 'slug' => 'ram', 'query' => 'ram'],
-        ['name' => 'Ổ cứng', 'slug' => 'o-cung', 'query' => 'ssd'],
-        ['name' => 'Case', 'slug' => 'case', 'query' => 'case'],
-        ['name' => 'Tản nhiệt', 'slug' => 'tan-nhiet', 'query' => 'tan-nhiet'],
-        ['name' => 'Nguồn', 'slug' => 'nguon', 'query' => 'psu'],
-        ['name' => 'Bàn phím', 'slug' => 'ban-phim', 'query' => 'ban+phim'],
-        ['name' => 'Chuột', 'slug' => 'chuot', 'query' => 'chuot'],
-        ['name' => 'Ghế', 'slug' => 'ghe', 'query' => 'ghe'],
-        ['name' => 'Tai nghe', 'slug' => 'tai-nghe', 'query' => 'tai+nghe'],
-        ['name' => 'Loa', 'slug' => 'loa', 'query' => 'loa'],
-        ['name' => 'Console', 'slug' => 'console', 'query' => 'console'],
-        ['name' => 'Phụ kiện', 'slug' => 'phu-kien', 'query' => 'cap'],
-        ['name' => 'Thiết bị VP', 'slug' => 'thiet-bi-vp', 'query' => 'printer'],
-        ['name' => 'Sạc DP', 'slug' => 'sac-dp', 'query' => 'sac+du+phong']
+        ['name' => 'Laptop', 'slug' => 'laptop', 'cat' => 'laptop'],
+        ['name' => 'PC', 'slug' => 'pc', 'cat' => 'pc'],
+        ['name' => 'Màn hình', 'slug' => 'man-hinh', 'cat' => 'monitor'],
+        ['name' => 'Mainboard', 'slug' => 'mainboard', 'cat' => 'mainboard'],
+        ['name' => 'CPU', 'slug' => 'cpu', 'cat' => 'cpu'],
+        ['name' => 'VGA', 'slug' => 'vga', 'cat' => 'vga'],
+        ['name' => 'RAM', 'slug' => 'ram', 'cat' => 'ram'],
+        ['name' => 'Ổ cứng', 'slug' => 'o-cung', 'cat' => 'storage'],
+        ['name' => 'Case', 'slug' => 'case', 'cat' => 'case'],
+        ['name' => 'Tản nhiệt', 'slug' => 'tan-nhiet', 'cat' => 'cooling'],
+        ['name' => 'Nguồn', 'slug' => 'nguon', 'cat' => 'psu'],
+        ['name' => 'Bàn phím', 'slug' => 'ban-phim', 'cat' => 'keyboard'],
+        ['name' => 'Chuột', 'slug' => 'chuot', 'cat' => 'mouse'],
+        ['name' => 'Ghế', 'slug' => 'ghe', 'cat' => 'chair'],
+        ['name' => 'Tai nghe', 'slug' => 'tai-nghe', 'cat' => 'headset'],
+        ['name' => 'Loa', 'slug' => 'loa', 'cat' => 'speaker'],
+        ['name' => 'Console', 'slug' => 'console', 'cat' => 'console'],
+        ['name' => 'Phụ kiện', 'slug' => 'phu-kien', 'cat' => 'accessories'],
+        ['name' => 'Thiết bị VP', 'slug' => 'thiet-bi-vp', 'cat' => 'office-equipment'],
+        ['name' => 'Sạc DP', 'slug' => 'sac-dp', 'cat' => 'power-bank']
     ];
     ?>
     <div class="category-strip">
         <?php foreach ($popularCategoriesList as $item): ?>
-            <a href="<?= url('home/search?q=' . urlencode($item['query'])) ?>" class="category-strip__item">
+            <a href="<?= url('home/search?cat=' . urlencode($item['cat'])) ?>" class="category-strip__item">
                 <div class="category-strip__icon">
                     <img src="<?= url('assets/images/categories/' . e($item['slug']) . '.png') ?>" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
                 </div>
@@ -734,10 +736,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
                 $slug = $brand['slug'] ?? '';
-                $logoFile = !empty($slug) ? $slug . '.png' : str_replace(['-logo.png', '.png'], ['.png', '.png'], $brand['logo'] ?? '');
-                if (!str_contains($logoFile, '.')) {
-                    $logoFile .= '.png';
-                }
+                $logoFile = !empty($slug) ? $slug . '.svg' : 'placeholder.svg';
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
                     <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
