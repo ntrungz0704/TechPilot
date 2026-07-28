@@ -199,43 +199,34 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
     <!-- Panel Thông số -->
     <div class="product-tabs__panel" id="tab-specs">
         <?php 
-        $groupedSpecs = ProductSpecPresenter::getGroupedSpecs($product['category_slug'] ?? '', $specs);
+        $categorySlug = $product['category_slug'] ?? '';
+        require ROOT_PATH . '/app/views/product/partials/specifications.php';
         ?>
-        <?php foreach ($groupedSpecs as $groupTitle => $groupItems): ?>
-            <?php if (!empty($groupItems)): ?>
-                <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 20px 0 10px 0; border-left: 4px solid var(--primary); padding-left: 10px;"><?= e($groupTitle) ?></h4>
-                <table class="specs-table" style="margin-bottom: 20px;">
-                    <tbody>
-                        <?php foreach ($groupItems as $sLabel => $sValue): ?>
-                            <tr>
-                                <th style="width: 35%;"><?= e(is_string($sLabel) ? ProductSpecPresenter::getLabel($sLabel) : $sLabel) ?></th>
-                                <td><?= e($sValue) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
-        <?php endforeach; ?>
 
         <?php 
-        $fpsList = ProductIntelligenceService::estimateFps($specs, $product['category_slug'] ?? $product['category_name'] ?? '');
-        if (!empty($fpsList)): 
+        // Hiệu năng chơi game ước tính (FPS) CHỈ hiển thị cho Laptop và PC nguyên bộ có đủ CPU + GPU + RAM
+        if (in_array($categorySlug, ['laptop', 'pc'], true)):
+            $fpsList = ProductIntelligenceService::estimateFps($specs, $categorySlug);
+            if (!empty($fpsList)): 
         ?>
-            <div style="margin-top: 25px; border-top: 1px dashed var(--border); padding-top: 20px;">
-                <h4 style="font-weight: 700; margin: 0 0 15px 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-gamepad" style="color: var(--primary);"></i> Hiệu năng chơi game ước tính (FPS)
-                </h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
-                    <?php foreach ($fpsList as $game): ?>
-                        <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);"><?= $game['name'] ?></span>
-                            <strong style="font-size: 15px; color: #1E3A8A;"><?= $game['fps'] ?></strong>
-                            <span style="font-size: 11px; color: #10B981; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> <?= $game['status'] ?> (<?= $game['settings'] ?>)</span>
-                        </div>
-                    <?php endforeach; ?>
+                <div style="margin-top: 25px; border-top: 1px dashed var(--border); padding-top: 20px;">
+                    <h4 style="font-weight: 700; margin: 0 0 15px 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-gamepad" style="color: var(--primary);"></i> Hiệu năng chơi game ước tính (FPS)
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+                        <?php foreach ($fpsList as $game): ?>
+                            <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);"><?= $game['name'] ?></span>
+                                <strong style="font-size: 15px; color: #1E3A8A;"><?= $game['fps'] ?></strong>
+                                <span style="font-size: 11px; color: #10B981; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> <?= $game['status'] ?> (<?= $game['settings'] ?>)</span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            </div>
-        <?php endif; ?>
+        <?php 
+            endif;
+        endif; 
+        ?>
     </div>
 
     <!-- Accordion Trigger 2.5 (Hỏi Trợ lý AI) -->

@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php foreach ($popularCategoriesList as $item): ?>
             <a href="<?= url('home/search?cat=' . urlencode($item['cat'])) ?>" class="category-strip__item">
                 <div class="category-strip__icon">
-                    <img src="<?= url('assets/images/categories/' . e($item['slug']) . '.png') ?>" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
+                    <img src="<?= url('assets/images/categories/category-' . e($item['cat']) . '.png') ?>" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
                 </div>
                 <span><?= e($item['name']) ?></span>
             </a>

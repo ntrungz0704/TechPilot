@@ -36,7 +36,7 @@
 
         <div class="form-group">
             <label for="image">Ảnh danh mục (đường dẫn hoặc tên file)</label>
-            <input type="text" name="image" id="image" class="form-control" placeholder="assets/images/categories/laptop.png">
+            <input type="text" name="image" id="image" class="form-control" placeholder="assets/images/categories/category-laptop.png">
         </div>
 
         <div class="form-group">
