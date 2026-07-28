@@ -30,14 +30,26 @@ class CheckoutController extends Controller
                 'price' => (float)($item['price'] ?? 0),
                 'quantity' => $quantity,
                 'line_total' => $lineTotal,
+                'image' => $item['image'] ?? '',
+                'slug' => $item['slug'] ?? '',
+                'category_slug' => $item['category_slug'] ?? '',
             ];
         }
 
         // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
         $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
-        $total = $subtotal + $shipping;
 
+        // Xử lý mã giảm giá đang được áp dụng từ session (nếu có)
+        $appliedCoupon = $_SESSION['applied_coupon'] ?? null;
+        $discountAmount = 0.0;
+        if ($appliedCoupon) {
+            $discountAmount = (float)($appliedCoupon['discount'] ?? 0);
+            if ($discountAmount > $subtotal) {
+                $discountAmount = $subtotal;
+            }
+        }
 
+        $total = max(0.0, $subtotal - $discountAmount + $shipping);
 
         // Sinh submit token để chống double submit đơn hàng
         if (empty($_SESSION['submit_token'])) {
@@ -63,6 +75,8 @@ class CheckoutController extends Controller
             'pageTitle' => 'Thanh toán',
             'cartItems' => $items,
             'subtotal' => $subtotal,
+            'discountAmount' => $discountAmount,
+            'appliedCoupon' => $appliedCoupon,
             'shipping' => $shipping,
             'total' => $total,
             'availableCoupons' => $availableCoupons,
@@ -83,7 +97,18 @@ class CheckoutController extends Controller
         $subtotal = (float)($_POST['subtotal'] ?? 0);
 
         if ($code === '') {
-            echo json_encode(['success' => false, 'message' => 'Vui lòng nhập mã giảm giá.']);
+            unset($_SESSION['applied_coupon']);
+            $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+            $total = $subtotal + $shipping;
+            echo json_encode([
+                'success' => true,
+                'message' => 'Đã gỡ mã giảm giá.',
+                'discount' => 0,
+                'discount_formatted' => '-0đ',
+                'new_total' => $total,
+                'new_total_formatted' => formatPrice($total),
+                'removed' => true
+            ]);
             exit;
         }
 
@@ -130,7 +155,7 @@ class CheckoutController extends Controller
 
         $minOrder = (float)$coupon['min_order_value'];
         if ($subtotal < $minOrder) {
-            echo json_encode(['success' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($minOrder, 0, ',', '.') . 'đ để áp dụng mã này.']);
+            echo json_encode(['success' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . formatPrice($minOrder) . ' để áp dụng mã này.']);
             exit;
         }
 
@@ -158,13 +183,41 @@ class CheckoutController extends Controller
             'id' => $coupon['id'],
         ];
 
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $newTotal = max(0.0, $subtotal - $discount + $shipping);
+
         echo json_encode([
             'success' => true,
             'message' => 'Áp dụng mã giảm giá thành công!',
+            'code' => $code,
             'discount' => $discount,
-            'discount_formatted' => '-' . number_format($discount, 0, ',', '.') . 'đ',
-            'new_total' => $subtotal - $discount + ($subtotal > 0 ? 30000 : 0),
-            'new_total_formatted' => number_format($subtotal - $discount + ($subtotal > 0 ? 30000 : 0), 0, ',', '.') . 'đ'
+            'discount_formatted' => '-' . formatPrice($discount),
+            'new_total' => $newTotal,
+            'new_total_formatted' => formatPrice($newTotal)
+        ]);
+        exit;
+    }
+
+    public function remove_coupon(): void
+    {
+        header('Content-Type: application/json');
+
+        if (!$this->isPost()) {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ.']);
+            exit;
+        }
+
+        $subtotal = (float)($_POST['subtotal'] ?? 0);
+        unset($_SESSION['applied_coupon']);
+
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $total = $subtotal + $shipping;
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Đã gỡ mã giảm giá.',
+            'new_total' => $total,
+            'new_total_formatted' => formatPrice($total)
         ]);
         exit;
     }
