@@ -24,7 +24,7 @@ class User
                     'phone' => '0901234567',
                     'role' => 'admin',
                     'status' => 'active',
-                    'password' => password_hash('12345678', PASSWORD_DEFAULT),
+                    'password' => password_hash('admin123', PASSWORD_DEFAULT),
                 ]
             ];
         }
