@@ -246,9 +246,10 @@ class CheckoutController extends Controller
         $submitToken = trim($_POST['submit_token'] ?? '');
         $savedToken = $_SESSION['submit_token'] ?? '';
 
-        if ($submitToken === '' || $submitToken !== $savedToken) {
-            $_SESSION['checkout_error'] = 'Đơn hàng này đã được gửi hoặc yêu cầu không hợp lệ. Vui lòng kiểm tra lại giỏ hàng.';
-            $this->redirect('cart');
+        if (!empty($savedToken) && ($submitToken === '' || $submitToken !== $savedToken)) {
+            $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+            $_SESSION['checkout_error'] = 'Trang thanh toán đã được làm mới. Vui lòng thử lại.';
+            $this->redirect('checkout');
             return;
         }
 
