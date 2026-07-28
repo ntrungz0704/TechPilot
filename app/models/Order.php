@@ -170,7 +170,10 @@ class Order
                 'total_amount' => (float)($payload['total_amount'] ?? 0),
             ];
         } catch (Throwable $e) {
-            $this->db->rollBack();
+            error_log('Order::create failed: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            if ($this->db && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             return false;
         }
     }
