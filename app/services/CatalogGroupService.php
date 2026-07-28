@@ -186,6 +186,12 @@ class CatalogGroupService
         'thiet bi mang'     => ['accessories', 'office-equipment'],
         'mạng'              => ['accessories'],
         'mang'              => ['accessories'],
+
+        'console'           => ['console'],
+        'máy chơi game'     => ['console'],
+        'may choi game'     => ['console'],
+        'sạc dự phòng'      => ['power-bank'],
+        'sac du phong'      => ['power-bank'],
     ];
 
     /** Connection Provider Seam cho testing / DI */

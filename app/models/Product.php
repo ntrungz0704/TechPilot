@@ -1364,7 +1364,11 @@ class Product
      * Xây dựng điều kiện WHERE và các tham số bindings.
      * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
      */
-    protected function buildSearchQueryConditions(
+    /**
+     * Xây dựng điều kiện WHERE và các tham số bindings (Unified Search Plan).
+     * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
+     */
+    public function getSearchPlan(
         string $keyword = '',
         string $categorySlug = '',
         string $brandSlug = '',
@@ -1413,7 +1417,7 @@ class Product
         }
 
         $remainingKeyword = trim(preg_replace('/\s+/u', ' ', $remainingKeyword));
-        $matchedCategorySlugs = array_unique($matchedCategorySlugs);
+        $matchedCategorySlugs = array_values(array_unique($matchedCategorySlugs));
 
         // 2. Kết hợp danh mục từ từ khóa và danh mục từ URL (thông qua CatalogGroupService::resolveSourceSlugs)
         $urlSlugs = !empty($categorySlug) ? CatalogGroupService::resolveSourceSlugs($categorySlug) : [];
@@ -1468,28 +1472,32 @@ class Product
             $conditions[] = '(p.is_flash_sale = 1 OR p.id IN (SELECT product_id FROM flash_sale_items fsi JOIN flash_sales fs ON fsi.flash_sale_id = fs.id WHERE fs.status = \'active\') OR (p.sale_price IS NOT NULL AND p.sale_price > 0 AND (p.price - p.sale_price)/p.price >= 0.10))';
         }
 
-        // 6. Xử lý từ khóa tìm kiếm (Loại bỏ Stopword quá chung hoặc tạo câu lệnh lọc chính xác)
+        // 6. Xử lý từ khóa tìm kiếm còn lại (MỖI PLACEHOLDER CHỈ DÙNG ĐÚNG 1 LẦN DÀNH CHO NATIVE PDO PREPARED STATEMENTS)
         if (!empty($remainingKeyword)) {
             $isStopword = CatalogGroupService::isPureStopword($keyword);
             if ($isStopword) {
-                // Từ khóa quá chung (như "máy"): Chỉ lọc trên Tên sản phẩm, không tìm lan sang Mô tả để tránh trả về hàng trăm kết quả sai
                 $conditions[] = "(LOWER(p.name) LIKE :stopword_name OR c.slug IN ('laptop','pc','console','office-equipment'))";
                 $params[':stopword_name'] = '%' . $remainingKeyword . '%';
             } else {
-                $words = array_filter(explode(' ', $remainingKeyword));
+                $words = array_values(array_filter(explode(' ', $remainingKeyword)));
                 $wordConditions = [];
                 foreach ($words as $i => $word) {
-                    $pNameName = ':search_word_name_' . $i;
+                    $pNameName  = ':search_word_name_' . $i;
                     $pNameBrand = ':search_word_brand_' . $i;
-                    $pNameDesc = ':search_word_desc_' . $i;
-                    $pNameCat = ':search_word_cat_' . $i;
-                    
-                    $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(p.specs) LIKE $pNameDesc OR LOWER(p.short_desc) LIKE $pNameDesc OR LOWER(p.description) LIKE $pNameDesc OR LOWER(c.name) LIKE $pNameCat)";
-                    
-                    $params[$pNameName] = '%' . $word . '%';
-                    $params[$pNameBrand] = '%' . $word . '%';
-                    $params[$pNameDesc] = '%' . $word . '%';
-                    $params[$pNameCat] = '%' . $word . '%';
+                    $pNameSpecs = ':search_word_specs_' . $i;
+                    $pNameShort = ':search_word_short_' . $i;
+                    $pNameDesc  = ':search_word_desc_' . $i;
+                    $pNameCat   = ':search_word_cat_' . $i;
+
+                    $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(p.specs) LIKE $pNameSpecs OR LOWER(p.short_desc) LIKE $pNameShort OR LOWER(p.description) LIKE $pNameDesc OR LOWER(c.name) LIKE $pNameCat)";
+
+                    $wordVal = '%' . $word . '%';
+                    $params[$pNameName]  = $wordVal;
+                    $params[$pNameBrand] = $wordVal;
+                    $params[$pNameSpecs] = $wordVal;
+                    $params[$pNameShort] = $wordVal;
+                    $params[$pNameDesc]  = $wordVal;
+                    $params[$pNameCat]   = $wordVal;
                 }
                 if (!empty($wordConditions)) {
                     $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';
@@ -1497,11 +1505,30 @@ class Product
             }
         }
 
-        return [$conditions, $params, $remainingKeyword];
+        return [
+            'conditions'        => $conditions,
+            'params'            => $params,
+            'remaining_keyword' => $remainingKeyword,
+            'score_keyword'     => $remainingKeyword
+        ];
+    }
+
+    protected function buildSearchQueryConditions(
+        string $keyword = '',
+        string $categorySlug = '',
+        string $brandSlug = '',
+        float $minPrice = 0,
+        float $maxPrice = 0,
+        bool $inStockOnly = false,
+        bool $promoOnly = false
+    ): array {
+        $plan = $this->getSearchPlan($keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly);
+        return [$plan['conditions'], $plan['params'], $plan['remaining_keyword']];
     }
 
     /**
      * Tìm kiếm sản phẩm nâng cao kết hợp điểm số tương đồng (Weighted Relevance Scoring)
+     * Trả về array danh sách sản phẩm hoặc false khi gặp lỗi SQL.
      */
     public function search(
         string $keyword = '',
@@ -1514,37 +1541,46 @@ class Product
         string $sort = 'relevance',
         bool $inStockOnly = false,
         bool $promoOnly = false
-    ): array {
+    ): array|false {
         if ($this->db === null) {
-            return [];
+            return false;
         }
 
         try {
-            [$conditions, $params, $remainingKeyword] = $this->buildSearchQueryConditions(
+            $plan = $this->getSearchPlan(
                 $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
             );
 
+            $conditions = $plan['conditions'];
+            $params     = $plan['params'];
+            $scoreKw    = $plan['score_keyword'];
+
             $whereClause = implode(' AND ', $conditions);
 
-            // Xây dựng câu lệnh điểm số tương đồng theo bảng trọng số chuẩn
+            // Xây dựng điểm số relevance score nếu còn keyword chưa bị tiêu thụ hoàn toàn làm alias danh mục
             $scoreSql = '0 AS search_score';
-            if (!empty($keyword)) {
-                $kwLower = strtolower($keyword);
+            if (!empty($scoreKw)) {
+                $kwLower = mb_strtolower($scoreKw, 'UTF-8');
                 $scoreSql = "(CASE
-                    WHEN LOWER(p.sku) = :exact_kw THEN 100
-                    WHEN LOWER(p.name) = :exact_kw THEN 95
-                    WHEN LOWER(p.name) LIKE :starts_kw THEN 85
-                    WHEN LOWER(b.name) = :exact_kw THEN 80
-                    WHEN LOWER(p.name) LIKE :contains_kw THEN 65
-                    WHEN LOWER(p.specs) LIKE :contains_kw THEN 60
-                    WHEN LOWER(p.short_desc) LIKE :contains_kw THEN 50
-                    WHEN LOWER(p.description) LIKE :contains_kw THEN 20
+                    WHEN LOWER(p.sku) = :score_exact_sku THEN 100
+                    WHEN LOWER(p.name) = :score_exact_name THEN 95
+                    WHEN LOWER(p.name) LIKE :score_name_starts THEN 85
+                    WHEN LOWER(b.name) = :score_exact_brand THEN 80
+                    WHEN LOWER(p.name) LIKE :score_name_contains THEN 65
+                    WHEN LOWER(p.specs) LIKE :score_specs_contains THEN 60
+                    WHEN LOWER(p.short_desc) LIKE :score_short_desc_contains THEN 50
+                    WHEN LOWER(p.description) LIKE :score_description_contains THEN 20
                     ELSE 10
                 END) AS search_score";
 
-                $params[':exact_kw'] = $kwLower;
-                $params[':starts_kw'] = $kwLower . '%';
-                $params[':contains_kw'] = '%' . $kwLower . '%';
+                $params[':score_exact_sku']            = $kwLower;
+                $params[':score_exact_name']           = $kwLower;
+                $params[':score_name_starts']          = $kwLower . '%';
+                $params[':score_exact_brand']          = $kwLower;
+                $params[':score_name_contains']        = '%' . $kwLower . '%';
+                $params[':score_specs_contains']       = '%' . $kwLower . '%';
+                $params[':score_short_desc_contains']  = '%' . $kwLower . '%';
+                $params[':score_description_contains'] = '%' . $kwLower . '%';
             }
 
             // Sắp xếp
@@ -1558,7 +1594,7 @@ class Product
                 $sortClause = 'p.sold_count DESC, p.id DESC';
             } elseif ($sort === 'rating') {
                 $sortClause = 'p.rating DESC, p.id DESC';
-            } elseif (!empty($keyword)) {
+            } elseif (!empty($scoreKw) && ($sort === 'relevance' || empty($sort))) {
                 $sortClause = 'search_score DESC, p.id DESC';
             } else {
                 $sortClause = 'p.created_at DESC, p.id DESC';
@@ -1583,19 +1619,19 @@ class Product
             foreach ($params as $key => $val) {
                 $stmt->bindValue($key, $val);
             }
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
             $stmt->execute();
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log('Search query failed: ' . $e->getMessage());
-            return [];
+            error_log('Search query failed [SQLSTATE ' . $e->getCode() . ']: ' . $e->getMessage());
+            return false;
         }
     }
 
     /**
-     * Đếm tổng số kết quả khớp điều kiện tìm kiếm
+     * Đếm tổng số kết quả khớp điều kiện tìm kiếm (Dùng chung Search Plan)
      */
     public function countSearch(
         string $keyword = '',
@@ -1611,9 +1647,12 @@ class Product
         }
 
         try {
-            [$conditions, $params] = $this->buildSearchQueryConditions(
+            $plan = $this->getSearchPlan(
                 $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
             );
+
+            $conditions = $plan['conditions'];
+            $params     = $plan['params'];
 
             $whereClause = implode(' AND ', $conditions);
 
@@ -1633,6 +1672,7 @@ class Product
 
             return (int)$stmt->fetchColumn();
         } catch (Exception $e) {
+            error_log('Count search query failed [SQLSTATE ' . $e->getCode() . ']: ' . $e->getMessage());
             return 0;
         }
     }

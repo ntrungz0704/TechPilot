@@ -405,18 +405,32 @@ class AdminProductController extends Controller
         }
 
         $productId = (int)($_POST['product_id'] ?? 0);
-        $action = trim($_POST['action_type'] ?? 'import');
+        $action = trim($_POST['action_type'] ?? '');
         $qty = (int)($_POST['quantity'] ?? 0);
+        $reasonCode = trim($_POST['reason_code'] ?? 'other');
         $note = trim($_POST['note'] ?? '');
+        $idempotencyKey = trim($_POST['idempotency_key'] ?? '');
 
         if ($productId <= 0 || $qty <= 0) {
-            flash('error', 'Số lượng nhập/xuất kho phải lớn hơn 0.');
+            flash('error', 'Số lượng nhập/xuất kho phải là số nguyên dương lớn hơn 0.');
+            $this->redirect('admin/products');
+            return;
+        }
+
+        if (!in_array($action, ['import', 'export'], true)) {
+            flash('error', 'Thao tác kho chỉ chấp nhận Nhập kho (import) hoặc Xuất kho (export).');
+            $this->redirect('admin/products');
+            return;
+        }
+
+        if ($action === 'export' && empty($note)) {
+            flash('error', 'Ghi chú là bắt buộc khi thực hiện Xuất kho hoặc điều chỉnh giảm.');
             $this->redirect('admin/products');
             return;
         }
 
         $quantityChange = ($action === 'export') ? -$qty : $qty;
-        $type = ($action === 'export') ? 'export' : 'import';
+        $type = ($action === 'export') ? 'manual_export' : 'manual_import';
 
         require_once ROOT_PATH . '/config/database.php';
         require_once ROOT_PATH . '/app/services/InventoryService.php';
@@ -431,13 +445,26 @@ class AdminProductController extends Controller
         $user = currentUser();
         $userId = $user ? (int)$user['id'] : null;
 
+        if (empty($idempotencyKey)) {
+            $idempotencyKey = "adj_prod_{$productId}_usr_{$userId}_" . time();
+        }
+
         $db->beginTransaction();
         try {
-            $result = InventoryService::adjustStock($db, $productId, $quantityChange, $type, $note, $userId);
+            $result = InventoryService::adjustStock(
+                $db,
+                $productId,
+                $quantityChange,
+                $type,
+                $reasonCode,
+                $note,
+                $userId,
+                $idempotencyKey
+            );
             $db->commit();
 
             $actionText = ($action === 'export') ? 'Xuất kho' : 'Nhập kho';
-            flash('success', "Đã {$actionText} thành công {$qty} sản phẩm '{$result['name']}'. Tồn kho mới: {$result['new_stock']} chiếc.");
+            flash('success', "Đã {$actionText} thành công {$qty} đơn vị sản phẩm '{$result['name']}'. Tồn kho mới: {$result['new_stock']} đơn vị.");
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
