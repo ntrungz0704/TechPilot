@@ -7,23 +7,28 @@ $reviews = $reviews ?? [];
 
 require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
 
-// Unique product images helper
-function uniqueProductImages(string $mainImg, array $extraImgs, string $catSlug = ''): array {
-    $unique = [];
-    $seenUrls = [];
-    $allRaw = array_merge([$mainImg], array_map(fn($o) => is_array($o) ? ($o['image_url'] ?? $o['image_path'] ?? '') : (string)$o, $extraImgs));
-    foreach ($allRaw as $raw) {
-        $raw = trim($raw);
-        if ($raw === '') continue;
-        $resolved = productImageUrl($raw, $catSlug);
-        if (!in_array($resolved, $seenUrls)) {
-            $seenUrls[] = $resolved;
-            $unique[] = $raw;
+// Product gallery helper — ensure 4 images per product using primary image fallback
+function getGalleryFourImages(string $mainImg, array $extraImgs, string $catSlug = ''): array {
+    $list = [];
+    if (!empty($extraImgs)) {
+        foreach ($extraImgs as $item) {
+            $url = is_array($item) ? ($item['image_url'] ?? $item['image_path'] ?? '') : (string)$item;
+            $url = trim($url);
+            if ($url !== '') {
+                $list[] = $url;
+            }
         }
     }
-    return $unique;
+    if (empty($list) && trim($mainImg) !== '') {
+        $list[] = trim($mainImg);
+    }
+    $primary = $list[0] ?? trim($mainImg);
+    while (count($list) < 4 && $primary !== '') {
+        $list[] = $primary;
+    }
+    return array_slice($list, 0, 4);
 }
-$galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? ''), 0, 4);
+$galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? '');
 ?>
 
 <section class="container breadcrumb">
