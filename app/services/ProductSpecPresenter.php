@@ -8,6 +8,17 @@ class ProductSpecPresenter
 {
     private static ?array $schemas = null;
 
+    /** Internal metadata keys to strip from customer views */
+    private static array $internalMetadataKeys = [
+        'schema_version',
+        'category_slug',
+        'model',
+        'migration_status',
+        'confidence',
+        'source',
+        'raw_legacy_data'
+    ];
+
     /**
      * Tải Registry Schemas cho 20 Danh mục sản phẩm.
      */
@@ -25,7 +36,7 @@ class ProductSpecPresenter
     }
 
     /**
-     * Chuyển đổi giá trị specs thô thành chuỗi Tiếng Việt có đơn vị chuẩn.
+     * Chuẩn hóa và format bất kỳ giá trị specs thô nào (scalar, array, object).
      */
     public static function formatValue(string $key, mixed $value, string $customUnit = ''): string
     {
@@ -37,18 +48,90 @@ class ProductSpecPresenter
             return $value ? 'Có' : 'Không';
         }
 
+        // Xử lý Array an toàn
         if (is_array($value)) {
-            return implode(', ', array_map('strval', $value));
+            return self::formatArrayValue($key, $value, $customUnit);
         }
 
-        $valStr = (string)$value;
+        $valStr = trim((string)$value);
 
-        // Nếu đã có đơn vị tùy chỉnh từ schema
         if ($customUnit !== '') {
             return $valStr . ' ' . $customUnit;
         }
 
-        // Quy tắc chuẩn hóa đơn vị theo key
+        return self::applyUnitRules($key, $valStr);
+    }
+
+    /**
+     * Xử lý định dạng mảng (list scalar, associative dimension, list object).
+     */
+    private static function formatArrayValue(string $key, array $value, string $customUnit = ''): string
+    {
+        if (empty($value)) {
+            return 'Đang cập nhật';
+        }
+
+        // 1. Kiểm tra associative array dạng kích thước (length, width, height)
+        if (isset($value['length']) || isset($value['width']) || isset($value['height']) || isset($value['length_mm'])) {
+            $l = $value['length'] ?? $value['length_mm'] ?? '';
+            $w = $value['width'] ?? $value['width_mm'] ?? '';
+            $h = $value['height'] ?? $value['height_mm'] ?? '';
+            $unit = $value['unit'] ?? ($customUnit !== '' ? $customUnit : 'mm');
+
+            $dims = array_filter([$l, $w, $h], fn($v) => $v !== null && $v !== '');
+            if (!empty($dims)) {
+                return implode(' × ', $dims) . ($unit !== '' ? ' ' . $unit : '');
+            }
+        }
+
+        // 2. Mảng chứa các object con (e.g. ports, input_ports)
+        $formattedItems = [];
+        $isList = array_is_list($value);
+
+        foreach ($value as $k => $item) {
+            if (is_scalar($item) || is_bool($item)) {
+                if (is_bool($item)) {
+                    $formattedItems[] = ($isList ? '' : $k . ': ') . ($item ? 'Có' : 'Không');
+                } else {
+                    $strItem = trim((string)$item);
+                    if ($strItem !== '') {
+                        $formattedItems[] = $isList ? $strItem : "{$k}: {$strItem}";
+                    }
+                }
+            } elseif (is_array($item)) {
+                // Formatting sub-object without "Array" string
+                $subParts = [];
+                foreach ($item as $subK => $subV) {
+                    if (is_scalar($subV) || is_bool($subV)) {
+                        $formattedSub = is_bool($subV) ? ($subV ? 'Có' : 'Không') : trim((string)$subV);
+                        if ($formattedSub !== '') {
+                            $subParts[] = is_numeric($subK) ? $formattedSub : "{$subK} {$formattedSub}";
+                        }
+                    }
+                }
+                if (!empty($subParts)) {
+                    $formattedItems[] = implode(' ', $subParts);
+                }
+            }
+        }
+
+        if (empty($formattedItems)) {
+            return 'Đang cập nhật';
+        }
+
+        $result = implode(', ', $formattedItems);
+        if ($customUnit !== '' && !str_ends_with($result, $customUnit)) {
+            $result .= ' ' . $customUnit;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Quy tắc gắn đơn vị chuẩn theo key
+     */
+    private static function applyUnitRules(string $key, string $valStr): string
+    {
         switch ($key) {
             case 'vram_gb':
             case 'capacity_gb':
@@ -57,6 +140,7 @@ class ProductSpecPresenter
             case 'max_ram_gb':
             case 'gpu_vram_gb':
             case 'memory_gb':
+            case 'total_capacity_gb':
                 return $valStr . ' GB';
 
             case 'memory_bus_bit':
@@ -72,7 +156,7 @@ class ProductSpecPresenter
 
             case 'refresh_rate_hz':
             case 'maximum_refresh_rate_hz':
-                return $valStr . ' Hz'; // ĐÃ SỬA: Hz CHUẨN XÁC!
+                return $valStr . ' Hz';
 
             case 'base_clock_ghz':
             case 'boost_clock_ghz':
@@ -87,6 +171,8 @@ class ProductSpecPresenter
             case 'total_power_w':
             case 'max_output_w':
             case 'wattage':
+            case 'wattage_w':
+            case 'max_output_power_w':
             case 'maximum_total_output_w':
             case 'tdp_capacity_w':
                 return $valStr . ' W';
@@ -97,6 +183,9 @@ class ProductSpecPresenter
             case 'dimensions_mm':
             case 'radiator_size_mm':
             case 'driver_mm':
+            case 'driver_size_mm':
+            case 'max_gpu_length_mm':
+            case 'max_cpu_cooler_height_mm':
                 return $valStr . ' mm';
 
             case 'screen_size_inch':
@@ -117,6 +206,7 @@ class ProductSpecPresenter
                 return $valStr . ' g';
 
             case 'capacity_mah':
+            case 'rated_capacity_mah':
                 return $valStr . ' mAh';
 
             case 'warranty_months':
@@ -143,6 +233,10 @@ class ProductSpecPresenter
      */
     public static function getLabel(string $key, ?string $categorySlug = null): string
     {
+        if (in_array($key, self::$internalMetadataKeys, true)) {
+            return '';
+        }
+
         if ($categorySlug !== null) {
             $schemas = self::getSchemas();
             $catKey = strtolower(trim($categorySlug));
@@ -155,7 +249,6 @@ class ProductSpecPresenter
             }
         }
 
-        // Từ điển bổ sung cho các key tự do
         $defaultLabels = [
             'manufacturer' => 'Hãng sản xuất',
             'series' => 'Dòng sản phẩm',
@@ -172,22 +265,25 @@ class ProductSpecPresenter
     }
 
     /**
-     * Phân nhóm thông số kỹ thuật theo 20 Category Schemas để hiển thị bảng chuyên nghiệp.
+     * Phân nhóm thông số kỹ thuật theo 20 Category Schemas.
+     * Tự động loại bỏ metadata nội bộ (schema_version, category_slug, model).
      */
     public static function getGroupedSpecs(string $categorySlug, array $specs): array
     {
         $catKey = strtolower(trim($categorySlug));
-        // Ánh xạ slug ảo nếu có
-        $aliasMap = [
-            'may-tinh' => 'pc',
-            'pc-gaming' => 'pc',
-            'linh-kien-pc' => 'vga',
-            'man-hinh' => 'monitor',
-            'gaming-gear' => 'keyboard',
-            'thiet-bi-van-phong' => 'office-equipment',
-        ];
-        if (isset($aliasMap[$catKey])) {
-            $catKey = $aliasMap[$catKey];
+
+        // Tách attributes nếu có bọc trong key 'specs' hoặc 'attributes'
+        if (isset($specs['attributes']) && is_array($specs['attributes'])) {
+            $actualSpecs = $specs['attributes'];
+        } elseif (isset($specs['specs']) && is_array($specs['specs'])) {
+            $actualSpecs = $specs['specs'];
+        } else {
+            $actualSpecs = $specs;
+        }
+
+        // Lọc bỏ metadata nội bộ
+        foreach (self::$internalMetadataKeys as $metaKey) {
+            unset($actualSpecs[$metaKey]);
         }
 
         $schemas = self::getSchemas();
@@ -199,9 +295,12 @@ class ProductSpecPresenter
             foreach ($schemaDef['groups'] as $groupName => $fields) {
                 $groupItems = [];
                 foreach ($fields as $fieldKey => $fieldMeta) {
-                    $rawVal = $specs[$fieldKey] ?? null;
-                    if ($rawVal !== null && $rawVal !== '') {
-                        $label = $fieldMeta['label'] ?? self::getLabel($fieldKey);
+                    if (in_array($fieldKey, self::$internalMetadataKeys, true)) {
+                        continue;
+                    }
+                    $rawVal = $actualSpecs[$fieldKey] ?? null;
+                    if ($rawVal !== null && $rawVal !== '' && (!is_array($rawVal) || !empty($rawVal))) {
+                        $label = $fieldMeta['label'] ?? self::getLabel($fieldKey, $catKey);
                         $unit = $fieldMeta['unit'] ?? '';
                         $groupItems[$label] = self::formatValue($fieldKey, $rawVal, $unit);
                     }
@@ -211,9 +310,12 @@ class ProductSpecPresenter
                 }
             }
 
-            // Nếu có các thuộc tính phụ nằm ngoài schema
+            // Các thuộc tính phụ hợp lệ nằm ngoài schema nhóm
             $extraItems = [];
-            foreach ($specs as $key => $val) {
+            foreach ($actualSpecs as $key => $val) {
+                if (in_array($key, self::$internalMetadataKeys, true)) {
+                    continue;
+                }
                 $found = false;
                 foreach ($schemaDef['groups'] as $fields) {
                     if (isset($fields[$key])) {
@@ -221,8 +323,11 @@ class ProductSpecPresenter
                         break;
                     }
                 }
-                if (!$found && $val !== null && $val !== '') {
-                    $extraItems[self::getLabel($key, $catKey)] = self::formatValue($key, $val);
+                if (!$found && $val !== null && $val !== '' && (!is_array($val) || !empty($val))) {
+                    $label = self::getLabel($key, $catKey);
+                    if ($label !== '') {
+                        $extraItems[$label] = self::formatValue($key, $val);
+                    }
                 }
             }
             if (!empty($extraItems)) {
@@ -236,9 +341,15 @@ class ProductSpecPresenter
 
         // Tự động phân nhóm mặc định nếu không khớp schema cụ thể
         $grouped = ['Thông số chính' => []];
-        foreach ($specs as $key => $val) {
-            if ($val !== null && $val !== '') {
-                $grouped['Thông số chính'][self::getLabel($key, $catKey)] = self::formatValue($key, $val);
+        foreach ($actualSpecs as $key => $val) {
+            if (in_array($key, self::$internalMetadataKeys, true)) {
+                continue;
+            }
+            if ($val !== null && $val !== '' && (!is_array($val) || !empty($val))) {
+                $label = self::getLabel($key, $catKey);
+                if ($label !== '') {
+                    $grouped['Thông số chính'][$label] = self::formatValue($key, $val);
+                }
             }
         }
         return $grouped;

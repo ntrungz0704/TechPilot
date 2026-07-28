@@ -1,52 +1,43 @@
 <?php
 
 /**
- * ProductSpecValidator - Validate category-specific JSON specs & compatibility rules.
+ * ProductSpecValidator - Validates category specification attributes.
  */
 class ProductSpecValidator
 {
-    public static function validate(string $categorySlug, array $specs): array
+    /**
+     * Kiểm tra tính hợp lệ của mảng attributes theo danh mục.
+     */
+    public static function validate(string $categorySlug, array $attributes): array
     {
         $errors = [];
+        $catSlug = strtolower(trim($categorySlug));
 
-        $slug = strtolower(trim($categorySlug));
-
-        switch ($slug) {
+        switch ($catSlug) {
             case 'cpu':
-                if (isset($specs['manufacturer']) && !in_array($specs['manufacturer'], ['Intel', 'AMD'])) {
-                    $errors[] = "Nhà sản xuất CPU phải là Intel hoặc AMD.";
+                if (isset($attributes['cores']) && ((int)$attributes['cores'] <= 0)) {
+                    $errors[] = 'Số nhân CPU phải là số nguyên dương.';
                 }
-                if (isset($specs['socket']) && isset($specs['manufacturer'])) {
-                    if ($specs['manufacturer'] === 'AMD' && str_contains($specs['socket'], 'LGA1700')) {
-                        $errors[] = "Xung đột socket: CPU AMD không thể dùng socket LGA1700.";
-                    }
-                    if ($specs['manufacturer'] === 'Intel' && str_contains($specs['socket'], 'AM5')) {
-                        $errors[] = "Xung đột socket: CPU Intel không thể dùng socket AM5.";
-                    }
-                }
-                break;
-
-            case 'mainboard':
-                if (isset($specs['ram_type']) && !in_array($specs['ram_type'], ['DDR4', 'DDR5'])) {
-                    $errors[] = "Loại RAM của Mainboard phải là DDR4 hoặc DDR5.";
-                }
-                break;
-
-            case 'vga':
-                if (isset($specs['vram_gb']) && (float)$specs['vram_gb'] < 0) {
-                    $errors[] = "VRAM không được âm.";
-                }
-                break;
-
-            case 'ram':
-                if (isset($specs['capacity_gb']) && (int)$specs['capacity_gb'] <= 0) {
-                    $errors[] = "Dung lượng RAM phải lớn hơn 0.";
+                if (isset($attributes['threads']) && isset($attributes['cores']) && ((int)$attributes['threads'] < (int)$attributes['cores'])) {
+                    $errors[] = 'Số luồng CPU phải lớn hơn hoặc bằng số nhân.';
                 }
                 break;
 
             case 'psu':
-                if (isset($specs['wattage']) && (int)$specs['wattage'] <= 0) {
-                    $errors[] = "Công suất nguồn (Wattage) phải lớn hơn 0.";
+                if (isset($attributes['wattage_w']) && ((int)$attributes['wattage_w'] < 100 || (int)$attributes['wattage_w'] > 3000)) {
+                    $errors[] = 'Công suất Nguồn (wattage) không hợp lệ (phải từ 100W đến 3000W).';
+                }
+                break;
+
+            case 'monitor':
+                if (isset($attributes['refresh_rate_hz']) && ((int)$attributes['refresh_rate_hz'] < 30 || (int)$attributes['refresh_rate_hz'] > 1000)) {
+                    $errors[] = 'Tần số quét màn hình phải từ 30 Hz đến 1000 Hz.';
+                }
+                break;
+
+            case 'power-bank':
+                if (isset($attributes['capacity_mah']) && (int)$attributes['capacity_mah'] <= 0) {
+                    $errors[] = 'Dung lượng sạc dự phòng phải lớn hơn 0 mAh.';
                 }
                 break;
         }

@@ -184,17 +184,26 @@ if (!function_exists('productImageUrl')) {
                 }
             }
 
-            // Resolve placeholder-{category}-{N}.ext → {category}_{N}.jpg/.png
+            // Check placeholders directory
+            $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . basename($image);
+            if (file_exists($phPath) && !is_dir($phPath)) {
+                return url('assets/images/placeholders/' . basename($image));
+            }
+
+            // Resolve placeholder-{category}-{N}.ext → try placeholders/ first
             $bn = basename($image);
             if (preg_match('/^placeholder-([a-z\-]+)-(\d+)\.\w+$/i', $bn, $m)) {
-                $cat = $m[1];   // e.g. 'cpu', 'laptop', 'office-equipment'
-                $num = $m[2];   // e.g. '1', '2'
-                $productsDir = ROOT_PATH . '/public/assets/images/products/';
-                foreach (['png', 'jpg', 'webp'] as $ext) {
-                    $realFile = $cat . '_' . $num . '.' . $ext;
-                    if (file_exists($productsDir . $realFile)) {
-                        return url('assets/images/products/' . $realFile);
-                    }
+                $cat = $m[1];
+                $num = $m[2];
+                // Try exact match in placeholders
+                $phExact = ROOT_PATH . '/public/assets/images/placeholders/' . $bn;
+                if (file_exists($phExact)) {
+                    return url('assets/images/placeholders/' . $bn);
+                }
+                // Fallback to -1 variant
+                $phFallback = ROOT_PATH . '/public/assets/images/placeholders/placeholder-' . $cat . '-1.png';
+                if (file_exists($phFallback)) {
+                    return url('assets/images/placeholders/placeholder-' . $cat . '-1.png');
                 }
             }
 
@@ -288,6 +297,12 @@ if (!function_exists('productImageUrl')) {
                 break;
         }
         
+        // Check placeholders/ first, then fall back to products/
+        $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . $phName;
+        if (file_exists($phPath)) {
+            return url('assets/images/placeholders/' . $phName);
+        }
+        // Legacy fallback
         return url('assets/images/products/' . $phName);
     }
 }
