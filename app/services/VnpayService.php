@@ -11,8 +11,11 @@ class VnpayService
 
     public function isConfigured(): bool
     {
-        return !empty($this->config['tmn_code'])
-            && !empty($this->config['hash_secret'])
+        $tmn = trim((string)($this->config['tmn_code'] ?? ''));
+        $secret = trim((string)($this->config['hash_secret'] ?? ''));
+        return !empty($tmn)
+            && strlen($tmn) === 8
+            && !empty($secret)
             && !empty($this->config['payment_url'])
             && !empty($this->config['return_url']);
     }
@@ -20,7 +23,7 @@ class VnpayService
     public function createPaymentUrl(array $order): string
     {
         if (!$this->isConfigured()) {
-            throw new RuntimeException('VNPay credentials are not configured.');
+            throw new RuntimeException('VNPay credentials are not configured or invalid.');
         }
         date_default_timezone_set('Asia/Ho_Chi_Minh');
 
@@ -30,7 +33,7 @@ class VnpayService
         $params = [
             'vnp_Version' => '2.1.0',
             'vnp_Command' => 'pay',
-            'vnp_TmnCode' => $this->config['tmn_code'],
+            'vnp_TmnCode' => trim((string)$this->config['tmn_code']),
             'vnp_Amount' => $amount * 100,
             'vnp_CurrCode' => 'VND',
             'vnp_TxnRef' => $orderCode,
@@ -63,7 +66,7 @@ class VnpayService
         $secureHash = hash_hmac(
             'sha512',
             $hashString,
-            $this->config['hash_secret']
+            trim((string)$this->config['hash_secret'])
         );
 
         return $this->config['payment_url']
@@ -75,7 +78,14 @@ class VnpayService
 
     public function verifyResponse(array $data): bool
     {
-        if (empty($this->config['hash_secret'])) return false;
+        $secret = trim((string)($this->config['hash_secret'] ?? ''));
+        if (empty($secret)) return false;
+
+        $tmnCode = trim((string)($this->config['tmn_code'] ?? ''));
+        if (!empty($tmnCode) && ($data['vnp_TmnCode'] ?? '') !== $tmnCode) {
+            return false;
+        }
+
         $receivedHash = (string) ($data['vnp_SecureHash'] ?? '');
 
         if ($receivedHash === '') {
@@ -106,7 +116,7 @@ class VnpayService
         $calculatedHash = hash_hmac(
             'sha512',
             implode('&', $hashParts),
-            $this->config['hash_secret']
+            $secret
         );
 
         return hash_equals($calculatedHash, strtolower($receivedHash));

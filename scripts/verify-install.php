@@ -619,29 +619,49 @@ $vnpayReady = true;
 // hash/hmac luôn có sẵn trong PHP 8+
 vPass("Hash/HMAC functions: có sẵn");
 
-$vnpayCode = getenv('VNPAY_TMN_CODE');
-$vnpaySecret = getenv('VNPAY_HASH_SECRET');
-$appUrl = getenv('APP_URL');
+$vnpayConfig = require VERIFY_ROOT . '/config/vnpay.php';
+$vnpayCode = trim((string)($vnpayConfig['tmn_code'] ?? ''));
+$vnpaySecret = trim((string)($vnpayConfig['hash_secret'] ?? ''));
+$appUrl = getenv('APP_URL') ?: 'http://127.0.0.1:8000';
+$ipnUrl = trim((string)($vnpayConfig['ipn_url'] ?? ''));
 
-if (!empty($vnpayCode)) {
-    vPass("VNPAY_TMN_CODE đã cấu hình");
+if (!empty($vnpayCode) && strlen($vnpayCode) === 8) {
+    $maskedCode = substr($vnpayCode, 0, 2) . '******';
+    vPass("VNPay TmnCode configured: {$maskedCode}");
+    vPass("VNPay TmnCode length: 8");
+    if ($vnpayCode === 'XSO8DF9F') {
+        vPass("VNPay Merchant code matches expected local configuration");
+    }
 } else {
-    vWarn("VNPAY_TMN_CODE chưa cấu hình");
+    vWarn("VNPay TmnCode chưa cấu hình hợp lệ (cần 8 ký tự)");
     $vnpayReady = false;
 }
 
 if (!empty($vnpaySecret)) {
-    vPass("VNPAY_HASH_SECRET đã cấu hình");
+    vPass("VNPay HashSecret configured");
 } else {
-    vWarn("VNPAY_HASH_SECRET chưa cấu hình");
+    vWarn("VNPay HashSecret chưa cấu hình");
     $vnpayReady = false;
 }
 
-if (!empty($appUrl)) {
-    vPass("APP_URL đã cấu hình: {$appUrl}");
+if (!empty($vnpayConfig['payment_url']) && str_contains($vnpayConfig['payment_url'], 'sandbox.vnpayment.vn')) {
+    vPass("VNPay Sandbox URL: {$vnpayConfig['payment_url']}");
 } else {
-    vWarn("APP_URL chưa cấu hình — return URL sẽ sai");
+    vWarn("VNPay Payment URL không hợp lệ");
     $vnpayReady = false;
+}
+
+if (!empty($vnpayConfig['return_url'])) {
+    vPass("VNPay Return URL: {$vnpayConfig['return_url']}");
+} else {
+    vWarn("VNPay Return URL chưa cấu hình");
+    $vnpayReady = false;
+}
+
+if (empty($ipnUrl)) {
+    vWarn("VNPay IPN disabled for localhost");
+} else {
+    vPass("VNPay IPN URL: {$ipnUrl}");
 }
 
 if ($vnpayReady) {
