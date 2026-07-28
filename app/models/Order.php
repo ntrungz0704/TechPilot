@@ -61,6 +61,12 @@ class Order
                 ':status' => 'pending',
             ]);
 
+            $orderId = (int)$this->db->lastInsertId();
+
+            if ($orderId <= 0) {
+                throw new RuntimeException('Không thể lấy ID đơn hàng vừa tạo.');
+            }
+
             // Cập nhật tăng lượt dùng cho coupon
             if ($couponId) {
                 $couponUpdateStmt = $this->db->prepare(
@@ -68,8 +74,6 @@ class Order
                 );
                 $couponUpdateStmt->execute([':coupon_id' => $couponId]);
             }
-
-            $orderId = (int)$this->db->lastInsertId();
 
             $productCheckStmt = $this->db->prepare(
                 'SELECT name, price, stock FROM products WHERE id = :id FOR UPDATE'
