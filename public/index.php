@@ -39,6 +39,7 @@ $router->get('/auth/reset', 'AuthController@reset');
 $router->post('/auth/reset', 'AuthController@reset');
 
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
+$router->post('/checkout/remove_coupon', 'CheckoutController@remove_coupon');
 $router->post('/product/review', 'ProductController@review');
 $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
 $router->get('/profile/addresses', 'ProfileController@addresses');
