@@ -46,12 +46,17 @@ class CheckoutController extends Controller
 
         // Lấy danh sách Mã giảm giá khả dụng
         $availableCoupons = [];
+        $savedAddresses = [];
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
         if ($db) {
             $cStmt = $db->prepare("SELECT * FROM coupons WHERE status = 'active' AND start_date <= NOW() AND end_date >= NOW() ORDER BY min_order_value ASC");
             $cStmt->execute();
             $availableCoupons = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $addrStmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
+            $addrStmt->execute([':uid' => $user['id']]);
+            $savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         $this->render('checkout', [
@@ -60,7 +65,8 @@ class CheckoutController extends Controller
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $total,
-            'availableCoupons' => $availableCoupons
+            'availableCoupons' => $availableCoupons,
+            'savedAddresses' => $savedAddresses
         ]);
     }
 
@@ -247,6 +253,28 @@ class CheckoutController extends Controller
             $_SESSION['checkout_error'] = 'Không thể lưu đơn hàng hoặc sản phẩm đã hết hàng. Vui lòng thử lại.';
             $this->redirect('checkout');
             return;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if ($db && $user) {
+            $addrStmt = $db->prepare("SELECT COUNT(*) FROM user_addresses WHERE user_id = :uid");
+            $addrStmt->execute([':uid' => $user['id']]);
+            $addrCount = (int)$addrStmt->fetchColumn();
+            
+            $saveAddress = $_POST['save_address'] ?? '0';
+            if ($addrCount === 0 || $saveAddress === '1') {
+                $isDefault = ($addrCount === 0) ? 1 : 0;
+                $insStmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, :province, :default)");
+                $insStmt->execute([
+                    ':uid' => $user['id'],
+                    ':name' => $customerName,
+                    ':phone' => $phone,
+                    ':addr' => $address,
+                    ':province' => '',
+                    ':default' => $isDefault
+                ]);
+            }
         }
 
         $_SESSION['last_order'] = [

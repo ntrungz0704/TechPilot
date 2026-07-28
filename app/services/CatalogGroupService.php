@@ -81,6 +81,8 @@ class CatalogGroupService
         'lap'               => ['laptop'],
         'máy tính'          => ['laptop', 'pc'],
         'may tinh'          => ['laptop', 'pc'],
+        'máy'               => ['laptop', 'pc'],
+        'may'               => ['laptop', 'pc'],
 
         'pc'                => ['pc'],
         'pc build sẵn'      => ['pc'],
