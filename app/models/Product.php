@@ -1468,24 +1468,32 @@ class Product
             $conditions[] = '(p.is_flash_sale = 1 OR p.id IN (SELECT product_id FROM flash_sale_items fsi JOIN flash_sales fs ON fsi.flash_sale_id = fs.id WHERE fs.status = \'active\') OR (p.sale_price IS NOT NULL AND p.sale_price > 0 AND (p.price - p.sale_price)/p.price >= 0.10))';
         }
 
+        // 6. Xử lý từ khóa tìm kiếm (Loại bỏ Stopword quá chung hoặc tạo câu lệnh lọc chính xác)
         if (!empty($remainingKeyword)) {
-            $words = array_filter(explode(' ', $remainingKeyword));
-            $wordConditions = [];
-            foreach ($words as $i => $word) {
-                $pNameName = ':search_word_name_' . $i;
-                $pNameBrand = ':search_word_brand_' . $i;
-                $pNameDesc = ':search_word_desc_' . $i;
-                $pNameCat = ':search_word_cat_' . $i;
-                
-                $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(p.description) LIKE $pNameDesc OR LOWER(p.short_desc) LIKE $pNameDesc OR LOWER(c.name) LIKE $pNameCat)";
-                
-                $params[$pNameName] = '%' . $word . '%';
-                $params[$pNameBrand] = '%' . $word . '%';
-                $params[$pNameDesc] = '%' . $word . '%';
-                $params[$pNameCat] = '%' . $word . '%';
-            }
-            if (!empty($wordConditions)) {
-                $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';
+            $isStopword = CatalogGroupService::isPureStopword($keyword);
+            if ($isStopword) {
+                // Từ khóa quá chung (như "máy"): Chỉ lọc trên Tên sản phẩm, không tìm lan sang Mô tả để tránh trả về hàng trăm kết quả sai
+                $conditions[] = "(LOWER(p.name) LIKE :stopword_name OR c.slug IN ('laptop','pc','console','office-equipment'))";
+                $params[':stopword_name'] = '%' . $remainingKeyword . '%';
+            } else {
+                $words = array_filter(explode(' ', $remainingKeyword));
+                $wordConditions = [];
+                foreach ($words as $i => $word) {
+                    $pNameName = ':search_word_name_' . $i;
+                    $pNameBrand = ':search_word_brand_' . $i;
+                    $pNameDesc = ':search_word_desc_' . $i;
+                    $pNameCat = ':search_word_cat_' . $i;
+                    
+                    $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(p.specs) LIKE $pNameDesc OR LOWER(p.short_desc) LIKE $pNameDesc OR LOWER(p.description) LIKE $pNameDesc OR LOWER(c.name) LIKE $pNameCat)";
+                    
+                    $params[$pNameName] = '%' . $word . '%';
+                    $params[$pNameBrand] = '%' . $word . '%';
+                    $params[$pNameDesc] = '%' . $word . '%';
+                    $params[$pNameCat] = '%' . $word . '%';
+                }
+                if (!empty($wordConditions)) {
+                    $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';
+                }
             }
         }
 
@@ -1493,7 +1501,7 @@ class Product
     }
 
     /**
-     * Tìm kiếm sản phẩm nâng cao kết hợp điểm số
+     * Tìm kiếm sản phẩm nâng cao kết hợp điểm số tương đồng (Weighted Relevance Scoring)
      */
     public function search(
         string $keyword = '',
@@ -1518,23 +1526,25 @@ class Product
 
             $whereClause = implode(' AND ', $conditions);
 
-            // Xây dựng câu lệnh điểm số tương đồng nếu có keyword tên/thương hiệu
+            // Xây dựng câu lệnh điểm số tương đồng theo bảng trọng số chuẩn
             $scoreSql = '0 AS search_score';
-            if (!empty($remainingKeyword)) {
+            if (!empty($keyword)) {
+                $kwLower = strtolower($keyword);
                 $scoreSql = "(CASE
-                    WHEN LOWER(p.name) = :exact_name THEN 100
-                    WHEN LOWER(p.name) LIKE :starts_name THEN 80
-                    WHEN LOWER(p.name) LIKE :contains_name THEN 60
-                    WHEN LOWER(b.name) = :exact_brand THEN 40
-                    WHEN LOWER(b.name) LIKE :contains_brand THEN 30
-                    ELSE 0
+                    WHEN LOWER(p.sku) = :exact_kw THEN 100
+                    WHEN LOWER(p.name) = :exact_kw THEN 95
+                    WHEN LOWER(p.name) LIKE :starts_kw THEN 85
+                    WHEN LOWER(b.name) = :exact_kw THEN 80
+                    WHEN LOWER(p.name) LIKE :contains_kw THEN 65
+                    WHEN LOWER(p.specs) LIKE :contains_kw THEN 60
+                    WHEN LOWER(p.short_desc) LIKE :contains_kw THEN 50
+                    WHEN LOWER(p.description) LIKE :contains_kw THEN 20
+                    ELSE 10
                 END) AS search_score";
 
-                $params[':exact_name'] = $remainingKeyword;
-                $params[':starts_name'] = $remainingKeyword . '%';
-                $params[':contains_name'] = '%' . $remainingKeyword . '%';
-                $params[':exact_brand'] = $remainingKeyword;
-                $params[':contains_brand'] = '%' . $remainingKeyword . '%';
+                $params[':exact_kw'] = $kwLower;
+                $params[':starts_kw'] = $kwLower . '%';
+                $params[':contains_kw'] = '%' . $kwLower . '%';
             }
 
             // Sắp xếp
@@ -1548,8 +1558,8 @@ class Product
                 $sortClause = 'p.sold_count DESC, p.id DESC';
             } elseif ($sort === 'rating') {
                 $sortClause = 'p.rating DESC, p.id DESC';
-            } elseif (!empty($remainingKeyword)) {
-                $sortClause = 'search_score DESC, p.name ASC';
+            } elseif (!empty($keyword)) {
+                $sortClause = 'search_score DESC, p.id DESC';
             } else {
                 $sortClause = 'p.created_at DESC, p.id DESC';
             }

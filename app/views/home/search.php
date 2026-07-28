@@ -105,6 +105,21 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
             </div>
         </div>
 
+        <?php if (!empty($isStopwordQuery)): ?>
+            <div class="stopword-suggestion-card" style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card);">
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-question" style="color: var(--primary);"></i> Bạn đang tìm loại sản phẩm nào?
+                </h3>
+                <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 14px;">Từ khóa "<strong><?= e($keyword) ?></strong>" là từ chung. Hãy chọn nhóm danh mục để tìm nhanh và chính xác hơn:</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <a href="<?= url('home/search?cat=laptop') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-laptop"></i> Laptop</a>
+                    <a href="<?= url('home/search?cat=pc') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-desktop"></i> PC Bộ</a>
+                    <a href="<?= url('home/search?cat=console') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-gamepad"></i> Máy chơi game (Console)</a>
+                    <a href="<?= url('home/search?cat=office-equipment') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-print"></i> Máy văn phòng / Máy in</a>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($products)): ?>
             <div class="product-grid product-grid--4">
                 <?php foreach ($products as $p): ?>

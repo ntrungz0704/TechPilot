@@ -75,6 +75,7 @@ class HomeController extends Controller
         );
 
         require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+        $isStopwordQuery = CatalogGroupService::isPureStopword($keyword) && empty($categorySlug);
 
         $pageTitle = 'Kết quả tìm kiếm';
         if ($promoOnly) {
@@ -89,20 +90,21 @@ class HomeController extends Controller
         }
 
         $this->render('home/search', [
-            'pageTitle'    => $pageTitle,
-            'keyword'      => $keyword,
-            'categorySlug' => $categorySlug,
-            'brandSlug'    => $brandSlug,
-            'minPrice'     => $minPrice,
-            'maxPrice'     => $maxPrice,
-            'inStockOnly'  => $inStockOnly,
-            'promoOnly'    => $promoOnly,
-            'sort'         => $sort,
-            'page'         => $page,
-            'limit'        => $limit,
-            'products'     => $products,
-            'categories'   => $productModel->getCategories(),
-            'totalResults' => $totalResults,
+            'pageTitle'        => $pageTitle,
+            'keyword'          => $keyword,
+            'categorySlug'     => $categorySlug,
+            'brandSlug'        => $brandSlug,
+            'minPrice'         => $minPrice,
+            'maxPrice'         => $maxPrice,
+            'inStockOnly'      => $inStockOnly,
+            'promoOnly'        => $promoOnly,
+            'sort'             => $sort,
+            'page'             => $page,
+            'limit'            => $limit,
+            'products'         => $products,
+            'categories'       => $productModel->getCategories(),
+            'totalResults'     => $totalResults,
+            'isStopwordQuery'  => $isStopwordQuery,
         ]);
     }
 
