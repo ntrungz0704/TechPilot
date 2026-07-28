@@ -1,703 +1,517 @@
-# TechPilot — Website thương mại điện tử thiết bị công nghệ
+# TechPilot — Hệ thống bán hàng công nghệ
 
-TechPilot là website thương mại điện tử chuyên bán laptop Windows, PC lắp ráp, màn hình, linh kiện PC, thiết bị mạng, gaming gear và phụ kiện máy tính. Dự án sử dụng **PHP thuần theo mô hình MVC**, MySQL/MariaDB, HTML5, CSS3 và JavaScript thuần.
+Ứng dụng web thương mại điện tử chuyên thiết bị công nghệ: laptop, PC, linh kiện,
+phụ kiện. Xây dựng bằng **PHP MVC thuần** (không framework), **MySQL/MariaDB**,
+**HTML/CSS/JavaScript**.
 
-Tài liệu này dành cho cả thành viên mới chưa từng dùng Git/GitHub. Hãy làm lần lượt từ trên xuống và không bỏ qua phần **Quy trình Git hằng ngày**.
+**Tính năng chính:**
+
+- Customer: duyệt sản phẩm, tìm kiếm, lọc, so sánh, giỏ hàng, đặt hàng COD/VNPay,
+  PC Builder, tin tức, chatbot Gemini AI, wishlist.
+- Admin: quản lý sản phẩm, danh mục, thương hiệu, tồn kho, đơn hàng, người dùng,
+  flash sale, coupon, banner, bài viết, đánh giá.
+- Hệ thống tồn kho với inventory logs.
+
+**Repository chính thức:** <https://github.com/ntrungz0704/TechPilot>
 
 ---
 
-## 1. Công nghệ và yêu cầu hệ thống
+## 1. Yêu cầu hệ thống
 
-### Phần mềm bắt buộc
+| Công cụ          | Phiên bản tối thiểu      | Ghi chú                          |
+| ---------------- | ------------------------- | -------------------------------- |
+| PHP              | 8.0+                      | Khuyến nghị 8.1+                |
+| MySQL / MariaDB  | 5.7+ / 10.4+              | Port mặc định **3306**          |
+| Git              | 2.x                       |                                  |
+| Node.js          | 18+ *(tùy chọn)*          | Chỉ cần nếu chạy browser test  |
 
-- PHP 8.0 trở lên.
-- MySQL hoặc MariaDB 10.4 trở lên.
-- Git.
-- Một trình soạn thảo, khuyến nghị Visual Studio Code.
-- Web server:
-  - Apache có `mod_rewrite`; hoặc
-  - PHP Built-in Web Server.
+**PHP extensions — phân loại theo module:**
 
-### Khuyến nghị trên Windows
+| Extension    | Module         | Mức độ    | Ghi chú                             |
+| ------------ | -------------- | --------- | ------------------------------------ |
+| PDO          | Core           | Bắt buộc  | Kết nối database                     |
+| pdo_mysql    | Core           | Bắt buộc  | Driver MySQL cho PDO                 |
+| json         | Core           | Bắt buộc  | Mặc định có từ PHP 8.0              |
+| mbstring     | Core           | Bắt buộc  | Source dùng mb_* cho tiếng Việt      |
+| fileinfo     | Admin Upload   | Bắt buộc  | Upload ảnh sản phẩm                  |
+| curl         | Gemini/VNPay   | Tùy chọn  | Cần cho API ngoài                    |
+| openssl      | Gemini/VNPay   | Tùy chọn  | Cần cho TLS/HTTPS                    |
 
-Có thể dùng một trong các bộ môi trường:
+**Bật extension trong php.ini CLI:**
 
-- Laragon.
-- XAMPP.
-- PHP và MySQL cài riêng.
+Tìm file php.ini CLI đang dùng:
 
-Kiểm tra các công cụ đã cài:
+```powershell
+php --ini
+```
 
-```bash
+Mở file (thường `C:\php\php.ini` hoặc `C:\xampp\php\php.ini`), bỏ dấu `;` trước:
+
+```ini
+extension=curl
+extension=fileinfo
+extension=mbstring
+extension=openssl
+extension=pdo_mysql
+```
+
+Xác nhận:
+
+```powershell
+php -m | findstr /I "curl fileinfo mbstring openssl PDO pdo_mysql"
+```
+
+**Kiểm tra trên Windows PowerShell:**
+
+```powershell
 git --version
 php -v
 mysql --version
-```
-
-Nếu một lệnh không chạy, cần cài phần mềm tương ứng hoặc thêm nó vào biến môi trường `PATH` trước khi tiếp tục.
-
----
-
-## 2. Cấu trúc thư mục
-
-```text
-TechPilot/
-├── app/
-│   ├── controllers/      # Nhận request và điều phối xử lý
-│   ├── core/             # Router, Controller nền và Helpers
-│   ├── models/           # Truy vấn và xử lý dữ liệu
-│   └── views/            # Giao diện PHP
-├── config/               # Cấu hình ứng dụng và database
-├── database/             # schema.sql và dữ liệu mẫu
-├── public/               # CSS, JavaScript, hình ảnh và public entry point
-├── docs/                 # Tài liệu dự án nếu có
-├── index.php             # Entry point ở thư mục gốc nếu dự án sử dụng
-└── router.php            # Router cho PHP Built-in Server
-```
-
-Quy tắc MVC:
-
-- Không viết SQL trực tiếp trong View.
-- Controller không được chứa HTML lớn.
-- Model dùng PDO prepared statements.
-- CSS, JavaScript và hình ảnh đặt trong `public/assets` theo cấu trúc dự án hiện có.
-
----
-
-## 3. Các nhánh Git của dự án
-
-| Nhánh | Mục đích | Ai được làm việc |
-|---|---|---|
-| `main` | Bản ổn định để nghiệm thu/phát hành | Chỉ merge qua Pull Request đã kiểm tra |
-| `develop` | Nhánh tích hợp chung | Nhận code từ các nhánh cá nhân |
-| `trung` | Nhánh làm việc cá nhân của Trung | Trung |
-| `kim` | Nhánh làm việc cá nhân của Kim | Kim |
-| `hieu` | Nhánh làm việc cá nhân của Hiếu | Hiếu |
-| `dinh` | Nhánh làm việc cá nhân của Định | Định |
-
-Trung là chủ repository và reviewer. Quản lý `develop` và `main`. Không thành viên nào được tự ý push thẳng lên `main` hoặc ghi đè lịch sử nhánh chung.
-
-Luồng code:
-
-```text
-trung ─┐
-kim   ─┼── Pull Request ──> develop ── kiểm thử ──> main
-hieu  ─┤
-dinh  ─┘
+php -m
 ```
 
 ---
 
-## 4. Cài Git và đăng nhập GitHub lần đầu
+## 2. Clone repository
 
-### Bước 1 — Cài Git
-
-Tải Git tại: <https://git-scm.com/downloads>
-
-Sau khi cài, mở PowerShell, Git Bash hoặc Terminal trong VS Code:
-
-```bash
-git --version
-```
-
-### Bước 2 — Khai báo tên và email
-
-Mỗi thành viên chỉ làm một lần trên máy của mình:
-
-```bash
-git config --global user.name "Tên của bạn"
-git config --global user.email "email-github-cua-ban@example.com"
-```
-
-Kiểm tra:
-
-```bash
-git config --global --list
-```
-
-Email nên trùng với email đã dùng trên GitHub để commit được nhận diện đúng.
-
-### Bước 3 — Có quyền repository
-
-Chủ repository phải mời Kim, Hiếu và Định làm Collaborator. Thành viên mở lời mời GitHub và bấm **Accept invitation** trước khi push.
-
-Khi Git yêu cầu đăng nhập GitHub qua HTTPS, không dùng mật khẩu GitHub thông thường. Hãy đăng nhập bằng trình duyệt/Git Credential Manager hoặc Personal Access Token theo hướng dẫn của GitHub.
-
----
-
-## 5. Tải dự án về máy lần đầu
-
-Mở Terminal tại thư mục muốn chứa dự án:
-
-```bash
+```powershell
 git clone https://github.com/ntrungz0704/TechPilot.git
 cd TechPilot
 ```
 
-Kiểm tra remote và danh sách nhánh:
+Xác nhận:
 
-```bash
+```powershell
 git remote -v
-git fetch origin
+git fetch --all --prune
 git branch -a
-```
-
-Không tải file ZIP để làm việc nhóm lâu dài vì bản ZIP không có lịch sử Git và rất khó đồng bộ.
-
----
-
-## 6. Chọn đúng nhánh cá nhân
-
-Mỗi người chỉ chạy nhóm lệnh ứng với mình.
-
-### Trung
-
-```bash
-git switch trung
-git pull origin trung
-```
-
-### Kim
-
-```bash
-git switch kim
-git pull origin kim
-```
-
-### Hiếu
-
-```bash
-git switch hieu
-git pull origin hieu
-```
-
-### Định
-
-```bash
-git switch dinh
-git pull origin dinh
-```
-
-Nếu Git báo nhánh chưa có ở máy:
-
-```bash
-git fetch origin
-git switch --track origin/kim
-```
-
-Thay `kim` bằng `trung`, `hieu` hoặc `dinh` tương ứng.
-
-Kiểm tra đang đứng đúng nhánh:
-
-```bash
-git branch --show-current
 git status
 ```
 
-Không bắt đầu sửa code nếu tên nhánh đang là `main`, `develop` hoặc nhánh của người khác.
+> **Không tải ZIP** khi làm việc nhóm — mất lịch sử commit và không thể
+> pull/push.
 
 ---
 
-## 7. Khởi tạo cơ sở dữ liệu
+## 3. Kiểm tra nhánh main
 
-> **Cảnh báo:** Đọc đầu file `database/schema.sql` trước khi chạy. Nếu file có `DROP DATABASE`, nó có thể xóa toàn bộ database cũ. Chỉ import vào database local/test, không chạy trên database production đang có đơn hàng.
-
-### Cách 1 — phpMyAdmin
-
-1. Mở phpMyAdmin.
-2. Tạo database tên `techpilot` với charset `utf8mb4`.
-3. Chọn database `techpilot`.
-4. Chọn tab **Import**.
-5. Chọn file `database/schema.sql`.
-6. Bấm **Import/Go**.
-
-### Cách 2 — MySQL CLI
-
-Nếu `schema.sql` tự tạo database:
-
-```bash
-mysql -u root -p < database/schema.sql
+```powershell
+git switch main
+git pull --ff-only origin main
+git status --short
+git rev-parse --short HEAD
 ```
 
-Nếu đã tạo database `techpilot` trước:
-
-```bash
-mysql -u root -p techpilot < database/schema.sql
-```
-
-Sau khi import, kiểm tra các bảng cốt lõi như `users`, `categories`, `brands`, `products`, `carts`, `orders` và `posts` đã tồn tại.
+- `main` chỉ để kiểm tra bản ổn định.
+- **Không code trực tiếp trên main.**
+- Sau khi cài đặt và kiểm tra xong, chuyển sang nhánh cá nhân.
 
 ---
 
-## 8. Cấu hình kết nối database
+## 4. Cấu hình database local
 
-Mở `config/database.php` và kiểm tra cấu hình theo môi trường local:
-
-```php
-define('DB_HOST', '127.0.0.1');
-define('DB_NAME', 'techpilot');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-```
-
-Nếu repository có file `config/database.local.example.php`, nên sao chép thành `config/database.local.php` và chỉ sửa file local:
+Sao chép file cấu hình mẫu:
 
 ```powershell
 Copy-Item config/database.local.example.php config/database.local.php
 ```
 
-File chứa mật khẩu local phải nằm trong `.gitignore`. Không commit mật khẩu database thật, API key hoặc credential production.
+Mở `config/database.local.php` và điền thông tin MySQL trên máy:
 
-Ứng dụng và database phải dùng UTF-8/`utf8mb4` để tránh lỗi chữ như `MÃ¡y tÃnh`.
+```php
+return [
+    'host'     => '127.0.0.1',
+    'port'     => '3306',       // Port MySQL chuẩn
+    'database' => 'techpilot',
+    'username' => 'root',
+    'password' => '',           // Mật khẩu MySQL local
+    'charset'  => 'utf8mb4',
+];
+```
+
+> ⚠️ **`config/database.local.php`:**
+> - Nằm trong `.gitignore` — **không được commit**.
+> - Không được `git add -f`.
+> - Không sửa password trực tiếp trong `config/database.php`.
 
 ---
 
-## 9. Chạy ứng dụng
+## 5. Cấu hình .env
 
-### Cách 1 — PHP Built-in Server
+```powershell
+Copy-Item .env.example .env
+```
 
-Từ thư mục gốc `TechPilot`:
+Mở `.env` và điền các giá trị:
 
-```bash
+```env
+# === Ứng dụng ===
+APP_URL=http://127.0.0.1:8000
+
+# === Cơ sở dữ liệu ===
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=techpilot
+DB_USER=root
+DB_PASS=
+
+# === Gemini AI (tùy chọn) ===
+GEMINI_API_KEY=
+
+# === VNPay (tùy chọn) ===
+VNPAY_TMN_CODE=
+VNPAY_HASH_SECRET=
+VNPAY_RETURN_URL=http://127.0.0.1:8000/payment/vnpay-return
+VNPAY_IPN_URL=
+```
+
+**Phân biệt:**
+
+- Website core chạy **không cần** Gemini key.
+- Thanh toán COD chạy **không cần** VNPay credential.
+- Gemini chatbot và VNPay chỉ hoạt động đầy đủ khi có credential hợp lệ.
+- **Không commit `.env`.**
+
+---
+
+## 6. Database import
+
+### A. MySQL CLI
+
+```powershell
+mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4
+```
+
+Trong MySQL prompt:
+
+```sql
+CREATE DATABASE IF NOT EXISTS techpilot
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE techpilot;
+SOURCE database/seed.sql;
+```
+
+Hoặc một dòng (cmd):
+
+```cmd
+mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot < database\seed.sql
+```
+
+### B. phpMyAdmin
+
+1. Mở phpMyAdmin → tạo database `techpilot` (utf8mb4_unicode_ci).
+2. Chọn database `techpilot` → tab **Import**.
+3. Chọn file `database/seed.sql` → Execute.
+
+> ⚠️ **Cảnh báo:**
+> - Seed có `DROP TABLE` — sẽ xóa bảng cùng tên nếu đã tồn tại.
+> - Chỉ chạy trên local/test — **không import vào production**.
+> - Backup trước nếu database có dữ liệu cần giữ.
+> - Không dùng lệnh có password trực tiếp (dùng `-p` không có giá trị).
+
+---
+
+## 7. Migration
+
+Sau khi import seed, chạy migration để đưa database lên schema mới nhất:
+
+```powershell
+php scripts/database/migrate.php
+```
+
+- Import seed tạo baseline dữ liệu.
+- Migration bổ sung các bảng/cột mới chưa có trong seed.
+- **Không được bỏ qua migration.**
+- Chạy lại migration an toàn (idempotent).
+
+---
+
+## 8. Verify installation
+
+Kiểm tra toàn bộ cài đặt:
+
+```powershell
+php scripts/verify-install.php
+```
+
+Verifier v2 kiểm tra theo capability matrix:
+
+| Module          | Kiểm tra                                           |
+| --------------- | -------------------------------------------------- |
+| CORE            | PHP, extensions, files, config, DB, tables, data   |
+| CORE            | Primary image sản phẩm active phải tồn tại (FAIL)  |
+| ADMIN UPLOAD    | fileinfo extension, upload directory writable       |
+| GEMINI          | curl, openssl, GEMINI_API_KEY                      |
+| VNPAY           | hash/HMAC, TMN_CODE, HASH_SECRET, APP_URL          |
+
+**Database:** 19 bảng business/audit + 1 bảng technical (`migrations`) = **20 bảng vật lý**.
+
+**Quy tắc:**
+
+- Core requirement thiếu → **FAIL** toàn hệ thống.
+- Ảnh chính sản phẩm active thiếu → **FAIL**.
+- Ảnh gallery phụ thiếu → WARN.
+- Gemini/VNPay chưa cấu hình → NOT_CONFIGURED (không phải FAIL).
+
+**Chỉ khi CORE APPLICATION = 0 FAIL** mới xác nhận cài đặt hợp lệ.
+
+---
+
+## 9. Chạy website
+
+```powershell
 php -S 127.0.0.1:8000 router.php
 ```
 
-Mở:
+Mở trình duyệt: **<http://127.0.0.1:8000>**
 
-```text
-http://127.0.0.1:8000
-```
-
-Dừng server bằng `Ctrl + C` trong Terminal.
-
-### Cách 2 — Laragon/Apache
-
-Khuyến nghị document root trỏ vào thư mục `public` nếu cấu trúc router của dự án yêu cầu. Bật Apache rewrite và kiểm tra `.htaccess`.
-
-Không duy trì hai bản code riêng, ví dụ một bản ở ổ D và một bản trong `laragon/www`, vì chúng sẽ nhanh chóng lệch nhau.
+> ⚠️ **Không được bỏ `router.php`** — nếu chạy `php -S 127.0.0.1:8000` không
+> có router, mọi route sẽ 404.
 
 ---
 
-## 10. Tài khoản thử nghiệm local
+## 10. Tài khoản development
 
-Các tài khoản sau chỉ dùng trong môi trường development sau khi import đúng seed:
+Seed tạo sẵn các tài khoản sau:
 
-### Admin
+| Email                    | Role     | Mật khẩu    | Đã xác minh       |
+| ------------------------ | -------- | ----------- | ------------------ |
+| admin@techpilot.vn       | admin    | `admin123`  | ✅ password_verify |
+| ntrungz0704@gmail.com    | customer | *(chưa xác minh)* | ❌            |
 
-```text
-Email: admin@techpilot.vn
-Mật khẩu seed: admin123
-```
+> - Admin: đã xác minh bằng `password_verify()` — đăng nhập thành công.
+> - Customer: mật khẩu chưa được xác minh — nếu cần, tạo tài khoản mới qua
+>   trang đăng ký hoặc cập nhật password hash trong database.
 
-### Customer
-
-```text
-Email: customer@gmail.com
-Mật khẩu seed: admin123
-```
-
-> `admin123` là mật khẩu yếu. Không được dùng những tài khoản/mật khẩu này khi triển khai public. Trước khi deploy phải đổi mật khẩu, tắt hoặc xóa tài khoản seed và không ghi credential production trong README.
-
-Nếu đăng nhập thất bại, kiểm tra:
-
-- Database đã import đúng chưa.
-- Email có tồn tại trong bảng `users` không.
-- Password trong DB có được tạo bằng `password_hash()` không.
-- Role/status của tài khoản có đúng không.
-- Ứng dụng đang kết nối đúng database không.
+> ⚠️ **Không dùng tài khoản development trên production.**
 
 ---
 
-## 11. Quy trình Git hằng ngày để tránh conflict
+## 11. Checklist Customer
 
-Mỗi lần bắt đầu làm việc, thực hiện đúng thứ tự dưới đây.
+Sau khi chạy website, kiểm tra tuần tự:
 
-### Bước 1 — Kiểm tra nhánh và file đang sửa
+- [ ] Trang chủ (Home) hiển thị đúng
+- [ ] Duyệt danh mục (category)
+- [ ] Tìm kiếm sản phẩm (search)
+- [ ] Lọc sản phẩm (filter)
+- [ ] Sắp xếp sản phẩm (sort)
+- [ ] Phân trang (pagination)
+- [ ] Chi tiết sản phẩm (product detail)
+- [ ] Gallery ảnh sản phẩm
+- [ ] Thông số kỹ thuật (specs)
+- [ ] Đăng ký / Đăng nhập / Đăng xuất
+- [ ] Wishlist (yêu thích)
+- [ ] So sánh sản phẩm (compare)
+- [ ] Giỏ hàng (cart)
+- [ ] Đặt hàng COD
+- [ ] Đặt hàng VNPay *(khi có cấu hình)*
+- [ ] Lịch sử đơn hàng
+- [ ] PC Builder
+- [ ] Tin tức (news)
+- [ ] Gemini chatbot *(khi có API key)*
+- [ ] Responsive 440 × 956
+
+---
+
+## 12. Checklist Admin
+
+Đăng nhập tài khoản admin, kiểm tra:
+
+- [ ] Dashboard
+- [ ] Quản lý Products
+- [ ] Quản lý Categories
+- [ ] Quản lý Brands
+- [ ] Quản lý Inventory (tồn kho)
+- [ ] Inventory history (logs)
+- [ ] Quản lý Orders
+- [ ] Quản lý Users / Customers
+- [ ] Quản lý Flash Sale
+- [ ] Quản lý Banners
+- [ ] Quản lý Posts (bài viết)
+- [ ] Quản lý Reviews (đánh giá)
+- [ ] Quản lý Coupons (mã giảm giá)
+- [ ] Authorization (phân quyền admin/customer)
+
+---
+
+## 13. Troubleshooting
+
+| Vấn đề | Giải pháp |
+| ------ | --------- |
+| `php` không nhận trong terminal | Thêm PHP vào PATH: `$env:Path += ";C:\xampp\php"` |
+| Lỗi kết nối MySQL | Kiểm tra MySQL đang chạy, port **3306**, user/password đúng |
+| `could not find driver` | Bật `extension=pdo_mysql` trong `php.ini` |
+| 404 mọi trang | Thiếu `router.php` trong lệnh chạy server |
+| Lỗi utf8mb4 | Database phải dùng charset `utf8mb4`, collation `utf8mb4_unicode_ci` |
+| `HY093: Invalid parameter number` | Kiểm tra số placeholder `?` khớp số tham số bind |
+| Ảnh/asset không hiển thị | Kiểm tra file tồn tại trong `public/assets/`, URL không dùng đường dẫn tuyệt đối Windows |
+| Database chưa migrate | Chạy `php scripts/database/migrate.php` |
+| Gemini chatbot không hoạt động | Cấu hình `GEMINI_API_KEY` trong `.env` |
+| VNPay return URL sai | Kiểm tra `VNPAY_RETURN_URL` trong `.env` trỏ đúng host:port |
+| Trang hiển thị cũ | Xóa cache browser: Ctrl+Shift+R |
+| Đang ở branch sai | Chạy `git branch --show-current` để kiểm tra |
+| File local bị staged | Chạy `git restore --staged .env config/database.local.php` |
+
+---
+
+## 14. Cấu trúc ảnh sản phẩm
+
+```
+public/assets/images/
+├── categories/           ← 20 file: category-{slug}.png
+├── placeholders/         ← Ảnh placeholder dùng chung
+├── products/             ← Ảnh sản phẩm theo category
+│   ├── accessories/
+│   ├── case/
+│   ├── cpu/
+│   ├── laptop/
+│   └── ... (20 thư mục)
+├── brands/               ← Logo thương hiệu
+├── news/                 ← Ảnh tin tức
+└── posts/                ← Ảnh bài viết
+```
+
+- Database lưu relative path: `assets/images/products/{category}/{filename}`.
+- Ảnh chính sản phẩm active **phải tồn tại** và **được Git theo dõi**.
+- Ảnh category dùng format `category-{slug}.png`.
+- Placeholder chỉ bảo vệ UI — không thay thế ảnh thật.
+
+---
+
+## 15. Tiêu chí cài đặt hợp lệ
+
+Bản cài đặt được xác nhận hợp lệ khi:
+
+1. `php scripts/verify-install.php` trả về **CORE APPLICATION: 0 FAIL**.
+2. Checklist smoke test (mục 11, 12) hoàn thành.
+
+**Phân biệt:**
+
+- **Core application**: chạy độc lập không cần external service.
+- **Gemini AI**: cần `GEMINI_API_KEY` hợp lệ — chatbot mới hoạt động.
+- **VNPay**: cần `VNPAY_TMN_CODE` + `VNPAY_HASH_SECRET` hợp lệ — thanh toán
+  online mới hoạt động. COD không cần VNPay.
+- Gemini/VNPay = NOT_CONFIGURED **không phải FAIL** của core.
+
+---
+
+## 16. Branch policy
+
+### Danh sách nhánh cho phép (allowlist)
+
+| Nhánh     | Mục đích                       |
+| --------- | ------------------------------ |
+| `main`    | Bản ổn định — chỉ merge qua PR |
+| `develop` | Tích hợp test — chỉ merge qua PR |
+| `trung`   | Nhánh cá nhân — Trung          |
+| `kim`     | Nhánh cá nhân — Kim            |
+| `hieu`    | Nhánh cá nhân — Hiếu           |
+| `dinh`    | Nhánh cá nhân — Định           |
+
+> **Ngoài sáu nhánh trên, thành viên và AI không được tự ý tạo thêm nhánh.**
+
+### Các lệnh bị cấm
+
+```bash
+git branch ten-nhanh-moi          # ❌ Tạo nhánh mới
+git switch -c ten-nhanh-moi       # ❌ Tạo và chuyển nhánh mới
+git checkout -b ten-nhanh-moi     # ❌ Tạo và chuyển nhánh mới
+git worktree add -b ten-nhanh-moi # ❌ Tạo worktree kèm nhánh
+```
+
+### Quy trình Pull Request
+
+1. Nhánh cá nhân (`trung`/`kim`/`hieu`/`dinh`) → **PR vào `main`**.
+2. Chỉ chủ repository (Trung) được review và merge PR.
+3. **Không push trực tiếp lên `main`.**
+4. **Không force-push.**
+5. `develop` dùng khi cần tích hợp test nhiều nhánh cùng lúc.
+
+### Cài đặt Git Guards
+
+Sau khi clone, mỗi thành viên chạy một lần:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-git-guards.ps1
+```
+
+Local hook sẽ:
+
+- Chặn commit trên `main`/`develop` và branch ngoài allowlist.
+- Chặn staged credential (`.env`, `database.local.php`...).
+- Chặn push lên `main`/`develop` và branch ngoài allowlist.
+
+> ⚠️ **Local hook không thay thế GitHub Ruleset.** Xem mục 16.
+
+### Cấu hình GitHub Ruleset (chỉ chủ repository)
+
+Vào **Repository → Settings → Rules → Rulesets**:
+
+**Ruleset 1: Chặn tạo branch không được phép**
+
+- Name: `deny-unapproved-branch-creation`
+- Target: `*`
+- Rule: Restrict creations
+- Bypass: chỉ chủ repository (Trung)
+- Enforcement: Active
+
+**Ruleset 2: Bảo vệ `main` và `develop`**
+
+- Target: `main`, `develop`
+- Bật:
+  - Require pull request
+  - Require approval
+  - Require status checks
+  - Block force pushes
+  - Restrict deletions
+  - Require conversation resolution
+
+> README và local hooks không thể ngăn hoàn toàn branch creation trên remote.
+> GitHub Ruleset mới là lớp cưỡng chế cuối cùng.
+
+---
+
+## 17. Node.js và browser test
+
+Node.js **chỉ dùng cho Puppeteer browser test** — runtime website không cần
+`npm install`.
+
+Nếu muốn chạy browser test:
+
+```powershell
+npm ci
+```
+
+> Dùng `npm ci` thay vì `npm install` khi có `package-lock.json` để đảm bảo
+> dependency đồng nhất giữa các máy.
+
+---
+
+## BRANCH LOCK — BẮT BUỘC
+
+> **Dành cho thành viên và AI agent:**
+
+Bạn chỉ được làm việc trên nhánh Git hiện tại đã do chủ repository tạo sẵn.
+
+Trước khi sửa code, chạy:
 
 ```bash
 git branch --show-current
-git status
+git status --short
 ```
 
-Nếu có file chưa commit từ hôm trước, hãy hoàn tất hoặc commit chúng trước khi đồng bộ. Không dùng `git reset --hard` để xóa thay đổi.
-
-### Bước 2 — Lấy thông tin mới nhất
-
-```bash
-git fetch origin
-```
-
-### Bước 3 — Đồng bộ `develop` vào nhánh cá nhân
-
-Ví dụ Kim:
-
-```bash
-git switch kim
-git merge origin/develop
-```
-
-Hiếu, Định và Trung thay `kim` bằng nhánh của mình.
-
-Nếu không có conflict, tiếp tục làm việc. Nếu có conflict, đọc phần **Xử lý conflict an toàn** bên dưới.
-
-### Bước 4 — Chỉ sửa đúng task được giao
-
-Trước khi code, nhóm thống nhất:
-
-- Người phụ trách.
-- File/module dự kiến sửa.
-- Tiêu chí hoàn thành.
-
-Không để hai người cùng lúc sửa các file layout lớn như `header.php`, `footer.php`, router, schema hoặc CSS chung mà chưa trao đổi.
-
-### Bước 5 — Kiểm tra thay đổi
-
-```bash
-git status
-git diff
-```
-
-Không commit file cấu hình local, log, cache, file tạm hoặc credential.
-
-### Bước 6 — Chạy kiểm thử
-
-Lint tất cả PHP bằng PowerShell:
-
-```powershell
-Get-ChildItem -Path app,config,public -Filter *.php -Recurse | ForEach-Object { php -l $_.FullName }
-```
-
-Hoặc kiểm tra từng file:
-
-```bash
-php -l app/models/Product.php
-php -l app/models/Order.php
-```
-
-Sau đó test thủ công route/module vừa sửa.
-
-### Bước 7 — Commit nhỏ, rõ nghĩa
-
-```bash
-git add duong-dan-file-da-sua
-git commit -m "fix(search): correct product filtering and relevance"
-```
-
-Không dùng `git add .` một cách máy móc nếu trong thư mục có file không liên quan.
-
-Mẫu commit:
-
-```text
-feat(cart): add server-side quantity validation
-fix(auth): redirect user after successful login
-fix(search): preserve filters across pagination
-feat(admin): add order status update
-style(mobile): simplify product grid at 440px
-docs(readme): add beginner setup guide
-```
-
-### Bước 8 — Push nhánh cá nhân
-
-Kim:
-
-```bash
-git push origin kim
-```
-
-Hiếu, Định và Trung dùng tên nhánh tương ứng.
-
-### Bước 9 — Tạo Pull Request
-
-Trên GitHub:
-
-1. Mở repository TechPilot.
-2. Chọn **Pull requests**.
-3. Chọn **New pull request**.
-4. `base` chọn `develop`.
-5. `compare` chọn `kim`, `hieu`, `dinh` hoặc `trung`.
-6. Ghi rõ đã sửa gì, file nào và test gì.
-7. Gửi Trung hoặc một thành viên khác review.
-8. Chỉ merge khi code đã được review và test.
-
-Không mở Pull Request từ nhánh cá nhân thẳng vào `main` trong công việc hằng ngày.
-
----
-
-## 12. Mẫu Pull Request
-
-```markdown
-## Công việc đã làm
-- ...
-
-## File chính đã thay đổi
-- ...
-
-## Cách kiểm thử
-1. ...
-2. ...
-
-## Kết quả
-- [ ] PHP lint pass
-- [ ] Test desktop
-- [ ] Test mobile 440px
-- [ ] Không commit credential/log
-- [ ] Không còn nút chết trong phạm vi task
-
-## Ảnh trước/sau
-Đính kèm nếu thay đổi giao diện.
-
-## Lưu ý hoặc rủi ro
-- ...
-```
-
----
-
-## 13. Cách phòng tránh conflict
-
-1. Đồng bộ `origin/develop` trước khi code.
-2. Không sửa trực tiếp `main` hoặc `develop`.
-3. Mỗi task chỉ có một người chính phụ trách.
-4. Chia task theo module/file, không chỉ theo tên trang chung chung.
-5. Commit nhỏ và push thường xuyên.
-6. Báo nhóm trước khi sửa router, schema, layout hoặc CSS toàn cục.
-7. Không format lại toàn bộ file nếu chỉ sửa một đoạn nhỏ.
-8. Không đổi tên/xóa file người khác đang dùng mà chưa trao đổi.
-9. Pull Request nhỏ dễ review hơn một PR chứa toàn bộ dự án.
-10. Sau khi PR khác được merge vào `develop`, mọi người cần fetch và merge lại `origin/develop`.
-
----
-
-## 14. Xử lý conflict an toàn
-
-Sau lệnh:
-
-```bash
-git merge origin/develop
-```
-
-Nếu Git báo conflict:
-
-### Bước 1 — Xem file conflict
-
-```bash
-git status
-```
-
-File conflict sẽ báo hiệu file nào bị lỗi.
-
-### Bước 2 — Trao đổi với người viết đoạn code liên quan
-
-Không bấm **Accept All Current** hoặc **Accept All Incoming** nếu chưa hiểu hai phần code. Cần kết hợp thủ công để giữ đúng logic của cả hai bên.
-
-### Bước 3 — Xóa marker và kiểm tra lại file
-
-Sau khi sửa, file không được còn các marker conflict.
-
-Tìm toàn dự án:
-
-```bash
-git grep -n "<<<<<<<"
-```
-
-### Bước 4 — Đánh dấu đã giải quyết và hoàn tất merge
-
-```bash
-git add duong-dan-file-da-sua
-git commit -m "merge: resolve conflicts with develop"
-```
-
-### Bước 5 — Chạy lại ứng dụng và test
-
-Ít nhất phải chạy PHP lint và test lại cả chức năng của mình lẫn phần code vừa conflict.
-
-Nếu đang merge nhưng nhận ra làm sai và chưa commit merge, có thể dừng merge bằng:
-
-```bash
-git merge --abort
-```
-
-Lệnh này chỉ dùng để hủy lần merge đang diễn ra, không dùng `git reset --hard`.
-
----
-
-## 15. Các lệnh Git bị cấm hoặc cần tránh
-
-Không sử dụng nếu chưa được chủ repository đồng ý:
-
-```bash
-git push --force
-git push -f
-git reset --hard
-git clean -fdx
-```
-
-Không:
-
-- Xóa thư mục `.git`.
-- Copy đè toàn bộ source của người khác.
-- Commit file chứa mật khẩu/API key.
-- Commit database dump chứa dữ liệu cá nhân.
-- Tự merge PR chưa được review.
-- Sửa lịch sử `main`/`develop`.
-
----
-
-## 16. Khi Pull Request đã được merge
-
-Sau khi code cá nhân được merge vào `develop`, cập nhật nhánh cá nhân:
-
-```bash
-git fetch origin
-git switch kim
-git merge origin/develop
-git push origin kim
-```
-
-Thay `kim` bằng `trung`, `hieu` hoặc `dinh`.
-
-Khi `develop` đã kiểm thử ổn định, Trung tạo Pull Request:
-
-```text
-develop → main
-```
-
-`main` chỉ chứa bản được nghiệm thu hoặc chuẩn bị phát hành.
-
----
-
-## 17. Checklist trước khi bàn giao task
-
-- [ ] Đang làm đúng nhánh cá nhân.
-- [ ] Đã merge phiên bản mới nhất của `origin/develop`.
-- [ ] Chỉ sửa file thuộc task.
-- [ ] Không còn conflict marker.
-- [ ] PHP lint pass.
-- [ ] Route và nút bấm trong phạm vi task hoạt động thật.
-- [ ] Đã test dữ liệu MySQL sau thao tác.
-- [ ] Đã test tài khoản guest/customer/admin nếu liên quan.
-- [ ] Đã test desktop và mobile 440px nếu sửa UI.
-- [ ] Không có `href="#"` hoặc nút giả trong phạm vi task.
-- [ ] Không commit password, log, cache hoặc config local.
-- [ ] Commit message rõ ràng.
-- [ ] Đã push nhánh cá nhân.
-- [ ] Pull Request có mô tả và cách test.
-
----
-
-## 18. Kiểm tra nhanh sau khi cài đặt
-
-Sau khi chạy ứng dụng, kiểm tra lần lượt:
-
-1. Trang chủ mở được.
-2. Tìm kiếm sản phẩm hoạt động.
-3. Category/filter/sort/pagination hoạt động.
-4. Đăng ký tạo user thật trong database.
-5. Đăng nhập/đăng xuất hoạt động.
-6. Guest bị yêu cầu đăng nhập trước khi mua.
-7. Thêm giỏ và cập nhật số lượng hoạt động.
-8. Checkout chỉ có COD.
-9. Tạo order, xem lịch sử và chi tiết đơn.
-10. Admin truy cập dashboard và quản lý đúng quyền.
-11. Tin tức mở được danh sách và bài chi tiết.
-12. Mobile 440px không có horizontal scroll.
-
-Trang hiển thị HTTP 200 chưa đủ để kết luận hoạt động; cần kiểm tra cả request, database và giao diện sau refresh.
-
----
-
-## 19. Lỗi thường gặp
-
-### `php` không được nhận diện
-
-PHP chưa được thêm vào `PATH`. Nếu dùng Laragon, mở Terminal từ Laragon hoặc thêm thư mục PHP của Laragon vào PATH.
-
-### Không kết nối được database
-
-Kiểm tra MySQL đã chạy, tên database, username, password, port và file config local.
-
-### Trang con trả 404
-
-Kiểm tra đang chạy đúng lệnh:
-
-```bash
-php -S 127.0.0.1:8000 router.php
-```
-
-Nếu dùng Apache, kiểm tra `mod_rewrite`, `.htaccess` và document root.
-
-### Chữ tiếng Việt bị lỗi
-
-Kiểm tra database/table/connection đều dùng `utf8mb4`, file PHP lưu UTF-8 và HTML có `<meta charset="UTF-8">`.
-
-### HY093: Invalid parameter number (PDO search bug)
-
-Lỗi này xảy ra khi một named placeholder như `:keyword` được dùng nhiều lần trong cùng một SQL string, hoặc khi `$params` truyền vào `execute()` chứa key không tồn tại trong SQL.
-
-Nguyên tắc bắt buộc với PDO:
-
-- Mỗi named placeholder (`:ten`) chỉ xuất hiện **một lần** trong SQL.
-- Nếu cần lọc theo cùng giá trị ở nhiều cột, dùng tên khác nhau: `:filterName`, `:filterDesc`.
-- Không nhúng cùng một đoạn SQL có placeholder vào nhiều vị trí khác nhau trong query.
-- Mỗi key trong `$params` phải có placeholder tương ứng trong SQL và ngược lại.
-
-Kiểm tra nhanh trước `execute()`:
-
-```php
-// Tạm thời thêm để debug, xóa sau khi fix
-var_dump(array_keys($params));
-echo $query;
-exit;
-```
-
-### Push bị từ chối
-
-Chạy:
-
-```bash
-git fetch origin
-git merge origin/develop
-```
-
-Giải quyết conflict, test, commit rồi push lại. Không dùng `--force`.
-
-### File local bị đưa vào commit
-
-Không commit ngay. Kiểm tra:
-
-```bash
-git status
-git restore --staged duong-dan-file
-```
-
-Sau đó bổ sung file phù hợp vào `.gitignore` nếu cần.
-
----
-
-## 20. Nguyên tắc bảo mật
-
-- Mật khẩu dùng `password_hash()` và `password_verify()`.
-- Truy vấn có input dùng PDO prepared statements.
-- Mọi form POST dùng CSRF token.
-- Giá, tồn kho, coupon và tổng đơn phải tính lại ở server.
-- Checkout COD dùng transaction và khóa tồn kho phù hợp.
-- User chỉ xem được dữ liệu của chính mình.
-- Route admin bắt buộc `role = admin`.
-- Không commit credential thật.
-
----
-
-## 21. Liên kết repository
-
-Repository:
-
-<https://github.com/ntrungz0704/TechPilot>
-
-Khi cần hỗ trợ, hãy gửi kèm:
-
-- Tên nhánh hiện tại.
-- Lệnh vừa chạy.
-- Toàn bộ thông báo lỗi.
-- File/module đang sửa.
-- Các bước để tái hiện lỗi.
-
-Không chỉ gửi ảnh trắng trang mà thiếu log hoặc URL.
+**Bạn bị cấm:**
+
+- Tạo branch mới.
+- Chạy `git switch -c`, `git checkout -b`, `git branch <tên>`.
+- Đổi tên branch.
+- Xóa branch.
+- Tạo worktree kèm branch.
+- Tự chuyển sang `main`/`develop` hoặc nhánh người khác.
+- Commit, push, merge, rebase hoặc force-push nếu chưa được yêu cầu rõ.
+
+**Nếu nhánh hiện tại không đúng nhánh được giao:** DỪNG và báo lại.
+Không được tự chọn giải pháp bằng cách tạo nhánh khác.

@@ -1,0 +1,49 @@
+#!/bin/sh
+# TechPilot — Pre-commit hook
+# Chặn commit trên nhánh không được phép và credential/file rác.
+
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+# Allowlist nhánh được phép commit (bao gồm main cho chủ sở hữu, và trung, kim, hieu, dinh)
+ALLOWED="main trung kim hieu dinh"
+
+FOUND=0
+for b in $ALLOWED; do
+    if [ "$BRANCH" = "$b" ]; then
+        FOUND=1
+        break
+    fi
+done
+
+if [ "$FOUND" = "0" ]; then
+    echo ""
+    echo "❌ CHẶN: Nhánh '$BRANCH' không nằm trong danh sách cho phép."
+    echo "   Chỉ được commit trên: main (chủ sở hữu), trung, kim, hieu, dinh."
+    echo ""
+    exit 1
+fi
+
+# Kiểm tra staged credential và file cấm
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)
+
+BLOCKED_PATTERNS="^\.env$
+^config/database\.local\.php$
+^config/vnpay\.local\.php$
+\.log$
+^scratch_.*\.php$"
+
+for pattern in $BLOCKED_PATTERNS; do
+    MATCHES=$(echo "$STAGED" | grep -E "$pattern" 2>/dev/null)
+
+    if [ -n "$MATCHES" ]; then
+        echo ""
+        echo "❌ CHẶN: File cấm đang được staged:"
+        echo "$MATCHES"
+        echo ""
+        echo "   Chạy: git restore --staged <file> để gỡ ra."
+        echo ""
+        exit 1
+    fi
+done
+
+exit 0

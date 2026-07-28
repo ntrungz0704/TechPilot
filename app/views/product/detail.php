@@ -7,28 +7,33 @@ $reviews = $reviews ?? [];
 
 require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
 
-// Unique product images helper
-function uniqueProductImages(string $mainImg, array $extraImgs, string $catSlug = ''): array {
-    $unique = [];
-    $seenUrls = [];
-    $allRaw = array_merge([$mainImg], array_map(fn($o) => is_array($o) ? ($o['image_url'] ?? $o['image_path'] ?? '') : (string)$o, $extraImgs));
-    foreach ($allRaw as $raw) {
-        $raw = trim($raw);
-        if ($raw === '') continue;
-        $resolved = productImageUrl($raw, $catSlug);
-        if (!in_array($resolved, $seenUrls)) {
-            $seenUrls[] = $resolved;
-            $unique[] = $raw;
+// Product gallery helper — ensure 4 images per product using primary image fallback
+function getGalleryFourImages(string $mainImg, array $extraImgs, string $catSlug = ''): array {
+    $list = [];
+    if (!empty($extraImgs)) {
+        foreach ($extraImgs as $item) {
+            $url = is_array($item) ? ($item['image_url'] ?? $item['image_path'] ?? '') : (string)$item;
+            $url = trim($url);
+            if ($url !== '') {
+                $list[] = $url;
+            }
         }
     }
-    return $unique;
+    if (empty($list) && trim($mainImg) !== '') {
+        $list[] = trim($mainImg);
+    }
+    $primary = $list[0] ?? trim($mainImg);
+    while (count($list) < 4 && $primary !== '') {
+        $list[] = $primary;
+    }
+    return array_slice($list, 0, 4);
 }
-$galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? ''), 0, 4);
+$galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? '');
 ?>
 
 <section class="container breadcrumb">
     <a href="<?= url('/') ?>">Trang chủ</a> <i class="fa-solid fa-chevron-right"></i>
-    <a href="<?= url('category/' . e($product['category_slug'] ?? '')) ?>"><?= e($product['category_name'] ?? 'Danh mục') ?></a> <i class="fa-solid fa-chevron-right"></i>
+    <a href="<?= url('home/search?cat=' . e($product['category_slug'] ?? '')) ?>"><?= e($product['category_name'] ?? 'Danh mục') ?></a> <i class="fa-solid fa-chevron-right"></i>
     <span><?= e($product['name']) ?></span>
 </section>
 
@@ -121,6 +126,7 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
                 </div>
                 <button type="submit" class="btn btn--outline"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
                 <button type="button" class="btn" onclick="buyNowSubmit()"><i class="fa-solid fa-bolt"></i> Mua ngay</button>
+                <button type="button" class="btn btn--light" onclick="toggleWishlist(<?= (int)($product['id'] ?? 0) ?>, this)" title="Thêm vào danh sách yêu thích" style="padding: 0 16px; border-radius: var(--radius-elem); display: flex; align-items: center; justify-content: center;"><i class="fa-regular fa-heart" style="font-size: 18px;"></i></button>
             </div>
         </form>
 
@@ -149,6 +155,37 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
     </button>
     <!-- Panel Mô tả -->
     <div class="product-tabs__panel is-active" id="tab-desc">
+        <?php 
+        $highlights = json_decode($product['highlights'] ?? '[]', true) ?: [];
+        $limitations = json_decode($product['limitations'] ?? '[]', true) ?: [];
+        ?>
+
+        <?php if (!empty($highlights)): ?>
+            <div style="background-color: rgba(10, 91, 255, 0.04); border: 1px solid rgba(10, 91, 255, 0.15); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 700; color: var(--primary, #0A5BFF); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-check"></i> Đặc điểm nổi bật
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 13.5px;">
+                    <?php foreach ($highlights as $hl): ?>
+                        <li style="margin-bottom: 4px;"><?= e($hl) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($limitations)): ?>
+            <div style="background-color: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 700; color: #D97706; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Điểm cần cân nhắc (Hạn chế)
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 13.5px;">
+                    <?php foreach ($limitations as $lim): ?>
+                        <li style="margin-bottom: 4px;"><?= e($lim) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
         <div style="line-height: 1.8; color: var(--text-primary);">
             <?php 
             $desc = $product['description'] ?? 'Đang cập nhật thông tin chi tiết.';
@@ -167,43 +204,34 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
     <!-- Panel Thông số -->
     <div class="product-tabs__panel" id="tab-specs">
         <?php 
-        $groupedSpecs = ProductSpecPresenter::getGroupedSpecs($product['category_slug'] ?? '', $specs);
+        $categorySlug = $product['category_slug'] ?? '';
+        require ROOT_PATH . '/app/views/product/partials/specifications.php';
         ?>
-        <?php foreach ($groupedSpecs as $groupTitle => $groupItems): ?>
-            <?php if (!empty($groupItems)): ?>
-                <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 20px 0 10px 0; border-left: 4px solid var(--primary); padding-left: 10px;"><?= e($groupTitle) ?></h4>
-                <table class="specs-table" style="margin-bottom: 20px;">
-                    <tbody>
-                        <?php foreach ($groupItems as $sLabel => $sValue): ?>
-                            <tr>
-                                <th style="width: 35%;"><?= e(is_string($sLabel) ? ProductSpecPresenter::getLabel($sLabel) : $sLabel) ?></th>
-                                <td><?= e($sValue) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
-        <?php endforeach; ?>
 
         <?php 
-        $fpsList = ProductIntelligenceService::estimateFps($specs, $product['category_slug'] ?? $product['category_name'] ?? '');
-        if (!empty($fpsList)): 
+        // Hiệu năng chơi game ước tính (FPS) CHỈ hiển thị cho Laptop và PC nguyên bộ có đủ CPU + GPU + RAM
+        if (in_array($categorySlug, ['laptop', 'pc'], true)):
+            $fpsList = ProductIntelligenceService::estimateFps($specs, $categorySlug);
+            if (!empty($fpsList)): 
         ?>
-            <div style="margin-top: 25px; border-top: 1px dashed var(--border); padding-top: 20px;">
-                <h4 style="font-weight: 700; margin: 0 0 15px 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-gamepad" style="color: var(--primary);"></i> Hiệu năng chơi game ước tính (FPS)
-                </h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
-                    <?php foreach ($fpsList as $game): ?>
-                        <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);"><?= $game['name'] ?></span>
-                            <strong style="font-size: 15px; color: #1E3A8A;"><?= $game['fps'] ?></strong>
-                            <span style="font-size: 11px; color: #10B981; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> <?= $game['status'] ?> (<?= $game['settings'] ?>)</span>
-                        </div>
-                    <?php endforeach; ?>
+                <div style="margin-top: 25px; border-top: 1px dashed var(--border); padding-top: 20px;">
+                    <h4 style="font-weight: 700; margin: 0 0 15px 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-gamepad" style="color: var(--primary);"></i> Hiệu năng chơi game ước tính (FPS)
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+                        <?php foreach ($fpsList as $game): ?>
+                            <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);"><?= $game['name'] ?></span>
+                                <strong style="font-size: 15px; color: #1E3A8A;"><?= $game['fps'] ?></strong>
+                                <span style="font-size: 11px; color: #10B981; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> <?= $game['status'] ?> (<?= $game['settings'] ?>)</span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            </div>
-        <?php endif; ?>
+        <?php 
+            endif;
+        endif; 
+        ?>
     </div>
 
     <!-- Accordion Trigger 2.5 (Hỏi Trợ lý AI) -->
@@ -492,4 +520,46 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/• (.*?)(<br>|$)/g, '<li style="margin-left: 15px; margin-bottom: 4px;">$1</li>');
     }
+
+    // Near-realtime Stock Polling cho trang Chi tiết sản phẩm
+    (function() {
+        const productId = <?= (int)($product['id'] ?? 0) ?>;
+        if (!productId) return;
+
+        function checkLiveStock() {
+            fetch('<?= url("api/inventory/product/") ?>' + productId)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        const stock = Number(res.data.stock || 0);
+                        const purchasable = res.data.purchasable;
+                        const qtyInput = document.getElementById('qtyInput');
+                        const qtyIncBtn = document.getElementById('qtyIncBtn');
+                        const buyBtns = document.querySelectorAll('#purchaseForm button[type="submit"], #purchaseForm button[onclick*="buyNowSubmit"]');
+
+                        if (qtyInput) {
+                            qtyInput.max = stock;
+                            if (Number(qtyInput.value) > stock) {
+                                qtyInput.value = Math.max(1, stock);
+                            }
+                        }
+
+                        if (!purchasable || stock <= 0) {
+                            if (qtyIncBtn) qtyIncBtn.disabled = true;
+                            buyBtns.forEach(btn => {
+                                btn.disabled = true;
+                                btn.style.opacity = '0.5';
+                                btn.style.cursor = 'not-allowed';
+                                if (btn.innerText.includes('Thêm') || btn.innerText.includes('Mua')) {
+                                    btn.innerHTML = '<i class="fa-solid fa-ban"></i> Hết hàng';
+                                }
+                            });
+                        }
+                    }
+                })
+                .catch(err => console.debug('Stock poll paused:', err));
+        }
+
+        setInterval(checkLiveStock, 20000);
+    })();
 </script>

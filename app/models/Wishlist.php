@@ -47,4 +47,54 @@ class Wishlist
         $stmt = $this->db->prepare('DELETE FROM wishlists WHERE user_id = :user_id AND product_id = :product_id');
         return $stmt->execute([':user_id' => $userId, ':product_id' => $productId]);
     }
+
+    /** Kiểm tra xem sản phẩm đã có trong wishlist chưa */
+    public function has(int $userId, int $productId): bool
+    {
+        if ($this->db === null) return false;
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM wishlists WHERE user_id = :user_id AND product_id = :product_id');
+        $stmt->execute([':user_id' => $userId, ':product_id' => $productId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /** Lấy danh sách ID sản phẩm yêu thích của user */
+    public function getUserWishlistIds(int $userId): array
+    {
+        if ($this->db === null) return [];
+
+        $stmt = $this->db->prepare('SELECT product_id FROM wishlists WHERE user_id = :user_id');
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /** Đếm tổng số sản phẩm yêu thích */
+    public function count(int $userId): int
+    {
+        if ($this->db === null) return 0;
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM wishlists WHERE user_id = :user_id');
+        $stmt->execute([':user_id' => $userId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    /** Bật/Tắt yêu thích (Toggle) */
+    public function toggle(int $userId, int $productId): array
+    {
+        if ($this->has($userId, $productId)) {
+            $this->remove($userId, $productId);
+            $inWishlist = false;
+            $msg = 'Đã xóa khỏi danh sách yêu thích.';
+        } else {
+            $this->add($userId, $productId);
+            $inWishlist = true;
+            $msg = 'Đã thêm vào danh sách yêu thích.';
+        }
+
+        return [
+            'inWishlist' => $inWishlist,
+            'count' => $this->count($userId),
+            'message' => $msg
+        ];
+    }
 }

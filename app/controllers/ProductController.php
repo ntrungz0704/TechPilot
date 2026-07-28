@@ -2,20 +2,32 @@
 
 class ProductController extends Controller
 {
-    /** Trang chi tiết sản phẩm: /product/detail/{slug} */
+    /** Trang chi tiết sản phẩm: GET /product/detail/{slug_or_id} */
     public function detail(string $slug = ''): void
     {
-        $productModel = $this->model('Product');
-        $reviewModel  = $this->model('Review');
-        $product = $productModel->getBySlug($slug);
-
-        if (!$product) {
-            http_response_code(404);
-            $this->render('home/404', ['pageTitle' => 'Không tìm thấy sản phẩm']);
+        if ($slug === '') {
+            $this->render('home/404');
             return;
         }
 
-        $specs = json_decode($product['specs'] ?? '{}', true) ?: [];
+        $productModel = $this->model('Product');
+        $reviewModel  = $this->model('Review');
+
+        $product = $productModel->getBySlug($slug);
+        if (!$product && is_numeric($slug)) {
+            $product = $productModel->getById((int)$slug);
+        }
+
+        if (!$product) {
+            $this->render('home/404');
+            return;
+        }
+
+        require_once ROOT_PATH . '/app/services/ProductSpecNormalizer.php';
+        $rawSpecs = json_decode($product['specs'] ?? '{}', true) ?: [];
+        $normalizedSpecData = ProductSpecNormalizer::normalize($product['category_slug'] ?? '', $rawSpecs);
+        $specs = $normalizedSpecData['attributes'] ?? [];
+
         $related = $productModel->getRelated((int)$product['category_id'], (int)$product['id'], 6, (float)($product['price'] ?? 0));
         $productImages = $productModel->getProductImages((int)$product['id']);
         $reviews = $reviewModel->getByProduct((int)$product['id']);
@@ -71,7 +83,7 @@ class ProductController extends Controller
 
         $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
         $userName = isset($_SESSION['user']['full_name']) ? $_SESSION['user']['full_name'] : '';
-        
+
         $productId = (int)($_POST['product_id'] ?? 0);
         $rating = (int)($_POST['rating'] ?? 5);
         $comment = trim($_POST['comment'] ?? '');

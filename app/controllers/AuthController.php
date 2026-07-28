@@ -67,6 +67,7 @@ class AuthController extends Controller
     /** Trang đăng ký: /auth/register */
     public function register(): void
     {
+        header('Content-Type: text/html; charset=utf-8');
         $errors = [];
         $old = ['full_name' => '', 'email' => '', 'phone' => ''];
 
@@ -106,7 +107,9 @@ class AuthController extends Controller
                 $userModel = $this->model('User');
 
                 if ($userModel->findByEmail($email)) {
-                    $errors[] = 'Email này đã được đăng ký. Vui lòng đăng nhập.';
+                    $errors[] = 'Email này đã được sử dụng. Vui lòng sử dụng Email khác hoặc Đăng nhập.';
+                } elseif ($phone !== '' && $userModel->findByPhone($phone)) {
+                    $errors[] = 'Số điện thoại này đã được đăng ký bởi một tài khoản khác.';
                 } else {
                     if ($userModel->create($fullName, $email, $phone, $password)) {
                         flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');

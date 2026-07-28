@@ -68,4 +68,36 @@ class WishlistController extends Controller
 
         $this->redirect('wishlist');
     }
+
+    public function toggle(): void
+    {
+        header('Content-Type: application/json');
+        $user = currentUser();
+        if (!$user) {
+            echo json_encode([
+                'success' => false,
+                'requireLogin' => true,
+                'message' => 'Vui lòng đăng nhập để lưu sản phẩm yêu thích.'
+            ]);
+            exit;
+        }
+
+        $productId = (int)($_POST['product_id'] ?? 0);
+        if ($productId <= 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Sản phẩm không hợp lệ.'
+            ]);
+            exit;
+        }
+
+        $res = $this->model->toggle((int)$user['id'], $productId);
+        echo json_encode([
+            'success' => true,
+            'inWishlist' => $res['inWishlist'],
+            'count' => $res['count'],
+            'message' => $res['message']
+        ]);
+        exit;
+    }
 }

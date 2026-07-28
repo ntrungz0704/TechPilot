@@ -383,24 +383,14 @@ class ProfileController extends Controller
 
         $db->beginTransaction();
         try {
+            require_once ROOT_PATH . '/app/services/InventoryService.php';
+
             // Cập nhật trạng thái đơn hàng sang cancelled
             $stmt = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = :id AND user_id = :user_id");
             $stmt->execute([':id' => $orderId, ':user_id' => (int)$user['id']]);
 
-            // Lấy các sản phẩm trong đơn để cộng lại stock
-            $stmt = $db->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = :order_id');
-            $stmt->execute([':order_id' => $orderId]);
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($items as $item) {
-                if (!empty($item['product_id'])) {
-                    $updateStockStmt = $db->prepare('UPDATE products SET stock = stock + :qty WHERE id = :pid');
-                    $updateStockStmt->execute([
-                        ':qty' => (int)$item['quantity'],
-                        ':pid' => (int)$item['product_id']
-                    ]);
-                }
-            }
+            // Hoàn kho Idempotent bằng InventoryService
+            InventoryService::releaseOrderInventory($db, $orderId, 'customer_cancelled');
 
             // Ghi nhận thông báo
             $stmt = $db->prepare('INSERT INTO notifications (user_id, title, content) VALUES (:user_id, :title, :content)');
@@ -421,6 +411,123 @@ class ProfileController extends Controller
     }
 
     /** API: Lấy thông báo chưa đọc phục vụ Realtime Polling */
+    public function addresses(): void
+    {
+        $user = $this->requireLogin();
+        $db = Database::getConnection();
+        $addresses = [];
+        if ($db) {
+            $stmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
+            $stmt->execute([':uid' => $user['id']]);
+            $addresses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $this->render('profile/addresses', [
+            'pageTitle' => 'Sổ địa chỉ',
+            'addresses' => $addresses,
+            'flashes' => pullFlashes(),
+            'user' => $user
+        ], false);
+    }
+
+    public function add_address(): void
+    {
+        $user = $this->requireLogin();
+        if (!$this->isPost()) $this->redirect('profile/addresses');
+
+        $name = trim($_POST['recipient_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $address = trim($_POST['address_line'] ?? '');
+        $isDefault = isset($_POST['is_default']) ? 1 : 0;
+
+        if ($name === '' || $phone === '' || $address === '') {
+            flash('error', 'Vui lòng điền đầy đủ thông tin.');
+            $this->redirect('profile/addresses');
+            return;
+        }
+
+        $db = Database::getConnection();
+        if ($db) {
+            if ($isDefault) {
+                $db->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = :uid")->execute([':uid' => $user['id']]);
+            } else {
+                $stmtCount = $db->prepare("SELECT COUNT(*) FROM user_addresses WHERE user_id = :uid");
+                $stmtCount->execute([':uid' => $user['id']]);
+                if ((int)$stmtCount->fetchColumn() === 0) {
+                    $isDefault = 1;
+                }
+            }
+
+            $stmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, '', :def)");
+            if ($stmt->execute([':uid' => $user['id'], ':name' => $name, ':phone' => $phone, ':addr' => $address, ':def' => $isDefault])) {
+                flash('success', 'Thêm địa chỉ thành công.');
+            } else {
+                flash('error', 'Lỗi hệ thống.');
+            }
+        }
+        $this->redirect('profile/addresses');
+    }
+
+    public function edit_address(): void
+    {
+        $user = $this->requireLogin();
+        if (!$this->isPost()) $this->redirect('profile/addresses');
+
+        $id = (int)($_POST['id'] ?? 0);
+        $name = trim($_POST['recipient_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $address = trim($_POST['address_line'] ?? '');
+        $isDefault = isset($_POST['is_default']) ? 1 : 0;
+
+        if ($id <= 0 || $name === '' || $phone === '' || $address === '') {
+            flash('error', 'Dữ liệu không hợp lệ.');
+            $this->redirect('profile/addresses');
+            return;
+        }
+
+        $db = Database::getConnection();
+        if ($db) {
+            if ($isDefault) {
+                $db->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = :uid")->execute([':uid' => $user['id']]);
+            }
+
+            $stmt = $db->prepare("UPDATE user_addresses SET recipient_name = :name, phone = :phone, address_line = :addr, is_default = :def WHERE id = :id AND user_id = :uid");
+            $stmt->execute([':name' => $name, ':phone' => $phone, ':addr' => $address, ':def' => $isDefault, ':id' => $id, ':uid' => $user['id']]);
+            flash('success', 'Cập nhật địa chỉ thành công.');
+        }
+        $this->redirect('profile/addresses');
+    }
+
+    public function delete_address(): void
+    {
+        $user = $this->requireLogin();
+        if (!$this->isPost()) $this->redirect('profile/addresses');
+
+        $id = (int)($_POST['id'] ?? 0);
+        $db = Database::getConnection();
+        if ($db && $id > 0) {
+            $stmt = $db->prepare("DELETE FROM user_addresses WHERE id = :id AND user_id = :uid");
+            $stmt->execute([':id' => $id, ':uid' => $user['id']]);
+            flash('success', 'Xóa địa chỉ thành công.');
+        }
+        $this->redirect('profile/addresses');
+    }
+
+    public function set_default_address(): void
+    {
+        $user = $this->requireLogin();
+        if (!$this->isPost()) $this->redirect('profile/addresses');
+
+        $id = (int)($_POST['id'] ?? 0);
+        $db = Database::getConnection();
+        if ($db && $id > 0) {
+            $db->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = :uid")->execute([':uid' => $user['id']]);
+            $db->prepare("UPDATE user_addresses SET is_default = 1 WHERE id = :id AND user_id = :uid")->execute([':id' => $id, ':uid' => $user['id']]);
+            flash('success', 'Đã đặt làm địa chỉ mặc định.');
+        }
+        $this->redirect('profile/addresses');
+    }
+
     public function apiUnreadNotifications(): void
     {
         header('Content-Type: application/json');

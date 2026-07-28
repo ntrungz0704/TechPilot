@@ -14,12 +14,15 @@ $url = $_GET['url'] ?? '';
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Chấp nhận cả 2 tên field: csrf_token (mặc định) và _csrf (legacy)
-    $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? '';
-    $savedToken = $_SESSION['csrf_token'] ?? '';
-    if ($token === '' || !hash_equals($savedToken, $token)) {
-        http_response_code(403);
-        die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+    // Exclude /api/chat if needed or validate token from header / JSON input
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($uri, '/api/chat') === false) {
+        $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        $savedToken = $_SESSION['csrf_token'] ?? '';
+        if ($token === '' || !hash_equals($savedToken, $token)) {
+            http_response_code(403);
+            die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+        }
     }
 }
 
@@ -36,20 +39,33 @@ $router->get('/auth/reset', 'AuthController@reset');
 $router->post('/auth/reset', 'AuthController@reset');
 
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
+$router->post('/checkout/remove_coupon', 'CheckoutController@remove_coupon');
 $router->post('/product/review', 'ProductController@review');
 $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
-$router->post('/profile/save_address', 'ProfileController@save_address');
-$router->post('/profile/delete_address', 'ProfileController@delete_address');
+$router->get('/profile/addresses', 'ProfileController@addresses');
+$router->post('/profile/add-address', 'ProfileController@add_address');
+$router->post('/profile/edit-address', 'ProfileController@edit_address');
+$router->post('/profile/delete-address', 'ProfileController@delete_address');
+$router->post('/profile/set-default-address', 'ProfileController@set_default_address');
 $router->post('/profile/repay', 'ProfileController@repay');
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
 
-// API Notifications
+// API Inventory Endpoints
+$router->get('/api/inventory/summary', 'InventoryApiController@summary');
+$router->get('/api/inventory/product/{id}', 'InventoryApiController@product');
+$router->get('/api/inventory/category/{id}', 'InventoryApiController@category');
+
+// API Notifications & Wishlist & Chatbot
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
+$router->post('/wishlist/toggle', 'WishlistController@toggle');
+$router->post('/api/chat', 'ChatbotController@apiChat');
 
 // Admin Dashboard Route
 $router->get('/admin', 'AdminController@index');
 $router->get('/admin/dashboard', 'AdminController@index');
+$router->get('/api/admin/notifications', 'AdminController@notifications');
+$router->post('/api/admin/notifications/mark_read', 'AdminController@markReadNotifications');
 
 // Admin Category Routes
 $router->get('/admin/categories', 'AdminCategoryController@index');
@@ -67,13 +83,15 @@ $router->get('/admin/brands/edit/{id}', 'AdminBrandController@edit');
 $router->post('/admin/brands/update/{id}', 'AdminBrandController@update');
 $router->post('/admin/brands/delete/{id}', 'AdminBrandController@delete');
 
-// Admin Product Routes
+// Admin Product & Inventory Routes
 $router->get('/admin/products', 'AdminProductController@index');
 $router->get('/admin/products/create', 'AdminProductController@create');
 $router->post('/admin/products/store', 'AdminProductController@store');
 $router->get('/admin/products/edit/{id}', 'AdminProductController@edit');
 $router->post('/admin/products/update/{id}', 'AdminProductController@update');
 $router->post('/admin/products/delete/{id}', 'AdminProductController@delete');
+$router->post('/admin/products/adjust-stock', 'AdminProductController@adjustStock');
+$router->get('/admin/inventory/logs', 'AdminInventoryController@logs');
 
 // Admin Order Routes
 $router->get('/admin/orders', 'AdminOrderController@index');

@@ -17,13 +17,14 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 80px;">ID</th>
+                    <th style="width: 70px;">ID</th>
                     <th>Tên danh mục</th>
                     <th>Slug</th>
-                    <th>Thứ tự sắp xếp</th>
-                    <th>Số sản phẩm</th>
+                    <th>Thứ tự</th>
+                    <th>Số mẫu</th>
+                    <th>Tổng tồn kho</th>
                     <th>Trạng thái</th>
-                    <th style="width: 200px; text-align: center;">Hành động</th>
+                    <th style="width: 180px; text-align: center;">Hành động</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,7 +35,8 @@
                             <td><strong><?= e($cat['name']) ?></strong></td>
                             <td><code><?= e($cat['slug']) ?></code></td>
                             <td><?= (int)$cat['sort_order'] ?></td>
-                            <td><span class="badge badge--success" style="background-color: #E0F2FE; color: #0369A1;"><?= (int)$cat['product_count'] ?> sản phẩm</span></td>
+                            <td><span class="badge" style="background-color: #F3E8FF; color: #6B21A8; font-weight: 700;"><?= (int)($cat['product_models'] ?? $cat['product_count'] ?? 0) ?> mẫu</span></td>
+                            <td><span class="badge" style="background-color: #E0F2FE; color: #0369A1; font-weight: 700;"><?= number_format((int)($cat['inventory_units'] ?? 0)) ?> đơn vị</span></td>
                             <td>
                                 <span class="badge <?= $cat['status'] === 'active' ? 'badge--success' : 'badge--danger' ?>">
                                     <?= $cat['status'] === 'active' ? 'Đang hoạt động' : 'Tạm khoá' ?>

@@ -14,7 +14,7 @@ class HomeController extends Controller
             'isHome'                 => true,
             'pageTitle'              => 'Trang chủ - TechPilot',
             'categories'             => $productModel->getCategories(),
-            'flashSale'              => $productModel->getFlashSale(6),
+            'flashSale'              => $productModel->getFlashSale(20),
             'featuredProducts'       => $productModel->getFeaturedProducts(6),
             'newProducts'            => $productModel->getNewProducts(6),
             'promoProducts'          => $productModel->getPromoProducts(6),
@@ -63,18 +63,44 @@ class HomeController extends Controller
         $sort = $_GET['sort'] ?? ($keyword !== '' ? 'relevance' : 'newest');
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 24;
-        $offset = ($page - 1) * $limit;
 
         $productModel = $this->model('Product');
 
-        $products = $productModel->search(
-            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
-        );
+        // 1. Đếm tổng kết quả trước
         $totalResults = $productModel->countSearch(
             $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
         );
 
+        // 2. Tính toán số trang và Clamp page nếu xơ vơ vượt quá
+        $totalPages = max(1, (int)ceil($totalResults / $limit));
+        if ($page > $totalPages && $totalResults > 0) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $limit;
+
+        // 3. Query danh sách sản phẩm theo Search Plan thống nhất
+        $searchResult = $productModel->search(
+            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
+        );
+
+        $searchError = false;
+        $products = [];
+
+        if ($searchResult === false) {
+            $searchError = true;
+            $products = [];
+            error_log("SEARCH_ERROR: Query failed for q={$keyword}, cat={$categorySlug}");
+        } else {
+            $products = $searchResult;
+        }
+
+        // 4. Invariant Assertion Check
+        if ($totalResults > 0 && empty($products) && !$searchError) {
+            error_log("SEARCH_RESULT_INVARIANT_BROKEN: totalResults={$totalResults}, products empty, page={$page}, limit={$limit}, offset={$offset}, q={$keyword}, cat={$categorySlug}");
+        }
+
         require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+        $isStopwordQuery = CatalogGroupService::isPureStopword($keyword) && empty($categorySlug);
 
         $pageTitle = 'Kết quả tìm kiếm';
         if ($promoOnly) {
@@ -89,52 +115,31 @@ class HomeController extends Controller
         }
 
         $this->render('home/search', [
-            'pageTitle'    => $pageTitle,
-            'keyword'      => $keyword,
-            'categorySlug' => $categorySlug,
-            'brandSlug'    => $brandSlug,
-            'minPrice'     => $minPrice,
-            'maxPrice'     => $maxPrice,
-            'inStockOnly'  => $inStockOnly,
-            'promoOnly'    => $promoOnly,
-            'sort'         => $sort,
-            'page'         => $page,
-            'limit'        => $limit,
-            'products'     => $products,
-            'categories'   => $productModel->getCategories(),
-            'totalResults' => $totalResults,
+            'pageTitle'        => $pageTitle,
+            'keyword'          => $keyword,
+            'categorySlug'     => $categorySlug,
+            'brandSlug'        => $brandSlug,
+            'minPrice'         => $minPrice,
+            'maxPrice'         => $maxPrice,
+            'inStockOnly'      => $inStockOnly,
+            'promoOnly'        => $promoOnly,
+            'sort'             => $sort,
+            'page'             => $page,
+            'limit'            => $limit,
+            'products'         => $products,
+            'categories'       => $productModel->getCategories(),
+            'totalResults'     => $totalResults,
+            'isStopwordQuery'  => $isStopwordQuery,
+            'searchError'      => $searchError,
         ]);
     }
 
 
-    /** Trang danh mục */
+    /** Trang danh mục — redirect sang search để dùng chung giao diện */
     public function category(string $slug = ''): void
     {
-        $productModel = $this->model('Product');
-        $products = $productModel->getByCategory($slug, 24);
-        $categories = $productModel->getCategories();
-
-        $categoryName = '';
-        foreach ($categories as $cat) {
-            if ($cat['slug'] === $slug) {
-                $categoryName = $cat['name'];
-                break;
-            }
-        }
-
-        if (empty($categoryName)) {
-            $this->notFound();
-            return;
-        }
-
-        $this->render('home/search', [
-            'pageTitle'    => $categoryName,
-            'keyword'      => '',
-            'categorySlug' => $slug,
-            'products'     => $products,
-            'categories'   => $categories,
-            'totalResults' => count($products),
-        ]);
+        header('Location: ' . url('home/search?cat=' . urlencode($slug)), true, 301);
+        exit;
     }
 
     /** Tìm kiếm AJAX realtime */

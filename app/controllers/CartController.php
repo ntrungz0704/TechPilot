@@ -46,9 +46,10 @@ class CartController extends Controller
         $cartId = $this->getOrCreateCartId($userId, $db);
         
         $stmt = $db->prepare("
-            SELECT ci.product_id, ci.quantity, p.name, p.price, p.slug, p.image, p.stock
+            SELECT ci.product_id, ci.quantity, p.name, p.price, p.slug, p.image, p.stock, c.slug as category_slug
             FROM cart_items ci
             JOIN products p ON ci.product_id = p.id
+            LEFT JOIN categories c ON p.category_id = c.id
             WHERE ci.cart_id = :cart_id
         ");
         $stmt->execute([':cart_id' => $cartId]);
@@ -59,6 +60,7 @@ class CartController extends Controller
             $sessionCart[(int)$item['product_id']] = [
                 'product_id' => (int)$item['product_id'],
                 'slug' => $item['slug'],
+                'category_slug' => $item['category_slug'] ?? '',
                 'name' => $item['name'],
                 'price' => (float)$item['price'],
                 'quantity' => (int)$item['quantity'],
@@ -124,7 +126,7 @@ class CartController extends Controller
             $this->redirect('cart');
         }
 
-        if (!verify_csrf_token()) {
+        if (!verifyCsrf()) {
             flash('error', 'Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng thử lại.');
             $this->redirect('cart');
             return;

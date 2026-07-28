@@ -15,16 +15,15 @@
 </div>
 
 <!-- LƯỚI THẺ THỐNG KÊ (STATS GRID) -->
-<div class="stats-grid">
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
     <!-- Stat 1: Doanh thu COD -->
     <div class="stat-card">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
             <div>
-                <span class="stat-label">Doanh thu COD <i class="fa-solid fa-circle-info" title="Tổng doanh thu từ đơn hàng hoàn thành" style="font-size: 11px; cursor: help;"></i></span>
+                <span class="stat-label">Doanh thu <i class="fa-solid fa-circle-info" title="Doanh thu từ các đơn hàng đã hoàn thành" style="font-size: 11px; cursor: help;"></i></span>
                 <strong class="stat-value"><?= formatPrice($stats['total_revenue']) ?></strong>
                 <div class="stat-trend">
-                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 18,6%</span>
-                    <span class="trend-text">so với 7 ngày trước</span>
+                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px;"><i class="fa-solid fa-check"></i> Đã hoàn thành</span>
                 </div>
             </div>
             <div class="stat-icon-wrapper stat-icon--blue">
@@ -33,53 +32,66 @@
         </div>
     </div>
 
-    <!-- Stat 2: Đơn hàng -->
+    <!-- Stat 2: Tổng mẫu sản phẩm -->
     <div class="stat-card">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
             <div>
-                <span class="stat-label">Đơn hàng <i class="fa-solid fa-circle-info" title="Tổng số lượng đơn hàng" style="font-size: 11px; cursor: help;"></i></span>
-                <strong class="stat-value"><?= number_format($stats['total_orders']) ?></strong>
+                <span class="stat-label">Tổng mẫu sản phẩm <i class="fa-solid fa-circle-info" title="Số model/SKU trong hệ thống" style="font-size: 11px; cursor: help;"></i></span>
+                <strong class="stat-value" id="val_total_product_models"><?= number_format($stats['total_product_models']) ?></strong>
                 <div class="stat-trend">
-                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 12,3%</span>
-                    <span class="trend-text">so với 7 ngày trước</span>
-                </div>
-            </div>
-            <div class="stat-icon-wrapper stat-icon--green">
-                <i class="fa-solid fa-cart-shopping"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Stat 3: Khách hàng -->
-    <div class="stat-card">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-            <div>
-                <span class="stat-label">Khách hàng <i class="fa-solid fa-circle-info" title="Tổng số tài khoản đã đăng ký" style="font-size: 11px; cursor: help;"></i></span>
-                <strong class="stat-value"><?= number_format($stats['total_users']) ?></strong>
-                <div class="stat-trend">
-                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 9,7%</span>
-                    <span class="trend-text">so với 7 ngày trước</span>
-                </div>
-            </div>
-            <div class="stat-icon-wrapper stat-icon--orange">
-                <i class="fa-solid fa-users"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Stat 4: Sản phẩm -->
-    <div class="stat-card">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-            <div>
-                <span class="stat-label">Sản phẩm <i class="fa-solid fa-circle-info" title="Tổng số mặt hàng trong danh mục" style="font-size: 11px; cursor: help;"></i></span>
-                <strong class="stat-value"><?= number_format($stats['total_products']) ?></strong>
-                <div class="stat-trend">
-                    <span class="trend-badge" style="color: #10B981; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-up" style="font-size: 11px;"></i> 5,4%</span>
-                    <span class="trend-text">so với 7 ngày trước</span>
+                    <span class="trend-text">Đang bán: <strong id="val_active_product_models" style="color: var(--primary);"><?= number_format($stats['active_product_models']) ?></strong> mẫu</span>
                 </div>
             </div>
             <div class="stat-icon-wrapper stat-icon--purple">
-                <i class="fa-solid fa-box"></i>
+                <i class="fa-solid fa-cubes"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 3: Tổng đơn vị tồn kho -->
+    <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+                <span class="stat-label">Tổng đơn vị tồn kho <i class="fa-solid fa-circle-info" title="Tổng số lượng sản phẩm vật lý còn lại trong kho" style="font-size: 11px; cursor: help;"></i></span>
+                <strong class="stat-value" id="val_total_inventory_units" style="color: #2563EB;"><?= number_format($stats['total_inventory_units']) ?></strong>
+                <div class="stat-trend">
+                    <span class="trend-text">Đã bán: <strong id="val_total_sold_units" style="color: #10B981;"><?= number_format($stats['total_sold_units']) ?></strong> đơn vị</span>
+                </div>
+            </div>
+            <div class="stat-icon-wrapper stat-icon--green">
+                <i class="fa-solid fa-warehouse"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 4: Sắp hết hàng -->
+    <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+                <span class="stat-label">Sắp hết hàng <i class="fa-solid fa-circle-info" title="Số mẫu có tồn kho từ 1 đến 9 sản phẩm" style="font-size: 11px; cursor: help;"></i></span>
+                <strong class="stat-value" id="val_low_stock_models" style="color: #D97706;"><?= number_format($stats['low_stock_models']) ?></strong>
+                <div class="stat-trend">
+                    <span class="trend-text" style="color: #D97706;">Tồn từ 1 - 9 sản phẩm</span>
+                </div>
+            </div>
+            <div class="stat-icon-wrapper stat-icon--orange">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 5: Hết hàng -->
+    <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+                <span class="stat-label">Hết hàng <i class="fa-solid fa-circle-info" title="Số mẫu có tồn kho bằng 0" style="font-size: 11px; cursor: help;"></i></span>
+                <strong class="stat-value" id="val_out_of_stock_models" style="color: #DC2626;"><?= number_format($stats['out_of_stock_models']) ?></strong>
+                <div class="stat-trend">
+                    <span class="trend-text" style="color: #DC2626;">Cần nhập thêm hàng</span>
+                </div>
+            </div>
+            <div class="stat-icon-wrapper" style="background-color: #FEF2F2; color: #DC2626;">
+                <i class="fa-solid fa-ban"></i>
             </div>
         </div>
     </div>
@@ -277,7 +289,7 @@
         <div class="low-stock-list" style="display: flex; flex-direction: column; gap: 12px;">
             <?php if (!empty($lowStockProducts)): ?>
                 <?php foreach (array_slice($lowStockProducts, 0, 7) as $prod): ?>
-                    <div class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: #FFFFFF; transition: var(--transition);">
+                    <a href="<?= url('admin/products/edit/' . (int)$prod['id']) ?>" class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: #FFFFFF; transition: var(--transition); text-decoration: none;">
                         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
                             <!-- Product Mini Image -->
                             <img src="<?= productImageUrl($prod['image'] ?? '', $prod['name'] ?? '') ?>" alt="<?= e($prod['name']) ?>" style="width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: #FFFFFF; flex-shrink: 0;" onerror="this.src='https://placehold.co/100x100?text=SP'">
@@ -289,7 +301,7 @@
                         <div style="text-align: right; flex-shrink: 0;">
                             <span class="badge badge--danger" style="background-color: #FEE2E2; color: #EF4444; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 700; display: inline-block;">Còn <?= (int)$prod['stock'] ?></span>
                         </div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="empty-state" style="border: 1px dashed var(--border); border-radius: var(--radius-elem); padding: 30px; text-align: center; color: var(--text-secondary);">
@@ -405,3 +417,46 @@
         }
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let inventoryPollTimer = null;
+
+    function fetchInventorySummary() {
+        fetch('<?= url("api/inventory/summary") ?>')
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    const d = res.data;
+                    const elTotalModels = document.getElementById('val_total_product_models');
+                    const elActiveModels = document.getElementById('val_active_product_models');
+                    const elInventoryUnits = document.getElementById('val_total_inventory_units');
+                    const elLowStock = document.getElementById('val_low_stock_models');
+                    const elOutOfStock = document.getElementById('val_out_of_stock_models');
+                    const elTotalSold = document.getElementById('val_total_sold_units');
+
+                    if (elTotalModels) elTotalModels.innerText = Number(d.total_product_models).toLocaleString('vi-VN');
+                    if (elActiveModels) elActiveModels.innerText = Number(d.active_product_models).toLocaleString('vi-VN');
+                    if (elInventoryUnits) elInventoryUnits.innerText = Number(d.total_inventory_units).toLocaleString('vi-VN');
+                    if (elLowStock) elLowStock.innerText = Number(d.low_stock_models).toLocaleString('vi-VN');
+                    if (elOutOfStock) elOutOfStock.innerText = Number(d.out_of_stock_models).toLocaleString('vi-VN');
+                    if (elTotalSold) elTotalSold.innerText = Number(d.total_sold_units).toLocaleString('vi-VN');
+                }
+            })
+            .catch(err => console.debug('Inventory poll paused:', err));
+    }
+
+    // Polling mỗi 10 giây
+    inventoryPollTimer = setInterval(fetchInventorySummary, 10000);
+
+    // Tự động dừng polling khi tab bị ẩn để tiết kiệm tài nguyên
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (inventoryPollTimer) clearInterval(inventoryPollTimer);
+        } else {
+            fetchInventorySummary();
+            inventoryPollTimer = setInterval(fetchInventorySummary, 10000);
+        }
+    });
+});
+</script>

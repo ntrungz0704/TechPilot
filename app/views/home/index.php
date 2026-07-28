@@ -98,7 +98,7 @@ $reviews = $reviews ?? [];
                 <div class="carousel-slide__price">
                     Chỉ từ <strong>125.000.000đ</strong>
                 </div>
-                <a href="<?= url('product/detail/pc-gaming-ultra') ?>" class="btn btn--light">Build ngay <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="<?= url('build-pc') ?>" class="btn btn--light">Build ngay <i class="fa-solid fa-arrow-right"></i></a>
             </div>
         </div>
 
@@ -250,12 +250,84 @@ $reviews = $reviews ?? [];
         </a>
     </header>
 
-    <div class="product-grid product-grid--6 flash-sale-products">
-        <?php foreach ($flashSale as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div style="position: relative;" class="flash-sale-wrapper">
+        <!-- Navigation Arrows -->
+        <button type="button" class="flash-arrow flash-prev" id="flashPrevBtn" aria-label="Sản phẩm trước" style="position: absolute; left: -18px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: #FFFFFF; color: var(--text-primary); font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button type="button" class="flash-arrow flash-next" id="flashNextBtn" aria-label="Sản phẩm tiếp" style="position: absolute; right: -18px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: #FFFFFF; color: var(--text-primary); font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+
+        <div id="flashSaleTrack" class="flash-sale-products" style="display: flex; gap: 16px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; padding: 4px 0;">
+            <?php foreach ($flashSale as $p): ?>
+                <div style="flex: 0 0 calc((100% - 80px) / 6); min-width: 190px;">
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const track = document.getElementById('flashSaleTrack');
+    const prevBtn = document.getElementById('flashPrevBtn');
+    const nextBtn = document.getElementById('flashNextBtn');
+    if (!track || !prevBtn || !nextBtn) return;
+
+    const scrollStep = 220;
+    let autoPlayTimer = null;
+
+    // Tính chính xác chiều rộng 1 card (bao gồm gap)
+    function getCardScrollWidth() {
+        const firstCard = track.children[0];
+        if (!firstCard) return scrollStep;
+        const cardRect = firstCard.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(track).gap) || 16;
+        return cardRect.width + gap;
+    }
+
+    function scrollNext() {
+        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+            track.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+            track.scrollBy({ left: getCardScrollWidth(), behavior: 'smooth' });
+        }
+    }
+
+    function scrollPrev() {
+        if (track.scrollLeft <= 10) {
+            track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
+        } else {
+            track.scrollBy({ left: -getCardScrollWidth(), behavior: 'smooth' });
+        }
+    }
+
+    nextBtn.addEventListener('click', function() {
+        scrollNext();
+        resetAutoPlay();
+    });
+
+    prevBtn.addEventListener('click', function() {
+        scrollPrev();
+        resetAutoPlay();
+    });
+
+    function startAutoPlay() {
+        autoPlayTimer = setInterval(scrollNext, 3500);
+    }
+
+    function resetAutoPlay() {
+        clearInterval(autoPlayTimer);
+        startAutoPlay();
+    }
+
+    startAutoPlay();
+    track.addEventListener('mouseenter', () => clearInterval(autoPlayTimer));
+    track.addEventListener('mouseleave', startAutoPlay);
+});
+</script>
 <?php endif; ?>
 
 <?php if (!empty($featuredProducts)): ?>
@@ -281,33 +353,33 @@ $reviews = $reviews ?? [];
     </div>
     <?php
     $popularCategoriesList = [
-        ['name' => 'Laptop', 'slug' => 'laptop', 'query' => 'laptop'],
-        ['name' => 'PC', 'slug' => 'pc', 'query' => 'pc'],
-        ['name' => 'Màn hình', 'slug' => 'man-hinh', 'query' => 'man-hinh'],
-        ['name' => 'Mainboard', 'slug' => 'mainboard', 'query' => 'mainboard'],
-        ['name' => 'CPU', 'slug' => 'cpu', 'query' => 'cpu'],
-        ['name' => 'VGA', 'slug' => 'vga', 'query' => 'vga'],
-        ['name' => 'RAM', 'slug' => 'ram', 'query' => 'ram'],
-        ['name' => 'Ổ cứng', 'slug' => 'o-cung', 'query' => 'ssd'],
-        ['name' => 'Case', 'slug' => 'case', 'query' => 'case'],
-        ['name' => 'Tản nhiệt', 'slug' => 'tan-nhiet', 'query' => 'tan-nhiet'],
-        ['name' => 'Nguồn', 'slug' => 'nguon', 'query' => 'psu'],
-        ['name' => 'Bàn phím', 'slug' => 'ban-phim', 'query' => 'ban+phim'],
-        ['name' => 'Chuột', 'slug' => 'chuot', 'query' => 'chuot'],
-        ['name' => 'Ghế', 'slug' => 'ghe', 'query' => 'ghe'],
-        ['name' => 'Tai nghe', 'slug' => 'tai-nghe', 'query' => 'tai+nghe'],
-        ['name' => 'Loa', 'slug' => 'loa', 'query' => 'loa'],
-        ['name' => 'Console', 'slug' => 'console', 'query' => 'console'],
-        ['name' => 'Phụ kiện', 'slug' => 'phu-kien', 'query' => 'cap'],
-        ['name' => 'Thiết bị VP', 'slug' => 'thiet-bi-vp', 'query' => 'printer'],
-        ['name' => 'Sạc DP', 'slug' => 'sac-dp', 'query' => 'sac+du+phong']
+        ['name' => 'Laptop', 'slug' => 'laptop', 'cat' => 'laptop'],
+        ['name' => 'PC', 'slug' => 'pc', 'cat' => 'pc'],
+        ['name' => 'Màn hình', 'slug' => 'man-hinh', 'cat' => 'monitor'],
+        ['name' => 'Mainboard', 'slug' => 'mainboard', 'cat' => 'mainboard'],
+        ['name' => 'CPU', 'slug' => 'cpu', 'cat' => 'cpu'],
+        ['name' => 'VGA', 'slug' => 'vga', 'cat' => 'vga'],
+        ['name' => 'RAM', 'slug' => 'ram', 'cat' => 'ram'],
+        ['name' => 'Ổ cứng', 'slug' => 'o-cung', 'cat' => 'storage'],
+        ['name' => 'Case', 'slug' => 'case', 'cat' => 'case'],
+        ['name' => 'Tản nhiệt', 'slug' => 'tan-nhiet', 'cat' => 'cooling'],
+        ['name' => 'Nguồn', 'slug' => 'nguon', 'cat' => 'psu'],
+        ['name' => 'Bàn phím', 'slug' => 'ban-phim', 'cat' => 'keyboard'],
+        ['name' => 'Chuột', 'slug' => 'chuot', 'cat' => 'mouse'],
+        ['name' => 'Ghế', 'slug' => 'ghe', 'cat' => 'chair'],
+        ['name' => 'Tai nghe', 'slug' => 'tai-nghe', 'cat' => 'headset'],
+        ['name' => 'Loa', 'slug' => 'loa', 'cat' => 'speaker'],
+        ['name' => 'Console', 'slug' => 'console', 'cat' => 'console'],
+        ['name' => 'Phụ kiện', 'slug' => 'phu-kien', 'cat' => 'accessories'],
+        ['name' => 'Thiết bị VP', 'slug' => 'thiet-bi-vp', 'cat' => 'office-equipment'],
+        ['name' => 'Sạc DP', 'slug' => 'sac-dp', 'cat' => 'power-bank']
     ];
     ?>
     <div class="category-strip">
         <?php foreach ($popularCategoriesList as $item): ?>
-            <a href="<?= url('home/search?q=' . urlencode($item['query'])) ?>" class="category-strip__item">
+            <a href="<?= url('home/search?cat=' . urlencode($item['cat'])) ?>" class="category-strip__item">
                 <div class="category-strip__icon">
-                    <img src="<?= url('assets/images/categories/' . e($item['slug']) . '.png') ?>" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
+                    <img src="<?= url('assets/images/categories/category-' . e($item['cat']) . '.png') ?>" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
                 </div>
                 <span><?= e($item['name']) ?></span>
             </a>
@@ -671,13 +743,25 @@ $reviews = $reviews ?? [];
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
                 $slug = $brand['slug'] ?? '';
-                $logoFile = !empty($slug) ? $slug . '.png' : str_replace(['-logo.png', '.png'], ['.png', '.png'], $brand['logo'] ?? '');
-                if (!str_contains($logoFile, '.')) {
-                    $logoFile .= '.png';
+                // Ưu tiên SVG (text logo sạch, nền trong suốt), fallback PNG, cuối cùng hiển thị text
+                $svgFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.svg';
+                $pngFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.png';
+                $hasImage = false;
+                $logoUrl = '';
+                if (!empty($slug) && file_exists($svgFile)) {
+                    $logoUrl = url('assets/images/brands/' . $slug . '.svg');
+                    $hasImage = true;
+                } elseif (!empty($slug) && file_exists($pngFile)) {
+                    $logoUrl = url('assets/images/brands/' . $slug . '.png');
+                    $hasImage = true;
                 }
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
+                    <?php if ($hasImage): ?>
+                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
+                    <?php else: ?>
+                        <span style="font-size:16px;font-weight:800;color:#374151;letter-spacing:0.5px;"><?= e($brand['name']) ?></span>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>

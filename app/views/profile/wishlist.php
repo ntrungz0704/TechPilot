@@ -7,6 +7,7 @@
             <h3 style="font-weight: 700; margin-bottom: 20px; font-size: 16px;"><i class="fa-solid fa-user-gear" style="margin-right: 8px; color: var(--primary);"></i> Quản lý tài khoản</h3>
             <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; font-size: 14.5px;">
                 <li><a href="<?= url('profile') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-user" style="width: 20px;"></i> Hồ sơ cá nhân</a></li>
+                <li><a href="<?= url('profile/addresses') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-location-dot" style="width: 20px;"></i> Quản lý địa chỉ</a></li>
                 <li><a href="<?= url('profile/orders') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-box-open" style="width: 20px;"></i> Đơn hàng của tôi</a></li>
                 <li><a href="<?= url('profile/wishlist') ?>" style="text-decoration: none; color: var(--primary); font-weight: 700;"><i class="fa-solid fa-heart" style="width: 20px;"></i> Sản phẩm yêu thích</a></li>
                 <li><a href="<?= url('profile/notifications') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-bell" style="width: 20px;"></i> Thông báo hệ thống</a></li>
@@ -54,7 +55,8 @@
 
                             <a href="<?= url('product/detail/' . e($p['slug'])) ?>" style="text-decoration: none; color: inherit; display: block;">
                                 <div class="product-card__image-wrapper" style="height: 160px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
-                                    <img src="<?= url('assets/images/' . e($p['image'])) ?>" alt="<?= e($p['name']) ?>" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    <?php $imageUrl = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $p['name'] ?? '', (int)($p['id'] ?? 0)); ?>
+                                    <img src="<?= e($imageUrl) ?>" alt="<?= e($p['name']) ?>" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                 </div>
                                 <div class="product-card__info">
                                     <span class="product-card__brand" style="font-size: 11px; text-transform: uppercase; color: var(--primary); font-weight: 700; display: block; margin-bottom: 4px;"><?= e($p['brand_name']) ?></span>

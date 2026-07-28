@@ -12,11 +12,23 @@ class AdminCategoryController extends Controller
         $categories = [];
 
         if ($db) {
+            $sql = "
+                SELECT 
+                    c.*,
+                    COUNT(DISTINCT p.id) AS product_models,
+                    COALESCE(SUM(CASE WHEN p.status = 'active' THEN p.stock ELSE 0 END), 0) AS inventory_units
+                FROM categories c
+                LEFT JOIN categories child ON child.parent_id = c.id
+                LEFT JOIN products p ON (p.category_id = c.id OR p.category_id = child.id)
+            ";
+
             if ($search !== '') {
-                $stmt = $db->prepare('SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count FROM categories c WHERE c.name LIKE :search ORDER BY c.sort_order ASC, c.id DESC');
+                $sql .= " WHERE c.name LIKE :search GROUP BY c.id ORDER BY c.sort_order ASC, c.id DESC";
+                $stmt = $db->prepare($sql);
                 $stmt->execute([':search' => '%' . $search . '%']);
             } else {
-                $stmt = $db->prepare('SELECT c.*, (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count FROM categories c ORDER BY c.sort_order ASC, c.id DESC');
+                $sql .= " GROUP BY c.id ORDER BY c.sort_order ASC, c.id DESC";
+                $stmt = $db->prepare($sql);
                 $stmt->execute();
             }
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
