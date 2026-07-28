@@ -109,7 +109,6 @@ CREATE TABLE `cart_items` (
 
 LOCK TABLES `cart_items` WRITE;
 /*!40000 ALTER TABLE `cart_items` DISABLE KEYS */;
-INSERT INTO `cart_items` VALUES (2,2,3,1,'2026-07-21 18:42:12','2026-07-21 18:42:12');
 /*!40000 ALTER TABLE `cart_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -141,7 +140,7 @@ CREATE TABLE `carts` (
 
 LOCK TABLES `carts` WRITE;
 /*!40000 ALTER TABLE `carts` DISABLE KEYS */;
-INSERT INTO `carts` VALUES (1,2,NULL,'converted',NULL,'2026-07-21 18:41:16','2026-07-27 18:15:23'),(2,2,NULL,'active',NULL,'2026-07-21 18:42:12','2026-07-27 18:15:23'),(3,1,NULL,'active',NULL,'2026-07-21 18:51:32','2026-07-21 18:51:32');
+INSERT INTO `carts` VALUES (3,1,NULL,'active',NULL,'2026-07-21 18:51:32','2026-07-21 18:51:32');
 /*!40000 ALTER TABLE `carts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -338,7 +337,6 @@ CREATE TABLE `notifications` (
 
 LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
-INSERT INTO `notifications` VALUES (1,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Hoàn thành (Completed).',1,'2026-07-21 18:50:51'),(2,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Đã xác nhận (Confirmed).',1,'2026-07-21 18:51:05'),(3,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Hoàn thành (Completed).',1,'2026-07-21 18:51:56'),(4,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Đã xác nhận (Confirmed).',1,'2026-07-21 18:53:58'),(5,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Chờ xử lý (Pending).',1,'2026-07-21 18:58:25'),(6,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Đã xác nhận (Confirmed).',1,'2026-07-21 18:58:32'),(7,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Đang xử lý (Processing).',1,'2026-07-21 19:01:33'),(8,2,'Cập nhật đơn hàng #TP-20260721184126-BC8B72','Đơn hàng #TP-20260721184126-BC8B72 của bạn đã được chuyển sang trạng thái: Đã huỷ (Cancelled).',0,'2026-07-27 18:14:14');
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -423,7 +421,7 @@ CREATE TABLE `orders` (
 
 LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` VALUES (1,'TP-20260721184126-BC8B72',2,NULL,'Nguyễn Phạm Thành Trung','0983312219',NULL,'120/25/8 Lê Văn Quới','ádadasd','VNPAY','paid',NULL,NULL,30000,5875000,0,5905000,'cancelled',NULL,'2026-07-21 18:41:26','2026-07-27 18:15:23');
+INSERT INTO `orders` VALUES (1,'TP-20260721184126-BC8B72',NULL,NULL,'Nguyễn Phạm Thành Trung','0983312219',NULL,'120/25/8 Lê Văn Quới','ádadasd','VNPAY','paid',NULL,NULL,30000,5875000,0,5905000,'cancelled',NULL,'2026-07-21 18:41:26','2026-07-27 18:15:23');
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -663,7 +661,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   KEY `idx_users_role_status` (`role`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -672,7 +670,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'TechPilot Administrator','admin@techpilot.vn','0901234567','$2y$12$DYww/gB8eNZbFm7ZFRxyQu7AiUoF1RaSlt2.Bpetlfp9G./zotiz2','admin',NULL,'active','2026-07-26 13:45:00','2026-07-26 13:45:00',NULL,NULL,NULL),(2,'Nguyễn Phạm Thành Trung','ntrungz0704@gmail.com','+84983312219','$2y$12$ojK6zL1RMO/jxf/6pEUh3O9oy2DQhI9sAhwzTy/YEro5o08YwUyQ2','customer',NULL,'active','2026-07-26 17:50:00','2026-07-26 17:50:00',NULL,NULL,NULL);
+INSERT INTO `users` VALUES (1,'TechPilot Administrator','admin@techpilot.vn','0901234567','$2y$12$DYww/gB8eNZbFm7ZFRxyQu7AiUoF1RaSlt2.Bpetlfp9G./zotiz2','admin',NULL,'active','2026-07-26 13:45:00','2026-07-26 13:45:00',NULL,NULL,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -703,7 +701,6 @@ CREATE TABLE `wishlists` (
 
 LOCK TABLES `wishlists` WRITE;
 /*!40000 ALTER TABLE `wishlists` DISABLE KEYS */;
-INSERT INTO `wishlists` VALUES (2,2,100,'2026-07-27 18:07:08');
 /*!40000 ALTER TABLE `wishlists` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -720,4 +717,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-28  1:37:06
+-- Dump completed on 2026-07-28  8:27:00
