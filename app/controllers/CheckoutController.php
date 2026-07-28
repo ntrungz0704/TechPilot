@@ -30,27 +30,60 @@ class CheckoutController extends Controller
                 'price' => (float)($item['price'] ?? 0),
                 'quantity' => $quantity,
                 'line_total' => $lineTotal,
+                'image' => $item['image'] ?? '',
+                'slug' => $item['slug'] ?? '',
+                'category_slug' => $item['category_slug'] ?? '',
             ];
         }
 
-        $shipping = $subtotal > 0 ? 30000 : 0;
-        $total = $subtotal + $shipping;
+        // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
 
+        // Xử lý mã giảm giá đang được áp dụng từ session (nếu có)
+        $appliedCoupon = $_SESSION['applied_coupon'] ?? null;
+        $discountAmount = 0.0;
+        if ($appliedCoupon) {
+            $discountAmount = (float)($appliedCoupon['discount'] ?? 0);
+            if ($discountAmount > $subtotal) {
+                $discountAmount = $subtotal;
+            }
+        }
 
+        $total = max(0.0, $subtotal - $discountAmount + $shipping);
 
         // Sinh submit token để chống double submit đơn hàng
         if (empty($_SESSION['submit_token'])) {
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
         }
 
+        // Lấy danh sách Mã giảm giá khả dụng
+        $availableCoupons = [];
+        $savedAddresses = [];
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if ($db) {
+            $cStmt = $db->prepare("SELECT * FROM coupons WHERE status = 'active' AND start_date <= NOW() AND end_date >= NOW() ORDER BY min_order_value ASC");
+            $cStmt->execute();
+            $availableCoupons = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $addrStmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
+            $addrStmt->execute([':uid' => $user['id']]);
+            $savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         $this->render('checkout', [
             'pageTitle' => 'Thanh toán',
             'cartItems' => $items,
             'subtotal' => $subtotal,
+            'discountAmount' => $discountAmount,
+            'appliedCoupon' => $appliedCoupon,
             'shipping' => $shipping,
             'total' => $total,
-
+            'availableCoupons' => $availableCoupons,
+            'savedAddresses' => $savedAddresses
         ]);
+
+        unset($_SESSION['checkout_error']);
     }
 
     public function apply_coupon(): void
@@ -66,7 +99,18 @@ class CheckoutController extends Controller
         $subtotal = (float)($_POST['subtotal'] ?? 0);
 
         if ($code === '') {
-            echo json_encode(['success' => false, 'message' => 'Vui lòng nhập mã giảm giá.']);
+            unset($_SESSION['applied_coupon']);
+            $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+            $total = $subtotal + $shipping;
+            echo json_encode([
+                'success' => true,
+                'message' => 'Đã gỡ mã giảm giá.',
+                'discount' => 0,
+                'discount_formatted' => '-0đ',
+                'new_total' => $total,
+                'new_total_formatted' => formatPrice($total),
+                'removed' => true
+            ]);
             exit;
         }
 
@@ -94,9 +138,26 @@ class CheckoutController extends Controller
             exit;
         }
 
+        // Kiểm tra xem mỗi tài khoản đã dùng mã này quá số lần cho phép chưa
+        $user = currentUser();
+        if ($user) {
+            $userUsageStmt = $db->prepare("
+                SELECT COUNT(*) FROM orders 
+                WHERE user_id = :user_id AND coupon_id = :coupon_id AND status != 'cancelled'
+            ");
+            $userUsageStmt->execute([':user_id' => (int)$user['id'], ':coupon_id' => (int)$coupon['id']]);
+            $usedByUser = (int)$userUsageStmt->fetchColumn();
+
+            $maxPerUser = $coupon['usage_limit_per_user'] !== null ? (int)$coupon['usage_limit_per_user'] : 1;
+            if ($usedByUser >= $maxPerUser) {
+                echo json_encode(['success' => false, 'message' => 'Tài khoản của bạn đã sử dụng mã giảm giá này cho một đơn hàng trước đây.']);
+                exit;
+            }
+        }
+
         $minOrder = (float)$coupon['min_order_value'];
         if ($subtotal < $minOrder) {
-            echo json_encode(['success' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($minOrder, 0, ',', '.') . 'đ để áp dụng mã này.']);
+            echo json_encode(['success' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . formatPrice($minOrder) . ' để áp dụng mã này.']);
             exit;
         }
 
@@ -124,13 +185,41 @@ class CheckoutController extends Controller
             'id' => $coupon['id'],
         ];
 
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $newTotal = max(0.0, $subtotal - $discount + $shipping);
+
         echo json_encode([
             'success' => true,
             'message' => 'Áp dụng mã giảm giá thành công!',
+            'code' => $code,
             'discount' => $discount,
-            'discount_formatted' => '-' . number_format($discount, 0, ',', '.') . 'đ',
-            'new_total' => $subtotal - $discount + ($subtotal > 0 ? 30000 : 0),
-            'new_total_formatted' => number_format($subtotal - $discount + ($subtotal > 0 ? 30000 : 0), 0, ',', '.') . 'đ'
+            'discount_formatted' => '-' . formatPrice($discount),
+            'new_total' => $newTotal,
+            'new_total_formatted' => formatPrice($newTotal)
+        ]);
+        exit;
+    }
+
+    public function remove_coupon(): void
+    {
+        header('Content-Type: application/json');
+
+        if (!$this->isPost()) {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ.']);
+            exit;
+        }
+
+        $subtotal = (float)($_POST['subtotal'] ?? 0);
+        unset($_SESSION['applied_coupon']);
+
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $total = $subtotal + $shipping;
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Đã gỡ mã giảm giá.',
+            'new_total' => $total,
+            'new_total_formatted' => formatPrice($total)
         ]);
         exit;
     }
@@ -157,9 +246,10 @@ class CheckoutController extends Controller
         $submitToken = trim($_POST['submit_token'] ?? '');
         $savedToken = $_SESSION['submit_token'] ?? '';
 
-        if ($submitToken === '' || $submitToken !== $savedToken) {
-            $_SESSION['checkout_error'] = 'Đơn hàng này đã được gửi hoặc yêu cầu không hợp lệ. Vui lòng kiểm tra lại giỏ hàng.';
-            $this->redirect('cart');
+        if (!empty($savedToken) && ($submitToken === '' || $submitToken !== $savedToken)) {
+            $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+            $_SESSION['checkout_error'] = 'Trang thanh toán đã được làm mới. Vui lòng thử lại.';
+            $this->redirect('checkout');
             return;
         }
 
@@ -172,8 +262,26 @@ class CheckoutController extends Controller
         $note = trim($_POST['note'] ?? '');
         $paymentMethod = trim($_POST['payment_method'] ?? 'COD');
 
+        if ($customerName === '' || $phone === '' || $address === '') {
+            $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+            $_SESSION['checkout_error'] = 'Vui lòng điền đầy đủ Họ và tên người nhận, Số điện thoại và Địa chỉ nhận hàng.';
+            $this->redirect('checkout');
+            return;
+        }
+
         if (!in_array($paymentMethod, ['COD', 'VNPAY'], true)) {
             $paymentMethod = 'COD';
+        }
+
+        if ($paymentMethod === 'VNPAY') {
+            require_once ROOT_PATH . '/app/services/VnpayService.php';
+            $vnpayService = new VnpayService();
+            if (!$vnpayService->isConfigured()) {
+                $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+                $_SESSION['checkout_error'] = 'Thanh toán qua VNPay tạm thời chưa khả dụng trên môi trường thử nghiệm. Vui lòng chọn phương thức Thanh toán khi nhận hàng (COD).';
+                $this->redirect('checkout');
+                return;
+            }
         }
 
         $subtotal = 0.0;
@@ -193,7 +301,8 @@ class CheckoutController extends Controller
             $couponId = (int)$applied['id'];
         }
 
-        $shipping = $subtotal > 0 ? 30000 : 0;
+        // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
         $total = max(0.0, $subtotal - $discountAmount + $shipping);
 
         $orderModel = $this->model('Order');
@@ -218,6 +327,28 @@ class CheckoutController extends Controller
             $_SESSION['checkout_error'] = 'Không thể lưu đơn hàng hoặc sản phẩm đã hết hàng. Vui lòng thử lại.';
             $this->redirect('checkout');
             return;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if ($db && $user) {
+            $addrStmt = $db->prepare("SELECT COUNT(*) FROM user_addresses WHERE user_id = :uid");
+            $addrStmt->execute([':uid' => $user['id']]);
+            $addrCount = (int)$addrStmt->fetchColumn();
+            
+            $saveAddress = $_POST['save_address'] ?? '0';
+            if ($addrCount === 0 || $saveAddress === '1') {
+                $isDefault = ($addrCount === 0) ? 1 : 0;
+                $insStmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, :province, :default)");
+                $insStmt->execute([
+                    ':uid' => $user['id'],
+                    ':name' => $customerName,
+                    ':phone' => $phone,
+                    ':addr' => $address,
+                    ':province' => '',
+                    ':default' => $isDefault
+                ]);
+            }
         }
 
         $_SESSION['last_order'] = [

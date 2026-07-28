@@ -27,7 +27,8 @@ $total = $total ?? 0;
                     <div class="cart-item">
                         <div class="cart-item__info">
                             <div class="cart-item__thumb">
-                                <i class="fa-solid fa-laptop-code"></i>
+                                <?php $imgUrl = productImageUrl($item['image'] ?? '', $item['category_slug'] ?? $item['slug'] ?? '', (int)($item['product_id'] ?? $item['id'] ?? 0)); ?>
+                                <img src="<?= e($imgUrl) ?>" alt="<?= e($item['name']) ?>">
                             </div>
                             <div>
                                 <h3>

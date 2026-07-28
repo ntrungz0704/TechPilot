@@ -41,6 +41,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?? '' ?>">
     <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' . APP_NAME : APP_NAME ?></title>
     <?php if (isset($metaDescription)): ?>
         <meta name="description" content="<?= e($metaDescription) ?>">
@@ -83,7 +84,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <!-- Logo Favicon -->
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=35.0') ?>">
+    <link class="main-stylesheet" rel="stylesheet" href="<?= url('assets/css/style.css?v=36.0') ?>">
     <link rel="stylesheet" href="<?= url('assets/css/category-mega-menu.css?v=20.0') ?>">
     <?php foreach ($pageStyles ?? [] as $stylesheet): ?>
         <link rel="stylesheet" href="<?= url($stylesheet) ?>">
@@ -159,6 +160,12 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                     $isWishlistActive = (strpos($currentPath, 'wishlist') !== false);
                     $cartCountVal = (int)cartCount();
                     $isCartActive = ($currentPath === 'cart' || strpos($currentPath, 'cart/') === 0);
+                    $wishlistCountVal = 0;
+                    if ($uUser = currentUser()) {
+                        require_once ROOT_PATH . '/app/models/Wishlist.php';
+                        $wlModel = new Wishlist();
+                        $wishlistCountVal = $wlModel->count((int)$uUser['id']);
+                    }
                     ?>
 
                     <!-- 1. Yêu thích -->
@@ -166,7 +173,10 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                        class="header-actions__item header-action header-action--wishlist header-actions__wishlist <?= $isWishlistActive ? 'is-active' : '' ?>"
                        <?= $isWishlistActive ? 'aria-current="page"' : '' ?>
                        title="Danh sách sản phẩm yêu thích">
-                        <i class="<?= $isWishlistActive ? 'fa-solid' : 'fa-regular' ?> fa-heart header-action__icon" aria-hidden="true"></i>
+                        <div class="header-action__icon-wrapper" style="position: relative;">
+                            <i class="<?= $isWishlistActive ? 'fa-solid' : 'fa-regular' ?> fa-heart header-action__icon" aria-hidden="true"></i>
+                            <span class="wishlist-badge" id="wishlistBadge" style="position: absolute; top: 0; right: 0; background-color: #EF4444; color: #FFFFFF; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 50%; display: <?= $wishlistCountVal > 0 ? 'flex' : 'none' ?>; align-items: center; justify-content: center; border: 1.5px solid var(--bg-card); padding: 0 3px; transform: translate(30%, -30%);"><?= $wishlistCountVal ?></span>
+                        </div>
                         <span class="header-actions__label header-action__label">Yêu thích</span>
                     </a>
 

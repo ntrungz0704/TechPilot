@@ -1,6 +1,6 @@
 <?php if (!empty($p)): ?>
     <?php
-    $imageUrl = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $p['name'] ?? '');
+    $imageUrl = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $p['name'] ?? '', (int)($p['id'] ?? 0));
     $price = (float)($p['price'] ?? 0);
 
     // Giá gốc: ưu tiên old_price nếu lớn hơn price, kế đó dùng price
@@ -36,6 +36,10 @@
         <?php if ($discountPercent > 0): ?>
             <span class="product-card__badge">-<?= (int)$discountPercent ?>%</span>
         <?php endif; ?>
+        
+        <button type="button" class="product-card__wishlist-btn" onclick="toggleWishlist(<?= (int)($p['id'] ?? 0) ?>, this)" title="Thêm vào yêu thích" style="position: absolute; top: 12px; right: 12px; z-index: 5; background: var(--bg-card, #FFFFFF); border: 1px solid var(--border, #E2E8F0); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary, #64748B); box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.2s ease;">
+            <i class="fa-regular fa-heart" style="font-size: 14px;"></i>
+        </button>
         
         <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__thumb">
             <img class="product-card__image" src="<?= e($imageUrl) ?>" alt="<?= e($p['name'] ?? '') ?>" loading="lazy">

@@ -611,9 +611,20 @@
                 <button type="button" id="adminThemeToggle" class="header__theme-toggle-btn" style="margin-right: 15px;">
                     <i class="fa-solid fa-moon"></i>
                 </button>
-                <div class="header__bell">
+                <div class="header__bell" id="adminNotifBell" style="position: relative; cursor: pointer;">
                     <i class="fa-solid fa-bell"></i>
-                    <span class="header__bell-badge">3</span>
+                    <span class="header__bell-badge" id="adminNotifBadge" style="display: none;">0</span>
+                    
+                    <!-- Notification Popup Dropdown -->
+                    <div id="adminNotifDropdown" style="display: none; position: absolute; right: 0; top: 38px; width: 320px; background: #FFFFFF; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 9999; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px;">
+                            <strong style="font-size: 13px; color: var(--text-primary);">Thông báo hệ thống</strong>
+                            <button type="button" id="markReadNotifBtn" style="background: none; border: none; font-size: 11px; color: #0A5BFF; font-weight: 700; cursor: pointer;">Đánh dấu đã đọc</button>
+                        </div>
+                        <div id="adminNotifList" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="font-size: 12px; color: var(--text-secondary); text-align: center; padding: 15px 0;">Đang tải...</div>
+                        </div>
+                    </div>
                 </div>
                 <img src="https://ui-avatars.com/api/?name=Admin&background=0A5BFF&color=fff" class="header__avatar" alt="Avatar" onerror="this.src='<?= url('assets/images/logo.png') ?>'">
             </div>
@@ -675,6 +686,78 @@
                     updateThemeIcon(isDark);
                 });
             }
+
+            // Admin Real-time Notifications Script
+            (function() {
+                const bell = document.getElementById('adminNotifBell');
+                const badge = document.getElementById('adminNotifBadge');
+                const dropdown = document.getElementById('adminNotifDropdown');
+                const list = document.getElementById('adminNotifList');
+                const markReadBtn = document.getElementById('markReadNotifBtn');
+
+                if (!bell || !badge || !dropdown || !list) return;
+
+                function fetchNotifications() {
+                    fetch('<?= url("api/admin/notifications") ?>')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (!data.success) return;
+                            if (data.unread > 0) {
+                                badge.style.display = 'flex';
+                                badge.innerText = data.unread;
+                            } else {
+                                badge.style.display = 'none';
+                            }
+
+                            if (data.items && data.items.length > 0) {
+                                list.innerHTML = data.items.map(item => `
+                                    <div style="padding: 8px 10px; border-radius: 6px; background: ${item.is_read == 0 ? 'rgba(10,91,255,0.06)' : '#F9FAFB'}; border-left: 3px solid ${item.is_read == 0 ? '#0A5BFF' : '#CBD5E1'};">
+                                        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">${item.title}</div>
+                                        <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">${item.content}</div>
+                                        <small style="font-size: 10px; color: #94A3B8; display: block; margin-top: 4px;">${item.created_at}</small>
+                                    </div>
+                                `).join('');
+                            } else {
+                                list.innerHTML = '<div style="font-size: 12px; color: var(--text-secondary); text-align: center; padding: 15px 0;">Không có thông báo mới</div>';
+                            }
+                        })
+                        .catch(() => {});
+                }
+
+                bell.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = dropdown.style.display === 'block';
+                    dropdown.style.display = isOpen ? 'none' : 'block';
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!bell.contains(e.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                });
+
+                function markReadNotifications() {
+                    fetch('<?= url("api/admin/notifications/mark_read") ?>', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                badge.style.display = 'none';
+                            }
+                        })
+                        .catch(() => {});
+                }
+
+                if (markReadBtn) {
+                    markReadBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        markReadNotifications();
+                        fetchNotifications();
+                    });
+                }
+
+                fetchNotifications();
+                setInterval(fetchNotifications, 10000);
+            })();
         });
     </script>
 </body>

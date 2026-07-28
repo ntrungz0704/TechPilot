@@ -1631,13 +1631,13 @@ html.dark-mode .article-cta-box {
     --news-sticky-offset: 140px; /* Measured: site-header (80px) + main-nav (40px) + 20px gap */
 }
 
-/* ── 14. Dual TOC & Sticky Sidebar Widget ── */
+/* ── 14. Dual TOC & Sidebar Widget ── */
 .news-sidebar-toc-widget {
-    position: sticky;
-    top: var(--news-sticky-offset, 140px);
-    max-height: calc(100vh - var(--news-sticky-offset, 140px) - 30px);
-    overflow-y: auto;
-    z-index: 10;
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow-y: visible;
+    z-index: auto;
     margin-bottom: 0;
 }
 

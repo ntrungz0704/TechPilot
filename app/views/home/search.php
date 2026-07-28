@@ -57,12 +57,21 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                     <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
                 <?php endif; ?>
                 <input type="text" name="q" placeholder="Nhập từ khóa tìm kiếm..." value="<?= e($keyword) ?>">
-                <?php if ($categorySlug !== ''): ?>
-                    <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
-                <?php endif; ?>
                 <input type="hidden" name="min_price" value="<?= (int)$minPrice ?>">
                 <input type="hidden" name="max_price" value="<?= (int)$maxPrice ?>">
                 <button type="submit" class="btn btn--block"><i class="fa-solid fa-magnifying-glass"></i> Lọc kết quả</button>
+            </form>
+        </div>
+
+        <div class="search-widget">
+            <h3>Khoảng giá bán</h3>
+            <form class="price-range" onsubmit="event.preventDefault(); applyPriceFilter(document.querySelector('.price-slider').value);">
+                <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
+                <div class="price-display">
+                    <span>0đ</span>
+                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? number_format($maxPrice / 1000000, 0) . ' triệu đ' : '50 triệu đ' ?></span>
+                </div>
+                <button type="submit" class="btn btn--block price-apply-btn">Áp dụng khoảng giá</button>
             </form>
         </div>
 
@@ -78,25 +87,13 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                 <?php endforeach; ?>
             </div>
         </div>
-
-        <div class="search-widget">
-            <h3>Khoảng giá bán</h3>
-            <div class="price-range">
-                <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
-                <div class="price-display">
-                    <span>0đ</span>
-                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? number_format($maxPrice / 1000000, 0) . ' triệu đ' : '50 triệu đ' ?></span>
-                </div>
-                <button type="submit" class="btn btn--block price-apply-btn">Áp dụng khoảng giá</button>
-            </form>
-        </div>
     </aside>
 
     <!-- Main Results -->
     <main class="search-main">
         <div class="search-results-header">
             <h1><?= e($pageTitle) ?></h1>
-            <p class="results-count">Tìm thấy <strong><?= $totalResults ?></strong> sản phẩm phù hợp</p>
+            <p class="results-count">Tìm thấy <strong><?= number_format($totalResults) ?></strong> mẫu sản phẩm phù hợp</p>
             <div class="sort-options">
                 <label for="sortBy">Sắp xếp:</label>
                 <select id="sortBy" class="sort-select" onchange="applySort(this.value)">
@@ -108,7 +105,29 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
             </div>
         </div>
 
-        <?php if (!empty($products)): ?>
+        <?php if (!empty($isStopwordQuery)): ?>
+            <div class="stopword-suggestion-card" style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card);">
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-question" style="color: var(--primary);"></i> Bạn đang tìm loại sản phẩm nào?
+                </h3>
+                <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 14px;">Từ khóa "<strong><?= e($keyword) ?></strong>" là từ chung. Hãy chọn nhóm danh mục để tìm nhanh và chính xác hơn:</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <a href="<?= url('home/search?cat=laptop') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-laptop"></i> Laptop</a>
+                    <a href="<?= url('home/search?cat=pc') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-desktop"></i> PC Bộ</a>
+                    <a href="<?= url('home/search?cat=console') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-gamepad"></i> Máy chơi game (Console)</a>
+                    <a href="<?= url('home/search?cat=office-equipment') ?>" class="btn btn--outline btn--sm" style="border-radius: 20px; font-weight: 600;"><i class="fa-solid fa-print"></i> Máy văn phòng / Máy in</a>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($searchError)): ?>
+            <div class="no-results" style="border: 1px solid #FCA5A5; background-color: #FEF2F2; text-align: center; padding: 40px 20px; border-radius: 12px;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 36px; color: #DC2626; margin-bottom: 12px;"></i>
+                <h3 style="color: #991B1B; margin-bottom: 8px;">Không thể tải kết quả tìm kiếm do lỗi hệ thống</h3>
+                <p style="color: #7F1D1D; margin-bottom: 16px;">Đã xảy ra sự cố trong quá trình xử lý truy vấn dữ liệu. Vui lòng thử lại sau.</p>
+                <a href="<?= url('home/search') ?>" class="btn">Tải lại trang</a>
+            </div>
+        <?php elseif (!empty($products)): ?>
             <div class="product-grid product-grid--4">
                 <?php foreach ($products as $p): ?>
                     <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
@@ -117,29 +136,53 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
 
             <?php
             $currentPage = $page ?? 1;
-            $totalPages = ceil($totalResults / $limit);
+            $totalPages = (int)ceil($totalResults / $limit);
             if ($totalPages > 1):
+                $startPage = max(2, $currentPage - 2);
+                $endPage   = min($totalPages - 1, $currentPage + 2);
             ?>
                 <div class="pagination">
                     <?php if ($currentPage > 1): ?>
-                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage - 1 ?>)" class="pagination__btn"><i class="fa-solid fa-chevron-left"></i></a>
+                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage - 1 ?>)" class="pagination__btn" aria-label="Trang trước"><i class="fa-solid fa-chevron-left"></i></a>
                     <?php endif; ?>
 
-                    <?php
-                    // Hiển thị danh sách các số trang
-                    for ($i = 1; $i <= $totalPages; $i++):
-                        if ($i === $currentPage):
-                    ?>
-                            <span class="pagination__item is-active"><?= $i ?></span>
+                    <!-- Trang đầu tiên -->
+                    <?php if ($currentPage === 1): ?>
+                        <span class="pagination__item is-active">1</span>
                     <?php else: ?>
+                        <a href="javascript:void(0)" onclick="goToPage(1)" class="pagination__item">1</a>
+                    <?php endif; ?>
+
+                    <!-- Dấu ba chấm đầu -->
+                    <?php if ($startPage > 2): ?>
+                        <span class="pagination__dots">&hellip;</span>
+                    <?php endif; ?>
+
+                    <!-- Các trang ở giữa -->
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                        <?php if ($i === $currentPage): ?>
+                            <span class="pagination__item is-active"><?= $i ?></span>
+                        <?php else: ?>
                             <a href="javascript:void(0)" onclick="goToPage(<?= $i ?>)" class="pagination__item"><?= $i ?></a>
-                    <?php
-                        endif;
-                    endfor;
-                    ?>
+                        <?php endif; ?>
+                    <?php endfor; ?>
+
+                    <!-- Dấu ba chấm cuối -->
+                    <?php if ($endPage < $totalPages - 1): ?>
+                        <span class="pagination__dots">&hellip;</span>
+                    <?php endif; ?>
+
+                    <!-- Trang cuối cùng -->
+                    <?php if ($totalPages > 1): ?>
+                        <?php if ($currentPage === $totalPages): ?>
+                            <span class="pagination__item is-active"><?= $totalPages ?></span>
+                        <?php else: ?>
+                            <a href="javascript:void(0)" onclick="goToPage(<?= $totalPages ?>)" class="pagination__item"><?= $totalPages ?></a>
+                        <?php endif; ?>
+                    <?php endif; ?>
 
                     <?php if ($currentPage < $totalPages): ?>
-                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage + 1 ?>)" class="pagination__btn"><i class="fa-solid fa-chevron-right"></i></a>
+                        <a href="javascript:void(0)" onclick="goToPage(<?= $currentPage + 1 ?>)" class="pagination__btn" aria-label="Trang sau"><i class="fa-solid fa-chevron-right"></i></a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -173,10 +216,10 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         window.location.href = u.toString();
     }
 
-    function goToPage(pageNum) {
-        const u = new URL(window.location.href);
-        u.searchParams.set('page', pageNum);
-        window.location.href = u.toString();
+    function goToPage(p) {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', p);
+        window.location.search = urlParams.toString();
     }
 </script>
 
@@ -205,6 +248,17 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         cursor: pointer;
         text-decoration: none;
         transition: var(--transition);
+    }
+
+    .pagination__dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 40px;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 16px;
     }
 
     .pagination__item:hover,

@@ -21,18 +21,21 @@ $savedAddresses = $savedAddresses ?? [];
             <div class="alert alert--error">
                 <p><i class="fa-solid fa-circle-exclamation"></i> <?= e($_SESSION['checkout_error']) ?></p>
             </div>
+            <?php unset($_SESSION['checkout_error']); ?>
         <?php endif; ?>
 
+        <?php $user = currentUser(); ?>
         <form method="post" action="<?= url('checkout/submit') ?>" class="checkout-form">
             <?= csrf_field() ?>
+            <input type="hidden" name="submit_token" value="<?= e($_SESSION['submit_token'] ?? '') ?>">
             <?php if ($savedAddresses): ?>
                 <div class="form-group">
                     <label>Chọn từ sổ địa chỉ</label>
                     <select id="savedAddress" name="saved_address_id">
                         <option value="">Nhập địa chỉ khác</option>
                         <?php foreach ($savedAddresses as $saved): ?>
-                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e(Address::formatted($saved)) ?>">
-                                <?= e($saved['recipient_name']) ?> — <?= e(Address::formatted($saved)) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
+                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e($saved['address_line']) ?>">
+                                <?= e($saved['recipient_name']) ?> — <?= e($saved['address_line']) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -41,15 +44,15 @@ $savedAddresses = $savedAddresses ?? [];
             <?php endif; ?>
             <div class="form-group">
                 <label>Họ và tên người nhận</label>
-                <input type="text" name="customer_name" required placeholder="Nguyễn Văn A">
+                <input type="text" name="customer_name" required value="<?= e($_POST['customer_name'] ?? $user['full_name'] ?? $user['name'] ?? '') ?>" placeholder="Nguyễn Văn A">
             </div>
             <div class="form-group">
                 <label>Số điện thoại</label>
-                <input type="text" name="phone" required placeholder="0909 123 456">
+                <input type="text" name="phone" required value="<?= e($_POST['phone'] ?? $user['phone'] ?? '') ?>" placeholder="0909 123 456">
             </div>
             <div class="form-group">
                 <label>Địa chỉ nhận hàng</label>
-                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"></textarea>
+                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($_POST['address'] ?? '') ?></textarea>
             </div>
             <label class="save-address-option">
                 <input type="checkbox" name="save_address" value="1">
@@ -98,32 +101,83 @@ $savedAddresses = $savedAddresses ?? [];
 
     <aside class="checkout-summary">
         <h3>Sản phẩm đặt mua</h3>
-        <div class="summary-items-list" style="margin-bottom: 20px;">
+        <div class="summary-items-list" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
             <?php foreach ($cartItems as $item): ?>
-                <div class="summary-item">
-                    <span><?= e($item['name']) ?> <strong style="color: var(--text-secondary);">x<?= (int)$item['quantity'] ?></strong></span>
-                    <strong><?= formatPrice($item['line_total']) ?></strong>
+                <?php 
+                    $imgUrl = productImageUrl(
+                        $item['image'] ?? '', 
+                        $item['category_slug'] ?? $item['slug'] ?? '', 
+                        (int)($item['product_id'] ?? $item['id'] ?? 0)
+                    ); 
+                ?>
+                <div class="summary-item" style="display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border);">
+                    <div style="width: 52px; height: 52px; border-radius: 8px; border: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
+                        <img src="<?= e($imgUrl) ?>" alt="<?= e($item['name']) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <span style="display: block; font-weight: 600; font-size: 13.5px; line-height: 1.35; color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?= e($item['name']) ?></span>
+                        <span style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: block;">Số lượng: <strong><?= (int)$item['quantity'] ?></strong></span>
+                    </div>
+                    <strong style="font-size: 14px; color: var(--primary); white-space: nowrap;"><?= formatPrice($item['line_total']) ?></strong>
                 </div>
             <?php endforeach; ?>
         </div>
 
+        <?php 
+            $discountAmount = $discountAmount ?? 0;
+            $appliedCoupon = $appliedCoupon ?? null;
+        ?>
+
         <div class="summary-row"><span>Tạm tính</span><strong><?= formatPrice($subtotal) ?></strong></div>
-        <div class="summary-row" id="discountRow" style="display: none;"><span>Giảm giá</span><strong id="discountValue" style="color: var(--primary);">-0đ</strong></div>
+        <div class="summary-row" id="discountRow" style="display: <?= $discountAmount > 0 ? 'flex' : 'none' ?>;"><span>Giảm giá</span><strong id="discountValue" style="color: var(--primary);">-<?= formatPrice($discountAmount) ?></strong></div>
         <div class="summary-row"><span>Phí vận chuyển</span><strong style="color: var(--success);"><?= $shipping > 0 ? formatPrice($shipping) : 'Miễn phí' ?></strong></div>
         <div class="summary-row total"><span>Tổng tiền phải trả</span><strong id="totalValue"><?= formatPrice($total) ?></strong></div>
 
         <!-- Coupon Form -->
         <div class="coupon-section" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
             <div style="display: flex; gap: 8px;">
-                <input type="text" id="couponInput" placeholder="Nhập mã giảm giá..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                <input type="text" id="couponInput" placeholder="Nhập mã giảm giá..." value="<?= e($appliedCoupon['code'] ?? '') ?>" style="flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
                 <button type="button" id="applyCouponBtn" class="btn btn--sm" style="padding: 0 15px; font-size: 13px;">Áp dụng</button>
+                <button type="button" id="removeCouponBtn" class="btn btn--outline btn--sm" style="padding: 0 12px; font-size: 13px; display: <?= !empty($appliedCoupon) ? 'inline-flex' : 'none' ?>; align-items: center; gap: 4px; color: #EF4444; border-color: #FCA5A5;" title="Gỡ mã giảm giá"><i class="fa-solid fa-trash-can"></i> Gỡ mã</button>
             </div>
             <p id="couponMsg" style="margin: 6px 0 0 0; font-size: 12px; display: none;"></p>
+
+            <!-- Recommended Available Coupons List -->
+            <?php if (!empty($availableCoupons)): ?>
+                <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 12px;">
+                    <span style="font-size: 12.5px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-ticket"></i> Mã giảm giá gợi ý cho đơn hàng:
+                    </span>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <?php foreach ($availableCoupons as $ac): ?>
+                            <div style="background: rgba(37, 99, 235, 0.04); border: 1px dashed var(--primary); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 12.5px; color: var(--primary); display: block;"><?= e($ac['code']) ?></strong>
+                                    <small style="font-size: 11px; color: var(--text-secondary);">
+                                        <?= $ac['type'] === 'percent' ? 'Giảm ' . (int)$ac['discount_value'] . '%' : 'Giảm ' . formatPrice($ac['discount_value']) ?>
+                                        (Đơn từ <?= formatPrice($ac['min_order_value']) ?>)
+                                    </small>
+                                </div>
+                                <button type="button" class="btn btn--outline btn--sm" style="font-size: 11px; padding: 4px 10px; font-weight: 700;" onclick="applyVoucherCode('<?= e($ac['code']) ?>')">Dùng ngay</button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </aside>
 </section>
 
 <script>
+    function applyVoucherCode(code) {
+        const couponInput = document.getElementById('couponInput');
+        const applyBtn = document.getElementById('applyCouponBtn');
+        if (couponInput && applyBtn) {
+            couponInput.value = code;
+            applyBtn.click();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const savedAddress = document.getElementById('savedAddress');
         if (savedAddress) savedAddress.addEventListener('change', function() {
@@ -135,18 +189,62 @@ $savedAddresses = $savedAddresses ?? [];
             document.querySelector('[name="phone"]').value = option.dataset.phone || '';
             document.querySelector('[name="address"]').value = option.dataset.address || '';
         });
+
         const applyBtn = document.getElementById('applyCouponBtn');
+        const removeBtn = document.getElementById('removeCouponBtn');
         const couponInput = document.getElementById('couponInput');
         const couponMsg = document.getElementById('couponMsg');
         const discountRow = document.getElementById('discountRow');
         const discountValue = document.getElementById('discountValue');
         const totalValue = document.getElementById('totalValue');
 
+        function doRemoveCoupon() {
+            const formData = new FormData();
+            formData.append('subtotal', '<?= (float)$subtotal ?>');
+            formData.append('csrf_token', '<?= csrf_token() ?>');
+
+            fetch('<?= url("checkout/remove_coupon") ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                couponInput.value = '';
+                if (removeBtn) removeBtn.style.display = 'none';
+                discountRow.style.display = 'none';
+                if (data.new_total_formatted) {
+                    totalValue.innerText = data.new_total_formatted;
+                }
+                showMsg('Đã gỡ mã giảm giá.', 'info');
+            })
+            .catch(err => {
+                console.error(err);
+            });
+        }
+
+        // Tự động gỡ mã giảm giá khi người dùng xóa nội dung trong ô nhập mã
+        let isRemoving = false;
+        if (couponInput) {
+            couponInput.addEventListener('input', function() {
+                if (this.value.trim() === '' && discountRow.style.display !== 'none' && !isRemoving) {
+                    isRemoving = true;
+                    doRemoveCoupon();
+                    setTimeout(() => { isRemoving = false; }, 300);
+                }
+            });
+        }
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                doRemoveCoupon();
+            });
+        }
+
         if (applyBtn) {
             applyBtn.addEventListener('click', function() {
                 const code = couponInput.value.trim();
                 if (code === '') {
-                    showMsg('Vui lòng nhập mã giảm giá.', 'error');
+                    doRemoveCoupon();
                     return;
                 }
 
@@ -156,7 +254,7 @@ $savedAddresses = $savedAddresses ?? [];
                 formData.append('csrf_token', '<?= csrf_token() ?>');
 
                 applyBtn.disabled = true;
-                applyBtn.innerText = 'Đang áp dụng...';
+                applyBtn.innerText = 'Đang áp...';
 
                 fetch('<?= url("checkout/apply_coupon") ?>', {
                         method: 'POST',
@@ -168,12 +266,21 @@ $savedAddresses = $savedAddresses ?? [];
                         applyBtn.innerText = 'Áp dụng';
 
                         if (data.success) {
-                            showMsg(data.message, 'success');
-                            discountRow.style.display = 'flex';
-                            discountValue.innerText = data.discount_formatted;
-                            totalValue.innerText = data.new_total_formatted;
+                            if (data.removed) {
+                                if (removeBtn) removeBtn.style.display = 'none';
+                                discountRow.style.display = 'none';
+                                totalValue.innerText = data.new_total_formatted;
+                                showMsg(data.message, 'info');
+                            } else {
+                                showMsg(data.message, 'success');
+                                discountRow.style.display = 'flex';
+                                discountValue.innerText = data.discount_formatted;
+                                totalValue.innerText = data.new_total_formatted;
+                                if (removeBtn) removeBtn.style.display = 'inline-flex';
+                            }
                         } else {
                             showMsg(data.message, 'error');
+                            if (removeBtn) removeBtn.style.display = 'none';
                             discountRow.style.display = 'none';
                             totalValue.innerText = '<?= formatPrice($total) ?>';
                         }
@@ -191,6 +298,8 @@ $savedAddresses = $savedAddresses ?? [];
             couponMsg.innerText = text;
             if (type === 'success') {
                 couponMsg.style.color = 'var(--success)';
+            } else if (type === 'info') {
+                couponMsg.style.color = 'var(--primary)';
             } else {
                 couponMsg.style.color = '#EF4444';
             }

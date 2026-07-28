@@ -149,7 +149,7 @@ if (!function_exists('absoluteUrl')) {
 }
 
 if (!function_exists('productImageUrl')) {
-    function productImageUrl(?string $image = '', ?string $productType = ''): string
+    function productImageUrl(?string $image = '', ?string $productType = '', ?int $productId = null): string
     {
         $image = trim((string)$image);
         
@@ -169,6 +169,53 @@ if (!function_exists('productImageUrl')) {
             $legacyPathProducts = ROOT_PATH . '/public/assets/images/products/' . basename($image);
             if (file_exists($legacyPathProducts) && !is_dir($legacyPathProducts)) {
                 return url('assets/images/products/' . basename($image));
+            }
+
+            // Subfolder check across 20 category folders
+            $categories = [
+                'laptop', 'pc', 'monitor', 'mainboard', 'cpu', 'vga', 'ram', 'storage', 
+                'case', 'cooling', 'psu', 'keyboard', 'mouse', 'chair', 'headset', 
+                'speaker', 'console', 'accessories', 'office-equipment', 'power-bank'
+            ];
+            foreach ($categories as $cat) {
+                $subPath = ROOT_PATH . '/public/assets/images/products/' . $cat . '/' . basename($image);
+                if (file_exists($subPath) && !is_dir($subPath)) {
+                    return url('assets/images/products/' . $cat . '/' . basename($image));
+                }
+            }
+
+            // Check placeholders directory
+            $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . basename($image);
+            if (file_exists($phPath) && !is_dir($phPath)) {
+                return url('assets/images/placeholders/' . basename($image));
+            }
+
+            // Resolve placeholder-{category}-{N}.ext → try placeholders/ first
+            $bn = basename($image);
+            if (preg_match('/^placeholder-([a-z\-]+)-(\d+)\.\w+$/i', $bn, $m)) {
+                $cat = $m[1];
+                $num = $m[2];
+                // Try exact match in placeholders
+                $phExact = ROOT_PATH . '/public/assets/images/placeholders/' . $bn;
+                if (file_exists($phExact)) {
+                    return url('assets/images/placeholders/' . $bn);
+                }
+                // Fallback to -1 variant
+                $phFallback = ROOT_PATH . '/public/assets/images/placeholders/placeholder-' . $cat . '-1.png';
+                if (file_exists($phFallback)) {
+                    return url('assets/images/placeholders/placeholder-' . $cat . '-1.png');
+                }
+            }
+
+            // Resolve by product ID: prod_{id}.jpg/.png
+            if ($productId !== null && $productId > 0) {
+                $productsDir = $productsDir ?? ROOT_PATH . '/public/assets/images/products/';
+                foreach (['png', 'jpg', 'webp'] as $ext) {
+                    $realFile = 'prod_' . $productId . '.' . $ext;
+                    if (file_exists($productsDir . $realFile)) {
+                        return url('assets/images/products/' . $realFile);
+                    }
+                }
             }
         }
         
@@ -207,50 +254,56 @@ if (!function_exists('productImageUrl')) {
 
         switch ($type) {
             case 'laptop':
-                $phName = 'laptop.png';
+                $phName = 'placeholder-laptop.png';
                 break;
             case 'pc':
-                $phName = 'pc.jpg';
+                $phName = 'placeholder-desktop-pc.png';
                 break;
             case 'printer':
-                $phName = 'printer-canon.jpg';
+                $phName = 'placeholder-printer.png';
                 break;
             case 'projector':
-                $phName = 'pc.jpg';
+                $phName = 'placeholder-projector.png';
                 break;
             case 'cpu':
-                $phName = 'ram.jpg';
+                $phName = 'placeholder-cpu.png';
                 break;
             case 'motherboard':
-                $phName = 'mainboard-tuf.jpg';
+                $phName = 'placeholder-motherboard.png';
                 break;
             case 'gpu':
-                $phName = 'rtx-4070-super.jpg';
+                $phName = 'placeholder-gpu.png';
                 break;
             case 'ssd':
-                $phName = 'ssd-samsung.jpg';
+                $phName = 'placeholder-ssd.png';
                 break;
             case 'ram':
-                $phName = 'ram.jpg';
+                $phName = 'placeholder-ram.png';
                 break;
             case 'psu':
-                $phName = 'pc.jpg';
+                $phName = 'placeholder-psu.png';
                 break;
             case 'monitor':
-                $phName = 'monitor-asus.jpg';
+                $phName = 'placeholder-monitor.png';
                 break;
             case 'network':
-                $phName = 'router-tplink.jpg';
+                $phName = 'placeholder-network.png';
                 break;
             case 'accessory':
-                $phName = 'logitech-g-pro.jpg';
+                $phName = 'placeholder-accessory.png';
                 break;
             default:
-                $phName = 'pc.jpg';
+                $phName = 'placeholder-component.png';
                 break;
         }
         
-        return url('assets/images/' . $phName);
+        // Check placeholders/ first, then fall back to products/
+        $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . $phName;
+        if (file_exists($phPath)) {
+            return url('assets/images/placeholders/' . $phName);
+        }
+        // Legacy fallback
+        return url('assets/images/products/' . $phName);
     }
 }
 

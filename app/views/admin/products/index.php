@@ -1,7 +1,10 @@
 <div class="card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
         <h3 class="card-title" style="margin-bottom: 0;">Danh sách sản phẩm</h3>
-        <a href="<?= url('admin/products/create') ?>" class="btn"><i class="fa-solid fa-plus"></i> Thêm sản phẩm mới</a>
+        <div style="display: flex; gap: 10px;">
+            <a href="<?= url('admin/inventory/logs') ?>" class="btn btn--outline" style="border-color: #2563EB; color: #2563EB;"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Nhập/Xuất kho</a>
+            <a href="<?= url('admin/products/create') ?>" class="btn"><i class="fa-solid fa-plus"></i> Thêm sản phẩm mới</a>
+        </div>
     </div>
 
     <!-- Filters & Search Form -->
@@ -88,11 +91,16 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if ((int)$p['stock'] < 10): ?>
-                                    <span class="badge badge--danger" style="font-weight: 700;"><?= (int)$p['stock'] ?> chiếc</span>
-                                <?php else: ?>
-                                    <span class="badge badge--success" style="background-color: #E0F2FE; color: #0369A1;"><?= (int)$p['stock'] ?> chiếc</span>
-                                <?php endif; ?>
+                                <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                                    <?php if ((int)$p['stock'] < 10): ?>
+                                        <span class="badge badge--danger" style="font-weight: 700;"><?= (int)$p['stock'] ?> chiếc</span>
+                                    <?php else: ?>
+                                        <span class="badge badge--success" style="background-color: #E0F2FE; color: #0369A1; font-weight: 700;"><?= (int)$p['stock'] ?> chiếc</span>
+                                    <?php endif; ?>
+                                    <button type="button" onclick="openStockModal(<?= (int)$p['id'] ?>, '<?= e(addslashes($p['name'])) ?>', <?= (int)$p['stock'] ?>)" class="btn btn--outline btn--sm" style="padding: 2px 8px; font-size: 11px; white-space: nowrap; margin-top: 2px; border-color: var(--primary); color: var(--primary);" title="Nhập hoặc xuất kho cho sản phẩm này">
+                                        <i class="fa-solid fa-boxes-packing"></i> Nhập/Xuất
+                                    </button>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge <?= $p['status'] === 'active' ? 'badge--success' : 'badge--danger' ?>">
@@ -122,16 +130,208 @@
 
     <!-- Pagination -->
     <?php if ($totalPages > 1): ?>
-        <div style="display: flex; justify-content: center; gap: 8px; margin-top: 25px;">
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <?php
-                // Giữ lại bộ lọc query string khi phân trang
-                $query = $_GET;
-                $query['page'] = $i;
-                $pageUrl = url('admin/products?' . http_build_query($query));
-                ?>
-                <a href="<?= $pageUrl ?>" class="btn <?= $page === $i ? '' : 'btn--outline' ?>" style="padding: 6px 12px; font-size: 13px;"><?= $i ?></a>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 25px; flex-wrap: wrap;">
+            <!-- Prev Arrow -->
+            <?php if ($page > 1): 
+                $q = $_GET; $q['page'] = $page - 1; 
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;" title="Trang trước"><i class="fa-solid fa-chevron-left"></i></a>
+            <?php endif; ?>
+
+            <?php
+            $window = 2;
+            $startPage = max(1, $page - $window);
+            $endPage = min($totalPages, $page + $window);
+
+            if ($startPage > 1): 
+                $q = $_GET; $q['page'] = 1;
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;">1</a>
+                <?php if ($startPage > 2): ?>
+                    <span style="padding: 6px 8px; color: var(--text-secondary); font-weight: 700;">...</span>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php for ($i = $startPage; $i <= $endPage; $i++): 
+                $q = $_GET; $q['page'] = $i;
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn <?= $page === $i ? '' : 'btn--outline' ?>" style="padding: 6px 12px; font-size: 13px; font-weight: 700;"><?= $i ?></a>
             <?php endfor; ?>
+
+            <?php if ($endPage < $totalPages): 
+                $q = $_GET; $q['page'] = $totalPages;
+            ?>
+                <?php if ($endPage < $totalPages - 1): ?>
+                    <span style="padding: 6px 8px; color: var(--text-secondary); font-weight: 700;">...</span>
+                <?php endif; ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;"><?= $totalPages ?></a>
+            <?php endif; ?>
+
+            <!-- Next Arrow -->
+            <?php if ($page < $totalPages): 
+                $q = $_GET; $q['page'] = $page + 1; 
+            ?>
+                <a href="<?= url('admin/products?' . http_build_query($q)) ?>" class="btn btn--outline" style="padding: 6px 12px; font-size: 13px;" title="Trang sau"><i class="fa-solid fa-chevron-right"></i></a>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
+
+<!-- MODAL NHẬP / XUẤT KHO SẢN PHẨM -->
+<div id="stockModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 99999; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: #FFFFFF; border-radius: 12px; max-width: 520px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); overflow: hidden; animation: modalFadeIn 0.2s ease-out;">
+        <div style="background: linear-gradient(135deg, #0F172A, #1E293B); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; color: #FFFFFF;">
+            <h4 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-boxes-packing" style="color: #38BDF8;"></i> Điều chỉnh tồn kho sản phẩm
+            </h4>
+            <button type="button" onclick="closeStockModal()" style="background: none; border: none; color: #94A3B8; font-size: 20px; cursor: pointer; padding: 0;">&times;</button>
+        </div>
+
+        <form method="post" action="<?= url('admin/products/adjust-stock') ?>" id="stockModalForm" style="padding: 24px;" onsubmit="handleStockModalSubmit(event)">
+            <?= csrf_field() ?>
+            <input type="hidden" name="product_id" id="modal_product_id" value="0">
+            <input type="hidden" name="idempotency_key" id="modal_idempotency_key" value="">
+
+            <div style="margin-bottom: 16px; background: #F8FAFC; border-radius: 8px; padding: 14px 16px; border: 1px solid #E2E8F0;">
+                <label style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; display: block; margin-bottom: 4px;">Sản phẩm đã chọn</label>
+                <div id="modal_product_name" style="font-weight: 700; font-size: 14px; color: #0F172A; line-height: 1.4;">-</div>
+                <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 12.5px;">
+                    <div>Tồn hiện tại: <strong id="modal_current_stock" style="color: #2563EB;">0</strong> đơn vị</div>
+                    <div>Dự kiến sau thao tác: <strong id="modal_expected_stock" style="color: #16A34A;">0</strong> đơn vị</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 8px;">Loại thao tác <span style="color: #EF4444;">*</span></label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid #22C55E; border-radius: 8px; padding: 10px; cursor: pointer; background: #F0FDF4; font-weight: 700; font-size: 13px; color: #15803D;">
+                        <input type="radio" name="action_type" value="import" checked onchange="updateModalTheme()"> <i class="fa-solid fa-square-plus"></i> Nhập kho (+)
+                    </label>
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid #EF4444; border-radius: 8px; padding: 10px; cursor: pointer; background: #FEF2F2; font-weight: 700; font-size: 13px; color: #B91C1C;">
+                        <input type="radio" name="action_type" value="export" onchange="updateModalTheme()"> <i class="fa-solid fa-square-minus"></i> Xuất kho (-)
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Số lượng thay đổi <span style="color: #EF4444;">*</span></label>
+                <input type="number" name="quantity" id="modal_quantity" class="form-control" min="1" value="1" required style="font-size: 15px; font-weight: 700;" oninput="updateExpectedStock()">
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Loại lý do <span style="color: #EF4444;">*</span></label>
+                <select name="reason_code" id="modal_reason_code" class="form-control" style="font-size: 13px;" onchange="updateModalTheme()">
+                    <option value="supplier_import">Nhập từ nhà cung cấp</option>
+                    <option value="inventory_check">Điều chỉnh kiểm kê</option>
+                    <option value="damaged_goods">Hàng hỏng / lỗi kỹ thuật</option>
+                    <option value="sample_export">Xuất hàng mẫu / quà tặng</option>
+                    <option value="supplier_return">Trả hàng nhà cung cấp</option>
+                    <option value="restock_return">Nhập lại từ đơn hoàn trả</option>
+                    <option value="other" selected>Khác</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Ghi chú / Chi tiết <span id="note_required_badge" style="color: #EF4444; display: none;">* (Bắt buộc khi Xuất kho)</span></label>
+                <input type="text" name="note" id="modal_note" class="form-control" placeholder="Ví dụ: Xuất mẫu cho phòng kỹ thuật / Kiểm kê phát hiện chênh lệch..." style="font-size: 13px;">
+            </div>
+
+            <div id="modal_error_msg" style="display: none; background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-bottom: 16px; font-weight: 600;"></div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn btn--outline" onclick="closeStockModal()">Hủy bỏ</button>
+                <button type="submit" class="btn" id="modal_submit_btn" style="background: #22C55E; border: none; font-weight: 700;"><i class="fa-solid fa-check"></i> Xác nhận thực hiện</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentRawStock = 0;
+
+function openStockModal(productId, productName, currentStock) {
+    currentRawStock = Number(currentStock) || 0;
+    document.getElementById('modal_product_id').value = productId;
+    document.getElementById('modal_product_name').innerText = productName;
+    document.getElementById('modal_current_stock').innerText = currentRawStock.toLocaleString('vi-VN');
+    document.getElementById('modal_quantity').value = 1;
+    document.getElementById('modal_note').value = '';
+    document.getElementById('modal_idempotency_key').value = 'adj_' + productId + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    document.getElementById('modal_error_msg').style.display = 'none';
+
+    updateModalTheme();
+    updateExpectedStock();
+
+    const modal = document.getElementById('stockModal');
+    modal.style.display = 'flex';
+}
+
+function closeStockModal() {
+    const modal = document.getElementById('stockModal');
+    modal.style.display = 'none';
+}
+
+function updateExpectedStock() {
+    const isImport = document.querySelector('input[name="action_type"]:checked').value === 'import';
+    const qty = Math.max(1, parseInt(document.getElementById('modal_quantity').value) || 0);
+    const expected = isImport ? (currentRawStock + qty) : (currentRawStock - qty);
+
+    const expElem = document.getElementById('modal_expected_stock');
+    expElem.innerText = expected.toLocaleString('vi-VN');
+
+    const errBox = document.getElementById('modal_error_msg');
+    if (!isImport && qty > currentRawStock) {
+        expElem.style.color = '#DC2626';
+        errBox.style.display = 'block';
+        errBox.innerText = 'Số lượng xuất kho (' + qty + ') vượt quá số tồn kho hiện tại (' + currentRawStock + '). Vui lòng giảm số lượng!';
+        document.getElementById('modal_submit_btn').disabled = true;
+        document.getElementById('modal_submit_btn').style.opacity = '0.6';
+    } else {
+        expElem.style.color = isImport ? '#16A34A' : '#2563EB';
+        errBox.style.display = 'none';
+        document.getElementById('modal_submit_btn').disabled = false;
+        document.getElementById('modal_submit_btn').style.opacity = '1';
+    }
+}
+
+function updateModalTheme() {
+    const isImport = document.querySelector('input[name="action_type"]:checked').value === 'import';
+    const submitBtn = document.getElementById('modal_submit_btn');
+    const noteBadge = document.getElementById('note_required_badge');
+    const noteInput = document.getElementById('modal_note');
+
+    if (isImport) {
+        submitBtn.style.background = '#22C55E';
+        submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Xác nhận Nhập kho';
+        noteBadge.style.display = 'none';
+        noteInput.removeAttribute('required');
+    } else {
+        submitBtn.style.background = '#EF4444';
+        submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Xác nhận Xuất kho';
+        noteBadge.style.display = 'inline';
+        noteInput.setAttribute('required', 'required');
+    }
+    updateExpectedStock();
+}
+
+function handleStockModalSubmit(e) {
+    const isImport = document.querySelector('input[name="action_type"]:checked').value === 'import';
+    const qty = parseInt(document.getElementById('modal_quantity').value) || 0;
+    const note = document.getElementById('modal_note').value.trim();
+
+    if (!isImport && qty > currentRawStock) {
+        e.preventDefault();
+        alert('Không thể xuất vượt quá số tồn kho hiện có!');
+        return false;
+    }
+    if (!isImport && !note) {
+        e.preventDefault();
+        alert('Vui lòng nhập ghi chú khi xuất kho!');
+        return false;
+    }
+
+    const btn = document.getElementById('modal_submit_btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+}
+</script>

@@ -1,0 +1,27 @@
+#!/bin/sh
+# TechPilot — Pre-push hook
+# Chặn push nhánh không được phép. Cho phép main (chủ sở hữu) và trung, kim, hieu, dinh.
+
+ALLOWED="main trung kim hieu dinh"
+
+while read local_ref local_sha remote_ref remote_sha; do
+    PUSH_BRANCH=$(echo "$remote_ref" | sed 's|refs/heads/||')
+
+    FOUND=0
+    for b in $ALLOWED; do
+        if [ "$PUSH_BRANCH" = "$b" ]; then
+            FOUND=1
+            break
+        fi
+    done
+
+    if [ "$FOUND" = "0" ]; then
+        echo ""
+        echo "❌ CHẶN: Không được push nhánh '$PUSH_BRANCH'."
+        echo "   Chỉ được push: main, trung, kim, hieu, dinh."
+        echo ""
+        exit 1
+    fi
+done
+
+exit 0
