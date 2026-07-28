@@ -69,6 +69,50 @@ class CatalogGroupService
     ];
 
     /**
+     * Map từ đồng nghĩa chính thức cho 20 danh mục sản phẩm của TechPilot
+     */
+    public static array $categorySynonyms = [
+        'laptop'            => ['laptop', 'notebook', 'máy tính xách tay', 'lap', 'lap top'],
+        'pc'                => ['pc', 'máy tính bàn', 'desktop', 'máy bộ', 'build pc', 'máy tính để bàn', 'máy trạm', 'workstation'],
+        'monitor'           => ['màn hình', 'monitor', 'display', 'màn hình máy tính', 'màn hiển thị'],
+        'mainboard'         => ['mainboard', 'motherboard', 'bo mạch chủ', 'bo mẹ', 'main'],
+        'cpu'               => ['cpu', 'vi xử lý', 'bộ xử lý', 'processor', 'chip', 'chipset'],
+        'vga'               => ['vga', 'gpu', 'card đồ họa', 'card màn hình', 'card đồ hoạ'],
+        'ram'               => ['ram', 'bộ nhớ trong', 'memory', 'thanh ram'],
+        'storage'           => ['ổ cứng', 'ssd', 'hdd', 'nvme', 'storage', 'ổ cứng di động', 'ổ cứng ssd'],
+        'case'              => ['case', 'vỏ máy tính', 'thùng máy', 'vỏ pc', 'vỏ case'],
+        'cooling'           => ['tản nhiệt', 'cooling', 'aio', 'quạt cpu', 'tản nhiệt nước', 'tản khí'],
+        'psu'               => ['nguồn', 'psu', 'bộ nguồn', 'nguồn máy tính', 'nguồn pc'],
+        'keyboard'          => ['bàn phím', 'keyboard', 'phím cơ', 'bàn phím cơ'],
+        'mouse'             => ['chuột', 'mouse', 'chuột gaming'],
+        'chair'             => ['ghế', 'ghế gaming', 'gaming chair', 'ghế công thái học'],
+        'headset'           => ['tai nghe', 'headset', 'headphone', 'tai nghe gaming'],
+        'speaker'           => ['loa', 'speaker', 'loa vi tính'],
+        'console'           => ['console', 'máy chơi game', 'playstation', 'xbox', 'nintendo', 'ps5'],
+        'accessories'       => ['phụ kiện', 'hub', 'cáp', 'adapter', 'webcam', 'dây cáp'],
+        'office-equipment'  => ['thiết bị văn phòng', 'máy in', 'máy scan', 'văn phòng'],
+        'power-bank'        => ['sạc dự phòng', 'pin dự phòng', 'power bank', 'sạc dp'],
+    ];
+
+    /**
+     * Danh sách stopword quá chung (không nên dùng làm điều kiện lọc chính)
+     */
+    public static array $stopWords = [
+        'máy', 'may', 'sản phẩm', 'san pham', 'thiết bị', 'thiet bi',
+        'hàng', 'hang', 'đồ', 'do', 'loại', 'loai', 'mua', 'giá', 'gia',
+        'chính hãng', 'chinh hang', 'cho', 'tốt', 'tot', 'giá rẻ', 'gia re'
+    ];
+
+    /**
+     * Kiểm tra xem truy vấn có phải là từ khóa quá chung (Stopword) hay không
+     */
+    public static function isPureStopword(string $keyword): bool
+    {
+        $kw = strtolower(trim($keyword));
+        return in_array($kw, self::$stopWords, true);
+    }
+
+    /**
      * Map keyword search cố định có target riêng (Single Source of Truth)
      */
     private static array $keywordAliasMap = [
@@ -91,8 +135,6 @@ class CatalogGroupService
         'may bo'            => ['pc'],
         'máy tính để bàn'   => ['pc'],
         'may tinh de ban'   => ['pc'],
-        'máy tính'          => ['pc', 'laptop'],
-        'may tinh'          => ['pc', 'laptop'],
 
         'linh kiện'         => ['mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'],
         'linh kien'         => ['mainboard', 'cpu', 'vga', 'ram', 'storage', 'case', 'cooling', 'psu'],
