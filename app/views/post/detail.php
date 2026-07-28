@@ -123,7 +123,7 @@ if (!$post) return;
             </div>
             <?php endif; ?>
             <?php if (!empty($related)): ?>
-            <div class="news-sidebar-widget" style="position: static; margin-top: 20px;">
+            <div class="news-sidebar-widget news-sidebar-related-widget">
                 <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;color:var(--text-primary);">
                     <i class="fa-solid fa-newspaper" style="margin-right:6px;color:var(--primary);"></i>Bài viết liên quan
                 </h3>
