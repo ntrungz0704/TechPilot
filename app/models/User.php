@@ -25,15 +25,6 @@ class User
                     'role' => 'admin',
                     'status' => 'active',
                     'password' => password_hash('12345678', PASSWORD_DEFAULT),
-                ],
-                [
-                    'id' => 2,
-                    'full_name' => 'Nguyễn Văn Khách',
-                    'email' => 'customer@techpilot.vn',
-                    'phone' => '0987654321',
-                    'role' => 'customer',
-                    'status' => 'active',
-                    'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 ]
             ];
         }
