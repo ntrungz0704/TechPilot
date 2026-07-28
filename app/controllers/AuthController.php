@@ -67,6 +67,7 @@ class AuthController extends Controller
     /** Trang đăng ký: /auth/register */
     public function register(): void
     {
+        header('Content-Type: text/html; charset=utf-8');
         $errors = [];
         $old = ['full_name' => '', 'email' => '', 'phone' => ''];
 

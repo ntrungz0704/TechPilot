@@ -124,7 +124,7 @@ class CartController extends Controller
             $this->redirect('cart');
         }
 
-        if (!verify_csrf_token()) {
+        if (!verifyCsrf()) {
             flash('error', 'Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng thử lại.');
             $this->redirect('cart');
             return;

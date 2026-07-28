@@ -743,16 +743,16 @@ document.addEventListener('DOMContentLoaded', function() {
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
                 $slug = $brand['slug'] ?? '';
-                // Ưu tiên PNG (có logo thực), fallback SVG, cuối cùng hiển thị text
-                $pngFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.png';
+                // Ưu tiên SVG (text logo sạch, nền trong suốt), fallback PNG, cuối cùng hiển thị text
                 $svgFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.svg';
+                $pngFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.png';
                 $hasImage = false;
                 $logoUrl = '';
-                if (!empty($slug) && file_exists($pngFile)) {
-                    $logoUrl = url('assets/images/brands/' . $slug . '.png');
-                    $hasImage = true;
-                } elseif (!empty($slug) && file_exists($svgFile)) {
+                if (!empty($slug) && file_exists($svgFile)) {
                     $logoUrl = url('assets/images/brands/' . $slug . '.svg');
+                    $hasImage = true;
+                } elseif (!empty($slug) && file_exists($pngFile)) {
+                    $logoUrl = url('assets/images/brands/' . $slug . '.png');
                     $hasImage = true;
                 }
             ?>

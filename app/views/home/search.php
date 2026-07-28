@@ -57,12 +57,21 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                     <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
                 <?php endif; ?>
                 <input type="text" name="q" placeholder="Nhập từ khóa tìm kiếm..." value="<?= e($keyword) ?>">
-                <?php if ($categorySlug !== ''): ?>
-                    <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
-                <?php endif; ?>
                 <input type="hidden" name="min_price" value="<?= (int)$minPrice ?>">
                 <input type="hidden" name="max_price" value="<?= (int)$maxPrice ?>">
                 <button type="submit" class="btn btn--block"><i class="fa-solid fa-magnifying-glass"></i> Lọc kết quả</button>
+            </form>
+        </div>
+
+        <div class="search-widget">
+            <h3>Khoảng giá bán</h3>
+            <form class="price-range" onsubmit="event.preventDefault(); applyPriceFilter(document.querySelector('.price-slider').value);">
+                <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
+                <div class="price-display">
+                    <span>0đ</span>
+                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? number_format($maxPrice / 1000000, 0) . ' triệu đ' : '50 triệu đ' ?></span>
+                </div>
+                <button type="submit" class="btn btn--block price-apply-btn">Áp dụng khoảng giá</button>
             </form>
         </div>
 
@@ -77,18 +86,6 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                     </a>
                 <?php endforeach; ?>
             </div>
-        </div>
-
-        <div class="search-widget">
-            <h3>Khoảng giá bán</h3>
-            <form class="price-range" onsubmit="event.preventDefault(); applyPriceFilter(document.querySelector('.price-slider').value);">
-                <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
-                <div class="price-display">
-                    <span>0đ</span>
-                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? number_format($maxPrice / 1000000, 0) . ' triệu đ' : '50 triệu đ' ?></span>
-                </div>
-                <button type="submit" class="btn btn--block price-apply-btn">Áp dụng khoảng giá</button>
-            </form>
         </div>
     </aside>
 

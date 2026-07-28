@@ -31,8 +31,8 @@ $savedAddresses = $savedAddresses ?? [];
                     <select id="savedAddress" name="saved_address_id">
                         <option value="">Nhập địa chỉ khác</option>
                         <?php foreach ($savedAddresses as $saved): ?>
-                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e(Address::formatted($saved)) ?>">
-                                <?= e($saved['recipient_name']) ?> — <?= e(Address::formatted($saved)) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
+                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e($saved['address_line']) ?>">
+                                <?= e($saved['recipient_name']) ?> — <?= e($saved['address_line']) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
