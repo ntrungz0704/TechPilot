@@ -41,7 +41,7 @@ class Order
 
             $stmt = $this->db->prepare(
                 "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status, inventory_status, inventory_reserved_at)
-                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status, 'reserved', NOW())"
+                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status, 'pending', NOW())"
             );
 
             $stmt->execute([
@@ -75,10 +75,6 @@ class Order
                 'SELECT name, price, stock FROM products WHERE id = :id FOR UPDATE'
             );
 
-            $updateStockStmt = $this->db->prepare(
-                'UPDATE products SET stock = stock - :qty WHERE id = :id'
-            );
-
             $itemStmt = $this->db->prepare(
                 'INSERT INTO order_items (order_id, product_id, product_name, price, quantity, line_total)
                  VALUES (:order_id, :product_id, :product_name, :price, :quantity, :line_total)'
@@ -88,7 +84,7 @@ class Order
                 $productId = (int)($item['product_id'] ?? 0);
                 $qty = max(1, (int)($item['quantity'] ?? 1));
 
-                // 1. Khóa và lấy thông tin tồn kho & giá thực tế từ Database
+                // 1. Khóa và lấy thông tin giá thực tế từ Database
                 $productCheckStmt->execute([':id' => $productId]);
                 $dbProduct = $productCheckStmt->fetch();
 
@@ -96,7 +92,6 @@ class Order
                     throw new Exception('Sản phẩm không tồn tại.');
                 }
 
-                $dbStock = (int)$dbProduct['stock'];
                 $dbPrice = (float)$dbProduct['price'];
 
                 // Kiểm tra giá ưu đãi Flash Sale đang active nếu có
@@ -117,12 +112,7 @@ class Order
                 }
                 $dbName = $dbProduct['name'];
 
-                // 2. Kiểm tra tồn kho
-                if ($dbStock < $qty) {
-                    throw new Exception("Sản phẩm '{$dbName}' không đủ hàng tồn kho (Còn lại: {$dbStock}).");
-                }
-
-                // 3. Ghi chi tiết đơn hàng (lấy giá gốc từ DB)
+                // 2. Ghi chi tiết đơn hàng
                 $itemStmt->execute([
                     ':order_id' => $orderId,
                     ':product_id' => $productId,
@@ -131,13 +121,11 @@ class Order
                     ':quantity' => $qty,
                     ':line_total' => $dbPrice * $qty,
                 ]);
-
-                // 4. Trừ tồn kho
-                $updateStockStmt->execute([
-                    ':qty' => $qty,
-                    ':id' => $productId,
-                ]);
             }
+
+            // 3. Gọi Trừ tồn kho và Ghi vết Audit Log nguyên tử qua InventoryService
+            require_once ROOT_PATH . '/app/services/InventoryService.php';
+            InventoryService::reserveOrderInventory($this->db, $orderId);
 
             // Xóa/đóng giỏ hàng active của user trong database
             if ($userId) {
@@ -212,25 +200,42 @@ class Order
         
         require_once ROOT_PATH . '/app/services/InventoryService.php';
 
-        $stmt = $this->db->prepare("SELECT id, payment_status, status, inventory_status FROM orders WHERE order_code = :code AND payment_method = 'VNPAY' FOR UPDATE");
-        $stmt->execute([':code' => $orderCode]);
-        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare("SELECT id, payment_status, status, inventory_status FROM orders WHERE order_code = :code AND payment_method = 'VNPAY' FOR UPDATE");
+            $stmt->execute([':code' => $orderCode]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$order) return false;
-        if (($order['payment_status'] ?? '') === 'paid') return true;
-
-        if ($status === 'paid') {
-            $up = $this->db->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = :id");
-            return $up->execute([':id' => $order['id']]);
-        } elseif ($status === 'failed') {
-            if (($order['inventory_status'] ?? '') === 'reserved') {
-                InventoryService::releaseOrderInventory($this->db, (int)$order['id'], 'vnpay_failed');
+            if (!$order) {
+                $this->db->rollBack();
+                return false;
             }
-            $up = $this->db->prepare("UPDATE orders SET payment_status = 'failed', status = 'cancelled' WHERE id = :id");
-            return $up->execute([':id' => $order['id']]);
-        }
+            if (($order['payment_status'] ?? '') === 'paid') {
+                $this->db->commit();
+                return true;
+            }
 
-        return true;
+            if ($status === 'paid') {
+                $up = $this->db->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = :id");
+                $up->execute([':id' => $order['id']]);
+                $this->db->commit();
+                return true;
+            } elseif ($status === 'failed') {
+                if (($order['inventory_status'] ?? '') === 'reserved') {
+                    InventoryService::releaseOrderInventory($this->db, (int)$order['id'], 'vnpay_failed');
+                }
+                $up = $this->db->prepare("UPDATE orders SET payment_status = 'failed', status = 'cancelled' WHERE id = :id");
+                $up->execute([':id' => $order['id']]);
+                $this->db->commit();
+                return true;
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            return false;
+        }
     }
 
     public function getById(int $id, int $userId): array|false

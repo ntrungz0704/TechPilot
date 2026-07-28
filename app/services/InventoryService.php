@@ -1,11 +1,26 @@
 <?php
 
 /**
- * Service quản lý Tồn kho và Số lượng Sản phẩm cho TechPilot.
- * Single Source of Truth cho toàn bộ chỉ số tồn kho, đếm mẫu, reservation và idempotent release.
+ * Service quản lý Tồn kho và Số lượng Sản phẩm cho TechPilot (Inventory Audit V2).
+ * Single Source of Truth cho toàn bộ chỉ số tồn kho, đếm mẫu, reservation, idempotent release, và atomic audit logging.
  */
 class InventoryService
 {
+    /**
+     * Danh sách Transaction Types được phép ghi vết kho
+     */
+    public const ALLOWED_TYPES = [
+        'manual_import',
+        'manual_export',
+        'stock_correction_increase',
+        'stock_correction_decrease',
+        'order_reserve',
+        'order_release',
+        'return_restock',
+        'supplier_return',
+        'initial_stock',
+    ];
+
     private static function getDb(): ?PDO
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -153,7 +168,7 @@ class InventoryService
     }
 
     /**
-     * 4. Trừ/Reserve kho an toàn trong PDO Transaction (Atomic + Anti-negative stock)
+     * 4. Trừ/Reserve kho an toàn trong PDO Transaction (Atomic + Order Audit Log)
      */
     public static function reserveOrderInventory(PDO $db, int $orderId): bool
     {
@@ -165,7 +180,7 @@ class InventoryService
 
         if (!$order) return false;
         if (($order['inventory_status'] ?? '') === 'reserved') {
-            return true; // Đã reserve kho trước đó
+            return true; // Đã reserve kho trước đó (Idempotent)
         }
 
         $itemsStmt = $db->prepare("SELECT product_id, quantity FROM order_items WHERE order_id = :order_id");
@@ -186,12 +201,33 @@ class InventoryService
                 throw new RuntimeException("Sản phẩm ID {$pid} không đủ tồn kho hoặc dừng kinh doanh.");
             }
 
-            $updateStmt = $db->prepare("UPDATE products SET stock = stock - :qty WHERE id = :id AND stock >= :qty");
-            $updateStmt->execute([':qty' => $qty, ':id' => $pid]);
+            $oldStock = (int)$product['stock'];
+            $newStock = $oldStock - $qty;
+
+            $updateStmt = $db->prepare("UPDATE products SET stock = :new_stock WHERE id = :id AND stock >= :qty");
+            $updateStmt->execute([':new_stock' => $newStock, ':id' => $pid, ':qty' => $qty]);
 
             if ($updateStmt->rowCount() !== 1) {
                 throw new RuntimeException("Lỗi cập nhật kho cho sản phẩm ID {$pid}.");
             }
+
+            // Ghi Audit Log order_reserve (Bắt buộc không nuốt ngoại lệ)
+            $idempotencyKey = "order_{$orderId}_prod_{$pid}_reserve";
+            self::logInventoryChange(
+                $db,
+                $pid,
+                'order_reserve',
+                -$qty,
+                $oldStock,
+                $newStock,
+                'order_create',
+                "Khóa giữ hàng cho đơn hàng #{$orderId}",
+                'order',
+                (string)$orderId,
+                null,
+                $idempotencyKey,
+                $orderId
+            );
         }
 
         $upOrder = $db->prepare("UPDATE orders SET inventory_status = 'reserved', inventory_reserved_at = NOW() WHERE id = :id");
@@ -201,7 +237,7 @@ class InventoryService
     }
 
     /**
-     * 5. Hoàn kho Idempotent (Chỉ hoàn kho 1 lần duy nhất)
+     * 5. Hoàn kho Idempotent (Chỉ hoàn kho 1 lần duy nhất + Order Release Audit Log)
      */
     public static function releaseOrderInventory(PDO $db, int $orderId, string $reason = 'cancelled'): bool
     {
@@ -213,7 +249,7 @@ class InventoryService
 
         if (!$order) return false;
 
-        // Nếu trạng thái kho KHÔNG PHẢI là 'reserved' (ví dụ: đã released hoặc chưa reserve), không hoàn kho lại nữa
+        // Nếu trạng thái kho KHÔNG PHẢI là 'reserved', không hoàn kho lại nữa
         if (($order['inventory_status'] ?? '') !== 'reserved') {
             return true;
         }
@@ -226,11 +262,35 @@ class InventoryService
             $pid = (int)$item['product_id'];
             $qty = max(1, (int)$item['quantity']);
 
-            $pStmt = $db->prepare("SELECT id FROM products WHERE id = :id FOR UPDATE");
+            $pStmt = $db->prepare("SELECT id, stock FROM products WHERE id = :id FOR UPDATE");
             $pStmt->execute([':id' => $pid]);
+            $product = $pStmt->fetch(PDO::FETCH_ASSOC);
 
-            $upStmt = $db->prepare("UPDATE products SET stock = stock + :qty WHERE id = :id");
-            $upStmt->execute([':qty' => $qty, ':id' => $pid]);
+            if (!$product) continue;
+
+            $oldStock = (int)$product['stock'];
+            $newStock = $oldStock + $qty;
+
+            $upStmt = $db->prepare("UPDATE products SET stock = :new_stock WHERE id = :id");
+            $upStmt->execute([':new_stock' => $newStock, ':id' => $pid]);
+
+            // Ghi Audit Log order_release (Bắt buộc không nuốt ngoại lệ)
+            $idempotencyKey = "order_{$orderId}_prod_{$pid}_release";
+            self::logInventoryChange(
+                $db,
+                $pid,
+                'order_release',
+                +$qty,
+                $oldStock,
+                $newStock,
+                'order_cancel',
+                "Hoàn tồn kho từ đơn hàng #{$orderId} (Lý do: {$reason})",
+                'order',
+                (string)$orderId,
+                null,
+                $idempotencyKey,
+                $orderId
+            );
         }
 
         $upOrder = $db->prepare("
@@ -278,15 +338,17 @@ class InventoryService
     }
 
     /**
-     * 8. Thực hiện Nhập kho (+) hoặc Xuất kho (-) với Ghi vết Audit Log 100%
+     * 8. Thực hiện Nhập kho (+) hoặc Xuất kho (-) với Ghi vết Audit Log Atomic 100%
      */
     public static function adjustStock(
         PDO $db,
         int $productId,
         int $quantityChange,
-        string $type = 'import',
+        string $type = 'manual_import',
+        ?string $reasonCode = null,
         ?string $note = null,
-        ?int $userId = null
+        ?int $userId = null,
+        ?string $idempotencyKey = null
     ): array {
         if ($productId <= 0) {
             throw new InvalidArgumentException("ID sản phẩm không hợp lệ.");
@@ -295,28 +357,58 @@ class InventoryService
             throw new InvalidArgumentException("Số lượng thay đổi phải khác 0.");
         }
 
+        // Quy đổi type ngắn gọn từ Admin UI sang Whitelisted Type
+        if ($type === 'import') {
+            $type = ($quantityChange > 0) ? 'manual_import' : 'stock_correction_decrease';
+        } elseif ($type === 'export') {
+            $type = ($quantityChange < 0) ? 'manual_export' : 'stock_correction_increase';
+        }
+
+        if (!in_array($type, self::ALLOWED_TYPES, true)) {
+            throw new InvalidArgumentException("Loại giao dịch kho '{$type}' không hợp lệ.");
+        }
+
+        // Kiểm tra note bắt buộc với các thao tác giảm kho
+        $isNegative = ($quantityChange < 0);
+        if ($isNegative && empty(trim($note ?? ''))) {
+            throw new InvalidArgumentException("Ghi chú là bắt buộc khi xuất kho hoặc điều giảm tồn kho.");
+        }
+
         // Khóa record sản phẩm FOR UPDATE
         $stmt = $db->prepare("SELECT id, name, stock, status FROM products WHERE id = :id FOR UPDATE");
         $stmt->execute([':id' => $productId]);
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$product) {
-            throw new RuntimeException("Sản phẩm không tồn tại.");
+            throw new RuntimeException("Sản phẩm ID {$productId} không tồn tại.");
         }
 
         $oldStock = (int)($product['stock'] ?? 0);
         $newStock = $oldStock + $quantityChange;
 
         if ($newStock < 0) {
-            throw new RuntimeException("Số lượng xuất kho ({$quantityChange}) lớn hơn số tồn kho hiện tại ({$oldStock}).");
+            throw new RuntimeException("Số lượng xuất kho (" . abs($quantityChange) . ") lớn hơn số tồn kho hiện tại ({$oldStock}).");
         }
 
         // Cập nhật stock
         $up = $db->prepare("UPDATE products SET stock = :stock WHERE id = :id");
         $up->execute([':stock' => $newStock, ':id' => $productId]);
 
-        // Ghi nhận Audit Log
-        self::logInventoryChange($db, $productId, $type, $quantityChange, $oldStock, $newStock, $note, $userId);
+        // Ghi nhận Audit Log (Nếu chèn log thất bại, exception sẽ tung ra khiến Caller ROLLBACK)
+        self::logInventoryChange(
+            $db,
+            $productId,
+            $type,
+            $quantityChange,
+            $oldStock,
+            $newStock,
+            $reasonCode,
+            $note,
+            'manual_adjustment',
+            (string)$productId,
+            $userId,
+            $idempotencyKey
+        );
 
         return [
             'success'     => true,
@@ -331,41 +423,65 @@ class InventoryService
     }
 
     /**
-     * 9. Ghi vết giao dịch kho vào bảng inventory_logs
+     * 9. Ghi vết giao dịch kho vào bảng inventory_logs (Atomic - Không nuốt exception!)
      */
     public static function logInventoryChange(
         PDO $db,
         int $productId,
         string $type,
-        int $quantity,
+        int $quantityDelta,
         int $oldStock,
         int $newStock,
+        ?string $reasonCode = null,
         ?string $note = null,
-        ?int $userId = null
+        ?string $refType = null,
+        ?string $refId = null,
+        ?int $userId = null,
+        ?string $idempotencyKey = null,
+        ?int $orderId = null
     ): void {
-        try {
-            $stmt = $db->prepare("
-                INSERT INTO inventory_logs (product_id, type, quantity, old_stock, new_stock, note, created_by, created_at)
-                VALUES (:product_id, :type, :quantity, :old_stock, :new_stock, :note, :created_by, NOW())
-            ");
-            $stmt->execute([
-                ':product_id' => $productId,
-                ':type'       => $type,
-                ':quantity'   => $quantity,
-                ':old_stock'  => $oldStock,
-                ':new_stock'  => $newStock,
-                ':note'       => $note,
-                ':created_by' => $userId
-            ]);
-        } catch (Exception $e) {
-            error_log("InventoryService::logInventoryChange error: " . $e->getMessage());
+        if (!in_array($type, self::ALLOWED_TYPES, true)) {
+            throw new InvalidArgumentException("Loại giao dịch audit kho '{$type}' không nằm trong whitelist.");
         }
+
+        // Nếu có idempotencyKey, kiểm tra trùng lặp
+        if (!empty($idempotencyKey)) {
+            $chk = $db->prepare("SELECT id FROM inventory_logs WHERE idempotency_key = :ikey LIMIT 1");
+            $chk->execute([':ikey' => $idempotencyKey]);
+            if ($chk->fetch()) {
+                // Đã ghi log với idempotency_key này -> Bỏ qua không chèn trùng
+                return;
+            }
+        }
+
+        $stmt = $db->prepare("
+            INSERT INTO inventory_logs 
+                (product_id, order_id, type, quantity_delta, old_stock, new_stock, reason_code, note, reference_type, reference_id, created_by, idempotency_key, created_at)
+            VALUES 
+                (:product_id, :order_id, :type, :quantity_delta, :old_stock, :new_stock, :reason_code, :note, :reference_type, :reference_id, :created_by, :idempotency_key, NOW())
+        ");
+
+        // Thực thi câu lệnh SQL. Nếu thất bại, PDOException được tung lênCaller để ROLLBACK transaction!
+        $stmt->execute([
+            ':product_id'     => $productId,
+            ':order_id'       => $orderId,
+            ':type'           => $type,
+            ':quantity_delta' => $quantityDelta,
+            ':old_stock'      => $oldStock,
+            ':new_stock'      => $newStock,
+            ':reason_code'    => $reasonCode,
+            ':note'           => $note,
+            ':reference_type' => $refType,
+            ':reference_id'   => $refId,
+            ':created_by'     => $userId,
+            ':idempotency_key'=> $idempotencyKey
+        ]);
     }
 
     /**
-     * 10. Truy vấn Lịch sử Nhập/Xuất kho (Audit Trail)
+     * 10. Truy vấn Lịch sử Nhập/Xuất kho (Audit Trail) kết hợp bộ lọc đa tiêu chí
      */
-    public static function getInventoryLogs(?int $productId = null, int $limit = 50, int $offset = 0, ?PDO $db = null): array
+    public static function getInventoryLogs(array $filters = [], int $limit = 50, int $offset = 0, ?PDO $db = null): array
     {
         $db = $db ?? self::getDb();
         if (!$db) return [];
@@ -380,12 +496,39 @@ class InventoryService
                 FROM inventory_logs l
                 LEFT JOIN products p ON p.id = l.product_id
                 LEFT JOIN users u ON u.id = l.created_by
+                WHERE 1=1
             ";
 
             $params = [];
-            if ($productId !== null && $productId > 0) {
-                $sql .= " WHERE l.product_id = :pid";
-                $params[':pid'] = $productId;
+
+            if (!empty($filters['product_id']) && (int)$filters['product_id'] > 0) {
+                $sql .= " AND l.product_id = :pid";
+                $params[':pid'] = (int)$filters['product_id'];
+            }
+
+            if (!empty($filters['type'])) {
+                $sql .= " AND l.type = :type";
+                $params[':type'] = trim($filters['type']);
+            }
+
+            if (!empty($filters['created_by']) && (int)$filters['created_by'] > 0) {
+                $sql .= " AND l.created_by = :uid";
+                $params[':uid'] = (int)$filters['created_by'];
+            }
+
+            if (!empty($filters['date_from'])) {
+                $sql .= " AND l.created_at >= :date_from";
+                $params[':date_from'] = trim($filters['date_from']) . ' 00:00:00';
+            }
+
+            if (!empty($filters['date_to'])) {
+                $sql .= " AND l.created_at <= :date_to";
+                $params[':date_to'] = trim($filters['date_to']) . ' 23:59:59';
+            }
+
+            if (!empty($filters['search'])) {
+                $sql .= " AND (p.name LIKE :search OR l.note LIKE :search OR l.reference_id LIKE :search OR l.idempotency_key LIKE :search)";
+                $params[':search'] = '%' . trim($filters['search']) . '%';
             }
 
             $sql .= " ORDER BY l.id DESC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
@@ -396,6 +539,63 @@ class InventoryService
         } catch (Exception $e) {
             error_log("InventoryService::getInventoryLogs error: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * 11. Đếm tổng số bản ghi Audit Log khớp bộ lọc
+     */
+    public static function countInventoryLogs(array $filters = [], ?PDO $db = null): int
+    {
+        $db = $db ?? self::getDb();
+        if (!$db) return 0;
+
+        try {
+            $sql = "
+                SELECT COUNT(*)
+                FROM inventory_logs l
+                LEFT JOIN products p ON p.id = l.product_id
+                WHERE 1=1
+            ";
+
+            $params = [];
+
+            if (!empty($filters['product_id']) && (int)$filters['product_id'] > 0) {
+                $sql .= " AND l.product_id = :pid";
+                $params[':pid'] = (int)$filters['product_id'];
+            }
+
+            if (!empty($filters['type'])) {
+                $sql .= " AND l.type = :type";
+                $params[':type'] = trim($filters['type']);
+            }
+
+            if (!empty($filters['created_by']) && (int)$filters['created_by'] > 0) {
+                $sql .= " AND l.created_by = :uid";
+                $params[':uid'] = (int)$filters['created_by'];
+            }
+
+            if (!empty($filters['date_from'])) {
+                $sql .= " AND l.created_at >= :date_from";
+                $params[':date_from'] = trim($filters['date_from']) . ' 00:00:00';
+            }
+
+            if (!empty($filters['date_to'])) {
+                $sql .= " AND l.created_at <= :date_to";
+                $params[':date_to'] = trim($filters['date_to']) . ' 23:59:59';
+            }
+
+            if (!empty($filters['search'])) {
+                $sql .= " AND (p.name LIKE :search OR l.note LIKE :search OR l.reference_id LIKE :search OR l.idempotency_key LIKE :search)";
+                $params[':search'] = '%' . trim($filters['search']) . '%';
+            }
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            return (int)$stmt->fetchColumn();
+        } catch (Exception $e) {
+            error_log("InventoryService::countInventoryLogs error: " . $e->getMessage());
+            return 0;
         }
     }
 }

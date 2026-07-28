@@ -63,16 +63,41 @@ class HomeController extends Controller
         $sort = $_GET['sort'] ?? ($keyword !== '' ? 'relevance' : 'newest');
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 24;
-        $offset = ($page - 1) * $limit;
 
         $productModel = $this->model('Product');
 
-        $products = $productModel->search(
-            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
-        );
+        // 1. Đếm tổng kết quả trước
         $totalResults = $productModel->countSearch(
             $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
         );
+
+        // 2. Tính toán số trang và Clamp page nếu xơ vơ vượt quá
+        $totalPages = max(1, (int)ceil($totalResults / $limit));
+        if ($page > $totalPages && $totalResults > 0) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $limit;
+
+        // 3. Query danh sách sản phẩm theo Search Plan thống nhất
+        $searchResult = $productModel->search(
+            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
+        );
+
+        $searchError = false;
+        $products = [];
+
+        if ($searchResult === false) {
+            $searchError = true;
+            $products = [];
+            error_log("SEARCH_ERROR: Query failed for q={$keyword}, cat={$categorySlug}");
+        } else {
+            $products = $searchResult;
+        }
+
+        // 4. Invariant Assertion Check
+        if ($totalResults > 0 && empty($products) && !$searchError) {
+            error_log("SEARCH_RESULT_INVARIANT_BROKEN: totalResults={$totalResults}, products empty, page={$page}, limit={$limit}, offset={$offset}, q={$keyword}, cat={$categorySlug}");
+        }
 
         require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
         $isStopwordQuery = CatalogGroupService::isPureStopword($keyword) && empty($categorySlug);
@@ -105,6 +130,7 @@ class HomeController extends Controller
             'categories'       => $productModel->getCategories(),
             'totalResults'     => $totalResults,
             'isStopwordQuery'  => $isStopwordQuery,
+            'searchError'      => $searchError,
         ]);
     }
 

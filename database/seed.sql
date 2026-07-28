@@ -714,17 +714,26 @@ DROP TABLE IF EXISTS `inventory_logs`;
 CREATE TABLE `inventory_logs` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `product_id` int(10) unsigned NOT NULL,
-  `type` enum('import','export','adjustment','order_reserve','order_release') NOT NULL,
-  `quantity` int(11) NOT NULL,
+  `order_id` int(10) unsigned DEFAULT NULL,
+  `type` varchar(50) NOT NULL,
+  `quantity_delta` int(11) NOT NULL,
   `old_stock` int(11) NOT NULL,
   `new_stock` int(11) NOT NULL,
-  `note` varchar(255) DEFAULT NULL,
+  `reason_code` varchar(50) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `reference_type` varchar(50) DEFAULT NULL,
+  `reference_id` varchar(100) DEFAULT NULL,
   `created_by` int(10) unsigned DEFAULT NULL,
+  `idempotency_key` varchar(191) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_inventory_logs_pid` (`product_id`),
+  UNIQUE KEY `uniq_inventory_logs_idempotency` (`idempotency_key`),
+  KEY `idx_inventory_logs_product` (`product_id`),
+  KEY `idx_inventory_logs_order` (`order_id`),
   KEY `idx_inventory_logs_type` (`type`),
-  KEY `idx_inventory_logs_created` (`created_at`)
+  KEY `idx_inventory_logs_creator` (`created_by`),
+  KEY `idx_inventory_logs_created_at` (`created_at`),
+  KEY `idx_inventory_logs_ref` (`reference_type`,`reference_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

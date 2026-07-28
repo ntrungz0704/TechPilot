@@ -93,7 +93,7 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
     <main class="search-main">
         <div class="search-results-header">
             <h1><?= e($pageTitle) ?></h1>
-            <p class="results-count">Tìm thấy <strong><?= $totalResults ?></strong> sản phẩm phù hợp</p>
+            <p class="results-count">Tìm thấy <strong><?= number_format($totalResults) ?></strong> mẫu sản phẩm phù hợp</p>
             <div class="sort-options">
                 <label for="sortBy">Sắp xếp:</label>
                 <select id="sortBy" class="sort-select" onchange="applySort(this.value)">
@@ -120,7 +120,14 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
             </div>
         <?php endif; ?>
 
-        <?php if (!empty($products)): ?>
+        <?php if (!empty($searchError)): ?>
+            <div class="no-results" style="border: 1px solid #FCA5A5; background-color: #FEF2F2; text-align: center; padding: 40px 20px; border-radius: 12px;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 36px; color: #DC2626; margin-bottom: 12px;"></i>
+                <h3 style="color: #991B1B; margin-bottom: 8px;">Không thể tải kết quả tìm kiếm do lỗi hệ thống</h3>
+                <p style="color: #7F1D1D; margin-bottom: 16px;">Đã xảy ra sự cố trong quá trình xử lý truy vấn dữ liệu. Vui lòng thử lại sau.</p>
+                <a href="<?= url('home/search') ?>" class="btn">Tải lại trang</a>
+            </div>
+        <?php elseif (!empty($products)): ?>
             <div class="product-grid product-grid--4">
                 <?php foreach ($products as $p): ?>
                     <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
