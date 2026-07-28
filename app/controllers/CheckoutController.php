@@ -33,7 +33,8 @@ class CheckoutController extends Controller
             ];
         }
 
-        $shipping = $subtotal > 0 ? 30000 : 0;
+        // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
         $total = $subtotal + $shipping;
 
 
@@ -220,7 +221,8 @@ class CheckoutController extends Controller
             $couponId = (int)$applied['id'];
         }
 
-        $shipping = $subtotal > 0 ? 30000 : 0;
+        // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
+        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
         $total = max(0.0, $subtotal - $discountAmount + $shipping);
 
         $orderModel = $this->model('Order');

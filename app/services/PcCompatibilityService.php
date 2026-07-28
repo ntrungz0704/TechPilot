@@ -4,6 +4,12 @@
  */
 class PcCompatibilityService
 {
+    private static function parseSpecs($specs): array {
+        if (is_array($specs)) return $specs;
+        if (is_string($specs)) return json_decode($specs, true) ?: [];
+        return [];
+    }
+
     /**
      * Ước tính công suất nguồn cần thiết cho cấu hình
      * Trả về mảng chứa: estimated_peak_w, recommended_psu_w, reasons
@@ -11,7 +17,7 @@ class PcCompatibilityService
     public static function calculatePowerRequirements(array $build): array
     {
         $cpu = $build['cpu'] ?? null;
-        $gpu = $build['gpu'] ?? null;
+        $gpu = $build['vga'] ?? null;
         $mainboard = $build['mainboard'] ?? null;
         $ram = $build['ram'] ?? null;
         $cooler = $build['cooler'] ?? null;
@@ -46,7 +52,7 @@ class PcCompatibilityService
         }
 
         // 1. CPU Peak Power
-        $cpuSpecs = $cpu ? (json_decode($cpu['specs'] ?? '', true) ?: []) : [];
+        $cpuSpecs = $cpu ? (self::parseSpecs($cpu['specs'] ?? '')) : [];
         $cpuPeak = 0;
         if ($cpu) {
             if (isset($cpuSpecs['max_power_w'])) {
@@ -59,13 +65,13 @@ class PcCompatibilityService
         }
 
         // 2. GPU Load Power
-        $gpuSpecs = $gpu ? (json_decode($gpu['specs'] ?? '', true) ?: []) : [];
+        $gpuSpecs = $gpu ? (self::parseSpecs($gpu['specs'] ?? '')) : [];
         $gpuLoad = $gpu ? (float)($gpuSpecs['board_power_w'] ?? 150) : 0;
 
         // 3. Motherboard Power (50W với phổ thông, 70W với high-end)
         $mbPower = 0;
         if ($mainboard) {
-            $mbSpecs = json_decode($mainboard['specs'] ?? '', true) ?: [];
+            $mbSpecs = self::parseSpecs($mainboard['specs'] ?? '');
             $mbChipset = strtoupper($mbSpecs['chipset'] ?? '');
             $isHighEndMb = (strpos($mbChipset, 'Z') === 0 || strpos($mbChipset, 'X') === 0);
             $mbPower = $isHighEndMb ? 70 : 50;
@@ -74,7 +80,7 @@ class PcCompatibilityService
         // 4. RAM Power
         $ramPower = 0;
         if ($ram) {
-            $ramSpecs = json_decode($ram['specs'] ?? '', true) ?: [];
+            $ramSpecs = self::parseSpecs($ram['specs'] ?? '');
             $ramPowerPerModule = (float)($ramSpecs['power_w_per_module'] ?? 4);
             $ramModulesCount = (int)($ramSpecs['modules'] ?? 2);
             $ramPower = $ramModulesCount * $ramPowerPerModule;
@@ -84,7 +90,7 @@ class PcCompatibilityService
         $storagePower = 0;
         foreach ($storages as $st) {
             if ($st) {
-                $stSpecs = json_decode($st['specs'] ?? '', true) ?: [];
+                $stSpecs = self::parseSpecs($st['specs'] ?? '');
                 $storagePower += (float)($stSpecs['power_w'] ?? 6);
             }
         }
@@ -92,7 +98,7 @@ class PcCompatibilityService
         // 6. Cooler Power (fan + pump)
         $coolerPower = 0;
         if ($cooler) {
-            $coolerSpecs = json_decode($cooler['specs'] ?? '', true) ?: [];
+            $coolerSpecs = self::parseSpecs($cooler['specs'] ?? '');
             $coolerFanCount = (int)($coolerSpecs['fan_count'] ?? 1);
             $coolerFanPower = (float)($coolerSpecs['fan_power_w'] ?? 3);
             $coolerPumpPower = (float)($coolerSpecs['pump_power_w'] ?? 0);
@@ -103,7 +109,7 @@ class PcCompatibilityService
         $fanPower = 0;
         foreach ($fans as $fn) {
             if ($fn) {
-                $fnSpecs = json_decode($fn['specs'] ?? '', true) ?: [];
+                $fnSpecs = self::parseSpecs($fn['specs'] ?? '');
                 $fanPower += (float)($fnSpecs['power_w'] ?? 3);
             }
         }
@@ -157,12 +163,12 @@ class PcCompatibilityService
         $cpu = $build['cpu'] ?? null;
         $mainboard = $build['mainboard'] ?? null;
         $ram = $build['ram'] ?? null;
-        $gpu = $build['gpu'] ?? null;
+        $gpu = $build['vga'] ?? null;
         $cooler = $build['cooler'] ?? null;
         $case = $build['case'] ?? null;
         $psu = $build['psu'] ?? null;
 
-        $candidateSpecs = json_decode($candidate['specs'] ?? '', true) ?: [];
+        $candidateSpecs = self::parseSpecs($candidate['specs'] ?? '');
 
         // 1. Kiểm tra khi ứng cử viên là CPU
         if ($candidateType === 'cpu') {
@@ -176,7 +182,7 @@ class PcCompatibilityService
 
             // So khớp với Mainboard đã chọn
             if ($mainboard) {
-                $mbSpecs = json_decode($mainboard['specs'] ?? '', true) ?: [];
+                $mbSpecs = self::parseSpecs($mainboard['specs'] ?? '');
                 $mbSocket = $mbSpecs['socket'] ?? '';
                 $mbSupportedGens = $mbSpecs['bios_cpu_generations'] ?? [];
                 $mbBiosGens = $mbSpecs['bios_warning_generations'] ?? [];
@@ -205,7 +211,7 @@ class PcCompatibilityService
 
             // So khớp với CPU đã chọn
             if ($cpu) {
-                $cpuSpecs = json_decode($cpu['specs'] ?? '', true) ?: [];
+                $cpuSpecs = self::parseSpecs($cpu['specs'] ?? '');
                 $cpuSocket = $cpuSpecs['socket'] ?? '';
                 $cpuGen = $cpuSpecs['generation'] ?? '';
 
@@ -224,7 +230,7 @@ class PcCompatibilityService
 
             // So khớp với RAM đã chọn
             if ($ram) {
-                $ramSpecs = json_decode($ram['specs'] ?? '', true) ?: [];
+                $ramSpecs = self::parseSpecs($ram['specs'] ?? '');
                 $ramType = $ramSpecs['memory_type'] ?? '';
 
                 if ($mbRamType !== '' && $ramType !== '' && strcasecmp($mbRamType, $ramType) !== 0) {
@@ -234,7 +240,7 @@ class PcCompatibilityService
 
             // So khớp với Case đã chọn
             if ($case) {
-                $caseSpecs = json_decode($case['specs'] ?? '', true) ?: [];
+                $caseSpecs = self::parseSpecs($case['specs'] ?? '');
                 $caseFormFactors = $caseSpecs['supported_motherboard_form_factors'] ?? [];
                 $mbForm = $mbSpecs['form_factor'] ?? '';
 
@@ -253,7 +259,7 @@ class PcCompatibilityService
 
             // So khớp với Mainboard đã chọn
             if ($mainboard) {
-                $mbSpecs = json_decode($mainboard['specs'] ?? '', true) ?: [];
+                $mbSpecs = self::parseSpecs($mainboard['specs'] ?? '');
                 $mbRamType = $mbSpecs['memory_type'] ?? '';
                 $mbSlots = (int)($mbSpecs['ram_slots'] ?? 4);
                 $mbMaxMem = (int)($mbSpecs['max_memory_gb'] ?? 128);
@@ -279,7 +285,7 @@ class PcCompatibilityService
 
             // So khớp với Case đã chọn
             if ($case) {
-                $caseSpecs = json_decode($case['specs'] ?? '', true) ?: [];
+                $caseSpecs = self::parseSpecs($case['specs'] ?? '');
                 $caseMaxGpu = (float)($caseSpecs['max_gpu_length_mm'] ?? 300);
 
                 if ($gpuLength > 0 && $caseMaxGpu > 0 && $gpuLength > $caseMaxGpu) {
@@ -309,7 +315,7 @@ class PcCompatibilityService
             $caseMaxCooler = (float)($caseSpecs['max_cpu_cooler_height_mm'] ?? 0);
 
             if ($mainboard) {
-                $mbSpecs = json_decode($mainboard['specs'] ?? '', true) ?: [];
+                $mbSpecs = self::parseSpecs($mainboard['specs'] ?? '');
                 $mbForm = $mbSpecs['form_factor'] ?? '';
 
                 if ($mbForm !== '' && !empty($caseFormFactors) && !in_array($mbForm, $caseFormFactors)) {
@@ -318,7 +324,7 @@ class PcCompatibilityService
             }
 
             if ($gpu) {
-                $gpuSpecs = json_decode($gpu['specs'] ?? '', true) ?: [];
+                $gpuSpecs = self::parseSpecs($gpu['specs'] ?? '');
                 $gpuLength = (float)($gpuSpecs['length_mm'] ?? 0);
 
                 if ($gpuLength > 0 && $caseMaxGpu > 0 && $gpuLength > $caseMaxGpu) {
@@ -327,7 +333,7 @@ class PcCompatibilityService
             }
 
             if ($cooler) {
-                $coolerSpecs = json_decode($cooler['specs'] ?? '', true) ?: [];
+                $coolerSpecs = self::parseSpecs($cooler['specs'] ?? '');
                 $coolerHeight = (float)($coolerSpecs['height_mm'] ?? 0);
                 $coolerType = $coolerSpecs['cooler_type'] ?? '';
 
@@ -345,7 +351,7 @@ class PcCompatibilityService
             $coolerType = $coolerSpecs['cooler_type'] ?? '';
 
             if ($cpu) {
-                $cpuSpecs = json_decode($cpu['specs'] ?? '', true) ?: [];
+                $cpuSpecs = self::parseSpecs($cpu['specs'] ?? '');
                 $cpuSocket = $cpuSpecs['socket'] ?? '';
 
                 if ($cpuSocket !== '' && !empty($coolerSockets) && !in_array($cpuSocket, $coolerSockets)) {
@@ -354,7 +360,7 @@ class PcCompatibilityService
             }
 
             if ($case && $coolerType === 'air') {
-                $caseSpecs = json_decode($case['specs'] ?? '', true) ?: [];
+                $caseSpecs = self::parseSpecs($case['specs'] ?? '');
                 $caseMaxCooler = (float)($caseSpecs['max_cpu_cooler_height_mm'] ?? 0);
 
                 if ($coolerHeight > 0 && $caseMaxCooler > 0 && $coolerHeight > $caseMaxCooler) {

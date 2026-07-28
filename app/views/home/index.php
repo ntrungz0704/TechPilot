@@ -279,12 +279,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const scrollStep = 220;
     let autoPlayTimer = null;
 
+    // Tính chính xác chiều rộng 1 card (bao gồm gap)
+    function getCardScrollWidth() {
+        const firstCard = track.children[0];
+        if (!firstCard) return scrollStep;
+        const cardRect = firstCard.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(track).gap) || 16;
+        return cardRect.width + gap;
+    }
+
     function scrollNext() {
         if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
             track.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-            const cardWidth = track.querySelector('.product-card-wrapper') ? track.querySelector('.product-card-wrapper').getBoundingClientRect().width + 16 : scrollStep;
-            track.scrollBy({ left: cardWidth, behavior: 'smooth' });
+            track.scrollBy({ left: getCardScrollWidth(), behavior: 'smooth' });
         }
     }
 
@@ -292,8 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (track.scrollLeft <= 10) {
             track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
         } else {
-            const cardWidth = track.querySelector('.product-card-wrapper') ? track.querySelector('.product-card-wrapper').getBoundingClientRect().width + 16 : scrollStep;
-            track.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+            track.scrollBy({ left: -getCardScrollWidth(), behavior: 'smooth' });
         }
     }
 
@@ -736,10 +743,25 @@ document.addEventListener('DOMContentLoaded', function() {
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
                 $slug = $brand['slug'] ?? '';
-                $logoFile = !empty($slug) ? $slug . '.svg' : 'placeholder.svg';
+                // Ưu tiên PNG (có logo thực), fallback SVG, cuối cùng hiển thị text
+                $pngFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.png';
+                $svgFile = ROOT_PATH . '/public/assets/images/brands/' . $slug . '.svg';
+                $hasImage = false;
+                $logoUrl = '';
+                if (!empty($slug) && file_exists($pngFile)) {
+                    $logoUrl = url('assets/images/brands/' . $slug . '.png');
+                    $hasImage = true;
+                } elseif (!empty($slug) && file_exists($svgFile)) {
+                    $logoUrl = url('assets/images/brands/' . $slug . '.svg');
+                    $hasImage = true;
+                }
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
-                    <img src="<?= url('assets/images/brands/' . e($logoFile)) ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
+                    <?php if ($hasImage): ?>
+                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
+                    <?php else: ?>
+                        <span style="font-size:16px;font-weight:800;color:#374151;letter-spacing:0.5px;"><?= e($brand['name']) ?></span>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
