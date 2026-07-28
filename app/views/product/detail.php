@@ -524,4 +524,46 @@ $galleryImages = array_slice(uniqueProductImages($product['image'] ?? '', $produ
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/• (.*?)(<br>|$)/g, '<li style="margin-left: 15px; margin-bottom: 4px;">$1</li>');
     }
+
+    // Near-realtime Stock Polling cho trang Chi tiết sản phẩm
+    (function() {
+        const productId = <?= (int)($product['id'] ?? 0) ?>;
+        if (!productId) return;
+
+        function checkLiveStock() {
+            fetch('<?= url("api/inventory/product/") ?>' + productId)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        const stock = Number(res.data.stock || 0);
+                        const purchasable = res.data.purchasable;
+                        const qtyInput = document.getElementById('qtyInput');
+                        const qtyIncBtn = document.getElementById('qtyIncBtn');
+                        const buyBtns = document.querySelectorAll('#purchaseForm button[type="submit"], #purchaseForm button[onclick*="buyNowSubmit"]');
+
+                        if (qtyInput) {
+                            qtyInput.max = stock;
+                            if (Number(qtyInput.value) > stock) {
+                                qtyInput.value = Math.max(1, stock);
+                            }
+                        }
+
+                        if (!purchasable || stock <= 0) {
+                            if (qtyIncBtn) qtyIncBtn.disabled = true;
+                            buyBtns.forEach(btn => {
+                                btn.disabled = true;
+                                btn.style.opacity = '0.5';
+                                btn.style.cursor = 'not-allowed';
+                                if (btn.innerText.includes('Thêm') || btn.innerText.includes('Mua')) {
+                                    btn.innerHTML = '<i class="fa-solid fa-ban"></i> Hết hàng';
+                                }
+                            });
+                        }
+                    }
+                })
+                .catch(err => console.debug('Stock poll paused:', err));
+        }
+
+        setInterval(checkLiveStock, 20000);
+    })();
 </script>

@@ -387,4 +387,64 @@ class AdminProductController extends Controller
 
         $this->redirect('admin/products');
     }
+
+    /** Xử lý Nhập kho / Xuất kho nhanh từ Admin: POST /admin/products/adjust-stock */
+    public function adjustStock(): void
+    {
+        $this->requireAdmin();
+
+        if (!$this->isPost()) {
+            $this->redirect('admin/products');
+            return;
+        }
+
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc không hợp lệ. Vui lòng thử lại.');
+            $this->redirect('admin/products');
+            return;
+        }
+
+        $productId = (int)($_POST['product_id'] ?? 0);
+        $action = trim($_POST['action_type'] ?? 'import');
+        $qty = (int)($_POST['quantity'] ?? 0);
+        $note = trim($_POST['note'] ?? '');
+
+        if ($productId <= 0 || $qty <= 0) {
+            flash('error', 'Số lượng nhập/xuất kho phải lớn hơn 0.');
+            $this->redirect('admin/products');
+            return;
+        }
+
+        $quantityChange = ($action === 'export') ? -$qty : $qty;
+        $type = ($action === 'export') ? 'export' : 'import';
+
+        require_once ROOT_PATH . '/config/database.php';
+        require_once ROOT_PATH . '/app/services/InventoryService.php';
+
+        $db = Database::getConnection();
+        if (!$db) {
+            flash('error', 'Lỗi kết nối cơ sở dữ liệu.');
+            $this->redirect('admin/products');
+            return;
+        }
+
+        $user = currentUser();
+        $userId = $user ? (int)$user['id'] : null;
+
+        $db->beginTransaction();
+        try {
+            $result = InventoryService::adjustStock($db, $productId, $quantityChange, $type, $note, $userId);
+            $db->commit();
+
+            $actionText = ($action === 'export') ? 'Xuất kho' : 'Nhập kho';
+            flash('success', "Đã {$actionText} thành công {$qty} sản phẩm '{$result['name']}'. Tồn kho mới: {$result['new_stock']} chiếc.");
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            flash('error', 'Lỗi điều chỉnh tồn kho: ' . $e->getMessage());
+        }
+
+        $this->redirect('admin/products');
+    }
 }

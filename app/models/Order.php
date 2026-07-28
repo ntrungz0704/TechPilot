@@ -40,8 +40,8 @@ class Order
             $discountAmount = isset($payload['discount_amount']) ? (float)$payload['discount_amount'] : 0.0;
 
             $stmt = $this->db->prepare(
-                'INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status)
-                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status)'
+                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status, inventory_status, inventory_reserved_at)
+                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status, 'reserved', NOW())"
             );
 
             $stmt->execute([
@@ -209,8 +209,28 @@ class Order
     public function updatePayment(string $orderCode, string $status): bool
     {
         if ($this->useFallback || !in_array($status, ['pending', 'paid', 'failed'], true)) return false;
-        $stmt = $this->db->prepare("UPDATE orders SET payment_status = :status WHERE order_code = :code AND payment_method = 'VNPAY' AND payment_status <> 'paid'");
-        return $stmt->execute([':status' => $status, ':code' => $orderCode]);
+        
+        require_once ROOT_PATH . '/app/services/InventoryService.php';
+
+        $stmt = $this->db->prepare("SELECT id, payment_status, status, inventory_status FROM orders WHERE order_code = :code AND payment_method = 'VNPAY' FOR UPDATE");
+        $stmt->execute([':code' => $orderCode]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) return false;
+        if (($order['payment_status'] ?? '') === 'paid') return true;
+
+        if ($status === 'paid') {
+            $up = $this->db->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = :id");
+            return $up->execute([':id' => $order['id']]);
+        } elseif ($status === 'failed') {
+            if (($order['inventory_status'] ?? '') === 'reserved') {
+                InventoryService::releaseOrderInventory($this->db, (int)$order['id'], 'vnpay_failed');
+            }
+            $up = $this->db->prepare("UPDATE orders SET payment_status = 'failed', status = 'cancelled' WHERE id = :id");
+            return $up->execute([':id' => $order['id']]);
+        }
+
+        return true;
     }
 
     public function getById(int $id, int $userId): array|false

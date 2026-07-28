@@ -6,15 +6,22 @@ class AdminController extends Controller
     {
         $this->requireAdmin();
 
-        // 1. Thống kê số lượng chung
+        require_once ROOT_PATH . '/app/services/InventoryService.php';
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
+        $inventorySummary = InventoryService::getGlobalSummary($db);
+
         $stats = [
-            'total_users'    => 0,
-            'total_products' => 0,
-            'total_orders'   => 0,
-            'total_revenue'  => 0.0
+            'total_users'           => 0,
+            'total_orders'          => 0,
+            'total_revenue'         => 0.0,
+            'total_product_models'  => $inventorySummary['total_product_models'],
+            'active_product_models' => $inventorySummary['active_product_models'],
+            'total_inventory_units' => $inventorySummary['total_inventory_units'],
+            'low_stock_models'      => $inventorySummary['low_stock_models'],
+            'out_of_stock_models'   => $inventorySummary['out_of_stock_models'],
+            'total_sold_units'      => $inventorySummary['total_sold_units'],
         ];
 
         $lowStockProducts = [];
@@ -22,24 +29,21 @@ class AdminController extends Controller
 
         if ($db) {
             // Tổng số khách hàng
-            $stats['total_users'] = (int)$db->query('SELECT COUNT(*) FROM users WHERE role = \'customer\'')->fetchColumn();
-
-            // Tổng số sản phẩm
-            $stats['total_products'] = (int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn();
+            $stats['total_users'] = (int)$db->query("SELECT COUNT(*) FROM users WHERE role = 'customer'")->fetchColumn();
 
             // Tổng số đơn hàng
-            $stats['total_orders'] = (int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+            $stats['total_orders'] = (int)$db->query("SELECT COUNT(*) FROM orders")->fetchColumn();
 
             // Doanh thu từ các đơn hàng đã hoàn thành (completed)
-            $stats['total_revenue'] = (float)$db->query('SELECT SUM(total_amount) FROM orders WHERE status = \'completed\'')->fetchColumn();
+            $stats['total_revenue'] = (float)$db->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status = 'completed'")->fetchColumn();
 
-            // Sản phẩm tồn kho thấp (< 10)
-            $stmt = $db->prepare('SELECT id, name, price, stock, image FROM products WHERE stock < 10 ORDER BY stock ASC LIMIT 5');
+            // Sản phẩm tồn kho thấp (1 - 9)
+            $stmt = $db->prepare("SELECT id, name, price, stock, image FROM products WHERE status = 'active' AND stock < 10 ORDER BY stock ASC LIMIT 5");
             $stmt->execute();
             $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Đơn hàng gần đây
-            $stmt = $db->prepare('SELECT id, order_code, customer_name, total_amount, status, created_at FROM orders ORDER BY id DESC LIMIT 5');
+            $stmt = $db->prepare("SELECT id, order_code, customer_name, total_amount, status, created_at FROM orders ORDER BY id DESC LIMIT 5");
             $stmt->execute();
             $recentOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }

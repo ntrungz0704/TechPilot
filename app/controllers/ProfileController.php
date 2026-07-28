@@ -383,24 +383,14 @@ class ProfileController extends Controller
 
         $db->beginTransaction();
         try {
+            require_once ROOT_PATH . '/app/services/InventoryService.php';
+
             // Cập nhật trạng thái đơn hàng sang cancelled
             $stmt = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = :id AND user_id = :user_id");
             $stmt->execute([':id' => $orderId, ':user_id' => (int)$user['id']]);
 
-            // Lấy các sản phẩm trong đơn để cộng lại stock
-            $stmt = $db->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = :order_id');
-            $stmt->execute([':order_id' => $orderId]);
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($items as $item) {
-                if (!empty($item['product_id'])) {
-                    $updateStockStmt = $db->prepare('UPDATE products SET stock = stock + :qty WHERE id = :pid');
-                    $updateStockStmt->execute([
-                        ':qty' => (int)$item['quantity'],
-                        ':pid' => (int)$item['product_id']
-                    ]);
-                }
-            }
+            // Hoàn kho Idempotent bằng InventoryService
+            InventoryService::releaseOrderInventory($db, $orderId, 'customer_cancelled');
 
             // Ghi nhận thông báo
             $stmt = $db->prepare('INSERT INTO notifications (user_id, title, content) VALUES (:user_id, :title, :content)');

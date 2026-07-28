@@ -51,6 +51,11 @@ $router->post('/profile/repay', 'ProfileController@repay');
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
 
+// API Inventory Endpoints
+$router->get('/api/inventory/summary', 'InventoryApiController@summary');
+$router->get('/api/inventory/product/{id}', 'InventoryApiController@product');
+$router->get('/api/inventory/category/{id}', 'InventoryApiController@category');
+
 // API Notifications & Wishlist & Chatbot
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
 $router->post('/wishlist/toggle', 'WishlistController@toggle');
@@ -78,13 +83,15 @@ $router->get('/admin/brands/edit/{id}', 'AdminBrandController@edit');
 $router->post('/admin/brands/update/{id}', 'AdminBrandController@update');
 $router->post('/admin/brands/delete/{id}', 'AdminBrandController@delete');
 
-// Admin Product Routes
+// Admin Product & Inventory Routes
 $router->get('/admin/products', 'AdminProductController@index');
 $router->get('/admin/products/create', 'AdminProductController@create');
 $router->post('/admin/products/store', 'AdminProductController@store');
 $router->get('/admin/products/edit/{id}', 'AdminProductController@edit');
 $router->post('/admin/products/update/{id}', 'AdminProductController@update');
 $router->post('/admin/products/delete/{id}', 'AdminProductController@delete');
+$router->post('/admin/products/adjust-stock', 'AdminProductController@adjustStock');
+$router->get('/admin/inventory/logs', 'AdminInventoryController@logs');
 
 // Admin Order Routes
 $router->get('/admin/orders', 'AdminOrderController@index');
