@@ -273,6 +273,17 @@ class CheckoutController extends Controller
             $paymentMethod = 'COD';
         }
 
+        if ($paymentMethod === 'VNPAY') {
+            require_once ROOT_PATH . '/app/services/VnpayService.php';
+            $vnpayService = new VnpayService();
+            if (!$vnpayService->isConfigured()) {
+                $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+                $_SESSION['checkout_error'] = 'Thanh toán qua VNPay tạm thời chưa khả dụng trên môi trường thử nghiệm. Vui lòng chọn phương thức Thanh toán khi nhận hàng (COD).';
+                $this->redirect('checkout');
+                return;
+            }
+        }
+
         $subtotal = 0.0;
         foreach ($cart as $item) {
             $quantity = max(1, (int)($item['quantity'] ?? 1));

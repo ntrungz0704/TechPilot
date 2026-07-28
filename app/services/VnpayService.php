@@ -9,9 +9,17 @@ class VnpayService
         $this->config = require dirname(__DIR__, 2) . '/config/vnpay.php';
     }
 
+    public function isConfigured(): bool
+    {
+        return !empty($this->config['tmn_code'])
+            && !empty($this->config['hash_secret'])
+            && !empty($this->config['payment_url'])
+            && !empty($this->config['return_url']);
+    }
+
     public function createPaymentUrl(array $order): string
     {
-        if (empty($this->config['tmn_code']) || empty($this->config['hash_secret'])) {
+        if (!$this->isConfigured()) {
             throw new RuntimeException('VNPay credentials are not configured.');
         }
         date_default_timezone_set('Asia/Ho_Chi_Minh');
