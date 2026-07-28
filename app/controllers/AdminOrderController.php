@@ -176,44 +176,21 @@ class AdminOrderController extends Controller
                     $paymentStatusSql = ', payment_status = \'paid\'';
                 }
 
-                // Nếu đơn hàng bị Huỷ (Cancelled) -> Cộng lại số lượng tồn kho sản phẩm
-                if ($newStatus === 'cancelled' && $currentStatus !== 'cancelled') {
-                    // Lấy các sản phẩm trong đơn
-                    $stmt = $db->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = :order_id');
-                    $stmt->execute([':order_id' => $id]);
-                    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                require_once ROOT_PATH . '/app/services/InventoryService.php';
 
-                    foreach ($items as $item) {
-                        $updateStockStmt = $db->prepare('UPDATE products SET stock = stock + :qty WHERE id = :pid');
-                        $updateStockStmt->execute([
-                            ':qty' => (int)$item['quantity'],
-                            ':pid' => (int)$item['product_id']
-                        ]);
-                    }
+                // Nếu đơn hàng bị Huỷ (Cancelled) -> Hoàn kho Idempotent bằng InventoryService
+                if ($newStatus === 'cancelled' && $currentStatus !== 'cancelled') {
+                    InventoryService::releaseOrderInventory($db, $id, 'admin_cancelled');
                 }
 
-                // Nếu đơn hàng từ Trạng thái Cancelled phục hồi lại -> Phải trừ lại kho nếu đủ
+                // Nếu đơn hàng từ Trạng thái Cancelled phục hồi lại -> Phải reserve lại kho nếu đủ
                 if ($currentStatus === 'cancelled' && $newStatus !== 'cancelled') {
-                    $stmt = $db->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = :order_id');
-                    $stmt->execute([':order_id' => $id]);
-                    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    InventoryService::reserveOrderInventory($db, $id);
+                }
 
-                    foreach ($items as $item) {
-                        // Kiểm tra kho có đủ không
-                        $stockStmt = $db->prepare('SELECT stock FROM products WHERE id = :pid FOR UPDATE');
-                        $stockStmt->execute([':pid' => (int)$item['product_id']]);
-                        $currentStock = (int)$stockStmt->fetchColumn();
-
-                        if ($currentStock < (int)$item['quantity']) {
-                            throw new Exception("Sản phẩm ID {$item['product_id']} không đủ số lượng tồn kho để khôi phục đơn hàng.");
-                        }
-
-                        $updateStockStmt = $db->prepare('UPDATE products SET stock = stock - :qty WHERE id = :pid');
-                        $updateStockStmt->execute([
-                            ':qty' => (int)$item['quantity'],
-                            ':pid' => (int)$item['product_id']
-                        ]);
-                    }
+                // Nếu đơn hàng hoàn thành (Completed) -> Chuyển inventory_status sang committed
+                if ($newStatus === 'completed') {
+                    InventoryService::commitOrderInventory($db, $id);
                 }
 
                 // Thực hiện cập nhật đơn hàng

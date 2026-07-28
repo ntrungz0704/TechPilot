@@ -402,8 +402,10 @@ CREATE TABLE `orders` (
   `total_amount` decimal(12,0) NOT NULL DEFAULT 0,
   `status` enum('pending','confirmed','processing','shipping','completed','cancelled') NOT NULL DEFAULT 'pending',
   `idempotency_key` char(36) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `inventory_status` enum('not_reserved','reserved','released','committed') NOT NULL DEFAULT 'reserved',
+  `inventory_reserved_at` datetime DEFAULT NULL,
+  `inventory_released_at` datetime DEFAULT NULL,
+  `inventory_release_reason` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `order_code` (`order_code`),
   UNIQUE KEY `idempotency_key` (`idempotency_key`),
@@ -704,7 +706,26 @@ LOCK TABLES `wishlists` WRITE;
 /*!40000 ALTER TABLE `wishlists` DISABLE KEYS */;
 INSERT INTO `wishlists` VALUES (3,2,654,'2026-07-28 02:10:38');
 /*!40000 ALTER TABLE `wishlists` ENABLE KEYS */;
-UNLOCK TABLES;
+--
+-- Table structure for table `inventory_logs`
+--
+
+DROP TABLE IF EXISTS `inventory_logs`;
+CREATE TABLE `inventory_logs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(10) unsigned NOT NULL,
+  `type` enum('import','export','adjustment','order_reserve','order_release') NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `old_stock` int(11) NOT NULL,
+  `new_stock` int(11) NOT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_inventory_logs_pid` (`product_id`),
+  KEY `idx_inventory_logs_type` (`type`),
+  KEY `idx_inventory_logs_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping routines for database 'techpilot'
