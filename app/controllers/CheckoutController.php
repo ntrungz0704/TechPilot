@@ -82,6 +82,8 @@ class CheckoutController extends Controller
             'availableCoupons' => $availableCoupons,
             'savedAddresses' => $savedAddresses
         ]);
+
+        unset($_SESSION['checkout_error']);
     }
 
     public function apply_coupon(): void
@@ -258,6 +260,13 @@ class CheckoutController extends Controller
         $address = trim($_POST['address'] ?? '');
         $note = trim($_POST['note'] ?? '');
         $paymentMethod = trim($_POST['payment_method'] ?? 'COD');
+
+        if ($customerName === '' || $phone === '' || $address === '') {
+            $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+            $_SESSION['checkout_error'] = 'Vui lòng điền đầy đủ Họ và tên người nhận, Số điện thoại và Địa chỉ nhận hàng.';
+            $this->redirect('checkout');
+            return;
+        }
 
         if (!in_array($paymentMethod, ['COD', 'VNPAY'], true)) {
             $paymentMethod = 'COD';

@@ -21,8 +21,10 @@ $savedAddresses = $savedAddresses ?? [];
             <div class="alert alert--error">
                 <p><i class="fa-solid fa-circle-exclamation"></i> <?= e($_SESSION['checkout_error']) ?></p>
             </div>
+            <?php unset($_SESSION['checkout_error']); ?>
         <?php endif; ?>
 
+        <?php $user = currentUser(); ?>
         <form method="post" action="<?= url('checkout/submit') ?>" class="checkout-form">
             <?= csrf_field() ?>
             <?php if ($savedAddresses): ?>
@@ -41,15 +43,15 @@ $savedAddresses = $savedAddresses ?? [];
             <?php endif; ?>
             <div class="form-group">
                 <label>Họ và tên người nhận</label>
-                <input type="text" name="customer_name" required placeholder="Nguyễn Văn A">
+                <input type="text" name="customer_name" required value="<?= e($_POST['customer_name'] ?? $user['full_name'] ?? $user['name'] ?? '') ?>" placeholder="Nguyễn Văn A">
             </div>
             <div class="form-group">
                 <label>Số điện thoại</label>
-                <input type="text" name="phone" required placeholder="0909 123 456">
+                <input type="text" name="phone" required value="<?= e($_POST['phone'] ?? $user['phone'] ?? '') ?>" placeholder="0909 123 456">
             </div>
             <div class="form-group">
                 <label>Địa chỉ nhận hàng</label>
-                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"></textarea>
+                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($_POST['address'] ?? '') ?></textarea>
             </div>
             <label class="save-address-option">
                 <input type="checkbox" name="save_address" value="1">
