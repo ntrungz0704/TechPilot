@@ -27,6 +27,7 @@ $savedAddresses = $savedAddresses ?? [];
         <?php $user = currentUser(); ?>
         <form method="post" action="<?= url('checkout/submit') ?>" class="checkout-form">
             <?= csrf_field() ?>
+            <input type="hidden" name="submit_token" value="<?= e($_SESSION['submit_token'] ?? '') ?>">
             <?php if ($savedAddresses): ?>
                 <div class="form-group">
                     <label>Chọn từ sổ địa chỉ</label>
