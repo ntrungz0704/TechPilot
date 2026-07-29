@@ -146,7 +146,7 @@
                 <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i> Tìm & Thêm sản phẩm vào so sánh (Còn trống <?= 4 - count($products) ?> vị trí)
             </label>
             <div style="position: relative;">
-                <input type="text" id="compareSearchInput" placeholder="Nhập tên sản phẩm (Hệ thống sẽ lọc đúng danh mục đã chọn)..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box;" oninput="onCompareSearchInput(this.value)">
+                <input type="text" id="compareSearchInput" placeholder="Bấm vào để xem danh sách gợi ý hoặc nhập tên sản phẩm..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box;" oninput="onCompareSearchInput(this.value)" onfocus="onCompareSearchInput(this.value)" onclick="onCompareSearchInput(this.value)">
                 <div id="compareSearchResults" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto; margin-top: 4px;"></div>
             </div>
         </div>
@@ -342,8 +342,16 @@
                 .catch(err => {
                     resultsBox.style.display = 'none';
                 });
-        }, 200);
+        }, 150);
     }
+
+    document.addEventListener('click', function(e) {
+        const resultsBox = document.getElementById('compareSearchResults');
+        const searchInput = document.getElementById('compareSearchInput');
+        if (resultsBox && searchInput && !searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = 'none';
+        }
+    });
 
     function runAiPersonaAnalysis() {
         const btn = document.getElementById('btnRunCompareAi');
