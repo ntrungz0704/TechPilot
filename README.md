@@ -1,16 +1,14 @@
-# TechPilot — Hệ thống bán hàng công nghệ
+# TechPilot — Hệ thống thương mại điện tử công nghệ & Trợ lý AI 4.0
 
-Ứng dụng web thương mại điện tử chuyên thiết bị công nghệ: laptop, PC, linh kiện,
-phụ kiện. Xây dựng bằng **PHP MVC thuần** (không framework), **MySQL/MariaDB**,
-**HTML/CSS/JavaScript**.
+Ứng dụng web thương mại điện tử chuyên thiết bị công nghệ: Laptop, PC lắp sẵn, Linh kiện, Màn hình & Gaming Gear. Xây dựng bằng **PHP MVC thuần** (không dùng framework nặng), **MySQL/MariaDB**, **HTML/Vanilla CSS/JavaScript**.
+
+Website tích hợp hệ thống **AI Multi-Provider Engine 4.0** (Gemini + Groq + Qwen Cloud), **Trợ lý AI tư vấn 5 bước động** và **Động cơ So sánh sản phẩm chuyên sâu theo Persona**.
 
 **Tính năng chính:**
 
-- Customer: duyệt sản phẩm, tìm kiếm, lọc, so sánh, giỏ hàng, đặt hàng COD/VNPay,
-  PC Builder, tin tức, chatbot Gemini AI, wishlist.
-- Admin: quản lý sản phẩm, danh mục, thương hiệu, tồn kho, đơn hàng, người dùng,
-  flash sale, coupon, banner, bài viết, đánh giá.
-- Hệ thống tồn kho với inventory logs.
+- **Khách hàng (Customer):** Duyệt catalog 650+ sản phẩm, tìm kiếm thông minh, lọc nâng cao, So sánh sản phẩm theo Persona (`/compare`), Trợ lý AI tư vấn 5 bước động (`/ai-assistant`), Giỏ hàng, Đặt hàng COD/VNPay Sandbox, PC Builder (tính công suất PSU 30% headroom), Tin tức, Chatbot nổi Q&A, Danh sách yêu thích (Wishlist).
+- **Quản trị viên (Admin):** Dashboard thống kê doanh thu, quản lý Sản phẩm, Danh mục, Thương hiệu, Tồn kho (Inventory Audit Logs), Đơn hàng, Người dùng, Flash Sale, Mã giảm giá (Coupon), Banner, Bài viết, Đánh giá.
+- **Hệ thống AI Multi-Provider:** Tự động Failover 3 cấp: Gemini API $\rightarrow$ Groq Cloud API $\rightarrow$ Qwen Cloud API.
 
 **Repository chính thức:** <https://github.com/ntrungz0704/TechPilot>
 
@@ -20,10 +18,10 @@ phụ kiện. Xây dựng bằng **PHP MVC thuần** (không framework), **MySQL
 
 | Công cụ          | Phiên bản tối thiểu      | Ghi chú                          |
 | ---------------- | ------------------------- | -------------------------------- |
-| PHP              | 8.0+                      | Khuyến nghị 8.1+                |
+| PHP              | 8.0+ *(Khuyên dùng 8.1+)*  | Đã thử nghiệm thành công trên PHP 8.5.5 |
 | MySQL / MariaDB  | 5.7+ / 10.4+              | Port mặc định **3306**          |
-| Git              | 2.x                       |                                  |
-| Node.js          | 18+ *(tùy chọn)*          | Chỉ cần nếu chạy browser test  |
+| Git              | 2.x                       | Quản lý mã nguồn                 |
+| Node.js          | 18+ *(Tùy chọn)*          | Chỉ cần nếu chạy browser test  |
 
 **PHP extensions — phân loại theo module:**
 
@@ -32,20 +30,20 @@ phụ kiện. Xây dựng bằng **PHP MVC thuần** (không framework), **MySQL
 | PDO          | Core           | Bắt buộc  | Kết nối database                     |
 | pdo_mysql    | Core           | Bắt buộc  | Driver MySQL cho PDO                 |
 | json         | Core           | Bắt buộc  | Mặc định có từ PHP 8.0              |
-| mbstring     | Core           | Bắt buộc  | Source dùng mb_* cho tiếng Việt      |
-| fileinfo     | Admin Upload   | Bắt buộc  | Upload ảnh sản phẩm                  |
-| curl         | Gemini/VNPay   | Tùy chọn  | Cần cho API ngoài                    |
-| openssl      | Gemini/VNPay   | Tùy chọn  | Cần cho TLS/HTTPS                    |
+| mbstring     | Core           | Bắt buộc  | Xử lý chuỗi tiếng Việt               |
+| fileinfo     | Admin Upload   | Bắt buộc  | Upload ảnh sản phẩm & banner        |
+| curl         | AI / VNPay     | Bắt buộc  | Gọi API AI (Gemini/Groq/Qwen) & VNPay|
+| openssl      | AI / VNPay     | Bắt buộc  | Mã hóa TLS/HTTPS                     |
 
-**Bật extension trong php.ini CLI:**
+**Bật extension trong `php.ini` CLI:**
 
-Tìm file php.ini CLI đang dùng:
+Tìm file `php.ini` đang dùng:
 
 ```powershell
 php --ini
 ```
 
-Mở file (thường `C:\php\php.ini` hoặc `C:\xampp\php\php.ini`), bỏ dấu `;` trước:
+Mở file (thường `C:\php\php.ini` hoặc `C:\xampp\php\php.ini`), bỏ dấu `;` ở đầu các dòng:
 
 ```ini
 extension=curl
@@ -55,94 +53,69 @@ extension=openssl
 extension=pdo_mysql
 ```
 
-Xác nhận:
+Xác nhận danh sách module đã bật:
 
 ```powershell
 php -m | findstr /I "curl fileinfo mbstring openssl PDO pdo_mysql"
 ```
 
-**Kiểm tra trên Windows PowerShell:**
-
-```powershell
-git --version
-php -v
-mysql --version
-php -m
-```
-
 ---
 
-## 2. Clone repository
+## 2. Quy trình cài đặt chi tiết từ đầu (Step-by-step Clone & Setup)
+
+Bất kỳ thành viên mới nào hoặc khi tải dự án về máy mới đều thực hiện lần lượt theo đúng các bước bên dưới:
+
+### Bước 1: Clone Repository
 
 ```powershell
 git clone https://github.com/ntrungz0704/TechPilot.git
 cd TechPilot
 ```
 
-Xác nhận:
+Kiểm tra trạng thái git:
 
 ```powershell
-git remote -v
-git fetch --all --prune
 git branch -a
 git status
 ```
 
-> **Không tải ZIP** khi làm việc nhóm — mất lịch sử commit và không thể
-> pull/push.
-
 ---
 
-## 3. Kiểm tra nhánh main
+### Bước 2: Cấu hình Database Local
 
-```powershell
-git switch main
-git pull --ff-only origin main
-git status --short
-git rev-parse --short HEAD
-```
-
-- `main` chỉ để kiểm tra bản ổn định.
-- **Không code trực tiếp trên main.**
-- Sau khi cài đặt và kiểm tra xong, chuyển sang nhánh cá nhân.
-
----
-
-## 4. Cấu hình database local
-
-Sao chép file cấu hình mẫu:
+Sao chép file cấu hình database mẫu:
 
 ```powershell
 Copy-Item config/database.local.example.php config/database.local.php
 ```
 
-Mở `config/database.local.php` và điền thông tin MySQL trên máy:
+Mở file `config/database.local.php` và cập nhật thông số kết nối MySQL của máy bạn:
 
 ```php
+<?php
 return [
     'host'     => '127.0.0.1',
-    'port'     => '3306',       // Port MySQL chuẩn
+    'port'     => '3306',       // Port MySQL local
     'database' => 'techpilot',
     'username' => 'root',
-    'password' => '',           // Mật khẩu MySQL local
+    'password' => '',           // Mật khẩu MySQL local của bạn
     'charset'  => 'utf8mb4',
 ];
 ```
 
-> ⚠️ **`config/database.local.php`:**
-> - Nằm trong `.gitignore` — **không được commit**.
-> - Không được `git add -f`.
-> - Không sửa password trực tiếp trong `config/database.php`.
+> ⚠️ **Lưu ý an toàn:** File `config/database.local.php` nằm trong `.gitignore` — **tuyệt đối không commit file này**.
 
 ---
 
-## 5. Cấu hình .env
+### Bước 3: Cấu hình File Môi Trường `.env`
+
+Sao chép file `.env.example`:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Mở `.env` và điền các giá trị:
+Mở `.env` và điền các cấu hình cần thiết:
 
 ```env
 # === Ứng dụng ===
@@ -155,363 +128,151 @@ DB_NAME=techpilot
 DB_USER=root
 DB_PASS=
 
-# === Gemini AI (tùy chọn) ===
+# === AI Multi-Provider API Keys (Tùy chọn cho tính năng AI) ===
 GEMINI_API_KEY=
+GROQ_API_KEY=
+QWEN_API_KEY=
 
-# === VNPay (tùy chọn) ===
+# === VNPay Sandbox Credential (Tùy chọn cho thanh toán online) ===
 VNPAY_TMN_CODE=
 VNPAY_HASH_SECRET=
 VNPAY_RETURN_URL=http://127.0.0.1:8000/payment/vnpay-return
 VNPAY_IPN_URL=
 ```
 
-**Phân biệt:**
-
-- Website core chạy **không cần** Gemini key.
-- Thanh toán COD chạy **không cần** VNPay credential.
-- Gemini chatbot và VNPay chỉ hoạt động đầy đủ khi có credential hợp lệ.
-- **Không commit `.env`.**
-
 ---
 
-## 6. Database import
+### Bước 4: Khởi Tạo Cơ Sở Dữ Liệu & Import Data Mẫu (Seed SQL)
 
-### A. MySQL CLI
+Moở MySQL CLI hoặc phpMyAdmin để tạo database `techpilot`:
 
 ```powershell
 mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4
 ```
 
-Trong MySQL prompt:
+Trong prompt MySQL:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS techpilot
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
+CREATE DATABASE IF NOT EXISTS techpilot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE techpilot;
 SOURCE database/seed.sql;
 ```
 
-Hoặc một dòng (cmd):
+Hoặc chạy lệnh 1 dòng trên PowerShell / CMD:
 
 ```cmd
 mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot < database\seed.sql
 ```
 
-### B. phpMyAdmin
-
-1. Mở phpMyAdmin → tạo database `techpilot` (utf8mb4_unicode_ci).
-2. Chọn database `techpilot` → tab **Import**.
-3. Chọn file `database/seed.sql` → Execute.
-
-> ⚠️ **Cảnh báo:**
-> - Seed có `DROP TABLE` — sẽ xóa bảng cùng tên nếu đã tồn tại.
-> - Chỉ chạy trên local/test — **không import vào production**.
-> - Backup trước nếu database có dữ liệu cần giữ.
-> - Không dùng lệnh có password trực tiếp (dùng `-p` không có giá trị).
+Sau khi import thành công, database sẽ có **20 bảng vật lý**, 650+ sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
 
 ---
 
-## 7. Migration
+### Bước 5: Chạy Web Server Local & Kiểm Tra Trạng Thái Cài Đặt
 
-Sau khi import seed, chạy migration để đưa database lên schema mới nhất:
-
-```powershell
-php scripts/database/migrate.php
-```
-
-- Import seed tạo baseline dữ liệu.
-- Migration bổ sung các bảng/cột mới chưa có trong seed.
-- **Không được bỏ qua migration.**
-- Chạy lại migration an toàn (idempotent).
-
----
-
-## 8. Verify installation
-
-Kiểm tra toàn bộ cài đặt:
-
-```powershell
-php scripts/verify-install.php
-```
-
-Verifier v2 kiểm tra theo capability matrix:
-
-| Module          | Kiểm tra                                           |
-| --------------- | -------------------------------------------------- |
-| CORE            | PHP, extensions, files, config, DB, tables, data   |
-| CORE            | Primary image sản phẩm active phải tồn tại (FAIL)  |
-| ADMIN UPLOAD    | fileinfo extension, upload directory writable       |
-| GEMINI          | curl, openssl, GEMINI_API_KEY                      |
-| VNPAY           | hash/HMAC, TMN_CODE, HASH_SECRET, APP_URL          |
-
-**Database:** 19 bảng business/audit + 1 bảng technical (`migrations`) = **20 bảng vật lý**.
-
-**Quy tắc:**
-
-- Core requirement thiếu → **FAIL** toàn hệ thống.
-- Ảnh chính sản phẩm active thiếu → **FAIL**.
-- Ảnh gallery phụ thiếu → WARN.
-- Gemini/VNPay chưa cấu hình → NOT_CONFIGURED (không phải FAIL).
-
-**Chỉ khi CORE APPLICATION = 0 FAIL** mới xác nhận cài đặt hợp lệ.
-
----
-
-## 9. Chạy website
+Khởi chạy PHP Built-in Server tại thư mục gốc dự án qua file `router.php`:
 
 ```powershell
 php -S 127.0.0.1:8000 router.php
 ```
 
-Mở trình duyệt: **<http://127.0.0.1:8000>**
-
-> ⚠️ **Không được bỏ `router.php`** — nếu chạy `php -S 127.0.0.1:8000` không
-> có router, mọi route sẽ 404.
-
----
-
-## 10. Tài khoản development
-
-Seed tạo sẵn các tài khoản sau:
-
-| Email                    | Role     | Mật khẩu    | Đã xác minh       |
-| ------------------------ | -------- | ----------- | ------------------ |
-| admin@techpilot.vn       | admin    | `admin123`  | ✅ password_verify |
-| ntrungz0704@gmail.com    | customer | *(chưa xác minh)* | ❌            |
-
-> - Admin: đã xác minh bằng `password_verify()` — đăng nhập thành công.
-> - Customer: mật khẩu chưa được xác minh — nếu cần, tạo tài khoản mới qua
->   trang đăng ký hoặc cập nhật password hash trong database.
-
-> ⚠️ **Không dùng tài khoản development trên production.**
-
----
-
-## 11. Checklist Customer
-
-Sau khi chạy website, kiểm tra tuần tự:
-
-- [ ] Trang chủ (Home) hiển thị đúng
-- [ ] Duyệt danh mục (category)
-- [ ] Tìm kiếm sản phẩm (search)
-- [ ] Lọc sản phẩm (filter)
-- [ ] Sắp xếp sản phẩm (sort)
-- [ ] Phân trang (pagination)
-- [ ] Chi tiết sản phẩm (product detail)
-- [ ] Gallery ảnh sản phẩm
-- [ ] Thông số kỹ thuật (specs)
-- [ ] Đăng ký / Đăng nhập / Đăng xuất
-- [ ] Wishlist (yêu thích)
-- [ ] So sánh sản phẩm (compare)
-- [ ] Giỏ hàng (cart)
-- [ ] Đặt hàng COD
-- [ ] Đặt hàng VNPay *(khi có cấu hình)*
-- [ ] Lịch sử đơn hàng
-- [ ] PC Builder
-- [ ] Tin tức (news)
-- [ ] Gemini chatbot *(khi có API key)*
-- [ ] Responsive 440 × 956
-
----
-
-## 12. Checklist Admin
-
-Đăng nhập tài khoản admin, kiểm tra:
-
-- [ ] Dashboard
-- [ ] Quản lý Products
-- [ ] Quản lý Categories
-- [ ] Quản lý Brands
-- [ ] Quản lý Inventory (tồn kho)
-- [ ] Inventory history (logs)
-- [ ] Quản lý Orders
-- [ ] Quản lý Users / Customers
-- [ ] Quản lý Flash Sale
-- [ ] Quản lý Banners
-- [ ] Quản lý Posts (bài viết)
-- [ ] Quản lý Reviews (đánh giá)
-- [ ] Quản lý Coupons (mã giảm giá)
-- [ ] Authorization (phân quyền admin/customer)
-
----
-
-## 13. Troubleshooting
-
-| Vấn đề | Giải pháp |
-| ------ | --------- |
-| `php` không nhận trong terminal | Thêm PHP vào PATH: `$env:Path += ";C:\xampp\php"` |
-| Lỗi kết nối MySQL | Kiểm tra MySQL đang chạy, port **3306**, user/password đúng |
-| `could not find driver` | Bật `extension=pdo_mysql` trong `php.ini` |
-| 404 mọi trang | Thiếu `router.php` trong lệnh chạy server |
-| Lỗi utf8mb4 | Database phải dùng charset `utf8mb4`, collation `utf8mb4_unicode_ci` |
-| `HY093: Invalid parameter number` | Kiểm tra số placeholder `?` khớp số tham số bind |
-| Ảnh/asset không hiển thị | Kiểm tra file tồn tại trong `public/assets/`, URL không dùng đường dẫn tuyệt đối Windows |
-| Database chưa migrate | Chạy `php scripts/database/migrate.php` |
-| Gemini chatbot không hoạt động | Cấu hình `GEMINI_API_KEY` trong `.env` |
-| VNPay return URL sai | Kiểm tra `VNPAY_RETURN_URL` trong `.env` trỏ đúng host:port |
-| Trang hiển thị cũ | Xóa cache browser: Ctrl+Shift+R |
-| Đang ở branch sai | Chạy `git branch --show-current` để kiểm tra |
-| File local bị staged | Chạy `git restore --staged .env config/database.local.php` |
-
----
-
-## 14. Cấu trúc ảnh sản phẩm
-
-```
-public/assets/images/
-├── categories/           ← 20 file: category-{slug}.png
-├── placeholders/         ← Ảnh placeholder dùng chung
-├── products/             ← Ảnh sản phẩm theo category
-│   ├── accessories/
-│   ├── case/
-│   ├── cpu/
-│   ├── laptop/
-│   └── ... (20 thư mục)
-├── brands/               ← Logo thương hiệu
-├── news/                 ← Ảnh tin tức
-└── posts/                ← Ảnh bài viết
-```
-
-- Database lưu relative path: `assets/images/products/{category}/{filename}`.
-- Ảnh chính sản phẩm active **phải tồn tại** và **được Git theo dõi**.
-- Ảnh category dùng format `category-{slug}.png`.
-- Placeholder chỉ bảo vệ UI — không thay thế ảnh thật.
-
----
-
-## 15. Tiêu chí cài đặt hợp lệ
-
-Bản cài đặt được xác nhận hợp lệ khi:
-
-1. `php scripts/verify-install.php` trả về **CORE APPLICATION: 0 FAIL**.
-2. Checklist smoke test (mục 11, 12) hoàn thành.
-
-**Phân biệt:**
-
-- **Core application**: chạy độc lập không cần external service.
-- **Gemini AI**: cần `GEMINI_API_KEY` hợp lệ — chatbot mới hoạt động.
-- **VNPay**: cần `VNPAY_TMN_CODE` + `VNPAY_HASH_SECRET` hợp lệ — thanh toán
-  online mới hoạt động. COD không cần VNPay.
-- Gemini/VNPay = NOT_CONFIGURED **không phải FAIL** của core.
-
----
-
-## 16. Branch policy
-
-### Danh sách nhánh cho phép (allowlist)
-
-| Nhánh     | Mục đích                       |
-| --------- | ------------------------------ |
-| `main`    | Bản ổn định — chỉ merge qua PR |
-| `develop` | Tích hợp test — chỉ merge qua PR |
-| `trung`   | Nhánh cá nhân — Trung          |
-| `kim`     | Nhánh cá nhân — Kim            |
-| `hieu`    | Nhánh cá nhân — Hiếu           |
-| `dinh`    | Nhánh cá nhân — Định           |
-
-> **Ngoài sáu nhánh trên, thành viên và AI không được tự ý tạo thêm nhánh.**
-
-### Các lệnh bị cấm
-
-```bash
-git branch ten-nhanh-moi          # ❌ Tạo nhánh mới
-git switch -c ten-nhanh-moi       # ❌ Tạo và chuyển nhánh mới
-git checkout -b ten-nhanh-moi     # ❌ Tạo và chuyển nhánh mới
-git worktree add -b ten-nhanh-moi # ❌ Tạo worktree kèm nhánh
-```
-
-### Quy trình Pull Request
-
-1. Nhánh cá nhân (`trung`/`kim`/`hieu`/`dinh`) → **PR vào `main`**.
-2. Chỉ chủ repository (Trung) được review và merge PR.
-3. **Không push trực tiếp lên `main`.**
-4. **Không force-push.**
-5. `develop` dùng khi cần tích hợp test nhiều nhánh cùng lúc.
-
-### Cài đặt Git Guards
-
-Sau khi clone, mỗi thành viên chạy một lần:
+Mở một tab Terminal mới và chạy tập lệnh tự động kiểm tra cài đặt:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/install-git-guards.ps1
+php scripts/verify-install.php
 ```
 
-Local hook sẽ:
-
-- Chặn commit trên `main`/`develop` và branch ngoài allowlist.
-- Chặn staged credential (`.env`, `database.local.php`...).
-- Chặn push lên `main`/`develop` và branch ngoài allowlist.
-
-> ⚠️ **Local hook không thay thế GitHub Ruleset.** Xem mục 16.
-
-### Cấu hình GitHub Ruleset (chỉ chủ repository)
-
-Vào **Repository → Settings → Rules → Rulesets**:
-
-**Ruleset 1: Chặn tạo branch không được phép**
-
-- Name: `deny-unapproved-branch-creation`
-- Target: `*`
-- Rule: Restrict creations
-- Bypass: chỉ chủ repository (Trung)
-- Enforcement: Active
-
-**Ruleset 2: Bảo vệ `main` và `develop`**
-
-- Target: `main`, `develop`
-- Bật:
-  - Require pull request
-  - Require approval
-  - Require status checks
-  - Block force pushes
-  - Restrict deletions
-  - Require conversation resolution
-
-> README và local hooks không thể ngăn hoàn toàn branch creation trên remote.
-> GitHub Ruleset mới là lớp cưỡng chế cuối cùng.
+Nếu kết quả xuất hiện:
+```
+══════════════════════════════════
+  PASS: 121
+  WARN: 1
+  FAIL: 0
+══════════════════════════════════
+✅ Cài đặt hợp lệ. Website sẵn sàng chạy.
+```
+Website đã sẵn sàng để truy cập tại: **`http://127.0.0.1:8000`**
 
 ---
 
-## 17. Node.js và browser test
+## 3. Kiến trúc 3 Chức Năng AI Tách Riêng (Decoupled AI Architecture)
 
-Node.js **chỉ dùng cho Puppeteer browser test** — runtime website không cần
-`npm install`.
+Hệ thống TechPilot phân tách độc lập 3 chức năng AI để đảm bảo đúng trải nghiệm người dùng và logic nghiệp vụ:
 
-Nếu muốn chạy browser test:
+### A. Chatbot Nổi (Floating Chatbot ở góc màn hình)
+- **Mục đích:** Hỏi đáp tự nhiên Q&A, trả lời chính sách bảo hành/giao hàng, giải thích thông số kỹ thuật (RAM, CPU, VGA) và đưa ra nút bấm điều hướng (CTA) sang trang `/ai-assistant` hoặc `/compare`.
+- **Tuyệt đối không chứa:** Khảo sát 5 bước, bảng gợi ý sản phẩm 3 card hay bảng so sánh kéo thả trong khung chat nhỏ.
 
+### B. AI Tư Vấn Chọn Máy Khảo Sát 5 Bước (`/ai-assistant`)
+- **Khảo sát động 5 bước thay đổi theo danh mục:**
+  - **Laptop:** Tiêu chuẩn mỏng nhẹ, pin, hiệu năng, màn hình.
+  - **PC Lắp Sẵn:** Tiêu chí CPU, GPU, tản nhiệt, khả năng nâng cấp. (**KHÔNG HIỂN THỊ Pin lâu, Mỏng nhẹ di động, Trọng lượng dưới 1.5kg**).
+  - **Màn hình & Gaming Gear:** Tiêu chí tần số quét (144Hz-240Hz+), độ chuẩn màu (sRGB/DCI-P3), chuẩn ngàm VESA, loại gear (chuột, bàn phím, tai nghe).
+- **Thuật toán chấm điểm định hướng (Deterministic 100-Point Scoring):** Lọc cứng ngân sách min/max (6 mã budget: `under_10m`, `10_15m`, `15_20m`, `20_25m`, `25_35m`, `over_35m`), tính điểm khớp mục đích (35đ), ưu tiên (25đ), phần mềm (15đ), giá trị P/P (15đ), thương hiệu (5đ), độ đầy đủ dữ liệu (5đ). Không dùng hàm ngẫu nhiên.
+- **Trả về 3 vai trò chiến thắng rõ ràng:** `PHÙ HỢP NHẤT`, `ĐÁNG TIỀN NHẤT`, `HIỆU NĂNG CAO NHẤT`.
+
+### C. Động Cơ So Sánh Sản Phẩm Chuyên Sâu Theo Persona (`/compare`)
+- **Khóa danh mục trước khi so sánh (Category-First Workflow):** Người dùng chọn loại sản phẩm (`[Laptop] [PC Lắp Sẵn] [Màn hình] [CPU] [VGA] [PSU] [RAM] [SSD] [Gear]`). Ô tìm kiếm chỉ trả về các sản phẩm thuộc danh mục đã chọn (Gõ `PC` khi chọn `PC Lắp Sẵn` chỉ trả PC Gaming, **tuyệt đối không trả về Nguồn PSU**).
+- **Khóa danh mục cứng:** Ngay khi thêm 1 sản phẩm vào bảng so sánh, danh mục được khóa lại để đảm bảo so sánh 100% cùng loại.
+- **Ma trận Persona & Tiêu chí ngạch cứng (Hard Requirements):** Cho phép nhập hạn mức giá tối đa, RAM tối thiểu, SSD tối thiểu, tần số quét tối thiểu. Sản phẩm vi phạm bị đánh dấu `NOT_ELIGIBLE` và tô đỏ lý do.
+- **Bảng thông số sạch (Zero Metadata Leakage):** Loại bỏ hoàn toàn các key nội bộ (`compatibility`, `use_cases`, `schema_version`...). Highlight tự động ô có giá trị tốt nhất màu xanh lá (`#10B981`).
+- **Báo cáo AI Multi-Provider:** AI viết nhận xét lý do khuyên dùng theo Persona, đối tượng nên mua và các điểm cần đánh đổi khi chọn giữa các mẫu.
+
+---
+
+## 4. Tài Khoản Quản Trị & Đăng Nhập Mẫu
+
+Trang quản trị Admin: **`http://127.0.0.1:8000/admin`** hoặc click nút "Quản trị" trên Navbar khi đăng nhập tài khoản Admin.
+
+| Tài khoản | Email | Mật khẩu | Quyền hạn |
+|---|---|---|---|
+| Admin | `admin@techpilot.vn` | `Admin@123` | Quản trị toàn bộ hệ thống |
+| Customer | `user@techpilot.vn` | `User@123` | Khách hàng mua hàng mẫu |
+
+---
+
+## 5. Quy Trình Làm Việc Với Git & Quy Định Nhánh (Branch Policy)
+
+### Danh sách nhánh cho phép (Allowlist):
+- **`main`**: Nhánh sản phẩm ổn định chính thức.
+- **`trung`**: Nhánh cá nhân phụ trách chính.
+
+### Các lệnh làm việc với Git:
+Lấy mã nguồn mới nhất:
 ```powershell
-npm ci
+git fetch --all --prune
+git pull origin main
 ```
 
-> Dùng `npm ci` thay vì `npm install` khi có `package-lock.json` để đảm bảo
-> dependency đồng nhất giữa các máy.
-
----
-
-## BRANCH LOCK — BẮT BUỘC
-
-> **Dành cho thành viên và AI agent:**
-
-Bạn chỉ được làm việc trên nhánh Git hiện tại đã do chủ repository tạo sẵn.
-
-Trước khi sửa code, chạy:
-
-```bash
+Kiểm tra branch hiện tại và trạng thái làm việc:
+```powershell
 git branch --show-current
 git status --short
 ```
 
-**Bạn bị cấm:**
+Đẩy mã nguồn lên remote GitHub:
+```powershell
+git add .
+git commit -m "feat/fix: mô tả ngắn gọn nội dung thay đổi"
+git push origin trung
+git checkout main
+git merge trung
+git push origin main
+git checkout trung
+```
 
-- Tạo branch mới.
-- Chạy `git switch -c`, `git checkout -b`, `git branch <tên>`.
-- Đổi tên branch.
-- Xóa branch.
-- Tạo worktree kèm branch.
-- Tự chuyển sang `main`/`develop` hoặc nhánh người khác.
-- Commit, push, merge, rebase hoặc force-push nếu chưa được yêu cầu rõ.
+---
 
-**Nếu nhánh hiện tại không đúng nhánh được giao:** DỪNG và báo lại.
-Không được tự chọn giải pháp bằng cách tạo nhánh khác.
+## 6. Xử Lý Lỗi Thường Gặp (Troubleshooting)
+
+| Sự cố | Nguyên nhân | Cách khắc phục |
+|---|---|---|
+| Lỗi `PDOException: Connection refused` | MySQL chưa bật hoặc sai port/password trong `config/database.local.php` | Kiểm tra dịch vụ MySQL đang chạy tại port 3306 và cập nhật `config/database.local.php`. |
+| Lỗi `404 Not Found` các route | PHP Built-in server không chạy qua router.php | Chạy web server bằng lệnh: `php -S 127.0.0.1:8000 router.php`. |
+| Lỗi `CSRF Token Invalid (403)` khi gọi AJAX | Thiếu header `X-CSRF-Token` hoặc `_csrf` body | Kiểm tra script JS gửi header `X-CSRF-Token: csrfToken`. |
+| Lỗi ảnh sản phẩm không hiển thị | Thư mục `public/assets/images/products/` thiếu ảnh | Đảm bảo tập tin ảnh tồn tại và không bị xóa bớt trong public assets. |
+| AI Chatbot trả về thông báo lỗi API | Thiếu hoặc sai API Key trong `.env` | Điền `GEMINI_API_KEY` hoặc `GROQ_API_KEY` hợp lệ vào file `.env`. |
+
+---
+
+**TechPilot Team © 2026 — Advanced AI-Powered Tech E-Commerce Platform.**

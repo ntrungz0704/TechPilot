@@ -1,41 +1,107 @@
 <?php include ROOT_PATH . '/app/views/layouts/header.php'; ?>
 
 <style>
-    /* Styling cho so sánh */
-    .badge--vfm {
-        font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 12px;
-        display: inline-block;
-    }
-    .vfm-high { background-color: #D1FAE5; color: #065F46; }
-    .vfm-good { background-color: #E0F2FE; color: #075985; }
-    .vfm-med { background-color: #FEF3C7; color: #92400E; }
-    .vfm-low { background-color: #FEE2E2; color: #991B1B; }
-
-    /* Skeleton Loading cho AI */
-    .ai-skeleton {
+    .cat-bar-container {
         display: flex;
-        flex-direction: column;
-        gap: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 24px;
+        background: var(--surface-card, #FFFFFF);
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid var(--border, #E2E8F0);
     }
-    .ai-skeleton-line {
-        height: 16px;
-        background: linear-gradient(90deg, #E2E8F0 25%, #EDF2F7 50%, #E2E8F0 75%);
-        background-size: 200% 100%;
-        animation: loading 1.5s infinite;
-        border-radius: 4px;
+    .cat-tab-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: #F8FAFC;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: var(--text-primary);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
     }
-    @keyframes loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
+    .cat-tab-btn.active {
+        background: var(--primary);
+        color: #FFFFFF;
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(10, 91, 255, 0.25);
     }
+    .cat-tab-btn.locked {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .persona-box {
+        background: var(--surface-card, #FFFFFF);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-card);
+    }
+    .persona-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .persona-pill {
+        padding: 8px 18px;
+        border-radius: 20px;
+        border: 2px solid var(--border);
+        background: #FFFFFF;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .persona-pill.active {
+        border-color: var(--primary);
+        background: rgba(10, 91, 255, 0.08);
+        color: var(--primary);
+    }
+
+    /* Highlight cell styles */
+    .cell-highlight-best {
+        background-color: rgba(16, 185, 129, 0.12) !important;
+        color: #047857 !important;
+        font-weight: 800 !important;
+    }
+    .cell-highlight-warn {
+        background-color: rgba(245, 158, 11, 0.12) !important;
+        color: #B45309 !important;
+    }
+    .cell-highlight-ineligible {
+        background-color: rgba(239, 68, 68, 0.12) !important;
+        color: #B91C1C !important;
+        font-weight: 700 !important;
+    }
+
+    .winner-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #FFFFFF;
+        margin-bottom: 6px;
+    }
+    .badge-best_fit { background: linear-gradient(135deg, #10B981, #059669); }
+    .badge-best_value { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+    .badge-best_performance { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
 </style>
 
 <main class="container section" id="main-content" style="margin-top: 40px; min-height: 60vh;">
-    <div class="section__head" style="margin-bottom: 30px;">
-        <h2><i class="fa-solid fa-code-compare" style="color: var(--primary); margin-right: 8px;"></i> So sánh sản phẩm</h2>
+    <div class="section__head" style="margin-bottom: 24px;">
+        <h2><i class="fa-solid fa-code-compare" style="color: var(--primary); margin-right: 8px;"></i> So sánh sản phẩm theo Persona (TechPilot 4.0)</h2>
+        <p style="color: var(--text-secondary); font-size: 14.5px; margin-top: 4px;">Chọn danh mục trước, thêm 2-4 sản phẩm và chọn đối tượng (Persona) để hệ thống phân tích người chiến thắng.</p>
     </div>
 
     <?php if (isset($flashes['success'])): ?>
@@ -54,48 +120,95 @@
         </div>
     <?php endif; ?>
 
-    <!-- Search & Quick Add Bar -->
+    <!-- STEP 1: THANH CHỌN DANH MỤC BAN ĐẦU -->
+    <div class="cat-bar-container">
+        <span style="font-size: 13px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; width: 100%; margin-bottom: 4px;">
+            <i class="fa-solid fa-filter"></i> BƯỚC 1: CHỌN LOẠI SẢN PHẨM MUỐN SO SÁNH:
+            <?php if (!empty($products)): ?>
+                <span style="margin-left: auto; color: #10B981; font-size: 12px; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 12px;">🔒 Đã khóa danh mục theo sản phẩm đã chọn</span>
+            <?php endif; ?>
+        </span>
+
+        <?php foreach ($compareConfig['categories'] as $cKey => $cMeta):
+            $isActive = ($cKey === $activeCategorySlug || (isset($cMeta['slugs']) && in_array($activeCategorySlug, $cMeta['slugs'])));
+            $isLocked = !empty($products);
+        ?>
+            <a href="<?= $isLocked ? 'javascript:void(0)' : url('compare?cat=' . $cKey) ?>" class="cat-tab-btn <?= $isActive ? 'active' : '' ?> <?= $isLocked ? 'locked' : '' ?>">
+                <i class="fa-solid <?= $cMeta['icon'] ?>"></i> <?= e($cMeta['label']) ?>
+            </a>
+        <?php endforeach; ?>
+    </div>
+
+    <!-- KHUNG TÌM KIẾM SẢN PHẨM KHÓA THEO DANH MỤC -->
     <?php if (count($products) < 4): ?>
-        <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card); position: relative;">
+        <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card); position: relative;">
             <label for="compareSearchInput" style="font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--text-primary);">
                 <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i> Tìm & Thêm sản phẩm vào so sánh (Còn trống <?= 4 - count($products) ?> vị trí)
             </label>
             <div style="position: relative;">
-                <input type="text" id="compareSearchInput" placeholder="Nhập tên sản phẩm (VD: RTX 4060, Asus ROG, i5...)" style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box;" oninput="onCompareSearchInput(this.value)">
+                <input type="text" id="compareSearchInput" placeholder="Nhập tên sản phẩm (Hệ thống sẽ lọc đúng danh mục đã chọn)..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box;" oninput="onCompareSearchInput(this.value)">
                 <div id="compareSearchResults" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto; margin-top: 4px;"></div>
             </div>
         </div>
     <?php endif; ?>
 
     <?php if (empty($products)): ?>
-        <div style="text-align: center; padding: 60px 20px; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px;">
+        <div style="text-align: center; padding: 60px 20px; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 14px;">
             <i class="fa-solid fa-scale-unbalanced" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px; display: block;"></i>
             <h3 style="margin-bottom: 10px; font-weight: 700;">Chưa có sản phẩm so sánh</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">Hãy nhập tên sản phẩm ở khung tìm kiếm phía trên hoặc click nút <strong>"So sánh"</strong> tại bất kỳ trang sản phẩm nào!</p>
-            <a href="<?= url('/') ?>" class="btn" style="padding: 10px 24px;">Quay lại Trang Chủ</a>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Hãy bấm chọn loại sản phẩm ở trên hoặc nhập tên vào ô tìm kiếm để bắt đầu so sánh chuyên sâu!</p>
         </div>
     <?php else: ?>
-        <div style="overflow-x: auto; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-card);">
-            <table style="width: 100%; border-collapse: collapse; min-width: 700px; text-align: left; font-size: 14.5px;">
+
+        <!-- STEP 2 & 3: PERSONA & TIÊU CHÍ ƯU TIÊN PANEL -->
+        <div class="persona-box">
+            <h4 style="margin: 0 0 8px 0; font-weight: 800; color: var(--text-primary);">🎯 Chọn Persona / Nhu cầu sử dụng thực tế của bạn:</h4>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">Hệ thống sẽ thay đổi ma trận trọng số chấm điểm 100 điểm để tìm sản phẩm phù hợp nhất cho đối tượng này.</p>
+            <div class="persona-pills" id="personaPills">
+                <?php
+                $personaList = $compareConfig['personas'][$activeCategorySlug] ?? ($compareConfig['personas']['laptop'] ?? []);
+                foreach ($personaList as $idx => $pItem):
+                ?>
+                    <div class="persona-pill <?= $idx === 0 ? 'active' : '' ?>" onclick="selectPersona('<?= $pItem['code'] ?>', this)">
+                        <?= e($pItem['label']) ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <input type="hidden" id="selectedPersonaCode" value="<?= !empty($personaList[0]['code']) ? $personaList[0]['code'] : 'developer' ?>">
+
+            <!-- Nút bấm phân tích AI -->
+            <div style="margin-top: 20px; display: flex; align-items: center; gap: 16px;">
+                <button type="button" class="btn" id="btnRunCompareAi" onclick="runAiPersonaAnalysis()" style="padding: 12px 28px; font-weight: 800; background: linear-gradient(135deg, var(--primary) 0%, #059669 100%); color: #FFFFFF; border: none; border-radius: 10px; cursor: pointer;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích & Chấm Điểm AI Theo Persona
+                </button>
+            </div>
+        </div>
+
+        <!-- BẢNG SO SÁNH THÔNG SỐ SẠCH KHÔNG LỘ METADATA -->
+        <div style="overflow-x: auto; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-card); margin-bottom: 30px;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 700px; text-align: left; font-size: 14px;" id="compareMainTable">
                 <thead>
-                    <tr style="background-color: #F9FAFB; border-bottom: 1px solid var(--border);">
-                        <th style="padding: 20px; font-weight: 700; color: var(--text-secondary); width: 20%;">Thuộc tính</th>
+                    <tr style="border-bottom: 2px solid var(--border); background-color: #F8FAFC;">
+                        <th style="padding: 20px; width: 20%; font-weight: 800; color: var(--text-primary);">Hạng mục so sánh</th>
                         <?php foreach ($products as $p): ?>
-                            <th class="prod-col-<?= $p['id'] ?>" style="padding: 20px; width: 20%; position: relative;">
+                            <th class="prod-col-<?= $p['id'] ?>" style="padding: 20px; width: 20%; text-align: center; position: relative; border-left: 1px solid var(--border);">
                                 <form method="post" action="<?= url('compare/remove') ?>" style="position: absolute; top: 10px; right: 10px;">
-                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="_csrf" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                                     <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
                                     <button type="submit" style="background: none; border: none; color: #9CA3AF; cursor: pointer; font-size: 16px;" title="Xóa khỏi so sánh"><i class="fa-solid fa-xmark-circle"></i></button>
                                 </form>
-                                <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 15px; position: relative;">
+
+                                <div id="winnerBadgeSlot-<?= $p['id'] ?>"></div>
+
+                                <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 15px;">
                                     <img src="<?= productImageUrl($p['image'] ?? '', $p['category_slug'] ?? '', (int)$p['id']) ?>" alt="<?= e($p['name']) ?>" style="height: 90px; object-fit: contain; margin-bottom: 15px;">
                                     <strong style="font-size: 13.5px; line-height: 1.4; height: 38px; overflow: hidden; display: block; margin-bottom: 8px;"><?= e($p['name']) ?></strong>
-                                    <span style="color: var(--primary); font-weight: 700; font-size: 15px;"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
+                                    <span style="color: var(--primary); font-weight: 800; font-size: 16px;"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
                                 </div>
                             </th>
                         <?php endforeach; ?>
-                        <?php // Điền cột trống nếu so sánh dưới 4 sản phẩm
-                        for ($i = 0; $i < (4 - count($products)); $i++): 
+
+                        <?php for ($i = 0; $i < (4 - count($products)); $i++):
                             $slotNum = count($products) + $i + 1;
                         ?>
                             <th style="padding: 16px; width: 20%; text-align: center; border-left: 1px solid var(--border); vertical-align: middle;">
@@ -110,247 +223,67 @@
                 </thead>
                 <tbody>
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;">Thương hiệu</td>
+                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Thương hiệu</td>
                         <?php foreach ($products as $p): ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 500;"><?= e($p['brand_name']) ?></td>
+                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 600; text-align: center; border-left: 1px solid var(--border);"><?= e($p['brand_name']) ?></td>
                         <?php endforeach; ?>
                         <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <td style="border-left: 1px solid var(--border);"></td>
+                            <td style="border-left: 1px solid var(--border); text-align: center; color: #94A3B8; font-style: italic; font-size: 12px;">Chưa chọn</td>
                         <?php endfor; ?>
                     </tr>
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;">Danh mục</td>
+                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Danh mục</td>
                         <?php foreach ($products as $p): ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px;"><?= e($p['category_name']) ?></td>
+                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border);"><?= e($p['category_name']) ?></td>
                         <?php endforeach; ?>
                         <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <td style="border-left: 1px solid var(--border);"></td>
+                            <td style="border-left: 1px solid var(--border); text-align: center; color: #94A3B8; font-style: italic; font-size: 12px;">Chưa chọn</td>
                         <?php endfor; ?>
                     </tr>
-                    
-                    <!-- Điểm đáng tiền VFM -->
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;">Độ "Đáng tiền" (VFM)</td>
-                        <?php foreach ($products as $p): 
-                            require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
-                            $vfm = ProductIntelligenceService::calculateValueForMoney($p);
-                        ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 700; color: #10B981;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-star" style="color: #FBBF24;"></i>
-                                    <span><?= $vfm ?> / 10</span>
-                                </div>
-                            </td>
-                        <?php endforeach; ?>
-                        <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <td style="border-left: 1px solid var(--border);"></td>
-                        <?php endfor; ?>
-                    </tr>
-
-                    <!-- So sánh Hiệu năng / Giá -->
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;">Hiệu năng / Giá (P/P)</td>
-                        <?php foreach ($products as $p): 
-                            $pp = ProductIntelligenceService::calculatePerformancePriceRatio($p);
-                        ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px;">
-                                <span class="badge--vfm <?= $pp['class'] ?>"><?= $pp['label'] ?></span>
-                            </td>
-                        <?php endforeach; ?>
-                        <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <td style="border-left: 1px solid var(--border);"></td>
-                        <?php endfor; ?>
-                    </tr>
-
-                    <!-- Ước tính FPS Game -->
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;">Hiệu năng Game (FPS)</td>
-                        <?php foreach ($products as $p): 
-                            $specs = json_decode($p['specs'] ?? '{}', true) ?: [];
-                            $categorySlug = $p['category_slug'] ?? $p['category_name'] ?? '';
-                            $fpsList = ProductIntelligenceService::estimateFps($specs, $categorySlug);
-                        ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px;">
-                                <?php if (empty($fpsList)): ?>
-                                    <span style="color: var(--text-secondary); font-size: 13px;">Không hỗ trợ game</span>
-                                <?php else: ?>
-                                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px;">
-                                        <?php foreach ($fpsList as $game): ?>
-                                            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #E2E8F0; padding-bottom: 2px;">
-                                                <span style="color: var(--text-secondary); font-size: 11.5px;"><?= $game['name'] ?>:</span>
-                                                <strong style="color: #1E3A8A; font-size: 12px;"><?= $game['fps'] ?></strong>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-                        <?php endforeach; ?>
-                        <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <td style="border-left: 1px solid var(--border);"></td>
-                        <?php endfor; ?>
-                    </tr>
-                    
-                    <?php
-                    // Tổng hợp specs từ tất cả các sản phẩm để làm hàng so sánh
-                    $ignoredKeys = ['schema_version', 'category_slug', 'attributes', 'raw_specs', 'vfm_score'];
-                    $allSpecsKeys = [];
-                    foreach ($products as $p) {
-                        $specs = json_decode($p['specs'] ?? '{}', true);
-                        if (is_array($specs)) {
-                            foreach (array_keys($specs) as $key) {
-                                if (!in_array($key, $ignoredKeys, true) && !in_array($key, $allSpecsKeys, true)) {
-                                    $allSpecsKeys[] = $key;
-                                }
-                            }
-                        }
-                    }
-
-                    if (empty($allSpecsKeys)) {
-                        $allSpecsKeys = ['CPU', 'RAM', 'SSD', 'VGA'];
-                    }
-
-                    foreach ($allSpecsKeys as $key):
-                    ?>
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;"><?= e($key) ?></td>
-                            <?php foreach ($products as $p): 
-                                $specs = json_decode($p['specs'] ?? '{}', true);
-                                $val = $specs[$key] ?? '-';
-                                if (is_array($val)) {
-                                    $val = implode(', ', array_filter(array_map('strval', $val)));
-                                }
-                            ?>
-                                <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 500;"><?= e((string)$val) ?></td>
-                            <?php endforeach; ?>
-                            <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                                <td style="border-left: 1px solid var(--border);"></td>
-                            <?php endfor; ?>
-                        </tr>
-                    <?php endforeach; ?>
-
-                    <tr>
-                        <td style="padding: 15px 20px; font-weight: 600; color: var(--text-secondary); background-color: #F9FAFB;">Hành động</td>
+                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Tồn kho thực tế</td>
                         <?php foreach ($products as $p): ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 20px 15px;">
-                                <form method="post" action="<?= url('cart/add') ?>">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
-                                    <input type="hidden" name="quantity" value="1">
-                                    <button type="submit" class="btn btn--sm" style="width: 100%; text-align: center;"><i class="fa-solid fa-cart-shopping" style="margin-right: 6px;"></i> Thêm giỏ hàng</button>
-                                </form>
-                            </td>
+                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border); font-weight: 700; color: #10B981;">Còn <?= (int)$p['stock'] ?> máy</td>
                         <?php endforeach; ?>
                         <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <td style="border-left: 1px solid var(--border);"></td>
+                            <td style="border-left: 1px solid var(--border); text-align: center; color: #94A3B8; font-style: italic; font-size: 12px;">Chưa chọn</td>
                         <?php endfor; ?>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <?php if (count($products) >= 2): ?>
-            <!-- Phần phân tích AI -->
-            <div style="margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 50px;">
-                <button id="btnAiCompare" class="btn" style="padding: 12px 32px; font-weight: 700; background: linear-gradient(135deg, #0A5BFF 0%, #0046CC 100%); border: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(10, 91, 255, 0.4); cursor: pointer; display: flex; align-items: center; gap: 8px; color: #FFFFFF;" onclick="runAiCompare()">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Phân tích So sánh bằng AI
-                </button>
+        <!-- KHUNG KẾT QUẢ PHÂN TÍCH AI PERSONA -->
+        <div id="compareAiResultBox" style="display: none; background: var(--bg-white); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-card); margin-bottom: 40px;">
+            <h3 style="margin: 0 0 10px 0; color: var(--text-primary); font-weight: 800; font-size: 20px;">
+                🤖 Báo Cáo Phân Tích So Sánh AI Chi Tiết
+            </h3>
+            <p id="aiSummaryText" style="color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);"></p>
 
-                <div id="aiCompareResult" style="display: none; width: 100%; padding: 24px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; box-shadow: var(--shadow-card); box-sizing: border-box;">
-                    <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--primary);">
-                        <i class="fa-solid fa-robot"></i> Đánh giá từ Trợ lý ảo TechPilot AI
-                    </h4>
-                    <div id="aiCompareContent" style="font-size: 14.5px; line-height: 1.7; color: #334155;">
-                        <!-- AI content will be loaded here -->
-                    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 18px; border-radius: 12px;">
+                    <h4 style="color: #047857; margin: 0 0 8px 0; font-weight: 700; font-size: 15px;"><i class="fa-solid fa-user-check"></i> Khuyên dùng theo Persona</h4>
+                    <div id="aiWhoShouldBuy" style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary);"></div>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 18px; border-radius: 12px;">
+                    <h4 style="color: #B91C1C; margin: 0 0 8px 0; font-weight: 700; font-size: 15px;"><i class="fa-solid fa-triangle-exclamation"></i> Điểm cần đánh đổi / Cân nhắc</h4>
+                    <div id="aiTradeoffs" style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary);"></div>
                 </div>
             </div>
-        <?php endif; ?>
+        </div>
     <?php endif; ?>
 </main>
 
 <script>
-    function runAiCompare() {
-        const btn = document.getElementById('btnAiCompare');
-        const resultDiv = document.getElementById('aiCompareResult');
-        const contentDiv = document.getElementById('aiCompareContent');
+    const activeCatSlug = '<?= $activeCategorySlug ?>';
+    const csrfToken = '<?= $csrf_token ?>';
 
-        // Hiển thị khung kết quả và đổi trạng thái nút
-        resultDiv.style.display = 'block';
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang phân tích cấu hình...';
-
-        // Skeleton loading
-        contentDiv.innerHTML = `
-            <div class="ai-skeleton">
-                <div class="ai-skeleton-line" style="width: 40%"></div>
-                <div class="ai-skeleton-line" style="width: 85%"></div>
-                <div class="ai-skeleton-line" style="width: 70%"></div>
-                <div class="ai-skeleton-line" style="width: 90%"></div>
-                <div class="ai-skeleton-line" style="width: 60%"></div>
-            </div>
-        `;
-
-        // Gọi AJAX tới API
-        fetch('<?= url("ai/compare") ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: '_csrf=<?= $_SESSION["csrf_token"] ?? "" ?>'
-        })
-        .then(res => res.json())
-        .then(res => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Phân tích So sánh bằng AI';
-
-            if (res.success) {
-                // Render kết quả (Format Markdown thô sơ)
-                contentDiv.innerHTML = formatMarkdown(res.analysis);
-
-                // Highlight sản phẩm được đề xuất
-                const recommendedId = res.recommended_id;
-                
-                // Reset viền các cột trước đó
-                document.querySelectorAll('[class^="prod-col-"]').forEach(el => {
-                    el.style.borderLeft = '';
-                    el.style.borderRight = '';
-                    el.style.backgroundColor = '';
-                });
-
-                // Highlight cột được chọn
-                document.querySelectorAll(`.prod-col-${recommendedId}`).forEach(el => {
-                    el.style.borderLeft = '2px solid #10B981';
-                    el.style.borderRight = '2px solid #10B981';
-                    el.style.backgroundColor = 'rgba(16, 185, 129, 0.04)';
-                });
-
-                // Thêm nhãn AI đề xuất ở header
-                const headerEl = document.querySelector(`th.prod-col-${recommendedId}`);
-                if (headerEl) {
-                    // Xóa các badge cũ
-                    const oldBadge = headerEl.querySelector('.ai-badge');
-                    if (oldBadge) oldBadge.remove();
-
-                    const badge = document.createElement('div');
-                    badge.className = 'ai-badge';
-                    badge.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> AI ĐỀ XUẤT';
-                    badge.style.cssText = 'position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background-color: #10B981; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4); white-space: nowrap;';
-                    headerEl.querySelector('div').prepend(badge);
-                }
-            } else {
-                contentDiv.innerHTML = `<span style="color: #EF4444;"><i class="fa-solid fa-triangle-exclamation"></i> Lỗi: ${res.message}</span>`;
-            }
-        })
-        .catch(err => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Phân tích So sánh bằng AI';
-            contentDiv.innerHTML = '<span style="color: #EF4444;"><i class="fa-solid fa-triangle-exclamation"></i> Không thể kết nối tới API AI. Vui lòng thử lại.</span>';
-            console.error(err);
-        });
+    function selectPersona(code, el) {
+        document.querySelectorAll('#personaPills .persona-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('selectedPersonaCode').value = code;
     }
 
-    // Focus vào ô tìm kiếm khi click nút "+ Thêm sản phẩm" ở các cột trống
     function focusCompareSearch() {
         const input = document.getElementById('compareSearchInput');
         if (!input) return;
@@ -368,7 +301,6 @@
         }, 300);
     }
 
-    // Tìm kiếm sản phẩm để thêm trực tiếp vào bảng so sánh
     let compareSearchTimer = null;
     function onCompareSearchInput(query) {
         clearTimeout(compareSearchTimer);
@@ -378,28 +310,32 @@
         query = (query || '').trim();
 
         compareSearchTimer = setTimeout(() => {
-            fetch('<?= url("compare?search_ajax=") ?>' + encodeURIComponent(query))
+            fetch('<?= url("compare?search_ajax=") ?>' + encodeURIComponent(query) + '&category_slug=' + encodeURIComponent(activeCatSlug))
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data && res.data.length > 0) {
-                        const headerText = query === '' ? '<div style="padding: 8px 16px; font-size: 11px; font-weight: 700; color: #64748B; background: #F8FAFC; text-transform: uppercase; border-bottom: 1px solid var(--border);">💡 Sản phẩm cùng danh mục gợi ý:</div>' : '';
+                        const headerText = `<div style="padding: 8px 16px; font-size: 11px; font-weight: 700; color: #64748B; background: #F8FAFC; text-transform: uppercase; border-bottom: 1px solid var(--border);">💡 Sản phẩm danh mục [${activeCatSlug.toUpperCase()}]:</div>`;
                         resultsBox.innerHTML = headerText + res.data.map(p => `
                             <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                    <img src="${p.image_url}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: contain;" onerror="this.outerHTML='<div style=\'width:40px;height:40px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#64748B;font-size:16px;\'><i class=\'fa-solid fa-box-open\'></i></div>'">
+                                    <img src="${p.image_url}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: contain;">
                                     <div>
                                         <strong style="font-size: 13.5px; display: block; color: var(--text-primary);">${p.name}</strong>
                                         <span style="font-size: 12.5px; color: var(--primary); font-weight: 700;">${p.price_formatted}</span>
                                     </div>
                                 </div>
-                                <a href="<?= url('compare?add=') ?>${p.id}" class="btn btn--sm" style="padding: 6px 12px; font-size: 12px; text-decoration: none; white-space: nowrap; background-color: #10B981; color: #FFFFFF;">
-                                    <i class="fa-solid fa-plus"></i> Thêm so sánh
-                                </a>
+                                <form method="post" action="<?= url('compare/add') ?>" style="margin:0;">
+                                    <input type="hidden" name="_csrf" value="${csrfToken}">
+                                    <input type="hidden" name="product_id" value="${p.id}">
+                                    <button type="submit" class="btn btn--sm" style="padding: 6px 12px; font-size: 12px; background-color: #10B981; color: #FFFFFF; border: none; cursor: pointer;">
+                                        <i class="fa-solid fa-plus"></i> Thêm so sánh
+                                    </button>
+                                </form>
                             </div>
                         `).join('');
                         resultsBox.style.display = 'block';
                     } else {
-                        resultsBox.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">Không tìm thấy sản phẩm phù hợp</div>';
+                        resultsBox.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">Không tìm thấy sản phẩm phù hợp trong danh mục này</div>';
                         resultsBox.style.display = 'block';
                     }
                 })
@@ -409,14 +345,62 @@
         }, 200);
     }
 
-    // Đóng dropdown tìm kiếm khi click ra ngoài
-    document.addEventListener('click', function(e) {
-        const box = document.getElementById('compareSearchResults');
-        const input = document.getElementById('compareSearchInput');
-        if (box && input && !box.contains(e.target) && !input.contains(e.target)) {
-            box.style.display = 'none';
-        }
-    });
+    function runAiPersonaAnalysis() {
+        const btn = document.getElementById('btnRunCompareAi');
+        const personaCode = document.getElementById('selectedPersonaCode').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang phân tích AI...';
+
+        const formData = new URLSearchParams();
+        formData.append('_csrf', csrfToken);
+        formData.append('category', activeCatSlug);
+        formData.append('persona', personaCode);
+
+        fetch('<?= url("compare/aiCompare") ?>', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích & Chấm Điểm AI Theo Persona';
+
+            if (res.success) {
+                // Hiển thị Winner Badges
+                const winners = res.winners || {};
+                Object.keys(winners).forEach(wRole => {
+                    $pId = winners[wRole];
+                    const slot = document.getElementById(`winnerBadgeSlot-${$pId}`);
+                    if (slot) {
+                        let labelText = 'PHÙ HỢP NHẤT';
+                        if (wRole === 'best_value') labelText = 'ĐÁNG TIỀN NHẤT';
+                        if (wRole === 'best_performance') labelText = 'HIỆU NĂNG CAO NHẤT';
+                        slot.innerHTML = `<span class="winner-badge badge-${wRole}">${labelText}</span>`;
+                    }
+                });
+
+                // Hiển thị báo cáo AI
+                document.getElementById('compareAiResultBox').style.display = 'block';
+                document.getElementById('aiSummaryText').innerText = res.analysis.summary || '';
+                document.getElementById('aiWhoShouldBuy').innerText = res.analysis.who_should_buy || '';
+                document.getElementById('aiTradeoffs').innerText = res.analysis.tradeoffs || '';
+
+                document.getElementById('compareAiResultBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                alert('Thông báo: ' + (res.message || 'Không thể thực hiện phân tích.'));
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích & Chấm Điểm AI Theo Persona';
+            alert('Lỗi phân tích: ' + err.message);
+        });
+    }
 </script>
 
 <?php include ROOT_PATH . '/app/views/layouts/footer.php'; ?>
