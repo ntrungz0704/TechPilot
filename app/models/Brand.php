@@ -18,14 +18,7 @@ class Brand
                 $stmt = $this->db->query('SELECT * FROM brands WHERE status = \'active\' ORDER BY id ASC');
                 $res = $stmt->fetchAll();
                 if (!empty($res)) {
-                    // Chuẩn hóa tên file logo từ DB nếu chứa -logo.png hoặc .png
-                    return array_map(function($b) {
-                        $slug = $b['slug'] ?? '';
-                        if (!empty($slug)) {
-                            $b['logo'] = $slug . '.png';
-                        }
-                        return $b;
-                    }, $res);
+                    return $res;
                 }
             } catch (Exception $e) {}
         }

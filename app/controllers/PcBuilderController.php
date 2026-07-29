@@ -207,6 +207,14 @@ class PcBuilderController extends Controller
         $globalBlockers = [];
         $globalWarnings = [];
 
+        if ($power['is_selected_psu_sufficient'] === false) {
+            $globalBlockers[] = "Nguồn máy tính đang chọn ({$power['selected_psu_w']}W) không đủ công suất khuyến nghị ({$power['recommended_psu_w']}W) cho cấu hình này.";
+        }
+
+        if ($power['data_quality'] === 'insufficient' && !empty($power['missing_power_fields'])) {
+            $globalWarnings[] = "Thiếu dữ liệu công suất của linh kiện: " . implode(', ', $power['missing_power_fields']);
+        }
+
         foreach ($build as $key => $prod) {
             if ($prod) {
                 $compat = PcCompatibilityService::checkCompatibility($build, $prod, $key);

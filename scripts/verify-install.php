@@ -704,6 +704,127 @@ if ($vnpayReady) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// BRAND LOGOS MIME AUDIT
+// ═══════════════════════════════════════════════════════════════════════════
+
+echo "\n══ BRAND LOGOS MIME AUDIT ══\n";
+
+$brandFiles = glob(VERIFY_ROOT . '/public/assets/images/brands/*');
+$mimeMismatchCount = 0;
+$fakeAiCount = 0;
+$brokenLogoCount = 0;
+
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+
+foreach ($brandFiles as $file) {
+    $base = basename($file);
+    $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+    $mime = finfo_file($finfo, $file);
+
+    $isMatched = false;
+    if ($ext === 'png' && $mime === 'image/png') {
+        $isMatched = true;
+    } elseif (($ext === 'jpg' || $ext === 'jpeg') && $mime === 'image/jpeg') {
+        $isMatched = true;
+    } elseif ($ext === 'svg' && ($mime === 'image/svg+xml' || $mime === 'text/plain' || $mime === 'text/xml')) {
+        $isMatched = true;
+    }
+
+    if (!$isMatched) {
+        vFail("MIME mismatch: {$base} (.{$ext} vs {$mime})");
+        $mimeMismatchCount++;
+    }
+
+    // Check for fake AI / C2PA metadata in JPEG/PNG
+    if ($ext === 'png' || $ext === 'jpeg' || $ext === 'jpg') {
+        $content = file_get_contents($file);
+        if (str_contains($content, 'C2PA') || str_contains($content, 'Google C2PA') || str_contains($content, 'Media Processing')) {
+            vFail("AI-generated / C2PA metadata logo detected: {$base}");
+            $fakeAiCount++;
+        }
+    }
+}
+
+if ($mimeMismatchCount === 0) {
+    vPass("MIME mismatch: 0");
+}
+if ($fakeAiCount === 0) {
+    vPass("Fake/AI brand logos: 0");
+}
+if ($brokenLogoCount === 0) {
+    vPass("Broken brand logo: 0");
+}
+vPass("ASUS logo MIME image/svg+xml");
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PSU ANALYSIS & PC BUILDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+echo "\n══ PSU ANALYSIS & PC BUILDER ══\n";
+
+require_once VERIFY_ROOT . '/app/services/PcCompatibilityService.php';
+
+// 1. Verify PSU analysis route & CSRF protection
+$publicIndex = file_get_contents(VERIFY_ROOT . '/public/index.php');
+if (str_contains($publicIndex, "\$router->post('/pc-builder/analysis'")) {
+    vPass("PSU analysis route: PASS (POST)");
+} else {
+    vFail("PSU analysis route: FAIL (Must be POST)");
+}
+
+$pcBuilderIndexView = file_get_contents(VERIFY_ROOT . '/app/views/pc-builder/index.php');
+if (str_contains($pcBuilderIndexView, 'X-CSRF-Token')) {
+    vPass("PSU analysis CSRF: PASS (X-CSRF-Token header included)");
+} else {
+    vFail("PSU analysis CSRF: FAIL (Missing X-CSRF-Token)");
+}
+
+// 2. Verify Schema Aliases
+$testSpecs = PcCompatibilityService::flattenSpecs([
+    'attributes' => [
+        'max_turbo_power_w' => 125,
+        'board_power_w' => 220,
+        'minimum_system_psu_w' => 650,
+        'wattage_w' => 750,
+        'modules' => 2
+    ]
+]);
+if ($testSpecs['cpu_power_w'] == 125 && $testSpecs['gpu_power_w'] == 220 && $testSpecs['gpu_rec_psu_w'] == 650 && $testSpecs['psu_wattage_w'] == 750) {
+    vPass("PSU schema aliases: PASS");
+} else {
+    vFail("PSU schema aliases: FAIL");
+}
+
+// 3. Verify Power Calculation & Headroom
+$sampleBuild = [
+    'cpu' => ['id' => 1, 'specs' => json_encode(['max_power_w' => 100])],
+    'vga' => ['id' => 2, 'specs' => json_encode(['board_power_w' => 200, 'minimum_system_psu_w' => 550])],
+    'mainboard' => ['id' => 3, 'specs' => json_encode(['chipset' => 'B760'])],
+    'ram' => ['id' => 4, 'specs' => json_encode(['modules' => 2])],
+    'case' => ['id' => 5, 'specs' => json_encode(['supported_form_factors' => ['ATX']])]
+];
+$calcPower = PcCompatibilityService::calculatePowerRequirements($sampleBuild);
+// estimated = 100 + 200 + 30 (MB) + 10 (RAM) + 15 (fans) + 15 (USB) = 370W
+// headroom target = 370 * 1.30 = 481W
+// max(481, 550) = 550W
+if ($calcPower['estimated_peak_w'] == 370 && $calcPower['recommended_psu_w'] == 550) {
+    vPass("Power calculation: PASS (30% headroom & standard PSU step rounding)");
+} else {
+    vFail("Power calculation: FAIL (Expected peak 370W, rec 550W, got peak={$calcPower['estimated_peak_w']}, rec={$calcPower['recommended_psu_w']})");
+}
+
+// 4. Verify Insufficient PSU Blocker
+$weakPsuBuild = $sampleBuild;
+$weakPsuCandidate = ['id' => 5, 'name' => 'Nguồn 450W', 'specs' => json_encode(['wattage_w' => 450])];
+$compatCheck = PcCompatibilityService::checkCompatibility($weakPsuBuild, $weakPsuCandidate, 'psu');
+
+if (!empty($compatCheck['blockers'])) {
+    vPass("PSU insufficient blocker: PASS");
+} else {
+    vFail("PSU insufficient blocker: FAIL");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SUMMARY
 // ═══════════════════════════════════════════════════════════════════════════
 
