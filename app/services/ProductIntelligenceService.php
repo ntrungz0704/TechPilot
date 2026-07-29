@@ -99,6 +99,22 @@ class ProductIntelligenceService
     }
 
     /**
+     * Tỷ lệ Hiệu năng / Giá (P/P)
+     */
+    public static function calculatePerformancePriceRatio(array $product): array
+    {
+        $vfm = self::calculateValueForMoney($product);
+        if ($vfm >= 8.5) {
+            return ['label' => 'Rất cao', 'class' => 'vfm-high'];
+        } elseif ($vfm >= 7.0) {
+            return ['label' => 'Tốt', 'class' => 'vfm-good'];
+        } elseif ($vfm >= 6.0) {
+            return ['label' => 'Trung bình', 'class' => 'vfm-med'];
+        }
+        return ['label' => 'Cơ bản', 'class' => 'vfm-low'];
+    }
+
+    /**
      * So sánh 2 hoặc nhiều sản phẩm bằng AI Gemini
      */
     public static function analyzeComparison(array $products): array
