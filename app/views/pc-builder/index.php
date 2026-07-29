@@ -1207,6 +1207,10 @@
     }
 
     function escapeQuote(str) {
-        return str.replace(/'/g, "\\'");
+        if (!str) return '';
+        return String(str)
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'")
+            .replace(/"/g, "&quot;");
     }
 </script>
