@@ -135,8 +135,6 @@ $router->get('/api/inventory/category/{id}', 'InventoryApiController@category');
 
 // API Notifications & Chatbot
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
-$router->get('/chatbot/products', 'ChatbotController@products');
-$router->get('/chatbot/compare', 'ChatbotController@compare');
 $router->get('/chatbot/query', 'ChatbotController@query');
 $router->post('/chatbot/sync', 'ChatbotController@sync');
 

@@ -383,9 +383,14 @@
                         <span>10 - 15 Triệu</span>
                         <p>Tầm giá học tập tốt</p>
                     </div>
-                    <div class="option-card selected" onclick="selectOption('budget', '15_25m', this)">
+                    <div class="option-card" onclick="selectOption('budget', '15_20m', this)">
                         <i class="fa-solid fa-laptop-code"></i>
-                        <span>15 - 25 Triệu</span>
+                        <span>15 - 20 Triệu</span>
+                        <p>Lập trình & Đồ họa 2D</p>
+                    </div>
+                    <div class="option-card selected" onclick="selectOption('budget', '20_25m', this)">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>20 - 25 Triệu</span>
                         <p>Hiệu năng trung bình khá</p>
                     </div>
                     <div class="option-card" onclick="selectOption('budget', '25_35m', this)">
@@ -393,8 +398,13 @@
                         <span>25 - 35 Triệu</span>
                         <p>Cấu hình chuyên nghiệp</p>
                     </div>
+                    <div class="option-card" onclick="selectOption('budget', 'over_35m', this)">
+                        <i class="fa-solid fa-crown"></i>
+                        <span>Trên 35 Triệu</span>
+                        <p>High-end cao cấp</p>
+                    </div>
                 </div>
-                <input type="hidden" name="budget" id="input-budget" value="15_25m">
+                <input type="hidden" name="budget" id="input-budget" value="20_25m">
             </div>
 
             <!-- PANEL 2: Nhóm sản phẩm -->
