@@ -31,7 +31,7 @@ class GeminiService
      */
     private static function sendApiRequest(string $apiKey, string $prompt, ?array $contextData = null): string
     {
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $apiKey;
         
         $payload = [
             'contents' => [
@@ -55,7 +55,7 @@ class GeminiService
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // curl_close is no-op since PHP 8.0 and deprecated since PHP 8.5
 
         if ($response === false) {
             return "🤖 [Lỗi kết nối API] Không thể kết nối tới máy chủ Gemini AI.";

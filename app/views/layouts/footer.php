@@ -460,33 +460,6 @@
             50% { border-color: rgba(147, 51, 234, 0.4); box-shadow: 0 15px 40px rgba(147, 51, 234, 0.2); }
         }
 
-        /* Voice Advisor Button */
-        .tp-speech-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary, #64748B);
-            cursor: pointer;
-            padding: 4px;
-            font-size: 13px;
-            transition: color 0.2s, transform 0.1s;
-            margin-top: 4px;
-            display: inline-flex;
-            align-items: center;
-            align-self: flex-start;
-            outline: none;
-        }
-        .tp-speech-btn:hover {
-            color: var(--primary);
-            transform: scale(1.15);
-        }
-        .tp-speech-btn.speaking {
-            color: #EF4444;
-            animation: tpVoiceWave 1.2s ease-in-out infinite;
-        }
-        @keyframes tpVoiceWave {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.25); }
-        }
 
         /* Suggestion Chips styling */
         .tp-chatbot-suggestions-chips {
@@ -1789,48 +1762,7 @@
                 .catch(err => console.error("Error loading chatbot products:", err));
         }
 
-        // Voice Advisor & Typewriter Logic
-        let currentUtterance = null;
-        window.speakText = function(btn, text) {
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-                document.querySelectorAll('.tp-speech-btn').forEach(b => b.classList.remove('speaking'));
-                if (currentUtterance && currentUtterance.btn === btn) {
-                    currentUtterance = null;
-                    return;
-                }
-            }
 
-            const cleanText = text.replace(/[*#_`~]/g, ''); // strip markdown formatting for clean reading
-            const utterance = new SpeechSynthesisUtterance(cleanText);
-            utterance.btn = btn;
-            
-            const voices = window.speechSynthesis.getVoices();
-            const viVoice = voices.find(voice => voice.lang.includes('vi') || voice.lang.includes('VI'));
-            if (viVoice) {
-                utterance.voice = viVoice;
-            }
-            
-            utterance.rate = 1.05;
-            utterance.pitch = 1.0;
-            
-            utterance.onstart = () => {
-                btn.classList.add('speaking');
-                currentUtterance = utterance;
-            };
-            
-            utterance.onend = () => {
-                btn.classList.remove('speaking');
-                currentUtterance = null;
-            };
-            
-            utterance.onerror = () => {
-                btn.classList.remove('speaking');
-                currentUtterance = null;
-            };
-
-            window.speechSynthesis.speak(utterance);
-        }
 
         window.feedbackMessage = function(btn, isPositive, text) {
             const icon = btn.querySelector('i');
@@ -1882,9 +1814,6 @@
                 <div style="display: flex; flex-direction: column; width: 100%;">
                     <div class="tp-message-content"></div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                        <button type="button" class="tp-speech-btn" onclick="speakText(this, '${sanitizedText.trim()}')" title="Đọc tin nhắn">
-                            <i class="fa-solid fa-volume-high"></i> Đọc thành tiếng
-                        </button>
                         <button type="button" class="tp-feedback-btn thumbs-up" onclick="feedbackMessage(this, true, '${sanitizedText.trim()}')" title="Hữu ích" style="border: none; background: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 4px; transition: all 0.2s;">
                             <i class="fa-regular fa-thumbs-up"></i>
                         </button>
