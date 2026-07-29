@@ -283,25 +283,41 @@ class PcBuilderController extends Controller
         $coreKeys = ['cpu', 'mainboard', 'ram', 'storage', 'psu', 'case'];
         $hasCore = true;
         
+        $categoryMap = [
+            'cpu' => [5],
+            'mainboard' => [4],
+            'vga' => [6],
+            'ram' => [7],
+            'storage' => [8],
+            'case' => [9],
+            'cooler' => [10],
+            'psu' => [11],
+            'monitor' => [3],
+            'gear' => [12, 13]
+        ];
+
         foreach ($this->parts as $key => $info) {
             $foundId = null;
             foreach ($productIds as $pid) {
-                // Chúng ta phải query để biết $pid thuộc category/component_type nào
                 $p = $this->getProductById($db, (int)$pid);
                 if ($p) {
                     $specs = json_decode($p['specs'], true) ?: [];
-                    if (($specs['component_type'] ?? '') === $key || (empty($specs['component_type']) && isset($this->parts[$key]) && strpos($this->parts[$key]['query'], "component_type = '$key'") !== false)) {
+                    $compType = $specs['component_type'] ?? '';
+                    $catId = (int)($p['category_id'] ?? 0);
+                    $allowedCats = $categoryMap[$key] ?? [];
+
+                    if ($compType === $key || in_array($catId, $allowedCats, true)) {
                         $foundId = $p['id'];
                         $build[$key] = [
                             'id' => $p['id'],
                             'name' => $p['name'],
                             'specs' => $specs
                         ];
-                        break; // found the part
+                        break;
                     }
                 }
             }
-            if (in_array($key, $coreKeys) && !$foundId) {
+            if (in_array($key, $coreKeys, true) && !$foundId) {
                 $hasCore = false;
             }
         }
