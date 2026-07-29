@@ -243,7 +243,12 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                                 <?php if (($u['role'] ?? '') === 'admin'): ?>
                                     <a href="<?= url('admin') ?>" role="menuitem" style="color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Trang quản trị</a>
                                 <?php endif; ?>
-                                <a href="<?= url('auth/logout') ?>" role="menuitem"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Đăng xuất</a>
+                                <form method="post" action="<?= url('auth/logout') ?>" style="margin: 0; padding: 0; width: 100%;">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" style="background: none; border: none; padding: 10px 16px; color: #ef4444; font: inherit; cursor: pointer; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px;" role="menuitem">
+                                        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Đăng xuất
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     <?php else: ?>

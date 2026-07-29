@@ -111,6 +111,7 @@ class AdminOrderController extends Controller
 
     public function updateStatus(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/orders');

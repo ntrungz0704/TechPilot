@@ -47,28 +47,7 @@ class Router
             }
         }
 
-        // 2. Fallback về cơ chế auto-dispatch truyền thống của storefront
-        $urlParts = trim($path, '/');
-        $parts = $urlParts === '' ? [] : explode('/', $urlParts);
-
-        $controllerName = !empty($parts[0]) ? ucfirst($parts[0]) . 'Controller' : 'HomeController';
-        $action = $parts[1] ?? 'index';
-        $params = array_slice($parts, 2);
-
-        $controllerFile = ROOT_PATH . '/app/controllers/' . $controllerName . '.php';
-
-        if (file_exists($controllerFile)) {
-            require_once $controllerFile;
-            if (class_exists($controllerName)) {
-                $controller = new $controllerName();
-                if (method_exists($controller, $action)) {
-                    call_user_func_array([$controller, $action], $params);
-                    return;
-                }
-            }
-        }
-
-        // 3. Không khớp route nào -> trả về 404
+        // Route không khớp -> trả về HTTP 404 qua 404 handler
         $this->trigger404();
     }
 
@@ -99,15 +78,7 @@ class Router
 
     private function trigger404(): void
     {
-        http_response_code(404);
-        $controllerFile = ROOT_PATH . '/app/controllers/HomeController.php';
-        if (file_exists($controllerFile)) {
-            require_once $controllerFile;
-            $controller = new HomeController();
-            $controller->notFound();
-        } else {
-            echo "<h1>404 Not Found</h1><p>Đường dẫn không tồn tại.</p>";
-        }
-        exit;
+        require_once ROOT_PATH . '/app/core/ErrorHandler.php';
+        ErrorHandler::renderErrorView(404);
     }
 }

@@ -1242,7 +1242,8 @@
             fetch('<?= url("chatbot/sync") ?>', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': <?= json_encode($_SESSION['csrf_token'] ?? '') ?>
                 },
                 body: JSON.stringify({ history: history })
             })

@@ -128,6 +128,7 @@ class AdminProductController extends Controller
 
     public function store(): void
     {
+        $this->requireAdmin();
         if (!$this->isPost()) {
             $this->redirect('admin/products');
         }
@@ -255,6 +256,7 @@ class AdminProductController extends Controller
 
     public function update(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/products');
@@ -352,6 +354,7 @@ class AdminProductController extends Controller
 
     public function delete(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/products');

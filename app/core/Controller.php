@@ -95,13 +95,13 @@ class Controller
         return $_SESSION['user'];
     }
 
-    /** Yêu cầu quyền Admin (role_id = 1) */
+    /** Yêu cầu quyền Admin (role = admin) */
     protected function requireAdmin(): array
     {
         $user = $this->requireAuth();
         if (($user['role'] ?? '') !== 'admin') {
-            http_response_code(403);
-            die('<h1>403 Forbidden</h1><p>Bạn không có quyền truy cập trang này.</p>');
+            require_once ROOT_PATH . '/app/core/ErrorHandler.php';
+            ErrorHandler::renderErrorView(403);
         }
         return $user;
     }

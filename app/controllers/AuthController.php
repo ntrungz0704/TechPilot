@@ -129,9 +129,14 @@ class AuthController extends Controller
         ]);
     }
 
-    /** Đăng xuất */
+    /** Đăng xuất (Chỉ xử lý mutation khi POST) */
     public function logout(): void
     {
+        if (!$this->isPost()) {
+            $this->redirect('/');
+            return;
+        }
+
         if (!empty($_SESSION['user']['id'])) {
             $userModel = $this->model('User');
             $userModel->updateRememberToken($_SESSION['user']['id'], null);
