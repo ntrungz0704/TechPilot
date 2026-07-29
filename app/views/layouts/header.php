@@ -1,4 +1,11 @@
 <?php
+if (!class_exists('CatalogGroupService') && defined('ROOT_PATH') && file_exists(ROOT_PATH . '/app/services/CatalogGroupService.php')) {
+    require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
+}
+if (!class_exists('CategoryMenuService') && defined('ROOT_PATH') && file_exists(ROOT_PATH . '/app/services/CategoryMenuService.php')) {
+    require_once ROOT_PATH . '/app/services/CategoryMenuService.php';
+}
+
 $currentUri = $_SERVER['REQUEST_URI'] ?? '';
 $currentPath = parse_url($currentUri, PHP_URL_PATH);
 if (defined('BASE_URL') && BASE_URL !== '' && strpos($currentPath, BASE_URL) === 0) {

@@ -7,6 +7,26 @@
 // Thiết lập Múi giờ mặc định Hà Nội / Việt Nam (UTC+7)
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 
+if (!defined('ROOT_PATH')) {
+    define('ROOT_PATH', dirname(__DIR__));
+}
+
+// Tự động nạp Class từ app/core, app/models, app/services
+spl_autoload_register(function ($class) {
+    $dirs = [
+        ROOT_PATH . '/app/core/',
+        ROOT_PATH . '/app/models/',
+        ROOT_PATH . '/app/services/'
+    ];
+    foreach ($dirs as $dir) {
+        $file = $dir . $class . '.php';
+        if (file_exists($file)) {
+            require_once $file;
+            return;
+        }
+    }
+});
+
 // Tải cấu hình từ file .env nếu có
 $envPath = dirname(__DIR__) . '/.env';
 if (file_exists($envPath)) {
