@@ -42,7 +42,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?? '' ?>">
-    <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' . APP_NAME : APP_NAME ?></title>
+    <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' . (defined('APP_NAME') ? APP_NAME : 'TechPilot') : (defined('APP_NAME') ? APP_NAME : 'TechPilot') ?></title>
     <?php if (isset($metaDescription)): ?>
         <meta name="description" content="<?= e($metaDescription) ?>">
     <?php endif; ?>
