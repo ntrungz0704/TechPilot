@@ -704,29 +704,86 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <?php if (!empty($posts)): ?>
-<!-- ===== 12. TECHNOLOGY NEWS ===== -->
+<!-- ===== 12. TECHNOLOGY NEWS & AI HUB ===== -->
 <section class="container section">
-    <div class="section__head">
-        <h2>Tin Tức Công Nghệ</h2>
-        <a href="<?= url('post') ?>" class="section__more">Xem thêm tin tức <i class="fa-solid fa-chevron-right"></i></a>
-    </div>
-    <div class="news-grid">
-        <?php foreach ($posts as $post): ?>
-            <div class="news-card">
-                <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
-                    <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
-                </a>
-                <div class="news-card__body">
-                    <span class="news-card__date"><i class="fa-regular fa-clock"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?></span>
-                    <h3 class="news-card__title">
-                        <a href="<?= url('post/detail/' . e($post['slug'])) ?>" style="text-decoration: none; color: inherit;">
-                            <?= e($post['title']) ?>
-                        </a>
-                    </h3>
-                    <p class="news-card__summary"><?= e($post['summary']) ?></p>
-                </div>
+    <style>
+        .news-ai-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .news-ai-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .ai-sidebar-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .ai-sidebar-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+    <div class="news-ai-grid">
+        <!-- Left: News Section -->
+        <div class="news-main-col">
+            <div class="section__head" style="margin-bottom: 16px;">
+                <h2><i class="fa-solid fa-newspaper" style="color: var(--primary); margin-right: 8px;"></i> Tin Tức Công Nghệ</h2>
+                <a href="<?= url('post') ?>" class="section__more">Xem thêm <i class="fa-solid fa-chevron-right"></i></a>
             </div>
-        <?php endforeach; ?>
+            <div class="news-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+                <?php foreach (array_slice($posts, 0, 4) as $post): ?>
+                    <div class="news-card">
+                        <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
+                            <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
+                        </a>
+                        <div class="news-card__body">
+                            <span class="news-card__date"><i class="fa-regular fa-clock"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?></span>
+                            <h3 class="news-card__title">
+                                <a href="<?= url('post/detail/' . e($post['slug'])) ?>" style="text-decoration: none; color: inherit;">
+                                    <?= e($post['title']) ?>
+                                </a>
+                            </h3>
+                            <p class="news-card__summary"><?= e($post['summary']) ?></p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Right: Prominent AI Modules Sidebar -->
+        <div class="ai-sidebar-col" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="section__head" style="margin-bottom: 16px;">
+                <h2><i class="fa-solid fa-microchip" style="color: #8B5CF6; margin-right: 8px;"></i> Góc Trợ Lý AI</h2>
+            </div>
+            
+            <!-- AI Recommendation Card -->
+            <div class="ai-sidebar-card" style="background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%); color: #FFFFFF; border-radius: 16px; padding: 20px; border: 1px solid rgba(139, 92, 246, 0.3); box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15); display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; background: rgba(139, 92, 246, 0.25); color: #C4B5FD; border: 1px solid rgba(139, 92, 246, 0.4); padding: 3px 8px; border-radius: 20px;">AI 4.0 Smart</span>
+                    <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 22px; color: #A78BFA;"></i>
+                </div>
+                <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #FFFFFF; line-height: 1.3;">Tư Vấn Chọn Máy AI</h3>
+                <p style="font-size: 12.5px; color: #94A3B8; margin: 0; line-height: 1.5;">Khảo sát 5 câu hỏi nhanh để AI tìm 3 cấu hình tối ưu nhất theo ngân sách của bạn.</p>
+                <a href="<?= url('ai-assistant') ?>" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%); color: #FFFFFF; text-decoration: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; border: 1px solid rgba(167, 139, 250, 0.3); margin-top: 4px;">
+                    Mở AI Tư Vấn <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- AI Comparison Card -->
+            <div class="ai-sidebar-card" style="background: linear-gradient(135deg, #0F172A 0%, #064E3B 100%); color: #FFFFFF; border-radius: 16px; padding: 20px; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15); display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; background: rgba(16, 185, 129, 0.25); color: #6EE7B7; border: 1px solid rgba(16, 185, 129, 0.4); padding: 3px 8px; border-radius: 20px;">Chuyên Sâu</span>
+                    <i class="fa-solid fa-scale-balanced" style="font-size: 22px; color: #34D399;"></i>
+                </div>
+                <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #FFFFFF; line-height: 1.3;">So Sánh Cấu Hình AI</h3>
+                <p style="font-size: 12.5px; color: #94A3B8; margin: 0; line-height: 1.5;">Chọn 2–4 sản phẩm để đối chiếu bảng thông số thật và xem đánh giá ưu/nhược từ AI.</p>
+                <a href="<?= url('compare') ?>" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #FFFFFF; text-decoration: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; border: 1px solid rgba(52, 211, 153, 0.3); margin-top: 4px;">
+                    Mở Trang So Sánh <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
 </section>
 <?php endif; ?>
