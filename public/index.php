@@ -226,6 +226,7 @@ $router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
 // PC Builder Routes
 $router->get('/build-pc', 'PcBuilderController@index');
 $router->get('/pc-builder/products', 'PcBuilderController@getProducts');
+$router->get('/pc-builder/prebuilt', 'PcBuilderController@prebuilt');
 $router->post('/pc-builder/analysis', 'PcBuilderController@getAnalysis');
 $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 

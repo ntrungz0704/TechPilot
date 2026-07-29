@@ -61,12 +61,43 @@ class PcBuilderController extends Controller
         ]
     ];
 
+    /** Trực tiếp hiển thị giao diện Build PC */
     public function index(): void
     {
-        $this->render('pc-builder/index', [
-            'pageTitle' => 'Xây dựng cấu hình PC - TechPilot',
-            'parts' => $this->parts,
-        ]);
+        $data = [
+            'pageTitle' => 'Xây dựng cấu hình PC theo yêu cầu - TechPilot',
+            'parts' => $this->parts
+        ];
+        $this->view('pc-builder/index', $data);
+    }
+
+    /** API: Trả về danh sách PC lắp sẵn (Pre-built PCs) */
+    public function prebuilt(): void
+    {
+        header('Content-Type: application/json');
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+
+        $stmt = $db->prepare("SELECT id, name, slug, price, stock, image, specs FROM products WHERE category_id = 2 AND status = 'active' ORDER BY price ASC LIMIT 12");
+        $stmt->execute();
+        $pcs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($pcs as $pc) {
+            $specs = json_decode($pc['specs'] ?? '{}', true) ?: [];
+            $result[] = [
+                'id' => (int)$pc['id'],
+                'name' => $pc['name'],
+                'slug' => $pc['slug'],
+                'price' => (float)$pc['price'],
+                'price_formatted' => formatPrice((float)$pc['price']),
+                'image_url' => empty($pc['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($pc['image'], 'http') ? $pc['image'] : (str_starts_with($pc['image'], 'assets/') ? '/' . $pc['image'] : '/assets/images/products/' . $pc['image'])),
+                'specs' => $specs
+            ];
+        }
+
+        echo json_encode(['success' => true, 'data' => $result]);
+        exit;
     }
 
     /** API: Trả về danh sách linh kiện */
@@ -144,17 +175,15 @@ class PcBuilderController extends Controller
         exit;
     }
 
-    /** Lấy một sản phẩm từ DB */
     private function getProductById(?PDO $db, int $id): ?array
     {
         if (!$db) return null;
-        $stmt = $db->prepare("SELECT id, name, price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
+        $stmt = $db->prepare("SELECT id, name, price, stock, image, specs, category_id, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
         $stmt->execute([':id' => $id]);
         $prod = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($prod) {
             $prod['specs'] = $prod['specs'] ?: '{}';
-            // Ensure frontend receives parsed specs
             $parsed = json_decode($prod['specs'], true) ?: [];
             if (!empty($prod['component_type'])) {
                 $parsed['component_type'] = $prod['component_type'];
@@ -191,60 +220,77 @@ class PcBuilderController extends Controller
         $build = [];
         foreach ($this->parts as $key => $info) {
             if (!empty($input[$key])) {
-                $prod = $this->getProductById($db, (int)$input[$key]);
-                if ($prod) {
+                if (is_array($input[$key])) {
+                    // Custom or owned part object passed directly
                     $build[$key] = [
-                        'id' => $prod['id'],
-                        'name' => $prod['name'],
-                        'price' => $prod['price'],
-                        'specs' => json_decode($prod['specs'], true)
+                        'id' => $input[$key]['id'] ?? 0,
+                        'name' => $input[$key]['name'] ?? 'Linh kiện tự khai báo',
+                        'price' => $input[$key]['price'] ?? 0,
+                        'specs' => $input[$key]['specs'] ?? []
                     ];
+                } else {
+                    $prod = $this->getProductById($db, (int)$input[$key]);
+                    if ($prod) {
+                        $build[$key] = [
+                            'id' => $prod['id'],
+                            'name' => $prod['name'],
+                            'price' => $prod['price'],
+                            'specs' => json_decode($prod['specs'], true)
+                        ];
+                    }
                 }
             }
         }
 
-        $power = PcCompatibilityService::calculatePowerRequirements($build);
+        $powerRequirements = PcCompatibilityService::calculatePowerRequirements($build);
+
+        // Chạy kiểm tra tương thích tổng thể
         $globalBlockers = [];
         $globalWarnings = [];
 
-        if ($power['is_selected_psu_sufficient'] === false) {
-            $globalBlockers[] = "Nguồn máy tính đang chọn ({$power['selected_psu_w']}W) không đủ công suất khuyến nghị ({$power['recommended_psu_w']}W) cho cấu hình này.";
-        }
-
-        if ($power['data_quality'] === 'insufficient' && !empty($power['missing_power_fields'])) {
-            $globalWarnings[] = "Thiếu dữ liệu công suất của linh kiện: " . implode(', ', $power['missing_power_fields']);
-        }
-
         foreach ($build as $key => $prod) {
-            if ($prod) {
-                $compat = PcCompatibilityService::checkCompatibility($build, $prod, $key);
-                if (!empty($compat['blockers'])) {
-                    $globalBlockers = array_merge($globalBlockers, $compat['blockers']);
-                }
-                if (!empty($compat['warnings'])) {
-                    $globalWarnings = array_merge($globalWarnings, $compat['warnings']);
-                }
+            $compat = PcCompatibilityService::checkCompatibility($build, $prod, $key);
+            if (!empty($compat['blockers'])) {
+                $globalBlockers = array_merge($globalBlockers, $compat['blockers']);
+            }
+            if (!empty($compat['warnings'])) {
+                $globalWarnings = array_merge($globalWarnings, $compat['warnings']);
             }
         }
 
-        $globalBlockers = array_unique($globalBlockers);
-        $globalWarnings = array_unique($globalWarnings);
+        // Kiểm tra iGPU / VGA blocker
+        if (!empty($build['cpu']) && empty($build['vga'])) {
+            $cpuSpecs = $build['cpu']['specs'] ?? [];
+            $hasIgpu = PcCompatibilityService::hasIntegratedGraphics($build['cpu']['name'] ?? '', $cpuSpecs);
+            if (!$hasIgpu) {
+                $globalBlockers[] = "CPU bạn chọn ({$build['cpu']['name']}) không có đồ họa tích hợp (iGPU) và chưa chọn Card màn hình rời (VGA). Cần chọn thêm VGA để hiển thị.";
+            }
+        }
+
+        // Kiểm tra Tản nhiệt stock CPU
+        if (!empty($build['cpu']) && empty($build['cooler'])) {
+            $cpuSpecs = $build['cpu']['specs'] ?? [];
+            $hasStockCooler = PcCompatibilityService::hasStockCooler($build['cpu']['name'] ?? '', $cpuSpecs);
+            if (!$hasStockCooler) {
+                $globalBlockers[] = "CPU bạn chọn ({$build['cpu']['name']}) không đi kèm tản nhiệt stock. Bắt buộc phải chọn thêm Tản nhiệt CPU.";
+            }
+        }
 
         echo json_encode([
             'success' => true,
-            'power' => $power,
-            'blockers' => array_values($globalBlockers),
-            'warnings' => array_values($globalWarnings),
+            'power' => $powerRequirements,
+            'blockers' => array_values(array_unique($globalBlockers)),
+            'warnings' => array_values(array_unique($globalWarnings))
         ]);
         exit;
     }
 
     private function getOrCreateCartId(int $userId, PDO $db): int
     {
-        $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' LIMIT 1");
+        $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1");
         $stmt->execute([':user_id' => $userId]);
         $cart = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($cart) {
             return (int)$cart['id'];
         }
@@ -270,15 +316,26 @@ class PcBuilderController extends Controller
         }
 
         $productIds = $_POST['product_ids'] ?? [];
-        if (empty($productIds)) {
-            echo json_encode(['success' => false, 'message' => 'Vui lòng chọn ít nhất 1 linh kiện để thêm vào giỏ hàng.']);
+        $mode = $_POST['mode'] ?? 'build_full';
+        $ownedKeys = $_POST['owned_keys'] ?? []; // Danh sách key linh kiện đã có sẵn (ví dụ ['cpu', 'case'])
+
+        $buyableIds = [];
+        foreach ($productIds as $pid) {
+            $pid = (int)$pid;
+            if ($pid > 0) {
+                $buyableIds[] = $pid;
+            }
+        }
+
+        if (empty($buyableIds)) {
+            echo json_encode(['success' => false, 'message' => 'Vui lòng chọn ít nhất 1 linh kiện cần mua tại TechPilot.']);
             exit;
         }
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
-        // 1. Kiểm tra 6 món cốt lõi
+        // 1. Kiểm tra linh kiện
         $build = [];
         $coreKeys = ['cpu', 'mainboard', 'ram', 'storage', 'psu', 'case'];
         $hasCore = true;
@@ -298,8 +355,14 @@ class PcBuilderController extends Controller
 
         foreach ($this->parts as $key => $info) {
             $foundId = null;
-            foreach ($productIds as $pid) {
-                $p = $this->getProductById($db, (int)$pid);
+            // Nếu ở chế độ nâng cấp hoặc linh kiện này được đánh dấu "Đã có sẵn"
+            if (in_array($key, $ownedKeys, true)) {
+                $foundId = -1; // Marked as owned
+                continue;
+            }
+
+            foreach ($buyableIds as $pid) {
+                $p = $this->getProductById($db, $pid);
                 if ($p) {
                     $specs = json_decode($p['specs'], true) ?: [];
                     $compType = $specs['component_type'] ?? '';
@@ -317,21 +380,22 @@ class PcBuilderController extends Controller
                     }
                 }
             }
-            if (in_array($key, $coreKeys, true) && !$foundId) {
+            if ($mode === 'build_full' && in_array($key, $coreKeys, true) && !$foundId) {
                 $hasCore = false;
             }
         }
 
-        if (!$hasCore) {
-            echo json_encode(['success' => false, 'message' => 'Bạn phải chọn đầy đủ các linh kiện cơ bản (CPU, Mainboard, RAM, Ổ cứng, Nguồn, Case) trước khi thêm vào giỏ hàng.']);
+        if ($mode === 'build_full' && !$hasCore) {
+            echo json_encode(['success' => false, 'message' => 'Ở chế độ Build máy hoàn chỉnh, bạn phải chọn đầy đủ các linh kiện cơ bản (CPU, Mainboard, RAM, Ổ cứng, Nguồn, Case) trước khi thêm vào giỏ hàng.']);
             exit;
         }
 
         // 2. Validate GPU vs iGPU
-        if (empty($build['vga'])) {
+        if (empty($build['vga']) && !empty($build['cpu'])) {
             $cpuSpecs = $build['cpu']['specs'] ?? [];
-            if (!isset($cpuSpecs['integrated_graphics']) || !$cpuSpecs['integrated_graphics']) {
-                echo json_encode(['success' => false, 'message' => 'Cấu hình thiếu Card màn hình, mà CPU bạn chọn lại không có đồ họa tích hợp (iGPU). Vui lòng chọn thêm VGA hoặc đổi CPU.']);
+            $hasIgpu = PcCompatibilityService::hasIntegratedGraphics($build['cpu']['name'] ?? '', $cpuSpecs);
+            if (!$hasIgpu) {
+                echo json_encode(['success' => false, 'message' => 'CPU bạn chọn không có đồ họa tích hợp (iGPU). Vui lòng chọn thêm Card màn hình rời (VGA).']);
                 exit;
             }
         }
@@ -346,21 +410,19 @@ class PcBuilderController extends Controller
         }
 
         if (!empty($globalBlockers)) {
-            echo json_encode(['success' => false, 'message' => 'Cấu hình của bạn có lỗi tương thích. Vui lòng khắc phục trước khi thêm vào giỏ hàng: ' . implode(', ', array_unique($globalBlockers))]);
+            echo json_encode(['success' => false, 'message' => 'Cấu hình của bạn có lỗi tương thích nghiêm trọng: ' . implode(', ', array_unique($globalBlockers))]);
             exit;
         }
 
-        // 4. Insert DB
+        // 4. Insert DB (Chỉ thêm các sản phẩm cần mua)
         try {
             $db->beginTransaction();
             $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
 
             $addedCount = 0;
-            foreach ($productIds as $pid) {
-                $pid = (int)$pid;
+            foreach ($buyableIds as $pid) {
                 if ($pid <= 0) continue;
 
-                // Check if already in cart
                 $stmt = $db->prepare("SELECT id, quantity FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id");
                 $stmt->execute([':cart_id' => $cartId, ':product_id' => $pid]);
                 $existing = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -374,12 +436,19 @@ class PcBuilderController extends Controller
                 }
                 $addedCount++;
             }
+
             $db->commit();
-            
-            echo json_encode(['success' => true, 'message' => "Đã thêm thành công {$addedCount} linh kiện vào giỏ hàng!", 'redirect' => '/cart']);
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Đã thêm thành công {$addedCount} linh kiện vào giỏ hàng!",
+                'cart_count' => $addedCount
+            ]);
         } catch (Exception $e) {
-            $db->rollBack();
-            echo json_encode(['success' => false, 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()]);
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            echo json_encode(['success' => false, 'message' => 'Lỗi lưu giỏ hàng: ' . $e->getMessage()]);
         }
         exit;
     }
