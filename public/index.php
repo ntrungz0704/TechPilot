@@ -239,6 +239,7 @@ $router->get('/post/{slug}', 'PostController@detail');
 $router->get('/compare', 'CompareController@index');
 $router->post('/compare/add', 'CompareController@add');
 $router->post('/compare/remove', 'CompareController@remove');
+$router->post('/compare/aiCompare', 'CompareController@aiCompare');
 $router->post('/ai/compare', 'CompareController@aiCompare');
 
 $router->get('/ai-assistant', 'AiAssistantController@index');

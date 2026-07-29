@@ -373,7 +373,17 @@
             },
             body: formData
         })
-        .then(res => res.json())
+        .then(async res => {
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error(`Máy chủ trả về phản hồi không hợp lệ (HTTP ${res.status}). Vui lòng kiểm tra kết nối.`);
+            }
+            const data = await res.json();
+            if (!res.ok && data && data.message) {
+                throw new Error(data.message);
+            }
+            return data;
+        })
         .then(res => {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích & Chấm Điểm AI Theo Persona';
@@ -382,8 +392,8 @@
                 // Hiển thị Winner Badges
                 const winners = res.winners || {};
                 Object.keys(winners).forEach(wRole => {
-                    $pId = winners[wRole];
-                    const slot = document.getElementById(`winnerBadgeSlot-${$pId}`);
+                    const pId = winners[wRole];
+                    const slot = document.getElementById(`winnerBadgeSlot-${pId}`);
                     if (slot) {
                         let labelText = 'PHÙ HỢP NHẤT';
                         if (wRole === 'best_value') labelText = 'ĐÁNG TIỀN NHẤT';
@@ -394,9 +404,9 @@
 
                 // Hiển thị báo cáo AI
                 document.getElementById('compareAiResultBox').style.display = 'block';
-                document.getElementById('aiSummaryText').innerText = res.analysis.summary || '';
-                document.getElementById('aiWhoShouldBuy').innerText = res.analysis.who_should_buy || '';
-                document.getElementById('aiTradeoffs').innerText = res.analysis.tradeoffs || '';
+                document.getElementById('aiSummaryText').innerText = (res.analysis && res.analysis.summary) ? res.analysis.summary : '';
+                document.getElementById('aiWhoShouldBuy').innerText = (res.analysis && res.analysis.who_should_buy) ? res.analysis.who_should_buy : '';
+                document.getElementById('aiTradeoffs').innerText = (res.analysis && res.analysis.tradeoffs) ? res.analysis.tradeoffs : '';
 
                 document.getElementById('compareAiResultBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
