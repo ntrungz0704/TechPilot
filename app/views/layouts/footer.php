@@ -1911,17 +1911,21 @@
             const grid = document.createElement('div');
             grid.className = 'tp-actions-grid';
             grid.innerHTML = `
-                <button type="button" class="tp-action-btn" onclick="sendNaturalQuery('Cửa hàng có những loại sản phẩm nào?')">
+                <button type="button" class="tp-action-btn" onclick="sendNaturalQuery('Cửa hàng có những dòng sản phẩm nổi bật nào?')">
                     <i class="fa-solid fa-circle-question"></i>
-                    <span>Hỏi nhanh về sản phẩm</span>
+                    <span>Hỏi về sản phẩm</span>
                 </button>
-                <button type="button" class="tp-action-btn" onclick="window.location.href='<?= url('ai-assistant') ?>'">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>AI tư vấn chọn máy</span>
+                <button type="button" class="tp-action-btn" onclick="sendNaturalQuery('Chính sách bảo hành tại TechPilot thế nào?')">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Chính sách bảo hành</span>
                 </button>
-                <button type="button" class="tp-action-btn" onclick="window.location.href='<?= url('compare') ?>'">
-                    <i class="fa-solid fa-scale-balanced"></i>
-                    <span>So sánh sản phẩm</span>
+                <button type="button" class="tp-action-btn" onclick="sendNaturalQuery('Cửa hàng có hỗ trợ trả góp không?')">
+                    <i class="fa-solid fa-credit-card"></i>
+                    <span>Trả góp 0%</span>
+                </button>
+                <button type="button" class="tp-action-btn" onclick="sendNaturalQuery('Địa chỉ cửa hàng ở đâu và mấy giờ mở cửa?')">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span>Địa chỉ & Giờ mở cửa</span>
                 </button>
             `;
             msgBox.appendChild(grid);

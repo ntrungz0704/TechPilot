@@ -326,6 +326,8 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=office-gear') ?>" class="<?= $activeMenu === 'office-gear' ? 'is-active' : '' ?>">Thiết bị văn phòng</a></li>
                         <li><a href="<?= url('home/search?promo=1') ?>" class="text-hot <?= $activeMenu === 'promo' ? 'is-active' : '' ?>">Khuyến mãi <span class="dot-hot"></span></a></li>
                         <li><a href="<?= url('post') ?>" class="<?= $activeMenu === 'post' ? 'is-active' : '' ?>">Tin công nghệ</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('ai-assistant') ?>" class="<?= $activeMenu === 'ai-assistant' ? 'is-active' : '' ?>" style="color: #8B5CF6; font-weight: 700;"><i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 4px;"></i> AI Tư vấn</a></li>
+                        <li class="desktop-only-link"><a href="<?= url('compare') ?>" class="<?= $activeMenu === 'compare' ? 'is-active' : '' ?>" style="color: #10B981; font-weight: 700;"><i class="fa-solid fa-scale-balanced" style="margin-right: 4px;"></i> So sánh</a></li>
                     </ul>
                 </div>
             </nav>
