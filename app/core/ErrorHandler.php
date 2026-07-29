@@ -73,14 +73,15 @@ class ErrorHandler
 
         $viewFile = defined('ROOT_PATH') ? ROOT_PATH . "/app/views/errors/{$statusCode}.php" : __DIR__ . "/../views/errors/{$statusCode}.php";
 
+        if (!file_exists($viewFile)) {
+            $viewFile = defined('ROOT_PATH') ? ROOT_PATH . "/app/views/errors/500.php" : __DIR__ . "/../views/errors/500.php";
+        }
+
         if (file_exists($viewFile)) {
             require $viewFile;
         } else {
-            if ($isDev && $exception) {
-                echo "<h1>Mã lỗi {$statusCode}</h1><p>" . htmlspecialchars($errorMessage) . "</p>";
-            } else {
-                echo "<h1>Mã lỗi {$statusCode}</h1><p>Hệ thống tạm thời chưa thể xử lý yêu cầu.</p>";
-            }
+            $homeUrl = defined('BASE_URL') && BASE_URL !== '' ? BASE_URL : '/';
+            echo '<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Lỗi ' . $statusCode . '</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#f8fafc;color:#1e293b;}</style></head><body><h1>Mã lỗi ' . $statusCode . '</h1><p>' . htmlspecialchars($errorMessage) . '</p><p><a href="' . htmlspecialchars($homeUrl) . '" style="display:inline-block;padding:10px 20px;background:#0b63e5;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Quay về trang chủ</a></p></body></html>';
         }
         exit;
     }
