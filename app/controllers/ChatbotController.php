@@ -263,6 +263,20 @@ class ChatbotController extends Controller
 
         // Nếu người dùng gửi tin nhắn trò chuyện tự nhiên
         if ($queryText !== '') {
+            // Kiểm tra Giới hạn lượt hỏi AI (IP chưa đăng nhập: 5 lượt/ngày, Đã đăng nhập: 20 lượt/ngày)
+            $rateCheck = $this->checkAndIncrementRateLimit();
+            if (!$rateCheck['allowed']) {
+                http_response_code(429);
+                echo json_encode([
+                    'success' => false,
+                    'type' => 'error',
+                    'error_code' => 'RATE_LIMIT_EXCEEDED',
+                    'message' => '🤖 ' . $rateCheck['message'],
+                    'recommendations' => []
+                ]);
+                exit;
+            }
+
             // Phase 15 - Simple Math Intent
             $mathResult = $this->evaluateSimpleMath($queryText);
             if ($mathResult !== null) {
@@ -1599,5 +1613,99 @@ class ChatbotController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Lấy địa chỉ IP thực tế của client
+     */
+    private function getClientIp(): string
+    {
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+            return trim($_SERVER['HTTP_CLIENT_IP']);
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            return trim($ips[0]);
+        }
+        return trim($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+    }
+
+    /**
+     * Giới hạn lượt hỏi AI:
+     * - Chưa đăng nhập (Guest / IP): 5 lượt hỏi / ngày
+     * - Đã đăng nhập (Thành viên): 20 lượt hỏi / ngày
+     */
+    private function checkAndIncrementRateLimit(): array
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $isLoggedIn = !empty($_SESSION['user']['id']);
+        $userId = $isLoggedIn ? (int)$_SESSION['user']['id'] : null;
+
+        $limit = $isLoggedIn ? 20 : 5;
+        $identifier = $isLoggedIn ? ('user:' . $userId) : ('ip:' . $this->getClientIp());
+        $today = date('Y-m-d');
+
+        // 1. Đảm bảo bảng tồn tại
+        try {
+            $this->db->exec("
+                CREATE TABLE IF NOT EXISTS `chatbot_rate_limits` (
+                    `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    `identifier`  VARCHAR(100) NOT NULL,
+                    `rate_date`   DATE         NOT NULL,
+                    `query_count` INT UNSIGNED NOT NULL DEFAULT 0,
+                    `created_at`  TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at`  TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uniq_identifier_date` (`identifier`, `rate_date`),
+                    INDEX `idx_crl_date` (`rate_date`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+        } catch (Exception $e) {}
+
+        // 2. Lấy số lượt hỏi hiện tại của hôm nay
+        $currentCount = 0;
+        try {
+            $stmt = $this->db->prepare("SELECT query_count FROM chatbot_rate_limits WHERE identifier = ? AND rate_date = ?");
+            $stmt->execute([$identifier, $today]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $currentCount = (int)$row['query_count'];
+            }
+        } catch (Exception $e) {}
+
+        // 3. Nếu vượt quá giới hạn -> từ chối
+        if ($currentCount >= $limit) {
+            $message = $isLoggedIn
+                ? "Tài khoản của bạn đã sử dụng hết {$limit}/{$limit} lượt hỏi AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai nhé!"
+                : "Địa chỉ IP của bạn đã sử dụng hết {$limit}/{$limit} lượt hỏi thử miễn phí trong ngày hôm nay. Hãy đăng nhập tài khoản TechPilot để có thêm 20 lượt hỏi mỗi ngày nhé!";
+
+            return [
+                'allowed'      => false,
+                'current'      => $currentCount,
+                'limit'        => $limit,
+                'is_logged_in' => $isLoggedIn,
+                'message'      => $message
+            ];
+        }
+
+        // 4. Ghi nhận +1 lượt hỏi
+        try {
+            $upsertStmt = $this->db->prepare("
+                INSERT INTO chatbot_rate_limits (identifier, rate_date, query_count)
+                VALUES (?, ?, 1)
+                ON DUPLICATE KEY UPDATE query_count = query_count + 1
+            ");
+            $upsertStmt->execute([$identifier, $today]);
+        } catch (Exception $e) {}
+
+        return [
+            'allowed'      => true,
+            'current'      => $currentCount + 1,
+            'limit'        => $limit,
+            'is_logged_in' => $isLoggedIn,
+            'message'      => 'OK'
+        ];
     }
 }
