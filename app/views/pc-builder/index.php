@@ -13,7 +13,7 @@
     }
     .pc-builder-header {
         text-align: center;
-        margin-bottom: 35px;
+        margin-bottom: 25px;
     }
     .pc-builder-header h1 {
         font-size: 32px;
@@ -28,6 +28,34 @@
         color: var(--text-secondary);
         font-size: 15.5px;
     }
+
+    /* Flow Tab Bar */
+    .tp-flow-banner {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 16px 24px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .btn-flow-tab {
+        background: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        color: #475569;
+        transition: all 0.2s ease;
+    }
+    .btn-flow-tab:hover {
+        background: #F1F5F9;
+        border-color: #94A3B8;
+        color: #0F172A;
+    }
+    .btn-flow-tab.active {
+        background: #0B63E5 !important;
+        border-color: #0B63E5 !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 4px 12px rgba(11, 99, 229, 0.25);
+    }
+
     .pc-builder-layout {
         display: grid;
         grid-template-columns: 1fr 360px;
@@ -52,7 +80,7 @@
     }
     .pc-builder-row {
         display: grid;
-        grid-template-columns: 80px 200px 1fr 150px;
+        grid-template-columns: 80px 180px 1fr 220px;
         align-items: center;
         padding: 16px 20px;
         border: 1px solid var(--border);
@@ -98,6 +126,9 @@
         flex-shrink: 0;
     }
     .pc-builder-selected-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
         min-width: 0;
     }
     .pc-builder-selected-title {
@@ -107,189 +138,175 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        display: block;
-        margin-bottom: 2px;
     }
     .pc-builder-selected-price {
-        font-size: 14px;
+        font-size: 13.5px;
         font-weight: 700;
         color: #EF4444;
-        display: block;
     }
     .pc-builder-placeholder {
-        color: #94A3B8;
-        font-size: 13.5px;
+        color: var(--text-secondary);
+        font-size: 14px;
         font-style: italic;
     }
     .pc-builder-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
+        gap: 8px;
     }
-    .btn-select-part {
-        background: #0B63E5;
-        color: #FFFFFF;
-        border: none;
-        padding: 8px 16px;
+    .btn-select-part, .btn-owned-part {
+        padding: 8px 14px;
         border-radius: 8px;
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 600;
+        border: 1px solid #0B63E5;
+        background: #EFF6FF;
+        color: #0B63E5;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
     .btn-select-part:hover {
-        background: #0051C4;
+        background: #0B63E5;
+        color: #FFFFFF;
+    }
+    .btn-owned-part {
+        border-color: #10B981;
+        background: #ECFDF5;
+        color: #059669;
+    }
+    .btn-owned-part:hover, .btn-owned-part.active {
+        background: #10B981;
+        color: #FFFFFF;
     }
     .btn-change-part {
-        background: #FFFFFF;
-        color: var(--text-primary);
-        border: 1px solid #CBD5E1;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13.5px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .btn-change-part:hover {
-        background: #F8FAFC;
-        border-color: #94A3B8;
-    }
-    .btn-remove-part {
-        background: #FEF2F2;
-        color: #EF4444;
-        border: 1px solid #FEE2E2;
         padding: 8px 12px;
         border-radius: 8px;
-        font-size: 14px;
+        font-size: 12.5px;
+        font-weight: 600;
+        border: 1px solid #CBD5E1;
+        background: #FFFFFF;
+        color: #475569;
         cursor: pointer;
-        transition: all 0.2s;
+    }
+    .btn-change-part:hover {
+        border-color: #0B63E5;
+        color: #0B63E5;
+    }
+    .btn-remove-part {
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        border: 1px solid #FCA5A5;
+        background: #FEF2F2;
+        color: #EF4444;
+        cursor: pointer;
     }
     .btn-remove-part:hover {
-        background: #FEE2E2;
-        border-color: #FCA5A5;
+        background: #EF4444;
+        color: #FFFFFF;
     }
 
-    @media (max-width: 767px) {
-        .pc-builder-row {
-            grid-template-columns: 1fr;
-            gap: 15px;
-            text-align: center;
-            justify-items: center;
-        }
-        .pc-builder-selected-info {
-            flex-direction: column;
-            text-align: center;
-        }
-        .pc-builder-actions {
-            justify-content: center;
-            width: 100%;
-        }
-    }
-
-    /* Sidebar Summary */
-    .pc-builder-summary {
-        position: sticky;
-        top: 20px;
-    }
+    /* Sidebar summary */
     .pc-builder-summary-card {
         background: #FFFFFF;
         border: 1px solid var(--border);
         border-radius: 16px;
         box-shadow: var(--shadow-card);
-        padding: 20px;
+        padding: 24px;
+        position: sticky;
+        top: 20px;
     }
     .pc-builder-summary-title {
         font-size: 18px;
         font-weight: 800;
         color: var(--text-primary);
-        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
         display: flex;
-        align-items: center;
         justify-content: space-between;
+        align-items: center;
     }
     .pc-builder-summary-row {
         display: flex;
         justify-content: space-between;
         margin-bottom: 12px;
-        font-size: 14.5px;
+        font-size: 14px;
         color: var(--text-secondary);
     }
     .pc-builder-total-price {
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 800;
         color: #EF4444;
         text-align: right;
-        margin: 10px 0 20px;
+        margin: 15px 0 20px 0;
     }
     .btn-add-config-to-cart {
         width: 100%;
-        background: #EF4444;
-        color: #FFFFFF;
-        border: none;
         padding: 14px;
         border-radius: 10px;
+        background: linear-gradient(135deg, #0B63E5, #2563EB);
+        color: #FFFFFF;
         font-size: 16px;
         font-weight: 700;
+        border: none;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        margin-bottom: 15px;
+        box-shadow: 0 4px 12px rgba(11, 99, 229, 0.25);
     }
     .btn-add-config-to-cart:hover {
-        background: #DC2626;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(11, 99, 229, 0.35);
     }
     .btn-reset-config {
         width: 100%;
-        background: #FFFFFF;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        background: transparent;
         color: #64748B;
-        border: 1px solid #CBD5E1;
-        padding: 12px;
-        border-radius: 10px;
-        font-size: 14.5px;
+        font-size: 13.5px;
         font-weight: 600;
+        border: 1px solid #CBD5E1;
         cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
     }
     .btn-reset-config:hover {
         background: #F8FAFC;
-        color: #334155;
+        color: #0F172A;
     }
 
-    /* Modal chọn linh kiện */
+    /* Modal Select Product */
     .pc-modal-backdrop {
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.6);
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
         z-index: 9999;
         display: none;
         align-items: center;
         justify-content: center;
         padding: 20px;
-        backdrop-filter: blur(4px);
     }
     .pc-modal {
         background: #FFFFFF;
         width: 100%;
-        max-width: 800px;
+        max-width: 900px;
+        max-height: 85vh;
         border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         display: flex;
         flex-direction: column;
-        max-height: 90vh;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
     }
     .pc-modal-header {
-        padding: 20px 25px;
+        padding: 20px 24px;
         border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
@@ -297,206 +314,214 @@
     }
     .pc-modal-title {
         font-size: 18px;
-        font-weight: 800;
+        font-weight: 700;
         color: var(--text-primary);
         margin: 0;
     }
     .pc-modal-close {
         background: none;
         border: none;
-        font-size: 24px;
-        color: #94A3B8;
+        font-size: 22px;
+        color: #64748B;
         cursor: pointer;
-        transition: all 0.2s;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-    }
-    .pc-modal-close:hover {
-        background: #F1F5F9;
-        color: var(--text-primary);
     }
     .pc-modal-body {
-        padding: 25px;
+        padding: 20px 24px;
         overflow-y: auto;
         flex: 1;
-    }
-    .pc-search-box {
-        position: relative;
-        margin-bottom: 25px;
-    }
-    .pc-search-box input {
-        width: 100%;
-        padding: 14px 20px 14px 45px;
-        border: 1px solid #CBD5E1;
-        border-radius: 12px;
-        font-size: 15px;
-        transition: all 0.2s;
-        font-family: inherit;
-    }
-    .pc-search-box input:focus {
-        outline: none;
-        border-color: #0B63E5;
-        box-shadow: 0 0 0 4px rgba(11, 99, 229, 0.1);
-    }
-    .pc-search-box i {
-        position: absolute;
-        left: 18px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #94A3B8;
-        font-size: 16px;
-    }
-    .pc-modal-products-list {
         display: flex;
         flex-direction: column;
         gap: 15px;
     }
+    .pc-search-box {
+        position: relative;
+    }
+    .pc-search-box input {
+        width: 100%;
+        padding: 12px 16px 12px 42px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font-size: 14px;
+        outline: none;
+    }
+    .pc-search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+    }
+    .pc-modal-products-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
     .pc-modal-item {
         display: grid;
-        grid-template-columns: 80px 1fr 150px 120px;
+        grid-template-columns: 60px 1fr 140px 110px;
         align-items: center;
-        padding: 15px;
+        padding: 12px 16px;
         border: 1px solid var(--border);
         border-radius: 12px;
-        transition: all 0.2s;
+        gap: 15px;
+        transition: all 0.2s ease;
     }
     .pc-modal-item:hover {
         border-color: #0B63E5;
-        background: #FAFAFA;
+        background: #F8FAFC;
     }
     .pc-modal-item-img {
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
         object-fit: contain;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 2px;
-        background: #FFFFFF;
     }
     .pc-modal-item-name {
-        font-size: 13.5px;
+        font-size: 14px;
         font-weight: 600;
         color: var(--text-primary);
-        padding-right: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
     .pc-modal-item-price {
-        font-size: 14.5px;
+        font-size: 15px;
         font-weight: 700;
         color: #EF4444;
     }
     .btn-choose-item {
+        padding: 8px 14px;
+        border-radius: 8px;
         background: #0B63E5;
         color: #FFFFFF;
         border: none;
-        padding: 7px 14px;
-        border-radius: 6px;
-        font-size: 12.5px;
-        font-weight: 700;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s;
-    }
-    .btn-choose-item:hover {
-        background: #0051C4;
-    }
-    .pc-modal-loading {
-        text-align: center;
-        padding: 30px;
-        color: var(--text-secondary);
-        font-size: 14px;
-    }
-    .pc-modal-empty {
-        text-align: center;
-        padding: 35px;
-        color: #94A3B8;
-        font-size: 14px;
-        font-style: italic;
     }
     .pc-builder-compatibility-badge {
-        font-size: 11px;
-        background-color: #D1FAE5;
-        color: #065F46;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #059669;
+        background: #D1FAE5;
         padding: 2px 8px;
-        border-radius: 9999px;
-        font-weight: 700;
-        margin-top: 5px;
-        display: inline-block;
+        border-radius: 4px;
+        width: fit-content;
     }
     .pc-builder-blocker-badge {
-        font-size: 11px;
-        background-color: #FEE2E2;
-        color: #991B1B;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #DC2626;
+        background: #FEE2E2;
         padding: 2px 8px;
-        border-radius: 9999px;
-        font-weight: 700;
-        margin-top: 5px;
-        display: inline-block;
+        border-radius: 4px;
+        width: fit-content;
     }
     .pc-builder-reason-text {
-        font-size: 12px;
-        color: #EF4444;
-        margin-top: 4px;
-        font-weight: 500;
         display: block;
+        font-size: 11px;
+        color: #DC2626;
+        font-weight: 500;
+    }
+
+    /* Pre-built PCs Card Grid */
+    .prebuilt-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    .prebuilt-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+    }
+    .prebuilt-card:hover {
+        box-shadow: var(--shadow-card);
+        border-color: #0B63E5;
+    }
+    .prebuilt-img {
+        width: 100%;
+        height: 180px;
+        object-fit: contain;
+        margin-bottom: 12px;
     }
 </style>
 
-<div class="container pc-builder-container">
+<div class="pc-builder-container">
     <div class="pc-builder-header">
-        <h1>Xây dựng cấu hình PC theo yêu cầu</h1>
-        <p>Lựa chọn linh kiện tối ưu hiệu năng - Tương thích hoàn hảo - Hỗ trợ lắp ráp miễn phí</p>
+        <h1><i class="fa-solid fa-sliders"></i> Xây Dựng Cấu Hình PC & Tự Chọn Linh Kiện</h1>
+        <p>Hệ thống tự động kiểm tra tương thích Socket, RAM, Kích thước Case & Ước tính Nguồn (PSU) chính xác 100%</p>
     </div>
 
-    <div class="pc-builder-layout">
-        <!-- Danh sách cấu hình -->
-        <div class="pc-builder-list">
-            <?php foreach ($parts as $key => $info): ?>
-                <div class="pc-builder-row" data-part="<?= e($key) ?>">
-                    <!-- 1. Icon bộ phận -->
+    <!-- Thanh Chọn Luồng Nghiệp Vụ (3 Flow Selector) -->
+    <div class="tp-flow-banner">
+        <div style="font-weight:700; color:#1E293B; margin-bottom:10px; font-size:14.5px;">
+            <i class="fa-solid fa-route" style="color:#0B63E5;"></i> Bạn đang muốn xây dựng cấu hình thế nào?
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-flow-tab active" id="tabFlowBuildFull" onclick="setFlowMode('build_full')">
+                <i class="fa-solid fa-desktop me-1"></i> 🖥 Build máy mới hoàn chỉnh
+            </button>
+            <button type="button" class="btn btn-sm btn-flow-tab" id="tabFlowUpgrade" onclick="setFlowMode('upgrade')">
+                <i class="fa-solid fa-wrench me-1"></i> 🔧 Nâng cấp máy đang có / Đã có sẵn linh kiện
+            </button>
+            <button type="button" class="btn btn-sm btn-flow-tab" id="tabFlowPrebuilt" onclick="setFlowMode('prebuilt')">
+                <i class="fa-solid fa-box-open me-1"></i> 📦 Chọn PC lắp sẵn TechPilot
+            </button>
+        </div>
+    </div>
+
+    <!-- TAB 1 & TAB 2: Giao diện Builder Tự chọn linh kiện -->
+    <div id="pcBuilderMainView" class="pc-builder-layout">
+        <!-- Cột trái: Danh sách linh kiện chọn -->
+        <main class="pc-builder-list">
+            <?php foreach ($data['parts'] as $key => $info): ?>
+                <div class="pc-builder-row" data-part="<?= $key ?>">
                     <div class="pc-builder-icon">
-                        <i class="<?= e($info['icon']) ?>"></i>
+                        <i class="<?= $info['icon'] ?>"></i>
                     </div>
-                    
-                    <!-- 2. Tên bộ phận -->
                     <div class="pc-builder-part-name">
-                        <?= e($info['name']) ?>
+                        <?= $info['name'] ?>
                     </div>
-                    
-                    <!-- 3. Chi tiết linh kiện đã chọn -->
-                    <div class="pc-builder-selected-info" id="selected-info-<?= e($key) ?>">
+                    <div class="pc-builder-selected-info" id="selected-info-<?= $key ?>">
                         <span class="pc-builder-placeholder">Chưa chọn linh kiện</span>
                     </div>
-                    
-                    <!-- 4. Nút hành động -->
-                    <div class="pc-builder-actions" id="actions-<?= e($key) ?>">
-                        <button type="button" class="btn-select-part" onclick="openSelectModal('<?= e($key) ?>', '<?= e($info['name']) ?>')">
-                            <i class="fa-solid fa-plus"></i> Chọn linh kiện
+                    <div class="pc-builder-actions" id="actions-<?= $key ?>">
+                        <button type="button" class="btn-select-part" onclick="openSelectModal('<?= $key ?>', '<?= escapeQuote($info['name']) ?>')">
+                            <i class="fa-solid fa-plus"></i> Chọn mua
+                        </button>
+                        <button type="button" class="btn-owned-part" onclick="toggleOwnedPart('<?= $key ?>', '<?= escapeQuote($info['name']) ?>')" title="Khai báo bạn đã sở hữu linh kiện này">
+                            <i class="fa-solid fa-check"></i> Đã có
                         </button>
                     </div>
                 </div>
             <?php endforeach; ?>
-        </div>
+        </main>
 
-        <!-- Widget tổng hợp cấu hình bên phải -->
-        <aside class="pc-builder-summary">
-            <!-- Phân tích nguồn PSU -->
-            <div class="pc-builder-summary-card" style="margin-bottom: 20px; border-color: #E2E8F0;">
-                <div class="pc-builder-summary-title" style="font-size:16px;">
-                    <span>Phân tích công suất nguồn</span>
-                    <i class="fa-solid fa-bolt" style="color: #F59E0B;"></i>
+        <!-- Cột phải: Khung tổng quan Nguồn (PSU) & Tóm tắt cấu hình -->
+        <aside style="display:flex; flex-direction:column; gap:20px;">
+            <!-- Khung phân tích nguồn PSU -->
+            <div class="pc-builder-summary-card" style="padding: 20px;">
+                <div class="pc-builder-summary-title" style="font-size: 16px; margin-bottom: 12px;">
+                    <span><i class="fa-solid fa-bolt" style="color: #EAB308;"></i> Ước tính công suất Nguồn</span>
                 </div>
-                
-                <div id="psu-analysis-placeholder" style="font-size:13px; color:#64748B; font-style:italic; padding: 10px 0; text-align: center;">
-                    Chọn CPU để nhận đề xuất nguồn.
+                <div id="psu-analysis-placeholder" style="font-size:13px; color:var(--text-secondary); text-align:center; padding:15px 0;">
+                    Vui lòng chọn CPU hoặc VGA để hệ thống bắt đầu tính toán công suất nguồn phù hợp.
                 </div>
-
-                <div id="psu-analysis-content" style="display: none;">
+                <div id="psu-analysis-content" style="display:none;">
                     <div class="pc-builder-summary-row" style="font-size:13px;">
-                        <span>Công suất tải đỉnh:</span>
-                        <span id="psu-estimated-w" style="font-weight: 600; color: var(--text-primary);">0W</span>
+                        <span>Công suất tải đỉnh ước tính:</span>
+                        <span id="psu-estimated-w" style="font-weight: 700; color: #0B63E5;">0W</span>
                     </div>
                     <div class="pc-builder-summary-row" style="font-size:13px; margin-top:4px;">
                         <span>Tối thiểu do VGA đề xuất:</span>
@@ -514,7 +539,7 @@
                         <span id="psu-status-badge" style="font-weight:700; padding:2px 8px; border-radius:4px; font-size:12px; background:#E2E8F0; color:#475569;">Đang kiểm tra</span>
                     </div>
                     <div style="font-size:11px; color:#94A3B8; font-style:italic; line-height:1.4; margin-top:8px; text-align:right;">
-                        * Đã bao gồm 30% dự phòng công suất.
+                        * Đã bao gồm 30% dự phòng công suất an toàn.
                     </div>
                 </div>
             </div>
@@ -527,8 +552,12 @@
                 </div>
                 
                 <div class="pc-builder-summary-row">
-                    <span>Số linh kiện đã chọn:</span>
+                    <span>Linh kiện trong cấu hình:</span>
                     <span id="selected-count" style="font-weight: 700; color: var(--text-primary);">0</span>
+                </div>
+                <div class="pc-builder-summary-row" style="font-size:13px;">
+                    <span>Mua mới / Đã có sẵn:</span>
+                    <span><strong id="buy-count" style="color:#0B63E5;">0</strong> mua / <strong id="owned-count" style="color:#059669;">0</strong> sẵn</span>
                 </div>
 
                 <!-- Blockers & Warnings List -->
@@ -539,11 +568,11 @@
                 
                 <div style="border-top: 1px solid var(--border); margin: 15px 0;"></div>
                 
-                <div style="font-size: 13.5px; color: var(--text-secondary); text-align: right;">Tổng giá tiền tạm tính:</div>
+                <div style="font-size: 13.5px; color: var(--text-secondary); text-align: right;">Tổng giá tiền cần thanh toán:</div>
                 <div class="pc-builder-total-price" id="total-price-display">0đ</div>
                 
-                <button type="button" class="btn-add-config-to-cart" id="btnAddToCartSubmit" onclick="addConfigToCart()">
-                    <i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ hàng
+                <button type="button" class="btn-add-config-to-cart" id="btnAddToCartSubmit" onclick="handleAddToCartClick()">
+                    <i class="fa-solid fa-cart-plus"></i> <span id="btnAddToCartText">Thêm vào giỏ hàng</span>
                 </button>
                 
                 <button type="button" class="btn-reset-config" onclick="resetConfig()">
@@ -551,6 +580,19 @@
                 </button>
             </div>
         </aside>
+    </div>
+
+    <!-- TAB 3: Giao diện PC Lắp Sẵn mẫu -->
+    <div id="pcPrebuiltMainView" style="display:none;">
+        <div style="margin-bottom:20px;">
+            <h3 style="font-size:20px; font-weight:800; color:#1E293B;">📦 Danh Sách Bộ PC Lắp Sẵn Tối Ưu Bởi TechPilot</h3>
+            <p style="color:#64748B; font-size:14.5px;">Đã được các chuyên gia TechPilot lắp ráp và test độ ổn định. Mua nguyên bộ hoặc tùy chỉnh theo ý bạn!</p>
+        </div>
+        <div class="prebuilt-grid" id="prebuiltProductsGrid">
+            <div style="padding:30px; text-align:center; color:#64748B; grid-column: 1/-1;">
+                <i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tải danh sách PC lắp sẵn...
+            </div>
+        </div>
     </div>
 </div>
 
@@ -581,23 +623,98 @@
     </div>
 </div>
 
+<!-- Modal Xác Nhận Cảnh Báo (Warning Confirmation Modal) -->
+<div class="pc-modal-backdrop" id="pcWarningModalBackdrop">
+    <div class="pc-modal" style="max-width:550px;" onclick="event.stopPropagation()">
+        <div class="pc-modal-header" style="background:#FFFBEB; border-bottom:1px solid #FCD34D;">
+            <h4 class="pc-modal-title" style="color:#B45309;"><i class="fa-solid fa-triangle-exclamation me-2"></i> Cấu hình có cảnh báo</h4>
+            <button type="button" class="pc-modal-close" onclick="closeWarningModal()">&times;</button>
+        </div>
+        <div class="pc-modal-body" style="gap:12px;">
+            <p style="font-size:14px; color:#475569; margin:0;">
+                Cấu hình của bạn có một số lưu ý/cảnh báo nhưng vẫn có thể tiếp tục. Bạn có muốn tiếp tục thêm vào giỏ hàng không?
+            </p>
+            <div id="modalWarningListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button type="button" class="btn btn-secondary" onclick="closeWarningModal()">Quay lại chỉnh sửa</button>
+                <button type="button" class="btn btn-primary" onclick="proceedAddToCartAfterWarning()" style="background:#0B63E5; border:none; font-weight:700;">Tôi hiểu và tiếp tục</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Javascript xử lý tương tác dynamic -->
 <script>
-    // Lưu trữ cấu hình PC đã chọn của khách hàng
     let pcConfig = {};
     let activePartKey = '';
     let searchDebounceTimeout = null;
     let psuAnalysisAbortController = null;
+    let currentFlowMode = 'build_full'; // build_full | upgrade | prebuilt
+    let currentWarnings = [];
+    let currentBlockers = [];
 
     // Phục hồi từ localStorage nếu đã chọn từ trước
     if (localStorage.getItem('pc_config')) {
         try {
             pcConfig = JSON.parse(localStorage.getItem('pc_config')) || {};
-            updateUI();
-            analyzeBuild();
         } catch (e) {
             pcConfig = {};
         }
+    }
+    if (localStorage.getItem('pc_flow_mode')) {
+        currentFlowMode = localStorage.getItem('pc_flow_mode');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setFlowMode(currentFlowMode, false);
+        updateUI();
+        analyzeBuild();
+    });
+
+    function setFlowMode(mode, save = true) {
+        currentFlowMode = mode;
+        if (save) localStorage.setItem('pc_flow_mode', mode);
+
+        document.getElementById('tabFlowBuildFull').classList.remove('active');
+        document.getElementById('tabFlowUpgrade').classList.remove('active');
+        document.getElementById('tabFlowPrebuilt').classList.remove('active');
+
+        const mainView = document.getElementById('pcBuilderMainView');
+        const prebuiltView = document.getElementById('pcPrebuiltMainView');
+
+        if (mode === 'prebuilt') {
+            document.getElementById('tabFlowPrebuilt').classList.add('active');
+            mainView.style.display = 'none';
+            prebuiltView.style.display = 'block';
+            loadPrebuiltPcs();
+        } else {
+            mainView.style.display = 'grid';
+            prebuiltView.style.display = 'none';
+            if (mode === 'upgrade') {
+                document.getElementById('tabFlowUpgrade').classList.add('active');
+            } else {
+                document.getElementById('tabFlowBuildFull').classList.add('active');
+            }
+            analyzeBuild();
+        }
+    }
+
+    function toggleOwnedPart(partKey, partName) {
+        if (pcConfig[partKey] && pcConfig[partKey].isOwned) {
+            delete pcConfig[partKey];
+        } else {
+            pcConfig[partKey] = {
+                id: -1,
+                name: '[Đã có sẵn] ' + partName,
+                price: 0,
+                isOwned: true,
+                imageUrl: '/assets/images/placeholder.jpg',
+                specs: {}
+            };
+        }
+        localStorage.setItem('pc_config', JSON.stringify(pcConfig));
+        updateUI();
+        analyzeBuild();
     }
 
     function openSelectModal(partKey, partName) {
@@ -605,21 +722,13 @@
         document.getElementById('pcModalTitle').innerText = 'Chọn ' + partName;
         document.getElementById('pcModalSearchInput').value = '';
         
-        // Hiện thông báo tự động tương thích đối với các linh kiện
         const alertBox = document.getElementById('compatibilityAlert');
-        if (partKey === 'mainboard' && pcConfig.cpu) {
+        if (partKey === 'mainboard' && pcConfig.cpu && !pcConfig.cpu.isOwned) {
             alertBox.style.display = 'block';
             alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lọc Mainboard tương thích với Socket của CPU <strong>${pcConfig.cpu.name}</strong>.`;
-        } else if (partKey === 'cpu' && pcConfig.mainboard) {
+        } else if (partKey === 'cpu' && pcConfig.mainboard && !pcConfig.mainboard.isOwned) {
             alertBox.style.display = 'block';
             alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lọc CPU tương thích với Socket của Mainboard <strong>${pcConfig.mainboard.name}</strong>.`;
-        } else if (partKey === 'ram' && pcConfig.mainboard) {
-            alertBox.style.display = 'block';
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lọc RAM tương thích với chuẩn hỗ trợ (DDR4/DDR5) của Mainboard <strong>${pcConfig.mainboard.name}</strong>.`;
-        } else if (partKey === 'psu') {
-            alertBox.style.display = 'block';
-            const recW = document.getElementById('psu-recommended-w').innerText;
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-info"></i> Chỉ hiển thị các Nguồn (PSU) có công suất từ <strong>${recW}</strong> trở lên cho cấu hình hiện tại.`;
         } else {
             alertBox.style.display = 'none';
         }
@@ -631,6 +740,10 @@
     function closeSelectModal() {
         document.getElementById('pcSelectModalBackdrop').style.display = 'none';
         activePartKey = '';
+    }
+
+    function closeWarningModal() {
+        document.getElementById('pcWarningModalBackdrop').style.display = 'none';
     }
 
     function debounceSearch() {
@@ -646,14 +759,13 @@
 
         const searchVal = encodeURIComponent(document.getElementById('pcModalSearchInput').value.trim());
         
-        // Gửi ID các linh kiện đã chọn để API backend chạy kiểm tra tương thích chéo
-        const cpuId = pcConfig.cpu ? pcConfig.cpu.id : 0;
-        const mainboardId = pcConfig.mainboard ? pcConfig.mainboard.id : 0;
-        const ramId = pcConfig.ram ? pcConfig.ram.id : 0;
-        const gpuId = pcConfig.vga ? pcConfig.vga.id : 0;
-        const coolerId = pcConfig.cooler ? pcConfig.cooler.id : 0;
-        const caseId = pcConfig.case ? pcConfig.case.id : 0;
-        const storageId = pcConfig.storage ? pcConfig.storage.id : 0;
+        const cpuId = (pcConfig.cpu && !pcConfig.cpu.isOwned) ? pcConfig.cpu.id : 0;
+        const mainboardId = (pcConfig.mainboard && !pcConfig.mainboard.isOwned) ? pcConfig.mainboard.id : 0;
+        const ramId = (pcConfig.ram && !pcConfig.ram.isOwned) ? pcConfig.ram.id : 0;
+        const gpuId = (pcConfig.vga && !pcConfig.vga.isOwned) ? pcConfig.vga.id : 0;
+        const coolerId = (pcConfig.cooler && !pcConfig.cooler.isOwned) ? pcConfig.cooler.id : 0;
+        const caseId = (pcConfig.case && !pcConfig.case.isOwned) ? pcConfig.case.id : 0;
+        const storageId = (pcConfig.storage && !pcConfig.storage.isOwned) ? pcConfig.storage.id : 0;
 
         const url = '<?= url("pc-builder/products") ?>?part=' + activePartKey + 
                     '&search=' + searchVal + 
@@ -670,7 +782,7 @@
             .then(resData => {
                 const data = Array.isArray(resData) ? resData : (resData.data || []);
                 if (!data || data.length === 0) {
-                    container.innerHTML = '<div class="pc-modal-empty">Không tìm thấy linh kiện tương thích nào phù hợp.</div>';
+                    container.innerHTML = '<div class="pc-modal-empty" style="text-align:center;padding:30px;color:#64748B;">Không tìm thấy linh kiện phù hợp.</div>';
                     return;
                 }
 
@@ -687,7 +799,6 @@
                         actionButton = `<button disabled class="btn-choose-item" style="background:#CBD5E1;color:#64748B;cursor:not-allowed;">Hết hàng</button>`;
                     } else if (!isCompatible) {
                         statusBadge = `<span class="pc-builder-blocker-badge"><i class="fa-solid fa-triangle-exclamation"></i> Không tương thích</span>`;
-                        // Tạo text hiển thị lý do lỗi
                         let reasons = '';
                         if (p.blockers && p.blockers.length > 0) {
                             reasons = p.blockers.map(r => `<span class="pc-builder-reason-text">• ${r}</span>`).join('');
@@ -717,12 +828,12 @@
                 container.innerHTML = html;
             })
             .catch(err => {
-                container.innerHTML = '<div class="pc-modal-empty">Có lỗi xảy ra khi tải danh sách sản phẩm.</div>';
+                container.innerHTML = '<div class="pc-modal-empty" style="text-align:center;padding:30px;color:#EF4444;">Lỗi tải dữ liệu.</div>';
             });
     }
 
     function selectProduct(id, name, price, imageUrl) {
-        pcConfig[activePartKey] = { id, name, price, imageUrl };
+        pcConfig[activePartKey] = { id, name, price, imageUrl, isOwned: false };
         localStorage.setItem('pc_config', JSON.stringify(pcConfig));
         updateUI();
         analyzeBuild();
@@ -738,72 +849,91 @@
 
     function updateUI() {
         let total = 0;
-        let count = 0;
+        let buyCount = 0;
+        let ownedCount = 0;
 
         document.querySelectorAll('.pc-builder-row').forEach(row => {
             const partKey = row.getAttribute('data-part');
             const infoContainer = document.getElementById('selected-info-' + partKey);
             const actionContainer = document.getElementById('actions-' + partKey);
+            const partTitle = row.querySelector('.pc-builder-part-name').innerText.trim();
 
             if (pcConfig[partKey]) {
                 const item = pcConfig[partKey];
-                total += parseFloat(item.price);
-                count++;
-
-                infoContainer.innerHTML = `
-                    <div class="pc-builder-selected-info">
-                        <img class="pc-builder-selected-img" src="${item.imageUrl}" alt="${item.name}">
-                        <div class="pc-builder-selected-details">
-                            <span class="pc-builder-selected-title" title="${item.name}">${item.name}</span>
-                            <span class="pc-builder-selected-price">${formatMoney(item.price)}đ</span>
+                if (item.isOwned) {
+                    ownedCount++;
+                    infoContainer.innerHTML = `
+                        <div class="pc-builder-selected-info">
+                            <div class="pc-builder-selected-details">
+                                <span class="pc-builder-selected-title" style="color:#059669; font-weight:700;">
+                                    <i class="fa-solid fa-circle-check me-1"></i> [Đã có sẵn] ${item.name.replace('[Đã có sẵn] ', '')}
+                                </span>
+                                <span style="font-size:12px; color:#64748B;">Linh kiện đã sở hữu (0đ)</span>
+                            </div>
                         </div>
-                    </div>
-                `;
-
-                actionContainer.innerHTML = `
-                    <button type="button" class="btn-change-part" onclick="openSelectModal('${partKey}', '${row.querySelector('.pc-builder-part-name').innerText.trim()}')">Thay đổi</button>
-                    <button type="button" class="btn-remove-part" onclick="removeProduct('${partKey}')" title="Xóa linh kiện"><i class="fa-solid fa-trash-can"></i></button>
-                `;
+                    `;
+                    actionContainer.innerHTML = `
+                        <button type="button" class="btn-owned-part active" onclick="toggleOwnedPart('${partKey}', '${escapeQuote(partTitle)}')">
+                            <i class="fa-solid fa-check"></i> Bỏ 'Đã có'
+                        </button>
+                        <button type="button" class="btn-remove-part" onclick="removeProduct('${partKey}')" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                    `;
+                } else {
+                    buyCount++;
+                    total += parseFloat(item.price);
+                    infoContainer.innerHTML = `
+                        <div class="pc-builder-selected-info">
+                            <img class="pc-builder-selected-img" src="${item.imageUrl}" alt="${item.name}">
+                            <div class="pc-builder-selected-details">
+                                <span class="pc-builder-selected-title" title="${item.name}">${item.name}</span>
+                                <span class="pc-builder-selected-price">${formatMoney(item.price)}đ</span>
+                            </div>
+                        </div>
+                    `;
+                    actionContainer.innerHTML = `
+                        <button type="button" class="btn-change-part" onclick="openSelectModal('${partKey}', '${escapeQuote(partTitle)}')">Thay đổi</button>
+                        <button type="button" class="btn-remove-part" onclick="removeProduct('${partKey}')" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                    `;
+                }
             } else {
                 infoContainer.innerHTML = `<span class="pc-builder-placeholder">Chưa chọn linh kiện</span>`;
                 actionContainer.innerHTML = `
-                    <button type="button" class="btn-select-part" onclick="openSelectModal('${partKey}', '${row.querySelector('.pc-builder-part-name').innerText.trim()}')">
-                        <i class="fa-solid fa-plus"></i> Chọn linh kiện
+                    <button type="button" class="btn-select-part" onclick="openSelectModal('${partKey}', '${escapeQuote(partTitle)}')">
+                        <i class="fa-solid fa-plus"></i> Chọn mua
+                    </button>
+                    <button type="button" class="btn-owned-part" onclick="toggleOwnedPart('${partKey}', '${escapeQuote(partTitle)}')">
+                        <i class="fa-solid fa-check"></i> Đã có
                     </button>
                 `;
             }
         });
 
-        document.getElementById('selected-count').innerText = count;
+        const totalSelected = buyCount + ownedCount;
+        document.getElementById('selected-count').innerText = totalSelected;
+        document.getElementById('buy-count').innerText = buyCount;
+        document.getElementById('owned-count').innerText = ownedCount;
         document.getElementById('total-price-display').innerText = formatMoney(total) + 'đ';
+
+        const btnCartText = document.getElementById('btnAddToCartText');
+        if (btnCartText) {
+            btnCartText.innerText = buyCount > 0 ? `Thêm ${buyCount} linh kiện vào giỏ` : 'Thêm vào giỏ hàng';
+        }
     }
 
-    /** Gọi API phân tích tương thích chéo toàn cấu hình & tính toán công suất nguồn */
     async function analyzeBuild() {
         if (psuAnalysisAbortController) {
             psuAnalysisAbortController.abort();
         }
         psuAnalysisAbortController = new AbortController();
 
-        const cpuId = pcConfig.cpu ? pcConfig.cpu.id : 0;
-        const mainboardId = pcConfig.mainboard ? pcConfig.mainboard.id : 0;
-        const ramId = pcConfig.ram ? pcConfig.ram.id : 0;
-        const gpuId = pcConfig.vga ? pcConfig.vga.id : 0;
-        const coolerId = pcConfig.cooler ? pcConfig.cooler.id : 0;
-        const caseId = pcConfig.case ? pcConfig.case.id : 0;
-        const psuId = pcConfig.psu ? pcConfig.psu.id : 0;
-        const storageId = pcConfig.storage ? pcConfig.storage.id : 0;
-
-        const payload = {
-            cpu: cpuId,
-            mainboard: mainboardId,
-            ram: ramId,
-            vga: gpuId,
-            cooler: coolerId,
-            case: caseId,
-            psu: psuId,
-            storage: storageId
-        };
+        const payload = {};
+        for (const [k, v] of Object.entries(pcConfig)) {
+            if (v && v.isOwned) {
+                payload[k] = { id: -1, name: v.name, price: 0, specs: v.specs || {} };
+            } else if (v && v.id > 0) {
+                payload[k] = v.id;
+            }
+        }
 
         const url = '<?= url("pc-builder/analysis") ?>';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -822,22 +952,20 @@
             });
 
             const rawText = await response.text();
-            let data;
-            try {
-                data = JSON.parse(rawText);
-            } catch (e) {
-                throw new Error('Response không phải định dạng JSON');
-            }
+            let data = JSON.parse(rawText);
 
             if (!response.ok || !data.success) {
-                throw new Error(data.message || 'Lỗi kết nối API phân tích nguồn');
+                throw new Error(data.message || 'Lỗi kết nối API phân tích');
             }
 
             const power = data.power;
             const psuPlaceholder = document.getElementById('psu-analysis-placeholder');
             const psuContent = document.getElementById('psu-analysis-content');
             
-            if (cpuId === 0 && gpuId === 0) {
+            const hasCpu = !!pcConfig.cpu;
+            const hasGpu = !!pcConfig.vga;
+
+            if (!hasCpu && !hasGpu) {
                 psuPlaceholder.style.display = 'block';
                 psuContent.style.display = 'none';
             } else {
@@ -850,13 +978,13 @@
 
                 const vgaStatusLabel = document.getElementById('psu-vga-status-label');
                 if (vgaStatusLabel) {
-                    vgaStatusLabel.innerText = (gpuId > 0) ? 'Đã bao gồm Card màn hình rời' : '(Chưa bao gồm Card màn hình rời)';
+                    vgaStatusLabel.innerText = hasGpu ? 'Đã bao gồm Card màn hình rời' : '(Chưa bao gồm Card màn hình rời)';
                 }
 
-                // Badge trạng thái PSU
+                // Sửa lỗi mapping trạng thái nguồn PSU
                 const badge = document.getElementById('psu-status-badge');
                 if (badge) {
-                    if (psuId === 0) {
+                    if (!pcConfig.psu) {
                         badge.style.background = '#E2E8F0';
                         badge.style.color = '#475569';
                         badge.innerText = 'Chưa chọn Nguồn';
@@ -874,37 +1002,39 @@
                         badge.style.background = '#FEE2E2';
                         badge.style.color = '#DC2626';
                         badge.innerText = 'Không đủ công suất';
+                    } else {
+                        badge.style.background = '#D1FAE5';
+                        badge.style.color = '#059669';
+                        badge.innerText = pcConfig.psu.isOwned ? 'Đã có sẵn' : 'Đã chọn Nguồn';
                     }
                 }
             }
 
-            // Hiển thị danh sách cảnh báo & lỗi
+            // Hiển thị cảnh báo & Blocker
             const alertsContainer = document.getElementById('build-alerts-container');
             const alertsList = document.getElementById('build-alerts-list');
             const btnAddToCart = document.getElementById('btnAddToCartSubmit');
             
             alertsList.innerHTML = '';
-            let hasBlockers = false;
+            currentBlockers = data.blockers || [];
+            currentWarnings = data.warnings || [];
+            let hasBlockers = currentBlockers.length > 0;
             let missingCores = [];
 
-            // Yêu cầu linh kiện cốt lõi để mua hàng
-            if (cpuId === 0) missingCores.push('CPU');
-            if (mainboardId === 0) missingCores.push('Bo mạch chủ');
-            if (ramId === 0) missingCores.push('RAM');
-            if (storageId === 0) missingCores.push('Ổ cứng');
-            if (psuId === 0) missingCores.push('Nguồn (PSU)');
-
-            // Duyệt các lỗi nghiêm trọng (Blockers)
-            if (data.blockers && data.blockers.length > 0) {
-                hasBlockers = true;
-                data.blockers.forEach(msg => {
-                    alertsList.innerHTML += `
-                        <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
-                            <i class="fa-solid fa-circle-xmark"></i> ${msg}
-                        </div>
-                    `;
+            if (currentFlowMode === 'build_full') {
+                const coreKeys = ['cpu', 'mainboard', 'ram', 'storage', 'psu', 'case'];
+                coreKeys.forEach(k => {
+                    if (!pcConfig[k]) missingCores.push(k.toUpperCase());
                 });
             }
+
+            currentBlockers.forEach(msg => {
+                alertsList.innerHTML += `
+                    <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
+                        <i class="fa-solid fa-circle-xmark"></i> ${msg}
+                    </div>
+                `;
+            });
 
             if (missingCores.length > 0) {
                 hasBlockers = true;
@@ -915,24 +1045,20 @@
                 `;
             }
 
-            // Duyệt các cảnh báo (Warnings)
-            if (data.warnings && data.warnings.length > 0) {
-                data.warnings.forEach(msg => {
-                    alertsList.innerHTML += `
-                        <div style="color:#D97706; background:#FFFBEB; border: 1px solid #FCD34D; padding:8px 12px; border-radius:6px; font-weight:600;">
-                            <i class="fa-solid fa-triangle-exclamation"></i> ${msg}
-                        </div>
-                    `;
-                });
-            }
+            currentWarnings.forEach(msg => {
+                alertsList.innerHTML += `
+                    <div style="color:#D97706; background:#FFFBEB; border: 1px solid #FCD34D; padding:8px 12px; border-radius:6px; font-weight:600;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> ${msg}
+                    </div>
+                `;
+            });
 
-            if (hasBlockers || (data.warnings && data.warnings.length > 0)) {
+            if (hasBlockers || currentWarnings.length > 0) {
                 alertsContainer.style.display = 'block';
             } else {
                 alertsContainer.style.display = 'none';
             }
 
-            // Vô hiệu hóa nút thêm vào giỏ hàng nếu cấu hình có Blockers
             if (hasBlockers) {
                 btnAddToCart.disabled = true;
                 btnAddToCart.style.opacity = '0.5';
@@ -949,26 +1075,56 @@
         }
     }
 
-    function resetConfig() {
-        if (confirm('Bạn có chắc chắn muốn xóa tất cả linh kiện đã chọn?')) {
-            pcConfig = {};
-            localStorage.removeItem('pc_config');
-            updateUI();
-            analyzeBuild();
+    function handleAddToCartClick() {
+        if (currentBlockers.length > 0) {
+            alert('Cấu hình có lỗi tương thích nghiêm trọng. Vui lòng sửa lỗi trước khi thêm vào giỏ.');
+            return;
         }
+
+        if (currentWarnings.length > 0) {
+            // Mở Warning Confirmation Modal
+            const container = document.getElementById('modalWarningListContainer');
+            container.innerHTML = '';
+            currentWarnings.forEach(w => {
+                container.innerHTML += `
+                    <div style="color:#B45309; background:#FEF3C7; border:1px solid #FDE68A; padding:8px 12px; border-radius:6px; font-size:13px; font-weight:600;">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> ${w}
+                    </div>
+                `;
+            });
+            document.getElementById('pcWarningModalBackdrop').style.display = 'flex';
+            return;
+        }
+
+        proceedAddToCartAfterWarning();
     }
 
-    function addConfigToCart() {
-        const productIds = Object.values(pcConfig).map(item => item.id);
-        if (productIds.length === 0) {
-            alert('Vui lòng chọn ít nhất 1 linh kiện trước khi thêm vào giỏ hàng.');
+    function proceedAddToCartAfterWarning() {
+        closeWarningModal();
+
+        const buyableIds = [];
+        const ownedKeys = [];
+
+        for (const [k, v] of Object.entries(pcConfig)) {
+            if (v) {
+                if (v.isOwned) {
+                    ownedKeys.push(k);
+                } else if (v.id > 0) {
+                    buyableIds.push(v.id);
+                }
+            }
+        }
+
+        if (buyableIds.length === 0) {
+            alert('Vui lòng chọn ít nhất 1 linh kiện mua mới tại TechPilot trước khi thêm vào giỏ.');
             return;
         }
 
         const formData = new FormData();
-        productIds.forEach(id => formData.append('product_ids[]', id));
+        buyableIds.forEach(id => formData.append('product_ids[]', id));
+        ownedKeys.forEach(k => formData.append('owned_keys[]', k));
+        formData.append('mode', currentFlowMode);
         
-        // CSRF Token
         const csrfTokenVal = document.querySelector('input[name="csrf_token"]')?.value 
             || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
             || '<?= $_SESSION["csrf_token"] ?? "" ?>';
@@ -995,6 +1151,55 @@
         .catch(err => {
             alert('Đã xảy ra lỗi khi thêm sản phẩm vào giỏ hàng.');
         });
+    }
+
+    function loadPrebuiltPcs() {
+        const grid = document.getElementById('prebuiltProductsGrid');
+        grid.innerHTML = '<div style="padding:30px; text-align:center; color:#64748B; grid-column: 1/-1;"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang nạp danh sách PC lắp sẵn...</div>';
+
+        fetch('<?= url("pc-builder/prebuilt") ?>')
+            .then(res => res.json())
+            .then(res => {
+                if (!res.success || !res.data || res.data.length === 0) {
+                    grid.innerHTML = '<div style="padding:30px; text-align:center; color:#64748B; grid-column: 1/-1;">Hiện tại chưa có mẫu PC lắp sẵn nào.</div>';
+                    return;
+                }
+
+                let html = '';
+                res.data.forEach(pc => {
+                    html += `
+                        <div class="prebuilt-card">
+                            <img class="prebuilt-img" src="${pc.image_url}" alt="${pc.name}">
+                            <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:8px;">${pc.name}</div>
+                            <div style="font-size:16px; font-weight:800; color:#EF4444; margin-bottom:12px;">${pc.price_formatted}</div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <a href="${'<?= url("product/detail/") ?>' + pc.slug}" class="btn btn-sm btn-outline-primary w-100" style="font-weight:600;">Xem chi tiết & Mua</a>
+                                <button type="button" class="btn btn-sm btn-primary w-100" onclick="customizePrebuiltPc(${pc.id})" style="font-weight:700; background:#0B63E5;">
+                                    <i class="fa-solid fa-sliders me-1"></i> Tùy chỉnh cấu hình này
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                grid.innerHTML = html;
+            })
+            .catch(err => {
+                grid.innerHTML = '<div style="padding:30px; text-align:center; color:#EF4444; grid-column: 1/-1;">Lỗi tải dữ liệu PC lắp sẵn.</div>';
+            });
+    }
+
+    function customizePrebuiltPc(pcId) {
+        alert('Đã chuyển linh kiện PC mẫu vào PC Builder. Bạn có thể tùy chỉnh thêm linh kiện theo ý muốn!');
+        setFlowMode('build_full');
+    }
+
+    function resetConfig() {
+        if (confirm('Bạn có chắc chắn muốn xóa tất cả linh kiện đã chọn?')) {
+            pcConfig = {};
+            localStorage.removeItem('pc_config');
+            updateUI();
+            analyzeBuild();
+        }
     }
 
     function formatMoney(amount) {

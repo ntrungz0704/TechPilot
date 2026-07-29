@@ -12,16 +12,11 @@ class PcCompatibilityService
 
     /**
      * Flatten nested specs (schema_version 2) so compatibility fields are accessible at top level.
-     * DB specs use: { compatibility: { socket, ram_type, ... }, attributes: { socket, memory_type, form_factor, ... } }
-     * Service expects top-level: { socket, memory_type, form_factor, ... }
      */
     public static function flattenSpecs($specs): array {
         $parsed = self::parseSpecs($specs);
-
-        // If no nested structure, return as-is (legacy flat format)
         $flat = $parsed;
 
-        // Merge 'attributes' first (lower priority)
         if (isset($parsed['attributes']) && is_array($parsed['attributes'])) {
             foreach ($parsed['attributes'] as $k => $v) {
                 if (!isset($flat[$k])) {
@@ -30,33 +25,27 @@ class PcCompatibilityService
             }
         }
 
-        // Merge 'compatibility' on top (higher priority for compat fields)
         if (isset($parsed['compatibility']) && is_array($parsed['compatibility'])) {
             foreach ($parsed['compatibility'] as $k => $v) {
                 $flat[$k] = $v;
             }
         }
 
-        // Field name mapping & Aliases (Section 10)
-        // RAM type
+        // Aliases RAM
         if (isset($flat['ram_type']) && !isset($flat['memory_type'])) {
             $flat['memory_type'] = $flat['ram_type'];
         }
-        // Max RAM GB
         if (isset($flat['max_ram_gb']) && !isset($flat['max_memory_gb'])) {
             $flat['max_memory_gb'] = $flat['max_ram_gb'];
         }
-        // RAM slots
         if (isset($parsed['attributes']['ram_slots']) && !isset($flat['ram_slots'])) {
             $flat['ram_slots'] = $parsed['attributes']['ram_slots'];
         }
-        // BIOS CPU generations
         if (isset($flat['cpu_generations']) && !isset($flat['bios_cpu_generations'])) {
             $flat['bios_cpu_generations'] = $flat['cpu_generations'];
         }
 
-        // --- PSU & Power Schema Aliases (Section 10) ---
-        // CPU Power Priority: max_turbo_power_w -> max_power_w -> power_draw_w -> tdp_w -> base_power_w
+        // PSU Aliases
         if (!isset($flat['cpu_power_w'])) {
             $flat['cpu_power_w'] = $flat['max_turbo_power_w']
                 ?? $flat['max_power_w']
@@ -66,7 +55,6 @@ class PcCompatibilityService
                 ?? null;
         }
 
-        // VGA Power Priority: board_power_w -> power_draw_w -> tgp_w -> tbp_w
         if (!isset($flat['gpu_power_w'])) {
             $flat['gpu_power_w'] = $flat['board_power_w']
                 ?? $flat['power_draw_w']
@@ -75,36 +63,32 @@ class PcCompatibilityService
                 ?? null;
         }
 
-        // VGA Recommended PSU: minimum_system_psu_w -> recommended_psu_w
         if (!isset($flat['gpu_rec_psu_w'])) {
             $flat['gpu_rec_psu_w'] = $flat['minimum_system_psu_w']
                 ?? $flat['recommended_psu_w']
                 ?? null;
         }
 
-        // RAM Modules: module_count -> modules
         if (!isset($flat['ram_module_count'])) {
             $flat['ram_module_count'] = $flat['module_count']
                 ?? $flat['modules']
                 ?? 1;
         }
 
-        // PSU Wattage: wattage_w -> rated_power_w -> capacity_w
         if (!isset($flat['psu_wattage_w'])) {
             $flat['psu_wattage_w'] = $flat['wattage_w']
                 ?? $flat['rated_power_w']
                 ?? $flat['capacity_w']
+                ?? $flat['psu_wattage']
                 ?? null;
         }
 
-        // Case Form Factors: supported_form_factors -> supported_motherboard_form_factors
         if (!isset($flat['case_form_factors'])) {
             $flat['case_form_factors'] = $flat['supported_form_factors']
                 ?? $flat['supported_motherboard_form_factors']
                 ?? [];
         }
 
-        // Cooler Type: cooling_type -> cooler_type
         if (!isset($flat['cooling_type_name'])) {
             $flat['cooling_type_name'] = $flat['cooling_type']
                 ?? $flat['cooler_type']
@@ -115,9 +99,48 @@ class PcCompatibilityService
     }
 
     /**
-     * Làm tròn công suất nguồn đề xuất lên bậc PSU thực tế gần nhất
-     * Các nấc PSU phổ biến: 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 1000, 1200, 1300, 1500, 1600
+     * Kiểm tra xem CPU có nhân đồ họa tích hợp (iGPU) hay không
      */
+    public static function hasIntegratedGraphics(string $cpuName, array $cpuSpecs): bool {
+        if (isset($cpuSpecs['integrated_graphics'])) {
+            return (bool)$cpuSpecs['integrated_graphics'];
+        }
+        if (isset($cpuSpecs['igpu'])) {
+            return (bool)$cpuSpecs['igpu'];
+        }
+        $nameLower = strtolower($cpuName);
+        if (preg_match('/\b\d{4,5}[k]?f\b/i', $nameLower) || str_contains($nameLower, '-f')) {
+            return false;
+        }
+        if (str_contains($nameLower, '7500f')) {
+            return false;
+        }
+        if (str_contains($nameLower, 'ryzen') && str_contains($nameLower, 'g')) {
+            return true;
+        }
+        if (str_contains($nameLower, 'intel') || str_contains($nameLower, 'core')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Kiểm tra xem CPU có kèm tản nhiệt stock đi kèm hay không
+     */
+    public static function hasStockCooler(string $cpuName, array $cpuSpecs): bool {
+        if (isset($cpuSpecs['has_stock_cooler'])) {
+            return (bool)$cpuSpecs['has_stock_cooler'];
+        }
+        if (isset($cpuSpecs['stock_cooler'])) {
+            return (bool)$cpuSpecs['stock_cooler'];
+        }
+        $nameLower = strtolower($cpuName);
+        if (preg_match('/[kfx]\b/i', $nameLower) || str_contains($nameLower, 'ultra') || str_contains($nameLower, 'threadripper')) {
+            return false;
+        }
+        return true;
+    }
+
     public static function roundUpToPsuStep(float $wattage): float
     {
         $steps = [450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 1000, 1200, 1300, 1500, 1600];
@@ -129,9 +152,6 @@ class PcCompatibilityService
         return ceil($wattage / 50) * 50;
     }
 
-    /**
-     * Ước tính công suất nguồn cần thiết cho cấu hình
-     */
     public static function calculatePowerRequirements(array $build): array
     {
         $cpu = $build['cpu'] ?? null;
@@ -167,7 +187,7 @@ class PcCompatibilityService
             if ($cpuSpecs['cpu_power_w'] !== null) {
                 $cpuPeak = (float)$cpuSpecs['cpu_power_w'];
             } else {
-                $missingPowerFields[] = 'CPU (tdp_w/power_draw_w)';
+                $missingPowerFields[] = 'Bộ vi xử lý (CPU)';
             }
         }
 
@@ -178,20 +198,20 @@ class PcCompatibilityService
             if ($gpuSpecs['gpu_power_w'] !== null) {
                 $gpuLoad = (float)$gpuSpecs['gpu_power_w'];
             } else {
-                $missingPowerFields[] = 'VGA (board_power_w/power_draw_w)';
+                $missingPowerFields[] = 'Card màn hình (VGA)';
             }
         }
 
-        // 3. Motherboard Power (30W tiêu chuẩn, 50W high-end)
+        // 3. Motherboard Power
         $mbPower = 0;
         if ($mainboard) {
             $mbSpecs = self::flattenSpecs($mainboard['specs'] ?? '');
             $mbChipset = strtoupper($mbSpecs['chipset'] ?? '');
-            $isHighEndMb = (strpos($mbChipset, 'Z') === 0 || strpos($mbChipset, 'X') === 0);
+            $isHighEndMb = (str_starts_with($mbChipset, 'Z') || str_starts_with($mbChipset, 'X'));
             $mbPower = $isHighEndMb ? 50 : 30;
         }
 
-        // 4. RAM Power (5W mỗi thanh)
+        // 4. RAM Power
         $ramPower = 0;
         if ($ram) {
             $ramSpecs = self::flattenSpecs($ram['specs'] ?? '');
@@ -199,37 +219,22 @@ class PcCompatibilityService
             $ramPower = $ramModulesCount * 5;
         }
 
-        // 5. SSD & HDD Power (5W mỗi ổ)
-        $storagePower = 0;
-        foreach ($storages as $st) {
-            if ($st) {
-                $storagePower += 5;
-            }
-        }
+        // 5. SSD & HDD Power
+        $storagePower = count($storages) * 5;
 
-        // 6. Cooler Power (10W)
+        // 6. Cooler & Fan Power
         $coolerPower = $cooler ? 10 : 0;
-
-        // 7. Case Fans Power (15W cho bộ quạt)
         $fanPower = ($case || !empty($fans)) ? 15 : 0;
-
-        // 8. USB / RGB dự phòng (15W)
         $usbMisc = ($cpu || $mainboard) ? 15 : 0;
 
-        // Tổng công suất tải đỉnh ước tính (Estimated Peak Wattage)
         $estimatedPeak = $cpuPeak + $gpuLoad + $mbPower + $ramPower + $storagePower + $coolerPower + $fanPower + $usbMisc;
 
-        // 30% Headroom an toàn
         $targetWithHeadroom = $estimatedPeak * 1.30;
-
-        // Mức đề xuất từ hãng GPU (Manufacturer Recommended PSU)
         $gpuRecommended = $gpu ? (float)($gpuSpecs['gpu_rec_psu_w'] ?? 0) : 0;
 
-        // Nguồn đề xuất công suất cuối cùng
         $recommendedRaw = max($targetWithHeadroom, $gpuRecommended);
         $recommendedPsu = ($estimatedPeak > 0 || $gpuRecommended > 0) ? self::roundUpToPsuStep($recommendedRaw) : 0;
 
-        // Nguồn đã chọn
         $psuSpecs = $psu ? self::flattenSpecs($psu['specs'] ?? '') : [];
         $selectedPsuW = $psu ? (float)($psuSpecs['psu_wattage_w'] ?? 0) : 0;
 
@@ -237,7 +242,6 @@ class PcCompatibilityService
         $headroomPercent = ($selectedPsuW > 0 && $estimatedPeak > 0) ? round(($headroomW / $estimatedPeak) * 100, 1) : 0;
         $isSufficient = ($selectedPsuW > 0 && $recommendedPsu > 0) ? ($selectedPsuW >= $recommendedPsu) : null;
 
-        // Xắc định chất lượng dữ liệu
         $dataQuality = 'exact';
         if (!empty($missingPowerFields)) {
             $dataQuality = 'insufficient';
@@ -268,9 +272,6 @@ class PcCompatibilityService
         ];
     }
 
-    /**
-     * Kiểm tra tính tương thích giữa linh kiện ứng cử viên (candidate) và cấu hình hiện tại
-     */
     public static function checkCompatibility(array $build, array $candidate, string $candidateType): array
     {
         $blockers = [];
@@ -290,9 +291,10 @@ class PcCompatibilityService
             $cpuSpecs = $candidateSpecs;
             $cpuSocket = $cpuSpecs['socket'] ?? '';
             $cpuGen = $cpuSpecs['generation'] ?? '';
+            $hasIgpu = self::hasIntegratedGraphics($candidate['name'] ?? '', $cpuSpecs);
 
-            if (isset($cpuSpecs['integrated_graphics']) && $cpuSpecs['integrated_graphics'] === false && !$gpu) {
-                $warnings[] = "CPU này không tích hợp nhân đồ họa iGPU. Bạn nên trang bị thêm Card màn hình rời (VGA).";
+            if (!$hasIgpu && !$gpu) {
+                $warnings[] = "CPU này không tích hợp nhân đồ họa iGPU. Bắt buộc phải chọn thêm Card màn hình rời (VGA) để xuất hình.";
             }
 
             if ($mainboard) {
@@ -310,7 +312,7 @@ class PcCompatibilityService
                 }
 
                 if ($cpuGen !== '' && !empty($mbBiosGens) && in_array($cpuGen, $mbBiosGens)) {
-                    $warnings[] = "CPU thế hệ {$cpuGen} cần cập nhật BIOS cho Bo mạch chủ {$mbSpecs['chipset']} trước khi lắp đặt.";
+                    $warnings[] = "CPU thế hệ {$cpuGen} có thể cần cập nhật BIOS cho Bo mạch chủ {$mbSpecs['chipset']} trước khi lắp đặt.";
                 }
             }
         }
@@ -319,34 +321,12 @@ class PcCompatibilityService
         if ($candidateType === 'mainboard') {
             $mbSpecs = $candidateSpecs;
             $mbSocket = $mbSpecs['socket'] ?? '';
-            $mbRamType = $mbSpecs['memory_type'] ?? '';
-            $mbSupportedGens = $mbSpecs['bios_cpu_generations'] ?? [];
-            $mbBiosGens = $mbSpecs['bios_warning_generations'] ?? [];
 
             if ($cpu) {
                 $cpuSpecs = self::flattenSpecs($cpu['specs'] ?? '');
                 $cpuSocket = $cpuSpecs['socket'] ?? '';
-                $cpuGen = $cpuSpecs['generation'] ?? '';
-
-                if ($mbSocket !== '' && $cpuSocket !== '' && strcasecmp($mbSocket, $cpuSocket) !== 0) {
-                    $blockers[] = "Socket Bo mạch chủ ({$mbSocket}) không khớp với Socket của CPU ({$cpuSocket}).";
-                }
-
-                if ($cpuGen !== '' && !empty($mbSupportedGens) && !in_array($cpuGen, $mbSupportedGens)) {
-                    $blockers[] = "Bo mạch chủ {$mbSpecs['chipset']} không hỗ trợ dòng CPU thế hệ {$cpuGen} đang chọn.";
-                }
-
-                if ($cpuGen !== '' && !empty($mbBiosGens) && in_array($cpuGen, $mbBiosGens)) {
-                    $warnings[] = "Bo mạch chủ này cần được cập nhật bản BIOS mới nhất để nhận diện CPU thế hệ {$cpuGen}.";
-                }
-            }
-
-            if ($ram) {
-                $ramSpecs = self::flattenSpecs($ram['specs'] ?? '');
-                $ramType = $ramSpecs['memory_type'] ?? '';
-
-                if ($mbRamType !== '' && $ramType !== '' && strcasecmp($mbRamType, $ramType) !== 0) {
-                    $blockers[] = "Bo mạch chủ chỉ hỗ trợ RAM chuẩn {$mbRamType}, không tương thích với RAM chuẩn {$ramType} đang chọn.";
+                if ($cpuSocket !== '' && $mbSocket !== '' && strcasecmp($cpuSocket, $mbSocket) !== 0) {
+                    $blockers[] = "Socket Bo mạch chủ ({$mbSocket}) không khớp với Socket của CPU đang chọn ({$cpuSocket}).";
                 }
             }
 
