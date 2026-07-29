@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
-  <rect x="20" y="25" width="15" height="30" fill="#005BAC"/>
-  <rect x="40" y="25" width="15" height="30" fill="#005BAC" opacity="0.6"/>
-  <rect x="60" y="25" width="15" height="30" fill="#005BAC" opacity="0.3"/>
-  <text x="85" y="50" fill="#005BAC" font-family="Arial, sans-serif" font-weight="bold" font-size="28">TEAMGROUP</text>
-</svg>
