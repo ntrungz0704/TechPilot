@@ -6,41 +6,96 @@
 
 require_once dirname(__DIR__) . '/config/app.php';
 require_once dirname(__DIR__) . '/app/core/helpers.php';
+require_once dirname(__DIR__) . '/app/core/ErrorHandler.php';
 require_once dirname(__DIR__) . '/app/core/Controller.php';
 require_once dirname(__DIR__) . '/app/core/Router.php';
 
+ErrorHandler::register();
+
+// Security Headers tối thiểu
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+
 // Lấy phần URL sau index.php, ví dụ: product/detail/asus-rog-zephyrus-g16
 $url = $_GET['url'] ?? '';
+$path = '/' . trim(parse_url($url, PHP_URL_PATH), '/');
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Exclude /api/chat và /chatbot/sync nếu gửi dữ liệu JSON từ client
-    $uri = $_SERVER['REQUEST_URI'] ?? '';
-    if (strpos($uri, '/api/chat') === false && strpos($uri, '/chatbot/sync') === false) {
+    // Exemptions cho external API hoặc webhook (exact path match) - trống vì 100% POST endpoints yêu cầu CSRF
+    $exactExemptions = [];
+
+    if (!in_array($path, $exactExemptions, true)) {
         $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $savedToken = $_SESSION['csrf_token'] ?? '';
         if ($token === '' || !hash_equals($savedToken, $token)) {
             http_response_code(403);
-            die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+            $isJson = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            if ($isJson || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'CSRF Token mismatch. Vui lòng làm mới trang.']);
+            } else {
+                die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+            }
+            exit;
         }
     }
 }
 
 $router = new Router();
 
+// Storefront & Home Routes
+$router->get('/', 'HomeController@index');
+$router->get('/home', 'HomeController@index');
+$router->get('/home/index', 'HomeController@index');
+$router->get('/home/search', 'HomeController@search');
+$router->get('/search', 'HomeController@search');
+$router->get('/home/ajaxSearch', 'HomeController@ajaxSearch');
+
 // Canonical Category & Product Detail Routes
 $router->get('/category/{slug}', 'HomeController@category');
+$router->get('/product', 'HomeController@search');
+$router->get('/products', 'HomeController@search');
 $router->get('/product/detail/{slug}', 'ProductController@detail');
 
 // Auth Routes
+$router->get('/auth/login', 'AuthController@login');
+$router->post('/auth/login', 'AuthController@login');
+$router->get('/auth/register', 'AuthController@register');
+$router->post('/auth/register', 'AuthController@register');
+$router->get('/auth/logout', 'AuthController@logout');
+$router->post('/auth/logout', 'AuthController@logout');
 $router->get('/auth/forgot', 'AuthController@forgot');
 $router->post('/auth/forgot', 'AuthController@forgot');
 $router->get('/auth/reset', 'AuthController@reset');
 $router->post('/auth/reset', 'AuthController@reset');
 
+// Cart Routes
+$router->get('/cart', 'CartController@index');
+$router->post('/cart/add', 'CartController@add');
+$router->post('/cart/update', 'CartController@update');
+$router->post('/cart/remove', 'CartController@remove');
+
+// Checkout Routes
+$router->get('/checkout', 'CheckoutController@index');
+$router->post('/checkout/submit', 'CheckoutController@submit');
+$router->get('/checkout/success', 'CheckoutController@success');
 $router->post('/checkout/apply_coupon', 'CheckoutController@apply_coupon');
 $router->post('/checkout/remove_coupon', 'CheckoutController@remove_coupon');
+
+// Product Review Route
 $router->post('/product/review', 'ProductController@review');
+
+// Profile & Account Routes
+$router->get('/profile', 'ProfileController@index');
+$router->get('/profile/orders', 'ProfileController@orders');
+$router->get('/profile/order_detail/{id}', 'ProfileController@order_detail');
+$router->get('/profile/notifications', 'ProfileController@notifications');
+$router->get('/profile/wishlist', 'ProfileController@wishlist');
+$router->get('/profile/return/{id}', 'ProfileController@return');
+$router->post('/profile/submit_return', 'ProfileController@submit_return');
+$router->post('/profile/change_password', 'ProfileController@change_password');
 $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
 $router->get('/profile/addresses', 'ProfileController@addresses');
 $router->post('/profile/add-address', 'ProfileController@add_address');
@@ -48,17 +103,24 @@ $router->post('/profile/edit-address', 'ProfileController@edit_address');
 $router->post('/profile/delete-address', 'ProfileController@delete_address');
 $router->post('/profile/set-default-address', 'ProfileController@set_default_address');
 $router->post('/profile/repay', 'ProfileController@repay');
+
+// Payment Callbacks
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
+
+// Wishlist Routes
+$router->get('/wishlist', 'WishlistController@index');
+$router->post('/wishlist/add', 'WishlistController@add');
+$router->post('/wishlist/remove', 'WishlistController@remove');
+$router->post('/wishlist/toggle', 'WishlistController@toggle');
 
 // API Inventory Endpoints
 $router->get('/api/inventory/summary', 'InventoryApiController@summary');
 $router->get('/api/inventory/product/{id}', 'InventoryApiController@product');
 $router->get('/api/inventory/category/{id}', 'InventoryApiController@category');
 
-// API Notifications & Wishlist & Chatbot
+// API Notifications & Chatbot
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
-$router->post('/wishlist/toggle', 'WishlistController@toggle');
 $router->get('/chatbot/products', 'ChatbotController@products');
 $router->get('/chatbot/compare', 'ChatbotController@compare');
 $router->get('/chatbot/query', 'ChatbotController@query');
@@ -146,6 +208,7 @@ $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
 
 // Static frontend page: Thu cũ đổi mới máy cũ
 $router->get('/thu-cu-doi-moi', 'HomeController@trade_in');
+
 // PC Builder Routes
 $router->get('/build-pc', 'PcBuilderController@index');
 $router->get('/pc-builder/products', 'PcBuilderController@getProducts');

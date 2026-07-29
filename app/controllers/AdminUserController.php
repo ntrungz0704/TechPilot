@@ -65,6 +65,7 @@ class AdminUserController extends Controller
 
     public function toggleStatus(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/users');
@@ -105,6 +106,7 @@ class AdminUserController extends Controller
 
     public function changeRole(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/users');

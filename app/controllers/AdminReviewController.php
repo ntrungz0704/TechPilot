@@ -76,6 +76,7 @@ class AdminReviewController extends Controller
 
     public function approve(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/reviews');
@@ -98,6 +99,7 @@ class AdminReviewController extends Controller
 
     public function hide(string $id = ''): void
     {
+        $this->requireAdmin();
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/reviews');

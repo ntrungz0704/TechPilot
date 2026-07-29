@@ -6,23 +6,6 @@
  * Việc tạo schema/import dữ liệu phải chạy thủ công, không thực hiện trong request web.
  */
 
-// Polyfills for missing mbstring extension
-if (!function_exists('mb_strtolower')) {
-    function mb_strtolower(string $string, ?string $encoding = null): string {
-        return strtolower($string);
-    }
-}
-if (!function_exists('mb_strlen')) {
-    function mb_strlen(string $string, ?string $encoding = null): int {
-        return strlen($string);
-    }
-}
-if (!function_exists('mb_substr')) {
-    function mb_substr(string $string, int $start, ?int $length = null, ?string $encoding = null): string {
-        return $length !== null ? substr($string, $start, $length) : substr($string, $start);
-    }
-}
-
 if (!class_exists('Database')) {
     class Database
     {
@@ -32,7 +15,7 @@ if (!class_exists('Database')) {
         private const HOST    = '127.0.0.1';
         private const DBNAME  = 'techpilot';
         private const USER    = 'root';
-        private const PASS = '';
+        private const PASS    = '';
         private const CHARSET = 'utf8mb4';
 
         public static function getConnection(): ?PDO
@@ -73,23 +56,8 @@ if (!class_exists('Database')) {
                 try {
                     self::$instance = new PDO($dsn, $user, $pass, $options);
                 } catch (PDOException $e) {
-                    // Nếu kết nối tới database 'techpilot' thất bại (chưa tạo CSDL)
-                    try {
-                        $serverDsn = 'mysql:host=' . $host . ';charset=' . $charset;
-                        if (!empty($port)) {
-                            $serverDsn .= ';port=' . $port;
-                        }
-                        $serverPdo = new PDO($serverDsn, $user, $pass, [
-                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        ]);
-
-                        $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `" . str_replace("`", "``", $dbname) . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-
-                        // Kết nối lại vào database techpilot sau khi tạo CSDL
-                        self::$instance = new PDO($dsn, $user, $pass, $options);
-                    } catch (PDOException $ex) {
-                        self::$instance = null;
-                    }
+                    error_log('Database connection error: ' . $e->getMessage());
+                    self::$instance = null;
                 }
             }
 
