@@ -499,15 +499,22 @@
                         <span id="psu-estimated-w" style="font-weight: 600; color: var(--text-primary);">0W</span>
                     </div>
                     <div class="pc-builder-summary-row" style="font-size:13px; margin-top:4px;">
-                        <span>Yêu cầu tối thiểu từ GPU:</span>
+                        <span>Tối thiểu do VGA đề xuất:</span>
                         <span id="psu-gpu-minimum-w" style="font-weight: 600; color: var(--text-secondary);">0W</span>
+                    </div>
+                    <div class="pc-builder-summary-row" style="font-size:12px; margin-top:4px; font-style:italic; color:#64748B;" id="psu-vga-status-row">
+                        <span id="psu-vga-status-label">(Chưa chọn VGA)</span>
                     </div>
                     <div class="pc-builder-summary-row" style="margin-top:8px; border-top: 1px dashed #E2E8F0; padding-top:8px;">
                         <span style="font-weight:600;">Nguồn khuyến nghị:</span>
                         <span id="psu-recommended-w" style="font-weight: 700; color: #EF4444; font-size:16px;">300W</span>
                     </div>
+                    <div class="pc-builder-summary-row" style="font-size:13px; margin-top:6px;" id="psu-status-badge-row">
+                        <span>Trạng thái nguồn:</span>
+                        <span id="psu-status-badge" style="font-weight:700; padding:2px 8px; border-radius:4px; font-size:12px; background:#E2E8F0; color:#475569;">Đang kiểm tra</span>
+                    </div>
                     <div style="font-size:11px; color:#94A3B8; font-style:italic; line-height:1.4; margin-top:8px; text-align:right;">
-                        * Đã tính 30% dự phòng an toàn.
+                        * Đã bao gồm 30% dự phòng công suất.
                     </div>
                 </div>
             </div>
@@ -772,6 +779,14 @@
 
     /** Gọi API phân tích tương thích chéo toàn cấu hình & tính toán công suất nguồn */
     function analyzeBuild() {
+    let psuAnalysisAbortController = null;
+
+    async function updatePsuAnalysis() {
+        if (psuAnalysisAbortController) {
+            psuAnalysisAbortController.abort();
+        }
+        psuAnalysisAbortController = new AbortController();
+
         const cpuId = pcConfig.cpu ? pcConfig.cpu.id : 0;
         const mainboardId = pcConfig.mainboard ? pcConfig.mainboard.id : 0;
         const ramId = pcConfig.ram ? pcConfig.ram.id : 0;
@@ -793,40 +808,85 @@
         };
 
         const url = '<?= url("pc-builder/analysis") ?>';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    const power = data.power;
-                    
-                    const psuPlaceholder = document.getElementById('psu-analysis-placeholder');
-                    const psuContent = document.getElementById('psu-analysis-content');
-                    
-                    if (cpuId === 0 && gpuId === 0) {
-                        psuPlaceholder.style.display = 'block';
-                        psuContent.style.display = 'none';
-                    } else {
-                        psuPlaceholder.style.display = 'none';
-                        psuContent.style.display = 'block';
-                        
-                        document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
-                        document.getElementById('psu-gpu-minimum-w').innerText = (power.gpu_minimum_psu_w > 0 ? power.gpu_minimum_psu_w : 0) + 'W';
-                        document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(payload),
+                signal: psuAnalysisAbortController.signal
+            });
+
+            const rawText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                throw new Error('Response không phải định dạng JSON');
+            }
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Lỗi kết nối API phân tích nguồn');
+            }
+
+            const power = data.power;
+            const psuPlaceholder = document.getElementById('psu-analysis-placeholder');
+            const psuContent = document.getElementById('psu-analysis-content');
+            
+            if (cpuId === 0 && gpuId === 0) {
+                psuPlaceholder.style.display = 'block';
+                psuContent.style.display = 'none';
+            } else {
+                psuPlaceholder.style.display = 'none';
+                psuContent.style.display = 'block';
+                
+                document.getElementById('psu-estimated-w').innerText = Math.round(power.estimated_peak_w) + 'W';
+                document.getElementById('psu-gpu-minimum-w').innerText = (power.gpu_minimum_psu_w > 0 ? power.gpu_minimum_psu_w : 0) + 'W';
+                document.getElementById('psu-recommended-w').innerText = power.recommended_psu_w + 'W';
+
+                const vgaStatusLabel = document.getElementById('psu-vga-status-label');
+                if (vgaStatusLabel) {
+                    vgaStatusLabel.innerText = (gpuId > 0) ? 'Đã bao gồm Card màn hình rời' : '(Chưa bao gồm Card màn hình rời)';
+                }
+
+                // Badge trạng thái PSU
+                const badge = document.getElementById('psu-status-badge');
+                if (badge) {
+                    if (psuId === 0) {
+                        badge.style.background = '#E2E8F0';
+                        badge.style.color = '#475569';
+                        badge.innerText = 'Chưa chọn Nguồn';
+                    } else if (power.is_selected_psu_sufficient === true) {
+                        if (power.headroom_percent < 15) {
+                            badge.style.background = '#FEF3C7';
+                            badge.style.color = '#D97706';
+                            badge.innerText = 'Vừa đủ (Dự phòng <15%)';
+                        } else {
+                            badge.style.background = '#D1FAE5';
+                            badge.style.color = '#059669';
+                            badge.innerText = 'Đủ công suất';
+                        }
+                    } else if (power.is_selected_psu_sufficient === false) {
+                        badge.style.background = '#FEE2E2';
+                        badge.style.color = '#DC2626';
+                        badge.innerText = 'Không đủ công suất';
                     }
+                }
+            }
 
-                    // Hiển thị danh sách cảnh báo & lỗi
-                    const alertsContainer = document.getElementById('build-alerts-container');
-                    const alertsList = document.getElementById('build-alerts-list');
-                    const btnAddToCart = document.getElementById('btnAddToCartSubmit');
-                    
-                    alertsList.innerHTML = '';
-                    let hasBlockers = false;
-                    let missingCores = [];
+            // Hiển thị danh sách cảnh báo & lỗi
+            const alertsContainer = document.getElementById('build-alerts-container');
+            const alertsList = document.getElementById('build-alerts-list');
+            const btnAddToCart = document.getElementById('btnAddToCartSubmit');
+            
+            alertsList.innerHTML = '';
+            let hasBlockers = false;
+            let missingCores = [];
 
                     // Yêu cầu linh kiện cốt lõi để mua hàng
                     if (cpuId === 0) missingCores.push('CPU');
@@ -882,12 +942,11 @@
                         btnAddToCart.disabled = false;
                         btnAddToCart.style.opacity = '1';
                         btnAddToCart.style.cursor = 'pointer';
-                    }
-                }
-            })
-            .catch(err => {
+        } catch (err) {
+            if (err.name !== 'AbortError') {
                 console.error("Analysis error: ", err);
-            });
+            }
+        }
     }
 
     function resetConfig() {
