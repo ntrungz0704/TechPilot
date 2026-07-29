@@ -187,12 +187,13 @@
                     
                     <?php
                     // Tổng hợp specs từ tất cả các sản phẩm để làm hàng so sánh
+                    $ignoredKeys = ['schema_version', 'category_slug', 'attributes', 'raw_specs', 'vfm_score'];
                     $allSpecsKeys = [];
                     foreach ($products as $p) {
                         $specs = json_decode($p['specs'] ?? '{}', true);
                         if (is_array($specs)) {
                             foreach (array_keys($specs) as $key) {
-                                if (!in_array($key, $allSpecsKeys)) {
+                                if (!in_array($key, $ignoredKeys, true) && !in_array($key, $allSpecsKeys, true)) {
                                     $allSpecsKeys[] = $key;
                                 }
                             }
@@ -210,8 +211,11 @@
                             <?php foreach ($products as $p): 
                                 $specs = json_decode($p['specs'] ?? '{}', true);
                                 $val = $specs[$key] ?? '-';
+                                if (is_array($val)) {
+                                    $val = implode(', ', array_filter(array_map('strval', $val)));
+                                }
                             ?>
-                                <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 500;"><?= e($val) ?></td>
+                                <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 500;"><?= e((string)$val) ?></td>
                             <?php endforeach; ?>
                             <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
                                 <td style="border-left: 1px solid var(--border);"></td>
