@@ -31,6 +31,10 @@ class Controller
      */
     protected function render(string $view, array $data = [], bool $useLayout = true): void
     {
+        if (!defined('APP_NAME') && file_exists(ROOT_PATH . '/config/app.php')) {
+            require_once ROOT_PATH . '/config/app.php';
+        }
+
         extract($data);
         $viewFile = ROOT_PATH . '/app/views/' . $view . '.php';
 
@@ -60,6 +64,14 @@ class Controller
         } else {
             require $viewFile;
         }
+    }
+
+    /**
+     * Alias cho render() để đảm bảo tương thích ngược
+     */
+    protected function view(string $view, array $data = [], bool $useLayout = true): void
+    {
+        $this->render($view, $data, $useLayout);
     }
 
     protected function model(string $modelName)

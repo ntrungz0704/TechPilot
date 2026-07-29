@@ -68,7 +68,7 @@ class PcBuilderController extends Controller
             'pageTitle' => 'Xây dựng cấu hình PC theo yêu cầu - TechPilot',
             'parts' => $this->parts
         ];
-        $this->view('pc-builder/index', $data);
+        $this->render('pc-builder/index', $data);
     }
 
     /** API: Trả về danh sách PC lắp sẵn (Pre-built PCs) */

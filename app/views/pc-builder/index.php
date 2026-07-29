@@ -497,10 +497,10 @@
                         <span class="pc-builder-placeholder">Chưa chọn linh kiện</span>
                     </div>
                     <div class="pc-builder-actions" id="actions-<?= $key ?>">
-                        <button type="button" class="btn-select-part" onclick="openSelectModal('<?= $key ?>', '<?= escapeQuote($info['name']) ?>')">
+                        <button type="button" class="btn-select-part" onclick="openSelectModal('<?= $key ?>', '<?= addslashes($info['name']) ?>')">
                             <i class="fa-solid fa-plus"></i> Chọn mua
                         </button>
-                        <button type="button" class="btn-owned-part" onclick="toggleOwnedPart('<?= $key ?>', '<?= escapeQuote($info['name']) ?>')" title="Khai báo bạn đã sở hữu linh kiện này">
+                        <button type="button" class="btn-owned-part" onclick="toggleOwnedPart('<?= $key ?>', '<?= addslashes($info['name']) ?>')" title="Khai báo bạn đã sở hữu linh kiện này">
                             <i class="fa-solid fa-check"></i> Đã có
                         </button>
                     </div>
