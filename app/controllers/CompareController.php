@@ -155,14 +155,38 @@ class CompareController extends Controller
         }
 
         try {
-            $sql = "SELECT p.id, p.name, p.price, p.image, p.category_id, c.slug as category_slug 
-                    FROM products p 
+            $sql = "SELECT p.id, p.name, p.price, p.image, p.category_id, c.name as category_name, c.slug as category_slug, b.name as brand_name";
+            if ($query !== '') {
+                $sql .= ", CASE 
+                    WHEN c.slug = ? OR LOWER(c.name) = LOWER(?) THEN 1
+                    WHEN p.name LIKE ? THEN 2
+                    WHEN c.name LIKE ? OR c.slug LIKE ? THEN 3
+                    WHEN b.name LIKE ? THEN 4
+                    ELSE 5
+                END as relevance";
+            } else {
+                $sql .= ", 1 as relevance";
+            }
+
+            $sql .= " FROM products p 
                     LEFT JOIN categories c ON p.category_id = c.id 
+                    LEFT JOIN brands b ON p.brand_id = b.id 
                     WHERE p.status = 'active'";
+
             $params = [];
 
             if ($query !== '') {
-                $sql .= " AND p.name LIKE ?";
+                $params[] = strtolower($query);
+                $params[] = strtolower($query);
+                $params[] = $query . '%';
+                $params[] = '%' . $query . '%';
+                $params[] = '%' . $query . '%';
+                $params[] = '%' . $query . '%';
+
+                $sql .= " AND (p.name LIKE ? OR c.name LIKE ? OR c.slug LIKE ? OR b.name LIKE ?)";
+                $params[] = '%' . $query . '%';
+                $params[] = '%' . $query . '%';
+                $params[] = '%' . $query . '%';
                 $params[] = '%' . $query . '%';
             }
 
@@ -179,7 +203,7 @@ class CompareController extends Controller
                 }
             }
 
-            $sql .= " ORDER BY p.rating DESC, p.id DESC LIMIT 8";
+            $sql .= " ORDER BY relevance ASC, p.rating DESC, p.id DESC LIMIT 8";
 
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
