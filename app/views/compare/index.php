@@ -95,10 +95,15 @@
                             </th>
                         <?php endforeach; ?>
                         <?php // Điền cột trống nếu so sánh dưới 4 sản phẩm
-                        for ($i = 0; $i < (4 - count($products)); $i++): ?>
-                            <th style="padding: 20px; width: 20%; text-align: center; color: #D1D5DB; border-left: 1px solid var(--border);">
-                                <i class="fa-solid fa-plus-circle" style="font-size: 32px; margin-bottom: 10px;"></i>
-                                <span style="display: block; font-size: 13px;">Thêm sản phẩm</span>
+                        for ($i = 0; $i < (4 - count($products)); $i++): 
+                            $slotNum = count($products) + $i + 1;
+                        ?>
+                            <th style="padding: 16px; width: 20%; text-align: center; border-left: 1px solid var(--border); vertical-align: middle;">
+                                <button type="button" class="btn-add-compare-slot" onclick="focusCompareSearch()" style="width: 100%; min-height: 120px; border: 2px dashed #10B981; background: rgba(16, 185, 129, 0.06); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s ease; color: #047857;" title="Click để chọn sản phẩm thêm vào vị trí <?= $slotNum ?>">
+                                    <i class="fa-solid fa-circle-plus" style="font-size: 34px; color: #10B981;"></i>
+                                    <span style="font-size: 13px; font-weight: 700;">+ Thêm sản phẩm <?= $slotNum ?></span>
+                                    <span style="font-size: 11px; color: #64748B; font-weight: 500;">(Bấm để chọn)</span>
+                                </button>
                             </th>
                         <?php endfor; ?>
                     </tr>
@@ -345,6 +350,24 @@
         });
     }
 
+    // Focus vào ô tìm kiếm khi click nút "+ Thêm sản phẩm" ở các cột trống
+    function focusCompareSearch() {
+        const input = document.getElementById('compareSearchInput');
+        if (!input) return;
+
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+            input.focus();
+            input.style.border = '2px solid #10B981';
+            input.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.25)';
+            setTimeout(() => {
+                input.style.border = '';
+                input.style.boxShadow = '';
+            }, 2500);
+            onCompareSearchInput('');
+        }, 300);
+    }
+
     // Tìm kiếm sản phẩm để thêm trực tiếp vào bảng so sánh
     let compareSearchTimer = null;
     function onCompareSearchInput(query) {
@@ -352,19 +375,15 @@
         const resultsBox = document.getElementById('compareSearchResults');
         if (!resultsBox) return;
 
-        query = query.trim();
-        if (query.length < 2) {
-            resultsBox.style.display = 'none';
-            resultsBox.innerHTML = '';
-            return;
-        }
+        query = (query || '').trim();
 
         compareSearchTimer = setTimeout(() => {
             fetch('<?= url("compare?search_ajax=") ?>' + encodeURIComponent(query))
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data && res.data.length > 0) {
-                        resultsBox.innerHTML = res.data.map(p => `
+                        const headerText = query === '' ? '<div style="padding: 8px 16px; font-size: 11px; font-weight: 700; color: #64748B; background: #F8FAFC; text-transform: uppercase; border-bottom: 1px solid var(--border);">💡 Sản phẩm cùng danh mục gợi ý:</div>' : '';
+                        resultsBox.innerHTML = headerText + res.data.map(p => `
                             <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                                     <img src="${p.image_url}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: contain;" onerror="this.outerHTML='<div style=\'width:40px;height:40px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#64748B;font-size:16px;\'><i class=\'fa-solid fa-box-open\'></i></div>'">
@@ -387,7 +406,7 @@
                 .catch(err => {
                     resultsBox.style.display = 'none';
                 });
-        }, 250);
+        }, 200);
     }
 
     // Đóng dropdown tìm kiếm khi click ra ngoài

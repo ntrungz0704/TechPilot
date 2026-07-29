@@ -144,10 +144,6 @@ class CompareController extends Controller
         }
 
         $query = trim($_GET['search_ajax'] ?? '');
-        if (mb_strlen($query) < 2) {
-            echo json_encode(['success' => true, 'data' => []]);
-            exit;
-        }
 
         $categoryIdFilter = 0;
         if (!empty($_SESSION['compare'])) {
@@ -162,13 +158,28 @@ class CompareController extends Controller
             $sql = "SELECT p.id, p.name, p.price, p.image, p.category_id, c.slug as category_slug 
                     FROM products p 
                     LEFT JOIN categories c ON p.category_id = c.id 
-                    WHERE p.status = 'active' AND p.name LIKE ?";
-            $params = ['%' . $query . '%'];
+                    WHERE p.status = 'active'";
+            $params = [];
+
+            if ($query !== '') {
+                $sql .= " AND p.name LIKE ?";
+                $params[] = '%' . $query . '%';
+            }
+
             if ($categoryIdFilter > 0) {
                 $sql .= " AND p.category_id = ?";
                 $params[] = $categoryIdFilter;
             }
-            $sql .= " ORDER BY p.name ASC LIMIT 8";
+
+            if (!empty($_SESSION['compare'])) {
+                $placeholders = implode(',', array_fill(0, count($_SESSION['compare']), '?'));
+                $sql .= " AND p.id NOT IN ($placeholders)";
+                foreach ($_SESSION['compare'] as $cId) {
+                    $params[] = (int)$cId;
+                }
+            }
+
+            $sql .= " ORDER BY p.rating DESC, p.id DESC LIMIT 8";
 
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
