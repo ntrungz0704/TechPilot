@@ -742,15 +742,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Nhân đôi danh sách thương hiệu để hiệu ứng chạy marquee cuộn mượt không bị đứt đoạn
             $duplicatedBrands = array_merge($brands, $brands);
             foreach ($duplicatedBrands as $brand): 
-                $slug = $brand['slug'] ?? '';
                 $logoPath = $brand['logo'] ?? null;
-                $logoUrl = brandLogoUrl($logoPath, $slug);
+                $logoUrl = brandLogoUrl($logoPath);
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
                     <?php if ($logoUrl): ?>
-                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy">
+                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy" decoding="async">
                     <?php else: ?>
-                        <span style="font-size:16px;font-weight:800;color:#374151;letter-spacing:0.5px;"><?= e($brand['name']) ?></span>
+                        <span class="brand-logo-text-fallback"><?= e($brand['name']) ?></span>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>

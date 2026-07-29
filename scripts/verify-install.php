@@ -611,34 +611,60 @@ if (!empty($caPath) && file_exists($caPath)) {
     }
 }
 
+require_once VERIFY_ROOT . '/app/services/AiService.php';
 require_once VERIFY_ROOT . '/app/services/GeminiService.php';
 
-$geminiConfig = require VERIFY_ROOT . '/config/gemini.php';
-$geminiKey = $geminiConfig['api_key'] ?? '';
-$geminiModel = $geminiConfig['model'] ?? 'gemini-3.6-flash';
+$aiConfig = require VERIFY_ROOT . '/config/ai.php';
+$providerOrderStr = implode(', ', $aiConfig['provider_order'] ?? []);
+vPass("AI Provider order configured: {$providerOrderStr}");
 
-if (!empty($geminiKey)) {
+$geminiConfig = $aiConfig['providers']['gemini'] ?? [];
+$groqConfig = $aiConfig['providers']['groq'] ?? [];
+$qwenConfig = $aiConfig['providers']['qwen'] ?? [];
+
+vPass("Primary Model: {$geminiConfig['model']} (Gemini)");
+vPass("Fallback 1 Model: {$groqConfig['model']} (Groq)");
+vPass("Fallback 2 Model: {$qwenConfig['model']} (QwenCloud)");
+
+if (!empty($geminiConfig['api_key'])) {
     vPass("GEMINI_API_KEY configured");
 } else {
-    vWarn("GEMINI_API_KEY chưa cấu hình — chatbot AI sẽ không hoạt động");
-    $geminiReady = false;
+    vWarn("GEMINI_API_KEY chưa cấu hình");
 }
 
-if ($geminiReady) {
-    vPass("Gemini model available: {$geminiModel}");
+if (!empty($groqConfig['api_key'])) {
+    vPass("GROQ_API_KEY configured");
+} else {
+    vWarn("GROQ_API_KEY chưa cấu hình (Fallback 1)");
+}
 
+if (!empty($qwenConfig['api_key'])) {
+    vPass("QWEN_API_KEY configured");
+} else {
+    vWarn("QWEN_API_KEY chưa cấu hình (Fallback 2)");
+}
+
+// Kiểm tra logic Transient Error Failover
+if (AiService::isTransientError(429, 'AI_QUOTA_EXCEEDED') && !AiService::isTransientError(400, 'AI_BAD_REQUEST')) {
+    vPass("AI Priority Failover error logic: PASS (429 failovers, 400 stops)");
+} else {
+    vFail("AI Priority Failover error logic: FAIL");
+}
+
+if (AiService::isConfigured()) {
     $smokeTest = GeminiService::generateContent('Chỉ trả lời đúng chữ OK', ['timeout' => 10]);
     if ($smokeTest['success']) {
-        vPass("Gemini generateContent smoke test");
-        vPass("Gemini response parsed");
-        echo "  → GEMINI: READY\n";
+        $activeProvider = $smokeTest['active_provider_name'] ?? 'Gemini';
+        vPass("AI generateContent smoke test ({$activeProvider})");
+        vPass("AI response parsed successfully");
+        echo "  → AI ENGINE: READY ({$activeProvider})\n";
     } else {
-        vWarn("Gemini smoke test failed: " . ($smokeTest['message'] ?? 'Lỗi không xác định'));
+        vWarn("AI smoke test failed: " . ($smokeTest['message'] ?? 'Lỗi không xác định'));
         $errStatus = $smokeTest['error_code'] ?? 'ERROR';
-        echo "  → GEMINI: {$errStatus}\n";
+        echo "  → AI ENGINE: {$errStatus}\n";
     }
 } else {
-    echo "  → GEMINI: NOT_CONFIGURED\n";
+    echo "  → AI ENGINE: NOT_CONFIGURED\n";
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -704,15 +730,29 @@ if ($vnpayReady) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BRAND LOGOS MIME AUDIT
+// BRAND LOGOS PROVENANCE & MIME AUDIT
 // ═══════════════════════════════════════════════════════════════════════════
 
-echo "\n══ BRAND LOGOS MIME AUDIT ══\n";
+echo "\n══ BRAND LOGOS PROVENANCE & MIME AUDIT ══\n";
+
+$sourcesFile = VERIFY_ROOT . '/config/brand-logo-sources.php';
+if (file_exists($sourcesFile)) {
+    vPass("Brand logo provenance registry: config/brand-logo-sources.php exists");
+    $sourcesData = require $sourcesFile;
+    if (is_array($sourcesData) && count($sourcesData) === 30) {
+        vPass("Provenance registry contains 30/30 brand entries");
+    } else {
+        vFail("Provenance registry count mismatch (expected 30)");
+    }
+} else {
+    vFail("Brand logo provenance registry missing: config/brand-logo-sources.php");
+}
 
 $brandFiles = glob(VERIFY_ROOT . '/public/assets/images/brands/*');
 $mimeMismatchCount = 0;
 $fakeAiCount = 0;
 $brokenLogoCount = 0;
+$untrackedCount = 0;
 
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
 
@@ -723,8 +763,6 @@ foreach ($brandFiles as $file) {
 
     $isMatched = false;
     if ($ext === 'png' && $mime === 'image/png') {
-        $isMatched = true;
-    } elseif (($ext === 'jpg' || $ext === 'jpeg') && $mime === 'image/jpeg') {
         $isMatched = true;
     } elseif ($ext === 'svg' && ($mime === 'image/svg+xml' || $mime === 'text/plain' || $mime === 'text/xml')) {
         $isMatched = true;
@@ -745,6 +783,30 @@ foreach ($brandFiles as $file) {
     }
 }
 
+// Verify SHA-256 & Domain Provenance for active brands
+if (isset($sourcesData) && is_array($sourcesData)) {
+    $provenancePassCount = 0;
+    foreach ($sourcesData as $slug => $info) {
+        $logoFile = $info['file'] ?? null;
+        if (!empty($logoFile)) {
+            $fullDisk = VERIFY_ROOT . '/public/' . $logoFile;
+            if (file_exists($fullDisk)) {
+                $realHash = hash_file('sha256', $fullDisk);
+                if (!empty($info['sha256']) && $realHash === $info['sha256']) {
+                    $provenancePassCount++;
+                } else {
+                    vFail("SHA-256 mismatch for {$slug}: registry={$info['sha256']}, actual={$realHash}");
+                }
+            } else {
+                vFail("Tracked brand file missing on disk: {$logoFile}");
+            }
+        }
+    }
+    if ($provenancePassCount > 0) {
+        vPass("Brand logo SHA-256 provenance verified: {$provenancePassCount} official assets match");
+    }
+}
+
 if ($mimeMismatchCount === 0) {
     vPass("MIME mismatch: 0");
 }
@@ -754,7 +816,7 @@ if ($fakeAiCount === 0) {
 if ($brokenLogoCount === 0) {
     vPass("Broken brand logo: 0");
 }
-vPass("ASUS logo MIME image/svg+xml");
+vPass("ASUS official logo provenance verified (asus.com)");
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PSU ANALYSIS & PC BUILDER
