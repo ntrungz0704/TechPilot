@@ -1,17 +1,32 @@
 <?php
-$pageTitle = '403 Forbidden - Truy cập bị từ chối';
-if (file_exists(ROOT_PATH . '/app/views/layouts/header.php')) {
-    require_once ROOT_PATH . '/app/views/layouts/header.php';
+$homeUrl = defined('BASE_URL') && BASE_URL !== '' ? BASE_URL : '/';
+if (function_exists('url')) {
+    $homeUrl = url('');
 }
 ?>
-<div class="container" style="padding: 80px 20px; text-align: center;">
-    <h1 style="font-size: 72px; color: #dc2626; margin-bottom: 10px;">403</h1>
-    <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 15px;">Truy cập bị từ chối</h2>
-    <p style="color: #4b5563; max-width: 500px; margin: 0 auto 30px;">Bạn không có quyền truy cập vào trang này hoặc tài khoản không đủ đặc quyền.</p>
-    <a href="<?= BASE_URL ?>" class="btn btn-primary" style="padding: 10px 24px; text-decoration: none; border-radius: 6px; background: #2563eb; color: #fff; display: inline-block;">Quay về trang chủ</a>
-</div>
-<?php
-if (file_exists(ROOT_PATH . '/app/views/layouts/footer.php')) {
-    require_once ROOT_PATH . '/app/views/layouts/footer.php';
-}
-?>
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>403 Forbidden - TechPilot</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        .error-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 48px 32px; max-width: 560px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); }
+        .error-code { font-size: 72px; font-weight: 800; color: #dc2626; line-height: 1; margin-bottom: 16px; }
+        .error-title { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+        .error-desc { font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 28px; }
+        .btn-home { display: inline-block; background: #0b63e5; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 700; font-size: 15px; border-radius: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(11,99,229,0.25); }
+        .btn-home:hover { background: #024ebb; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="error-code">403</div>
+        <h1 class="error-title">Truy cập bị từ chối</h1>
+        <p class="error-desc">Bạn không có quyền truy cập vào trang này hoặc tài khoản không đủ đặc quyền. Vui lòng bấm nút bên dưới để quay về trang chủ.</p>
+        <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn-home">Quay về trang chủ</a>
+    </div>
+</body>
+</html>
