@@ -1,6 +1,7 @@
 <?php
 require_once ROOT_PATH . '/app/core/helpers.php';
 require_once ROOT_PATH . '/app/models/Compare.php';
+require_once ROOT_PATH . '/app/services/ProductComparisonService.php';
 
 class CompareController extends Controller
 {
@@ -34,10 +35,24 @@ class CompareController extends Controller
             $products = $this->model->getProductsByIds($ids);
         }
 
+        $compareConfig = require ROOT_PATH . '/config/product-comparison.php';
+
+        // Xác định danh mục active
+        $activeCategorySlug = trim($_GET['cat'] ?? '');
+        if (empty($activeCategorySlug) && !empty($products[0])) {
+            $activeCategorySlug = $products[0]['category_slug'] ?? 'laptop';
+        }
+        if (empty($activeCategorySlug)) {
+            $activeCategorySlug = 'laptop';
+        }
+
         $this->render('compare/index', [
-            'pageTitle' => 'So sánh sản phẩm (Tối đa 4 sản phẩm)',
-            'products' => $products,
-            'flashes' => pullFlashes()
+            'pageTitle'          => 'So sánh sản phẩm theo Persona (TechPilot Compare 4.0)',
+            'products'           => $products,
+            'compareConfig'      => $compareConfig,
+            'activeCategorySlug' => $activeCategorySlug,
+            'csrf_token'         => $_SESSION['csrf_token'] ?? '',
+            'flashes'            => pullFlashes()
         ], false);
     }
 
@@ -67,7 +82,7 @@ class CompareController extends Controller
     }
 
     /**
-     * API: Phân tích so sánh 2-4 sản phẩm sử dụng Gemini AI
+     * API: Phân tích so sánh 2-4 sản phẩm theo Persona & Tiêu chí ưu tiên
      */
     public function aiCompare(): void
     {
@@ -78,60 +93,68 @@ class CompareController extends Controller
             exit;
         }
 
-        require_once ROOT_PATH . '/app/services/GeminiService.php';
-        require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
+        // Xác thực CSRF Token
+        $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['_csrf'] ?? ($_POST['csrf_token'] ?? ''));
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+
+        if (!empty($sessionToken) && (empty($csrfToken) || !hash_equals($sessionToken, $csrfToken))) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Xác thực CSRF thất bại. Vui lòng làm mới trang.']);
+            exit;
+        }
 
         $ids = $_SESSION['compare'];
         $products = $this->model->getProductsByIds($ids);
 
+        $options = [
+            'category'          => trim($_POST['category'] ?? ($products[0]['category_slug'] ?? 'laptop')),
+            'persona'           => trim($_POST['persona'] ?? 'developer'),
+            'priorities'        => (array)($_POST['priorities'] ?? ['performance']),
+            'budget_max'        => !empty($_POST['budget_max']) ? (float)$_POST['budget_max'] : null,
+            'min_ram'           => !empty($_POST['min_ram']) ? (int)$_POST['min_ram'] : 0,
+            'min_storage'       => !empty($_POST['min_storage']) ? (int)$_POST['min_storage'] : 0,
+            'min_refresh_rate'  => !empty($_POST['min_refresh_rate']) ? (int)$_POST['min_refresh_rate'] : 0
+        ];
+
         try {
-            $result = ProductIntelligenceService::analyzeComparison($products);
-            echo json_encode([
-                'success' => true,
-                'analysis' => $result['analysis'],
-                'recommended_id' => $result['recommended_id']
-            ]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            $result = ProductComparisonService::analyzeComparison($products, $options);
+            echo json_encode($result);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi phân tích so sánh: ' . $e->getMessage()]);
         }
         exit;
     }
 
     private function handleAddProductId(int $productId): void
     {
-        if (!isset($_SESSION['compare'])) {
-            $_SESSION['compare'] = [];
-        }
-
         $productModel = $this->model('Product');
-        $newProduct = $productModel->getById($productId);
-        
-        if (!$newProduct) {
+        $product = $productModel->getById($productId);
+        if (!$product) {
             flash('error', 'Sản phẩm không tồn tại.');
             return;
         }
 
-        if (in_array($productId, $_SESSION['compare'], true)) {
-            flash('info', 'Sản phẩm đã có trong danh sách so sánh.');
-        } elseif (count($_SESSION['compare']) >= 4) {
-            flash('error', 'Chỉ có thể so sánh tối đa 4 sản phẩm cùng lúc.');
-        } else {
-            // Kiểm tra danh mục
-            $isCategoryMatch = true;
-            if (!empty($_SESSION['compare'])) {
-                $firstProduct = $productModel->getById($_SESSION['compare'][0]);
-                if ($firstProduct && (int)$firstProduct['category_id'] !== (int)$newProduct['category_id']) {
-                    $isCategoryMatch = false;
-                }
-            }
-
-            if (!$isCategoryMatch) {
-                flash('error', 'Chỉ có thể so sánh các sản phẩm cùng danh mục.');
-            } else {
-                $_SESSION['compare'][] = $productId;
-                flash('success', 'Đã thêm sản phẩm vào danh sách so sánh (Tối đa 4 sản phẩm).');
+        if (!empty($_SESSION['compare'])) {
+            $firstProduct = $productModel->getById($_SESSION['compare'][0]);
+            if ($firstProduct && $firstProduct['category_id'] != $product['category_id']) {
+                flash('error', 'Chỉ có thể so sánh các sản phẩm trong CÙNG DẠNG DANH MỤC.');
+                return;
             }
         }
+
+        if (in_array($productId, $_SESSION['compare'])) {
+            flash('info', 'Sản phẩm đã có trong danh sách so sánh.');
+            return;
+        }
+
+        if (count($_SESSION['compare']) >= 4) {
+            flash('warning', 'Chỉ được so sánh tối đa 4 sản phẩm cùng lúc.');
+            return;
+        }
+
+        $_SESSION['compare'][] = $productId;
+        flash('success', 'Đã thêm sản phẩm vào danh sách so sánh.');
     }
 
     private function handleSearchAjax(): void
@@ -144,14 +167,22 @@ class CompareController extends Controller
         }
 
         $query = trim($_GET['search_ajax'] ?? '');
+        $requestedCatSlug = trim($_GET['category_slug'] ?? ($_GET['cat'] ?? ''));
 
+        // 1. ÁNH XẠ DANH MỤC BẮT BUỘC (CATEGORY-FIRST FILTERING)
+        $compareConfig = require ROOT_PATH . '/config/product-comparison.php';
         $categoryIdFilter = 0;
+        $categorySlugsFilter = [];
+
+        // Nếu đã có sản phẩm trong compare session -> Khóa chặt danh mục của sản phẩm đó
         if (!empty($_SESSION['compare'])) {
             $productModel = $this->model('Product');
             $firstProduct = $productModel->getById($_SESSION['compare'][0]);
             if ($firstProduct) {
                 $categoryIdFilter = (int)$firstProduct['category_id'];
             }
+        } elseif (!empty($requestedCatSlug) && isset($compareConfig['categories'][$requestedCatSlug])) {
+            $categorySlugsFilter = $compareConfig['categories'][$requestedCatSlug]['slugs'];
         }
 
         try {
@@ -190,9 +221,16 @@ class CompareController extends Controller
                 $params[] = '%' . $query . '%';
             }
 
+            // FILTER THEO CATEGORY DÃ KHÓA HOẶC CATEGORY ĐÃ CHỌN
             if ($categoryIdFilter > 0) {
                 $sql .= " AND p.category_id = ?";
                 $params[] = $categoryIdFilter;
+            } elseif (!empty($categorySlugsFilter)) {
+                $placeholdersCat = implode(',', array_fill(0, count($categorySlugsFilter), '?'));
+                $sql .= " AND c.slug IN ($placeholdersCat)";
+                foreach ($categorySlugsFilter as $sSlug) {
+                    $params[] = $sSlug;
+                }
             }
 
             if (!empty($_SESSION['compare'])) {
@@ -211,7 +249,7 @@ class CompareController extends Controller
 
             foreach ($rows as &$r) {
                 $r['price_formatted'] = formatPrice((float)$r['price']);
-                $r['image_url'] = productImageUrl($r['image'] ?? '', $r['category_slug'] ?? '', (int)$r['id']);
+                $r['image_url']       = productImageUrl($r['image'] ?? '', $r['category_slug'] ?? '', (int)$r['id']);
             }
 
             echo json_encode(['success' => true, 'data' => $rows]);
