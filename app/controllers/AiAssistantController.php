@@ -155,7 +155,7 @@ class AiAssistantController extends Controller
                     'name' => "[{$typeLabel}] " . $p['name'],
                     'price' => (float)$p['price'],
                     'price_formatted' => formatPrice((float)$p['price']),
-                    'image' => empty($p['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($p['image'], 'http') ? $p['image'] : (str_starts_with($p['image'], 'assets/') ? '/' . $p['image'] : '/assets/images/products/' . $p['image'])),
+                    'image' => productImageUrl($p['image'] ?? '', $p['category_slug'] ?? '', (int)$p['id']),
                     'slug' => $p['slug'],
                     'score' => $scoreVal,
                     'specs' => [

@@ -88,7 +88,7 @@
                                     <button type="submit" style="background: none; border: none; color: #9CA3AF; cursor: pointer; font-size: 16px;" title="Xóa khỏi so sánh"><i class="fa-solid fa-xmark-circle"></i></button>
                                 </form>
                                 <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 15px; position: relative;">
-                                    <img src="<?= url('assets/images/' . e($p['image'])) ?>" alt="<?= e($p['name']) ?>" style="height: 90px; object-fit: contain; margin-bottom: 15px;">
+                                    <img src="<?= productImageUrl($p['image'] ?? '', $p['category_slug'] ?? '', (int)$p['id']) ?>" alt="<?= e($p['name']) ?>" style="height: 90px; object-fit: contain; margin-bottom: 15px;">
                                     <strong style="font-size: 13.5px; line-height: 1.4; height: 38px; overflow: hidden; display: block; margin-bottom: 8px;"><?= e($p['name']) ?></strong>
                                     <span style="color: var(--primary); font-weight: 700; font-size: 15px;"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
                                 </div>
@@ -363,7 +363,7 @@
                         resultsBox.innerHTML = res.data.map(p => `
                             <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                    <img src="<?= url('assets/images/') ?>${p.image}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: contain;">
+                                    <img src="${p.image_url}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: contain;" onerror="this.outerHTML='<div style=\'width:40px;height:40px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#64748B;font-size:16px;\'><i class=\'fa-solid fa-box-open\'></i></div>'">
                                     <div>
                                         <strong style="font-size: 13.5px; display: block; color: var(--text-primary);">${p.name}</strong>
                                         <span style="font-size: 12.5px; color: var(--primary); font-weight: 700;">${p.price_formatted}</span>
