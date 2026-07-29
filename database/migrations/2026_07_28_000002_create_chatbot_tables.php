@@ -41,13 +41,29 @@ class Migration_2026_07_28_000002_create_chatbot_tables
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ";
 
+        // Bảng 3: Giới hạn số lượt hỏi AI theo IP (guest: 5 lượt/ngày) và User (thành viên: 20 lượt/ngày)
+        $sql3 = "
+        CREATE TABLE IF NOT EXISTS `chatbot_rate_limits` (
+            `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `identifier`  VARCHAR(100) NOT NULL COMMENT 'user:{id} hoặc ip:{address}',
+            `rate_date`   DATE         NOT NULL,
+            `query_count` INT UNSIGNED NOT NULL DEFAULT 0,
+            `created_at`  TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at`  TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY `uniq_identifier_date` (`identifier`, `rate_date`),
+            INDEX `idx_crl_date` (`rate_date`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ";
+
         $db->exec($sql1);
         $db->exec($sql2);
+        $db->exec($sql3);
         return true;
     }
 
     public static function down(PDO $db): bool
     {
+        $db->exec("DROP TABLE IF EXISTS `chatbot_rate_limits`;");
         $db->exec("DROP TABLE IF EXISTS `user_interest_profiles`;");
         $db->exec("DROP TABLE IF EXISTS `user_behavior_logs`;");
         return true;
