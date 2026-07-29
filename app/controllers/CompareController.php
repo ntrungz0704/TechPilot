@@ -159,13 +159,16 @@ class CompareController extends Controller
         }
 
         try {
-            $sql = "SELECT id, name, price, image, category_id FROM products WHERE status = 'active' AND name LIKE ?";
+            $sql = "SELECT p.id, p.name, p.price, p.image, p.category_id, c.slug as category_slug 
+                    FROM products p 
+                    LEFT JOIN categories c ON p.category_id = c.id 
+                    WHERE p.status = 'active' AND p.name LIKE ?";
             $params = ['%' . $query . '%'];
             if ($categoryIdFilter > 0) {
-                $sql .= " AND category_id = ?";
+                $sql .= " AND p.category_id = ?";
                 $params[] = $categoryIdFilter;
             }
-            $sql .= " ORDER BY name ASC LIMIT 8";
+            $sql .= " ORDER BY p.name ASC LIMIT 8";
 
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
@@ -173,6 +176,7 @@ class CompareController extends Controller
 
             foreach ($rows as &$r) {
                 $r['price_formatted'] = formatPrice((float)$r['price']);
+                $r['image_url'] = productImageUrl($r['image'] ?? '', $r['category_slug'] ?? '', (int)$r['id']);
             }
 
             echo json_encode(['success' => true, 'data' => $rows]);
