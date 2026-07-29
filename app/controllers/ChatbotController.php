@@ -263,6 +263,18 @@ class ChatbotController extends Controller
 
         // Nếu người dùng gửi tin nhắn trò chuyện tự nhiên
         if ($queryText !== '') {
+            // Phase 15 - Simple Math Intent
+            $mathResult = $this->evaluateSimpleMath($queryText);
+            if ($mathResult !== null) {
+                echo json_encode([
+                    'success' => true,
+                    'type' => 'text',
+                    'message' => $mathResult,
+                    'recommendations' => []
+                ]);
+                exit;
+            }
+
             // Khởi động session nếu chưa có
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
@@ -284,8 +296,19 @@ class ChatbotController extends Controller
             $isProductDiscussion = false;
             $discussedProduct = null;
 
-            // Tìm mã số sản phẩm (ví dụ: "model 14", "san pham 14", "may 14" hoặc chỉ đơn giản là số "14")
-            if (preg_match('/(?:model|mau|sp|san pham|id|so|chiec|cai)?\s*(\d+)/i', $rawLower, $numMatches)) {
+            // Phase 14: Context explicit từ Product Detail (product_id=<ID>)
+            $explicitProductId = (int)($_GET['product_id'] ?? 0);
+            if ($explicitProductId > 0) {
+                try {
+                    $stmt = $this->db->prepare("SELECT * FROM products WHERE id = ? AND status = 'active'");
+                    $stmt->execute([$explicitProductId]);
+                    $discussedProduct = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($discussedProduct) {
+                        $isProductDiscussion = true;
+                    }
+                } catch (Exception $e) {}
+            } elseif (preg_match('/\b(?:id|sp|sản\s*phẩm|san\s*pham|model|mẫu|mau)\s*#?\s*(\d+)\b/ui', $queryText, $numMatches)) {
+                // Phase 13: Bắt buộc marker rõ ràng (id 14, sản phẩm 14, sp #14, model 14)
                 $productId = (int)$numMatches[1];
                 try {
                     $stmt = $this->db->prepare("SELECT * FROM products WHERE id = ? AND status = 'active'");
@@ -310,15 +333,25 @@ class ChatbotController extends Controller
                                   "Câu hỏi của khách: \"$queryText\"\n\n" .
                                   "Hãy trả lời tự nhiên, thân thiện và chính xác về sản phẩm này (giải thích tại sao đắt/rẻ, có ưu điểm gì, chiến game tốt không...). Gọi khách là 'bạn', xưng 'mình'. Trả lời ngắn gọn 2-3 câu.";
                 
-                try {
-                    $answer = GeminiService::callGemini($productPrompt, ['type' => 'product_chat', 'product' => $discussedProduct]);
+                $aiRes = GeminiService::generateContent($productPrompt);
+                if ($aiRes['success']) {
                     echo json_encode([
                         'success' => true,
                         'type' => 'text',
-                        'message' => $answer
+                        'message' => $aiRes['text'],
+                        'recommendations' => []
                     ]);
-                    exit;
-                } catch (Exception $e) {}
+                } else {
+                    http_response_code(502);
+                    echo json_encode([
+                        'success' => false,
+                        'type' => 'error',
+                        'error_code' => $aiRes['error_code'] ?? 'GEMINI_ERROR',
+                        'message' => $aiRes['message'] ?? 'Trợ lý AI đang tạm thời không khả dụng. Vui lòng thử lại sau.',
+                        'recommendations' => []
+                    ]);
+                }
+                exit;
             }
 
             $response = $this->handleNaturalLanguage($queryText);
@@ -489,10 +522,10 @@ class ChatbotController extends Controller
                                 'slug' => $p['slug'],
                                 'score' => $confidence,
                                 'specs' => [
-                                    'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'N/A'),
-                                    'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
-                                    'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? '512GB',
-                                    'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Onboard'
+                                    'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'Chưa có dữ liệu'),
+                                    'RAM' => $specs['RAM'] ?? $specs['ram'] ?? 'Chưa có dữ liệu',
+                                    'SSD' => $specs['SSD'] ?? $specs['ssd'] ?? 'Chưa có dữ liệu',
+                                    'VGA' => $specs['VGA'] ?? $specs['vga'] ?? 'Chưa có dữ liệu'
                                 ],
                                 'reasons' => [
                                     "Độ đáng tiền (VFM): {$vfm}/10",
@@ -509,7 +542,7 @@ class ChatbotController extends Controller
                         echo json_encode([
                             'success' => true,
                             'type' => 'recommendations',
-                            'ai_message' => trim($cleanAnswer),
+                            'message' => trim($cleanAnswer),
                             'recommendations' => $finalRecs
                         ]);
                         exit;
@@ -523,12 +556,17 @@ class ChatbotController extends Controller
                 echo json_encode([
                     'success' => true,
                     'type' => 'text',
-                    'message' => trim($cleanAnswer)
+                    'message' => trim($cleanAnswer),
+                    'recommendations' => []
                 ]);
             } catch (Exception $e) {
+                http_response_code(502);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Lỗi kết nối AI: ' . $e->getMessage()
+                    'type' => 'error',
+                    'error_code' => 'GEMINI_ERROR',
+                    'message' => 'Trợ lý AI đang tạm thời không khả dụng: ' . $e->getMessage(),
+                    'recommendations' => []
                 ]);
             }
             exit;
@@ -1507,5 +1545,59 @@ class ChatbotController extends Controller
             echo json_encode(['success' => false, 'message' => 'Lỗi xử lý đồng bộ: ' . $e->getMessage()]);
         }
         exit;
+    }
+
+    /**
+     * Parse và tính toán các phép toán số học cơ bản (Phase 15 - Simple Math Intent)
+     */
+    private function evaluateSimpleMath(string $text): ?string
+    {
+        $clean = trim($text);
+        // Chỉ chấp nhận các ký tự: chữ số, khoảng trắng, +, -, *, /, (, ), .
+        if (!preg_match('/^[\d\s\+\-\*\/\(\)\.]+$/', $clean)) {
+            return null;
+        }
+
+        // Bắt buộc phải chứa ít nhất một toán tử +, -, *, /
+        if (!preg_match('/[\+\-\*\/]/', $clean)) {
+            return null;
+        }
+
+        try {
+            $evaluator = function($expr) use (&$evaluator) {
+                $expr = trim($expr);
+                while (preg_match('/\(([^\(\)]+)\)/', $expr, $m)) {
+                    $sub = $evaluator($m[1]);
+                    if ($sub === null) return null;
+                    $expr = str_replace($m[0], $sub, $expr);
+                }
+                while (preg_match('/(-?\d+(?:\.\d+)?)\s*([\*\/])\s*(-?\d+(?:\.\d+)?)/', $expr, $m)) {
+                    $a = (float)$m[1];
+                    $op = $m[2];
+                    $b = (float)$m[3];
+                    if ($op === '/' && abs($b) < 1e-12) return null;
+                    $res = ($op === '*') ? ($a * $b) : ($a / $b);
+                    $expr = str_replace($m[0], (string)$res, $expr);
+                }
+                while (preg_match('/(-?\d+(?:\.\d+)?)\s*([\+\-])\s*(-?\d+(?:\.\d+)?)/', $expr, $m)) {
+                    $a = (float)$m[1];
+                    $op = $m[2];
+                    $b = (float)$m[3];
+                    $res = ($op === '+') ? ($a + $b) : ($a - $b);
+                    $expr = str_replace($m[0], (string)$res, $expr);
+                }
+                return is_numeric(trim($expr)) ? (string)(float)trim($expr) : null;
+            };
+
+            $val = $evaluator($clean);
+            if ($val !== null) {
+                $num = (float)$val;
+                return (floor($num) == $num) ? (string)(int)$num : (string)$num;
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
     }
 }

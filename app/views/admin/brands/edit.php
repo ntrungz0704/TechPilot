@@ -18,10 +18,11 @@
         <div class="form-group" style="border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background-color: #F9FAFB;">
             <label for="logo">Thay đổi hình ảnh Logo</label>
             
-            <?php if (!empty($brand['logo'])): ?>
+            <?php $logoUrl = brandLogoUrl($brand['logo'] ?? null, $brand['slug'] ?? null); ?>
+            <?php if ($logoUrl): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Logo hiện tại:</span>
-                    <img src="<?= url('assets/images/brands/' . e($brand['logo'])) ?>" alt="<?= e($brand['name']) ?>" style="height: 40px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" style="height: 40px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
                 </div>
             <?php endif; ?>
 

@@ -547,3 +547,33 @@ if (!function_exists('readingMinutes')) {
     }
 }
 
+/**
+ * Trả về Web URL hợp lệ cho logo thương hiệu, hoặc null nếu không có asset thực sự.
+ * Không tự tạo hoặc giả lập logo.
+ */
+if (!function_exists('brandLogoUrl')) {
+    function brandLogoUrl(?string $path, ?string $slug = null): ?string
+    {
+        // 1. Kiểm tra path từ DB (ví dụ: assets/images/brands/asus.png)
+        if (!empty($path)) {
+            $relativePath = ltrim($path, '/');
+            if (strpos($relativePath, 'assets/') !== 0) {
+                $relativePath = 'assets/images/brands/' . $relativePath;
+            }
+            $fullDiskPath = ROOT_PATH . '/public/' . $relativePath;
+            if (file_exists($fullDiskPath) && is_file($fullDiskPath)) {
+                return url($relativePath);
+            }
+        }
+
+        // 2. Kiểm tra theo slug (ví dụ: asus -> assets/images/brands/asus.png)
+        if (!empty($slug)) {
+            $pngRelative = 'assets/images/brands/' . $slug . '.png';
+            if (file_exists(ROOT_PATH . '/public/' . $pngRelative)) {
+                return url($pngRelative);
+            }
+        }
+
+        return null;
+    }
+}

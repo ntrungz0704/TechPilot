@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
-  <circle cx="40" cy="40" r="30" fill="#A50034"/>
-  <path d="M30 30 v20 h15" fill="none" stroke="white" stroke-width="3"/>
-  <path d="M50 30 a10 10 0 1 1 0 20 h-5" fill="none" stroke="white" stroke-width="3"/>
-  <circle cx="35" cy="30" r="2" fill="white"/>
-  <text x="80" y="55" fill="#666" font-family="Arial, sans-serif" font-weight="bold" font-size="48">LG</text>
-</svg>

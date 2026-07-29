@@ -581,29 +581,62 @@ $geminiReady = true;
 if (extension_loaded('curl')) {
     vPass("Extension: curl");
 } else {
-    vWarn("Extension curl chưa bật — bật trong php.ini để dùng Gemini AI");
+    vFail("Extension curl chưa bật — cần thiết để kết nối Gemini AI");
     $geminiReady = false;
 }
 
 if (extension_loaded('openssl')) {
-    vPass("Extension: openssl");
+    vPass("Extension: openssl/TLS");
 } else {
-    vWarn("Extension openssl chưa bật — cần cho TLS/HTTPS");
+    vFail("Extension openssl chưa bật — cần thiết cho TLS/HTTPS");
     $geminiReady = false;
 }
 
-$geminiKey = getenv('GEMINI_API_KEY');
+// CA certificate verification
+$caPath = ini_get('curl.cainfo') ?: ini_get('openssl.cafile');
+if (!empty($caPath) && file_exists($caPath)) {
+    vPass("CA certificate verification");
+} else {
+    $ch = curl_init('https://generativelanguage.googleapis.com');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_exec($ch);
+    $sslErr = curl_errno($ch);
+    if ($sslErr === 0) {
+        vPass("CA certificate verification");
+    } else {
+        vWarn("CA certificate verification warning (cURL error {$sslErr})");
+    }
+}
+
+require_once VERIFY_ROOT . '/app/services/GeminiService.php';
+
+$geminiConfig = require VERIFY_ROOT . '/config/gemini.php';
+$geminiKey = $geminiConfig['api_key'] ?? '';
+$geminiModel = $geminiConfig['model'] ?? 'gemini-3.6-flash';
+
 if (!empty($geminiKey)) {
-    vPass("GEMINI_API_KEY đã cấu hình");
+    vPass("GEMINI_API_KEY configured");
 } else {
     vWarn("GEMINI_API_KEY chưa cấu hình — chatbot AI sẽ không hoạt động");
     $geminiReady = false;
 }
 
 if ($geminiReady) {
-    echo "  → GEMINI: READY\n";
-} elseif (!empty($geminiKey)) {
-    echo "  → GEMINI: MISSING_EXTENSION\n";
+    vPass("Gemini model available: {$geminiModel}");
+
+    $smokeTest = GeminiService::generateContent('Chỉ trả lời đúng chữ OK', ['timeout' => 10]);
+    if ($smokeTest['success']) {
+        vPass("Gemini generateContent smoke test");
+        vPass("Gemini response parsed");
+        echo "  → GEMINI: READY\n";
+    } else {
+        vWarn("Gemini smoke test failed: " . ($smokeTest['message'] ?? 'Lỗi không xác định'));
+        $errStatus = $smokeTest['error_code'] ?? 'ERROR';
+        echo "  → GEMINI: {$errStatus}\n";
+    }
 } else {
     echo "  → GEMINI: NOT_CONFIGURED\n";
 }

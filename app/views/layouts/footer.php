@@ -2513,10 +2513,11 @@
             }
         }
 
+        let isSubmittingChat = false;
         function sendChatbotMessage() {
             const inputEl = document.getElementById('tpChatbotInput');
             const text = inputEl.value.trim();
-            if (text === '') return;
+            if (text === '' || isSubmittingChat) return;
 
             inputEl.value = '';
             renderUserMessage(text);
@@ -2527,6 +2528,16 @@
                 const msgBox = document.getElementById('tpChatbotMessages');
                 if (msgBox) msgBox.innerHTML = '';
             }
+
+            requestChatbot(text);
+        }
+
+        function requestChatbot(text) {
+            if (isSubmittingChat) return;
+            isSubmittingChat = true;
+
+            const sendBtn = document.querySelector('.tp-chatbot-input-box button');
+            if (sendBtn) sendBtn.disabled = true;
 
             const indicator = renderTypingIndicator();
 
@@ -2539,28 +2550,45 @@
             if (sessionViews) url += '&session_views=' + encodeURIComponent(sessionViews);
             if (currentPage) url += '&current_page=' + encodeURIComponent(currentPage);
 
-            fetch(url)
+            let productIdParam = '';
+            if (window.tp_product_id) {
+                productIdParam = window.tp_product_id;
+            } else {
+                const pMatch = window.location.pathname.match(/\/product\/(?:detail\/)?(\d+)/i);
+                if (pMatch) productIdParam = pMatch[1];
+            }
+            if (productIdParam) url += '&product_id=' + encodeURIComponent(productIdParam);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+            fetch(url, { signal: controller.signal })
                 .then(res => res.json())
                 .then(res => {
-                    removeTypingIndicator(indicator);
                     if (res.success) {
                         if (res.type === 'start_quiz') {
-                            renderBotMessage(res.message);
+                            renderBotMessage(res.message || '');
                             startQuizFlow();
                         } else if (res.type === 'recommendations') {
-                            renderBotMessage(res.ai_message);
-                            renderRecommendations(res.recommendations);
+                            renderBotMessage(res.message || res.ai_message || '');
+                            if (res.recommendations && res.recommendations.length > 0) {
+                                renderRecommendations(res.recommendations);
+                            }
                         } else {
-                            renderBotMessage(res.message);
+                            renderBotMessage(res.message || '');
                         }
                     } else {
-                        // Tìm kiếm thô sản phẩm phù hợp nếu AI không nhận diện được từ khóa cụ thể
-                        searchRawProducts(text);
+                        renderBotMessage(res.message || "🤖 Trợ lý AI đang tạm thời không khả dụng. Vui lòng thử lại sau.");
                     }
                 })
                 .catch(err => {
+                    renderBotMessage("🤖 Trợ lý AI đang tạm thời không khả dụng. Vui lòng thử lại sau.");
+                })
+                .finally(() => {
+                    clearTimeout(timeoutId);
                     removeTypingIndicator(indicator);
-                    renderBotMessage("🤖 Xin lỗi, tôi gặp sự cố kết nối máy chủ AI.");
+                    isSubmittingChat = false;
+                    if (sendBtn) sendBtn.disabled = false;
                 });
         }
 
