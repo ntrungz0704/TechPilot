@@ -4,6 +4,9 @@
  * Cấu hình chung ứng dụng
  */
 
+// Thiết lập Múi giờ mặc định Hà Nội / Việt Nam (UTC+7)
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 // Tải cấu hình từ file .env nếu có
 $envPath = dirname(__DIR__) . '/.env';
 if (file_exists($envPath)) {
