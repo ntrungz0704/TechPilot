@@ -54,11 +54,24 @@
         </div>
     <?php endif; ?>
 
+    <!-- Search & Quick Add Bar -->
+    <?php if (count($products) < 4): ?>
+        <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card); position: relative;">
+            <label for="compareSearchInput" style="font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--text-primary);">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i> Tìm & Thêm sản phẩm vào so sánh (Còn trống <?= 4 - count($products) ?> vị trí)
+            </label>
+            <div style="position: relative;">
+                <input type="text" id="compareSearchInput" placeholder="Nhập tên sản phẩm (VD: RTX 4060, Asus ROG, i5...)" style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box;" oninput="onCompareSearchInput(this.value)">
+                <div id="compareSearchResults" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto; margin-top: 4px;"></div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php if (empty($products)): ?>
         <div style="text-align: center; padding: 60px 20px; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px;">
             <i class="fa-solid fa-scale-unbalanced" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px; display: block;"></i>
             <h3 style="margin-bottom: 10px; font-weight: 700;">Chưa có sản phẩm so sánh</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">Vui lòng thêm sản phẩm vào danh sách so sánh từ các trang sản phẩm.</p>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Hãy nhập tên sản phẩm ở khung tìm kiếm phía trên hoặc click nút <strong>"So sánh"</strong> tại bất kỳ trang sản phẩm nào!</p>
             <a href="<?= url('/') ?>" class="btn" style="padding: 10px 24px;">Quay lại Trang Chủ</a>
         </div>
     <?php else: ?>
@@ -328,15 +341,59 @@
         });
     }
 
-    // Định dạng markdown thô sơ cho hiển thị
-    function formatMarkdown(text) {
-        return text
-            .replace(/\n/g, '<br>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/### (.*?)(<br>|$)/g, '<h4 style="color:#1E3A8A; font-weight:700; margin: 15px 0 8px 0;">$1</h4>')
-            .replace(/#### (.*?)(<br>|$)/g, '<h5 style="color:#2563EB; font-weight:700; margin: 12px 0 6px 0;">$1</h5>')
-            .replace(/• (.*?)(<br>|$)/g, '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>');
+    // Tìm kiếm sản phẩm để thêm trực tiếp vào bảng so sánh
+    let compareSearchTimer = null;
+    function onCompareSearchInput(query) {
+        clearTimeout(compareSearchTimer);
+        const resultsBox = document.getElementById('compareSearchResults');
+        if (!resultsBox) return;
+
+        query = query.trim();
+        if (query.length < 2) {
+            resultsBox.style.display = 'none';
+            resultsBox.innerHTML = '';
+            return;
+        }
+
+        compareSearchTimer = setTimeout(() => {
+            fetch('<?= url("compare?search_ajax=") ?>' + encodeURIComponent(query))
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        resultsBox.innerHTML = res.data.map(p => `
+                            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                    <img src="<?= url('assets/images/') ?>${p.image}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: contain;">
+                                    <div>
+                                        <strong style="font-size: 13.5px; display: block; color: var(--text-primary);">${p.name}</strong>
+                                        <span style="font-size: 12.5px; color: var(--primary); font-weight: 700;">${p.price_formatted}</span>
+                                    </div>
+                                </div>
+                                <a href="<?= url('compare?add=') ?>${p.id}" class="btn btn--sm" style="padding: 6px 12px; font-size: 12px; text-decoration: none; white-space: nowrap; background-color: #10B981; color: #FFFFFF;">
+                                    <i class="fa-solid fa-plus"></i> Thêm so sánh
+                                </a>
+                            </div>
+                        `).join('');
+                        resultsBox.style.display = 'block';
+                    } else {
+                        resultsBox.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">Không tìm thấy sản phẩm phù hợp</div>';
+                        resultsBox.style.display = 'block';
+                    }
+                })
+                .catch(err => {
+                    resultsBox.style.display = 'none';
+                });
+        }, 250);
     }
+
+    // Đóng dropdown tìm kiếm khi click ra ngoài
+    document.addEventListener('click', function(e) {
+        const box = document.getElementById('compareSearchResults');
+        const input = document.getElementById('compareSearchInput');
+        if (box && input && !box.contains(e.target) && !input.contains(e.target)) {
+            box.style.display = 'none';
+        }
+    });
 </script>
 
 <?php include ROOT_PATH . '/app/views/layouts/footer.php'; ?>

@@ -647,48 +647,32 @@
                 const cardsContainer = document.getElementById('recsCardsContainer');
                 cardsContainer.innerHTML = ''; // Clear old content
 
+                const recs = res.recommendations || [];
                 const types = [
-                    { key: 'best', label: 'Phù hợp nhất', badgeClass: 'badge-best' },
-                    { key: 'saving', label: 'Tiết kiệm', badgeClass: 'badge-saving' },
-                    { key: 'perf', label: 'Hiệu năng cao', badgeClass: 'badge-perf' }
+                    { label: 'Phù hợp nhất', badgeClass: 'badge-best' },
+                    { label: 'Tiết kiệm', badgeClass: 'badge-saving' },
+                    { label: 'Hiệu năng cao', badgeClass: 'badge-perf' }
                 ];
 
-                types.forEach(t => {
-                    const prod = res[t.key];
-                    if (!prod) return;
-
-                    // Build FPS list HTML
-                    let fpsHtml = '';
-                    if (prod.fps_list && Object.keys(prod.fps_list).length > 0) {
-                        fpsHtml = `
-                            <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 10px;">
-                                <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); display:block; margin-bottom: 6px;">Ước tính FPS Game:</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
-                                    ${Object.keys(prod.fps_list).slice(0, 4).map(k => `
-                                        <div style="display:flex; justify-content:space-between; padding-right:8px;">
-                                            <span style="color:var(--text-secondary);">${prod.fps_list[k].name}:</span>
-                                            <strong style="color:#1E40AF;">${prod.fps_list[k].fps}</strong>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `;
-                    }
+                recs.forEach((prod, idx) => {
+                    const badgeMeta = types[idx] || { label: 'Gợi ý AI', badgeClass: 'badge-best' };
+                    const specs = prod.specs || {};
+                    const score = prod.score || 90;
 
                     const cardHtml = `
                         <div class="rec-card">
                             <!-- Badge loại đề xuất -->
-                            <span class="rec-badge ${t.badgeClass}">${t.label}</span>
+                            <span class="rec-badge ${badgeMeta.badgeClass}">${badgeMeta.label}</span>
 
                             <!-- Điểm phù hợp -->
                             <div class="suitability-circle-container">
-                                <div class="suitability-circle" title="Điểm phù hợp với nhu cầu của bạn">${prod.suitability_score}%</div>
+                                <div class="suitability-circle" title="Điểm phù hợp với nhu cầu của bạn">${score}%</div>
                                 <span style="font-size: 9px; font-weight:700; color: #10B981; margin-top:2px;">PHÙ HỢP</span>
                             </div>
 
                             <!-- Ảnh sản phẩm -->
                             <div style="padding: 50px 20px 20px 20px; text-align: center; background-color: #F8FAFC; border-bottom: 1px solid var(--border);">
-                                <img src="<?= url('assets/images/') ?>${prod.image}" alt="${prod.name}" style="height: 120px; object-fit: contain;">
+                                <img src="${prod.image}" alt="${prod.name}" style="height: 120px; object-fit: contain;">
                             </div>
 
                             <!-- Nội dung chi tiết -->
@@ -697,24 +681,14 @@
                                 
                                 <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
                                     <strong style="color: var(--primary); font-size: 17px;">${prod.price_formatted}</strong>
-                                    <span class="badge--vfm ${prod.pp_ratio.class}" style="font-size:10px;">${prod.pp_ratio.label} (P/P)</span>
                                 </div>
 
                                 <!-- Cấu hình tóm tắt -->
                                 <div style="font-size: 12px; color: var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
-                                    <div><i class="fa-solid fa-microchip" style="width: 16px;"></i> CPU: ${prod.specs.CPU}</div>
-                                    <div><i class="fa-solid fa-memory" style="width: 16px;"></i> RAM: ${prod.specs.RAM}</div>
-                                    <div><i class="fa-solid fa-hard-drive" style="width: 16px;"></i> SSD: ${prod.specs.SSD}</div>
-                                    <div><i class="fa-solid fa-images" style="width: 16px;"></i> VGA: ${prod.specs.VGA.split(' ').slice(0,2).join(' ')}</div>
-                                </div>
-
-                                <!-- Ước tính FPS Game -->
-                                ${fpsHtml}
-
-                                <!-- Giá trị VFM -->
-                                <div style="margin-top: 15px; background: rgba(16, 185, 129, 0.04); border-radius: 8px; padding: 8px; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
-                                    <span style="color: var(--text-secondary); font-weight: 600;">Độ đáng tiền (VFM):</span>
-                                    <span style="color:#10B981; font-weight: 700;"><i class="fa-solid fa-star" style="color:#FBBF24;"></i> ${prod.vfm_score}/10</span>
+                                    <div><i class="fa-solid fa-microchip" style="width: 16px;"></i> CPU: ${specs.CPU || 'Chưa có dữ liệu'}</div>
+                                    <div><i class="fa-solid fa-memory" style="width: 16px;"></i> RAM: ${specs.RAM || 'Chưa có dữ liệu'}</div>
+                                    <div><i class="fa-solid fa-hard-drive" style="width: 16px;"></i> SSD: ${specs.SSD || 'Chưa có dữ liệu'}</div>
+                                    <div><i class="fa-solid fa-images" style="width: 16px;"></i> VGA: ${specs.VGA || 'Chưa có dữ liệu'}</div>
                                 </div>
 
                                 <!-- Nút yêu thích trái tim -->
@@ -723,14 +697,9 @@
                                 </button>
 
                                 <!-- Nút hành động chân trang card -->
-                                <div style="margin-top: auto; padding-top: 20px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px;">
-                                    <a href="<?= url('product/detail/') ?>${prod.slug}" class="btn btn--secondary btn--sm" style="text-align: center; height: 36px; line-height: 20px;">Chi tiết</a>
-                                    <form method="post" action="<?= url('cart/add') ?>">
-                                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                                        <input type="hidden" name="product_id" value="${prod.id}">
-                                        <input type="hidden" name="quantity" value="1">
-                                        <button type="submit" class="btn btn--sm" style="width:100%; height: 36px;"><i class="fa-solid fa-cart-plus"></i> Thêm giỏ</button>
-                                    </form>
+                                <div style="margin-top: auto; padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <a href="<?= url('product/detail/') ?>${prod.slug}" class="btn btn--secondary btn--sm" style="text-align: center; height: 36px; line-height: 20px;" target="_blank">Chi tiết</a>
+                                    <a href="<?= url('compare?add=') ?>${prod.id}" class="btn btn--sm" style="text-align: center; height: 36px; line-height: 20px; background-color: #10B981; color: #FFFFFF; text-decoration: none;"><i class="fa-solid fa-scale-balanced"></i> So sánh</a>
                                 </div>
                             </div>
                         </div>
@@ -739,12 +708,12 @@
                 });
 
             } else {
-                alert("Lỗi từ AI: " + res.message);
+                alert("Lỗi từ AI: " + (res.message || "Không thể tải gợi ý."));
                 resetWizard();
             }
         })
         .catch(err => {
-            alert("Lỗi mạng khi tải đề xuất AI.");
+            alert("Lỗi xử lý phản hồi AI: " + err.message);
             console.error(err);
             resetWizard();
         });
@@ -785,7 +754,8 @@
     }
 
     // Format Markdown
-    function formatMarkdown(text) {
+    function formatMarkdown(input) {
+        let text = Array.isArray(input) ? input.join('\n') : (input || '');
         return text
             .replace(/\n/g, '<br>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
