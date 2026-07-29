@@ -461,15 +461,9 @@
         }
 
 
-        /* Suggestion Chips styling */
+        /* Suggestion Chips styling (Hidden per user request) */
         .tp-chatbot-suggestions-chips {
-            display: flex;
-            gap: 6px;
-            padding: 8px 12px;
-            background: rgba(248, 250, 252, 0.65);
-            border-top: 1px solid rgba(226, 232, 240, 0.4);
-            overflow-x: auto;
-            white-space: nowrap;
+            display: none !important;
         }
         .dark-mode .tp-chatbot-suggestions-chips {
             background: rgba(15, 23, 42, 0.45);
@@ -1086,12 +1080,8 @@
             </div>
         </div>
 
-        <!-- Smart Suggestions -->
-        <div class="tp-chatbot-suggestions-chips" id="tpChatbotChips">
-            <button type="button" class="tp-chip" onclick="askChip('So sánh i5 và Ryzen 5')">So sánh i5 & Ryzen 5</button>
-            <button type="button" class="tp-chip" onclick="askChip('Laptop sinh viên dưới 15 triệu')">Laptop < 15tr</button>
-            <button type="button" class="tp-chip" onclick="askChip('Tư vấn PC 20 triệu chơi game')">PC Gaming 20tr</button>
-        </div>
+        <!-- Smart Suggestions (Disabled per user request) -->
+        <div class="tp-chatbot-suggestions-chips" id="tpChatbotChips" style="display: none !important;"></div>
 
         <!-- Footer Input -->
         <div class="tp-chatbot-footer">
