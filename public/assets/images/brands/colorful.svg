@@ -1,3 +1,11 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80" viewBox="0 0 240 80">
-  <text x="120" y="48" text-anchor="middle" dominant-baseline="middle" font-family="'Inter','Segoe UI',Arial,sans-serif" font-weight="700" font-size="22" fill="#FF6600" letter-spacing="1">Colorful</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
+  <defs>
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="red" />
+      <stop offset="33%" stop-color="yellow" />
+      <stop offset="66%" stop-color="blue" />
+      <stop offset="100%" stop-color="purple" />
+    </linearGradient>
+  </defs>
+  <text x="120" y="55" fill="url(#rainbow)" font-family="Arial, sans-serif" font-weight="900" font-size="42" text-anchor="middle">COLORFUL</text>
 </svg>
