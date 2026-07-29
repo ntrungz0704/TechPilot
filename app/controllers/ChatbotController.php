@@ -230,6 +230,9 @@ class ChatbotController extends Controller
     public function query(): void
     {
         header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Cache-Control: post-check=0, pre-check=0', false);
+        header('Pragma: no-cache');
         if ($this->db === null) {
             echo json_encode(['success' => false, 'message' => 'Lỗi kết nối database']);
             exit;
@@ -240,9 +243,17 @@ class ChatbotController extends Controller
         $userBudgetStr = trim($_GET['budget'] ?? '');
         $userPriority = trim($_GET['priority'] ?? '');
 
+        // Trích xuất ngữ cảnh ẩn (Phase 5)
+        $profileRaw = $_GET['profile'] ?? '';
+        $sessionViewsRaw = $_GET['session_views'] ?? '';
+        $currentPage = $_GET['current_page'] ?? '';
+
+        $profile = json_decode($profileRaw, true) ?: [];
+        $sessionViews = json_decode($sessionViewsRaw, true) ?: [];
+
         // Trích xuất ngân sách tối đa
         $maxBudget = 999000000;
-        if ($userBudgetStr === 'under_5m') $maxBudget = 10000000; // Lên mức tối thiểu thích hợp
+        if ($userBudgetStr === 'under_5m') $maxBudget = 10000000;
         elseif ($userBudgetStr === '5_10m') $maxBudget = 15000000;
         elseif ($userBudgetStr === '10_20m') $maxBudget = 25000000;
         elseif ($userBudgetStr === 'over_20m') $maxBudget = 999000000;
@@ -370,34 +381,31 @@ class ChatbotController extends Controller
                 $catId = 1; // Laptop gaming
             }
 
-            // Lấy danh sách sản phẩm mẫu từ DB
+            // Lấy danh mục phù hợp
+            $categories = [1, 2]; // laptop mặc định
+            if ($_SESSION['chatbot_context']['device_type'] === 'PC') {
+                $categories = [3, 6];
+            } elseif ($_SESSION['chatbot_context']['purpose'] === 'Chơi game') {
+                $categories = [1];
+            }
+
+            // Gọi Recommendation Engine (Phase 4)
+            $rows = $this->getRecommendedCandidates($profile, $sessionViews, $maxBudget, $categories);
+            
             $productsContext = "";
             $candidatesMap = [];
-            try {
-                $stmt = $this->db->prepare(
-                    "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
-                     FROM products p 
-                     LEFT JOIN brands b ON p.brand_id = b.id
-                     LEFT JOIN categories c ON p.category_id = c.id
-                     WHERE p.category_id = ? AND p.status = 'active' AND p.stock > 0 
-                     LIMIT 6"
-                );
-                $stmt->execute([$catId]);
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                if (!empty($rows)) {
-                    $productsContext = "Dưới đây là một số sản phẩm thật có sẵn tại cửa hàng TechPilot để đề xuất khi khách hàng cung cấp đủ dữ liệu:\n";
-                    foreach ($rows as $r) {
-                        $candidatesMap[$r['id']] = $r;
-                        $specs = json_decode($r['specs'] ?? '{}', true) ?: [];
-                        $specsStr = implode(', ', array_map(function($k, $v) { 
-                            $valStr = is_array($v) ? json_encode($v, JSON_UNESCAPED_UNICODE) : (string)$v;
-                            return "$k: $valStr"; 
-                        }, array_keys($specs), $specs));
-                        $productsContext .= "- Tên: {$r['name']} (ID: {$r['id']}). Giá: " . number_format($r['price'], 0, ',', '.') . "đ. Cấu hình: $specsStr.\n";
-                    }
+            if (!empty($rows)) {
+                $productsContext = "Dưới đây là 5 sản phẩm ứng viên phù hợp nhất do Recommendation Engine đề xuất dựa trên sở thích thô của người dùng:\n";
+                foreach ($rows as $r) {
+                    $candidatesMap[$r['id']] = $r;
+                    $specs = json_decode($r['specs'] ?? '{}', true) ?: [];
+                    $specsStr = implode(', ', array_map(function($k, $v) { 
+                        $valStr = is_array($v) ? json_encode($v, JSON_UNESCAPED_UNICODE) : (string)$v;
+                        return "$k: $valStr"; 
+                    }, array_keys($specs), $specs));
+                    $productsContext .= "- Tên: {$r['name']} (ID: {$r['id']}). Giá: " . number_format($r['price'], 0, ',', '.') . "đ. Cấu hình: $specsStr.\n";
                 }
-            } catch (Exception $e) {}
+            }
 
             // Đếm số lượng thông tin quan trọng đã biết
             $knownFieldsCount = 0;
@@ -407,11 +415,11 @@ class ChatbotController extends Controller
             if ($_SESSION['chatbot_context']['software'] !== 'Chưa biết') $knownFieldsCount++;
             if ($_SESSION['chatbot_context']['priority'] !== 'Chưa biết') $knownFieldsCount++;
 
-            // Yêu cầu có ít nhất 3 câu trả lời / 3 thông tin thu thập được trước khi đề xuất máy
+            // Yêu cầu có nhất 3 thông tin thu thập được trước khi đề xuất máy
             $forceAskMore = ($knownFieldsCount < 3);
 
             // Tạo system prompt chỉ định vai trò tư vấn tự nhiên bám sát luồng thông tin
-            $promptText = "Bạn là TechPilot AI Advisor - Một chuyên viên tư vấn laptop và PC thân thiện, lịch sự và chuyên nghiệp.\n" .
+            $promptText = "Bạn là TechPilot AI Advisor - Một chuyên viên tư vấn laptop và PC thân thiện, dí dỏm, nhạy bén và chuyên nghiệp.\n" .
                           "Nhiệm vụ của bạn là trò chuyện tự nhiên với khách hàng để tìm ra sản phẩm phù hợp nhất.\n\n" .
                           "=== THÔNG TIN HỘI THOẠI HIỆN TẠI ===\n" .
                           "- Ngân sách: " . $_SESSION['chatbot_context']['budget'] . "\n" .
@@ -435,9 +443,10 @@ class ChatbotController extends Controller
 
             $promptText .= "=== QUY TẮC PHẢN HỒI QUAN TRỌNG ===\n" .
                           "- Gọi khách là 'bạn', xưng 'mình'.\n" .
-                          "- Trả lời ngắn gọn, tự nhiên như nhân viên cửa hàng thực tế, tuyệt đối KHÔNG trả lời máy móc hay dùng các câu 'Dựa trên thông tin...', 'Tôi là AI...'\n" .
+                          "- KHÔNG BAO GIỜ lặp lại câu chào hỏi như 'Chào bạn!', 'Dạ chào bạn' từ câu thứ hai trở đi của cuộc trò chuyện. Hãy đi thẳng vào trả lời/tư vấn/hỏi tiếp thật tự nhiên.\n" .
+                          "- Hãy tinh tế nhận diện các câu nói đùa, chọc phá hay troll của người dùng (ví dụ: đòi ngân sách 100 tỷ, đòi gắn máy tính lên đầu, đòi mua laptop bay lên trời...). Không được cứng nhắc hỏi lại câu khảo sát, hãy đùa vui dí dỏm cùng họ (ví dụ: 100 tỷ chắc mua cả hãng; gắn lên đầu thì cần mũ bảo hiểm cấu hình cao hay kính VR chứ laptop đặt lên đầu thì nặng lắm...) rồi khéo léo chèo lái cuộc trò chuyện trở lại để hướng khách chọn máy thích hợp.\n" .
                           "- Mỗi lượt chat CHỈ HỎI ĐÚNG 1 CÂU quan trọng nhất còn thiếu. Không hỏi dồn dập nhiều câu cùng lúc.\n" .
-                          "- Luôn phản hồi/dẫn dắt câu trả lời trước của khách trước khi đặt câu hỏi tiếp theo (ví dụ: 'Cảm ơn bạn. Với tầm giá này mình có khá nhiều lựa chọn...', 'Đã rõ, lập trình thì Android Studio khá nặng...').\n" .
+                          "- Luôn phản hồi/dẫn dắt câu trả lời trước của khách trước khi đặt câu hỏi tiếp theo.\n" .
                           "- Nếu đã đủ dữ liệu tư vấn (và không bị buộc hỏi thêm), hãy gợi ý sản phẩm thật và ghi thẻ [RECOMMENDED_IDS: x, y, z] ở dòng cuối cùng.\n\n" .
                           $productsContext . "\n" .
                           "Tin nhắn mới nhất của khách hàng: \"$queryText\"";
@@ -456,6 +465,19 @@ class ChatbotController extends Controller
                             $p = $candidatesMap[$id];
                             $specs = json_decode($p['specs'] ?? '{}', true) ?: [];
                             $vfm = ProductIntelligenceService::calculateValueForMoney($p);
+                            $brandScores = $profile['brands'] ?? [];
+                            $categoryScores = $profile['categories'] ?? [];
+                            $budgetMin = $profile['budget']['min'] ?? 0;
+                            $budgetMax = $profile['budget']['max'] ?? 999999999;
+                            $pBrand = strtoupper(trim($p['brand_name'] ?? ''));
+                            $pCat = $p['category_slug'] ?? '';
+                            $pPrice = (float)$p['price'];
+                            $confidence = 70;
+                            if (!empty($pBrand) && isset($brandScores[$pBrand])) $confidence += 10;
+                            if (!empty($pCat) && isset($categoryScores[$pCat])) $confidence += 10;
+                            if ($pPrice >= $budgetMin && $pPrice <= $budgetMax) $confidence += 10;
+                            if ($confidence > 99) $confidence = 99;
+
                             $finalRecs[] = [
                                 'id' => $p['id'],
                                 'name' => $p['name'],
@@ -463,7 +485,7 @@ class ChatbotController extends Controller
                                 'price_formatted' => number_format($p['price'], 0, ',', '.') . 'đ',
                                 'image' => productImageUrl($p['image'], $p['name']),
                                 'slug' => $p['slug'],
-                                'score' => rand(90, 97),
+                                'score' => $confidence,
                                 'specs' => [
                                     'CPU' => $specs['CPU'] ?? $specs['cpu'] ?? (preg_match('/(intel|amd|ryzen|core\s*i\d|ultra\s*\d)/i', $p['name']) ? $p['name'] : 'N/A'),
                                     'RAM' => $specs['RAM'] ?? $specs['ram'] ?? '8GB',
@@ -671,6 +693,21 @@ class ChatbotController extends Controller
     private function handleNaturalLanguage(string $q): ?array
     {
         $q = strtolower($this->removeVietnameseAccents($q));
+
+        // Nếu câu hỏi dài hoặc chứa dấu phẩy/liên từ nối (biểu thị nhiều ý/nhiều câu hỏi cùng lúc)
+        // thì ta chuyển thẳng sang Gemini AI để xử lý thông minh, trả lời được đầy đủ tất cả các ý của khách
+        if (strlen($q) > 60 || strpos($q, ',') !== false || strpos($q, ' va ') !== false || strpos($q, 'vua') !== false) {
+            return null;
+        }
+
+        // Kiểm tra hỏi về chính sách Thu cũ đổi mới / Lên đời máy
+        if ($this->hasKeywords($q, ['thu cu doi moi', 'doi cu lay moi', 'thu cu', 'doi cu', 'len doi', 'trade in', 'doi may', 'len doi may', 'nang cap may'])) {
+            return [
+                'success' => true,
+                'type' => 'text',
+                'message' => "🤖 **Chương trình Thu cũ Đổi mới (Trade-in) tại TechPilot:**\n\nTechPilot hỗ trợ bạn nâng cấp cấu hình lên đời Laptop, PC, VGA, CPU, Mainboard cực kỳ tiết kiệm:\n\n• **Định giá nhanh chóng**: Bạn có thể tự ước lượng giá trị máy cũ trên website.\n• **Trợ giá lên đời**: Nhận thêm voucher trợ giá khi đổi sang máy mới tại TechPilot.\n• **Thủ tục đơn giản**: Kiểm tra máy trực tiếp lấy giá ngay trong 15 phút.\n\n👉 Bạn hãy truy cập vào trang [Thu cũ Đổi mới](" . url('thu-cu-doi-moi') . ") để tra cứu thử giá máy hiện tại của bạn nhé!"
+            ];
+        }
 
         // 1. Kiểm tra xem người dùng có đang hỏi tìm máy theo mức giá cụ thể không (Ví dụ: "có máy 3 triệu không")
         $targetPrice = $this->extractTargetPrice($q);
@@ -913,7 +950,7 @@ class ChatbotController extends Controller
         }
 
         // Nguồn gốc sản phẩm
-        if ($this->hasKeywords($q, ['chinh hang', 'nguon goc', 'hang fake', 'nhai', 'moi hay cu', 'new', 'cu', 'second hand', 'xach tay'])) {
+        if ($this->hasKeywords($q, ['chinh hang', 'nguon goc', 'hang fake', 'nhai', 'moi hay cu', 'new', 'hang cu', 'may cu', 'do cu', 'second hand', 'xach tay'])) {
             return [
                 'success' => true,
                 'type' => 'text',
@@ -1010,11 +1047,11 @@ class ChatbotController extends Controller
         }
 
         // 8. Laptop dùng được bao lâu? Tuổi thọ máy
-        if (strpos($q, 'dung duoc bao lau') !== false || strpos($q, 'ben') !== false || strpos($q, 'tuoi tho') !== false) {
+        if (strpos($q, 'dung duoc bao lau') !== false || $this->hasKeywords($q, ['do ben', 'ben bi', 'ben khong', 'dung ben']) || strpos($q, 'tuoi tho') !== false) {
             return [
                 'success' => true,
                 'type' => 'text',
-                'message' => "🤖 **Tuọc thọ trung bình của laptop:**\n\n" .
+                'message' => "🤖 **Tuổi thọ trung bình của laptop:**\n\n" .
                              "• **Từ 4 - 6 năm**:\n" .
                              "  Nếu bạn chỉ sử dụng cho các công việc học tập, soạn thảo văn bản, và văn phòng cơ bản. Giữ máy sạch sẽ và vệ sinh tra keo tản nhiệt định kỳ mỗi năm một lần.\n\n" .
                              "• **Từ 3 năm**:\n" .
@@ -1141,6 +1178,72 @@ class ChatbotController extends Controller
     }
 
     /**
+     * Lọc Heuristic chọn Top 5 sản phẩm thích hợp nhất dựa trên Interest Profile & Session Context (Phase 4)
+     */
+    private function getRecommendedCandidates(array $profile, array $sessionViews, float $maxBudget, array $categories = [1, 2]): array
+    {
+        if (empty($categories)) {
+            $categories = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($categories), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
+             FROM products p
+             LEFT JOIN brands b ON p.brand_id = b.id
+             LEFT JOIN categories c ON p.category_id = c.id
+             WHERE p.category_id IN ($placeholders) AND p.status = 'active' AND p.stock > 0 AND p.price <= ?"
+        );
+        $stmt->execute(array_merge($categories, [$maxBudget]));
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $brandScores = $profile['brands'] ?? [];
+        $categoryScores = $profile['categories'] ?? [];
+        $keywords = $profile['keywords'] ?? [];
+        $budgetRange = $profile['budget'] ?? ['min' => 0, 'max' => 999999999];
+
+        $scoredList = [];
+        foreach ($products as $p) {
+            $score = 50.0;
+            
+            $brand = strtoupper(trim($p['brand_name'] ?? ''));
+            $catSlug = $p['category_slug'] ?? '';
+            
+            if ($brand !== '' && isset($brandScores[$brand])) {
+                $score += (float)$brandScores[$brand] * 0.5;
+            }
+            
+            if ($catSlug !== '' && isset($categoryScores[$catSlug])) {
+                $score += (float)$categoryScores[$catSlug] * 0.5;
+            }
+            
+            $price = (float)$p['price'];
+            if ($price >= $budgetRange['min'] && $price <= $budgetRange['max']) {
+                $score += 15.0;
+            }
+            
+            foreach ($keywords as $kw) {
+                if (stripos($p['name'], $kw) !== false) {
+                    $score += 10.0;
+                }
+            }
+            
+            if (isset($sessionViews[$p['name']])) {
+                $score += 20.0;
+            }
+
+            $p['calc_score'] = $score;
+            $scoredList[] = $p;
+        }
+
+        usort($scoredList, function($a, $b) {
+            return $b['calc_score'] <=> $a['calc_score'];
+        });
+
+        return array_slice($scoredList, 0, 5);
+    }
+
+    /**
      * Helper loại bỏ dấu tiếng Việt để so sánh chuỗi chính xác
      */
     private function removeVietnameseAccents(string $str): string
@@ -1180,68 +1283,227 @@ class ChatbotController extends Controller
     }
 
     /**
-     * API Standard POST /api/chat - Structured Database Grounded Chatbot Endpoint.
+     * API: Đồng bộ lịch sử hành vi từ localStorage lên Database và tải về Profile tổng hợp (Phase 3)
      */
-    public function apiChat(): void
+    public function sync(): void
     {
         header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'code' => 'INVALID_METHOD', 'message' => 'Vui lòng sử dụng phương thức POST.']);
+        $user = currentUser();
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'Người dùng chưa đăng nhập']);
             exit;
         }
 
-        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $message = trim($input['message'] ?? '');
-        $productId = !empty($input['product_id']) ? (int)$input['product_id'] : null;
-        $pageContext = trim($input['page_context'] ?? '');
+        $userId = (int)$user['id'];
+        $inputRaw = file_get_contents('php://input');
+        $input = json_decode($inputRaw, true) ?: [];
+        $localHistory = $input['history'] ?? [];
 
-        if ($message === '') {
-            echo json_encode(['success' => false, 'code' => 'EMPTY_MESSAGE', 'message' => 'Nội dung tin nhắn không được để trống.']);
+        if ($this->db === null) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối database']);
             exit;
         }
 
-        require_once ROOT_PATH . '/app/services/ChatIntentClassifier.php';
-        require_once ROOT_PATH . '/app/services/ProductKnowledgeService.php';
-        require_once ROOT_PATH . '/app/services/GeminiService.php';
+        try {
+            $this->db->beginTransaction();
 
-        $intent = ChatIntentClassifier::classify($message, $productId, $pageContext);
-        $contextData = [];
-        $grounding = 'general';
-
-        if ($productId !== null) {
-            $prodContext = ProductKnowledgeService::getProductContext($productId);
-            if ($prodContext) {
-                $contextData['current_product'] = $prodContext;
-                $grounding = 'database';
+            // 1. Lấy logs thô hiện tại từ DB để check trùng
+            $stmt = $this->db->prepare("SELECT action_type, created_at FROM user_behavior_logs WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $existingLogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $existingKeys = [];
+            foreach ($existingLogs as $el) {
+                $timeKey = date('Y-m-d H:i:s', strtotime($el['created_at']));
+                $existingKeys[$el['action_type'] . '_' . $timeKey] = true;
             }
-        }
 
-        if ($intent === ChatIntentClassifier::INTENT_PRODUCT_RECOMMENDATION) {
-            $candidates = ProductKnowledgeService::getCandidateProducts($message, null, 5);
-            if (!empty($candidates)) {
-                $contextData['store_candidates'] = $candidates;
-                $grounding = 'database';
+            // Insert các action thô mới
+            $insertStmt = $this->db->prepare(
+                "INSERT INTO user_behavior_logs (user_id, action_type, target_type, target_id, metadata, created_at) 
+                 VALUES (?, ?, ?, ?, ?, ?)"
+            );
+
+            foreach ($localHistory as $act) {
+                $type = $act['type'] ?? '';
+                if (empty($type)) continue;
+
+                $timestampMs = $act['timestamp'] ?? time() * 1000;
+                $dbTimeStr = date('Y-m-d H:i:s', (int)($timestampMs / 1000));
+                
+                $checkKey = $type . '_' . $dbTimeStr;
+                if (isset($existingKeys[$checkKey])) {
+                    continue; 
+                }
+
+                $meta = $act['metadata'] ?? null;
+                $val = $act['value'] ?? null;
+                
+                $targetId = null;
+                $targetType = null;
+                if ($type === 'product_detail' || $type === 'add_cart' || $type === 'wishlist') {
+                    $targetId = is_array($val) && isset($val['id']) ? (int)$val['id'] : null;
+                    $targetType = 'product';
+                }
+
+                $metaObj = is_array($meta) ? $meta : [];
+                if (is_array($val) && !isset($metaObj['name'])) {
+                    $metaObj['name'] = $val['name'] ?? '';
+                } elseif (is_string($val)) {
+                    $metaObj['value'] = $val;
+                }
+
+                $insertStmt->execute([
+                    $userId,
+                    $type,
+                    $targetType,
+                    $targetId,
+                    !empty($metaObj) ? json_encode($metaObj, JSON_UNESCAPED_UNICODE) : null,
+                    $dbTimeStr
+                ]);
             }
-        }
 
-        $aiResult = GeminiService::callGemini($message, $contextData);
+            // 2. Tính toán điểm Interest Profile tổng hợp từ DB
+            $stmt = $this->db->prepare("SELECT action_type, metadata, created_at FROM user_behavior_logs WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $allLogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$aiResult['success']) {
-            echo json_encode([
-                'success' => false,
-                'code' => $aiResult['code'] ?? 'AI_ERROR',
-                'message' => $aiResult['message'] ?? 'Lỗi không xác định từ Trợ lý AI.'
+            $weights = [
+                'view_category' => 1,
+                'view_product' => 3,
+                'product_detail' => 5,
+                'read_review' => 4,
+                'search' => 3,
+                'compare' => 10,
+                'wishlist' => 8,
+                'add_cart' => 15,
+                'purchase' => 100,
+                'click_image' => 2,
+                'filter' => 2,
+                'sort' => 2
+            ];
+
+            $brandScores = [];
+            $categoryScores = [];
+            $searchKeywords = [];
+            $budgetList = [];
+            $nowTime = time();
+
+            foreach ($allLogs as $log) {
+                $type = $log['action_type'];
+                $weight = $weights[$type] ?? 1;
+
+                $logTime = strtotime($log['created_at']);
+                $daysPassed = ($nowTime - $logTime) / (60 * 60 * 24);
+                $decayFactor = pow(0.98, $daysPassed);
+                $finalScore = $weight * $decayFactor;
+
+                $meta = json_decode($log['metadata'] ?? '{}', true) ?: [];
+
+                if (!empty($meta['brand'])) {
+                    $bName = strtoupper(trim($meta['brand']));
+                    $brandScores[$bName] = ($brandScores[$bName] ?? 0) + $finalScore;
+                }
+                
+                if (!empty($meta['category'])) {
+                    $cName = $log['metadata'] ? ($meta['category'] ?? '') : '';
+                    if ($cName === '' && !empty($meta['value'])) {
+                        $cName = $meta['value'];
+                    }
+                    if ($cName !== '') {
+                        $categoryScores[$cName] = ($categoryScores[$cName] ?? 0) + $finalScore;
+                    }
+                }
+
+                if ($type === 'search') {
+                    $kw = $meta['value'] ?? ($meta['keyword'] ?? '');
+                    if ($kw !== '' && !in_array($kw, $searchKeywords, true)) {
+                        $searchKeywords[] = $kw;
+                    }
+                }
+
+                if (!empty($meta['price'])) {
+                    $budgetList[] = (float)$meta['price'];
+                }
+            }
+
+            arsort($brandScores);
+            arsort($categoryScores);
+
+            $budgetMin = 0;
+            $budgetMax = 0;
+            if (!empty($budgetList)) {
+                $budgetMin = min($budgetList) * 0.8;
+                $budgetMax = max($budgetList) * 1.2;
+            }
+
+            $profileData = [
+                'brands' => $brandScores,
+                'categories' => $categoryScores,
+                'keywords' => array_slice($searchKeywords, 0, 5),
+                'budget' => ['min' => (float)round($budgetMin), 'max' => (float)round($budgetMax)]
+            ];
+
+            // 3. Lưu Interest Profile
+            $stmt = $this->db->prepare(
+                "INSERT INTO user_interest_profiles (user_id, brand_scores, category_scores, budget_min, budget_max, last_keywords) 
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE 
+                    brand_scores = VALUES(brand_scores),
+                    category_scores = VALUES(category_scores),
+                    budget_min = VALUES(budget_min),
+                    budget_max = VALUES(budget_max),
+                    last_keywords = VALUES(last_keywords)"
+            );
+            $stmt->execute([
+                $userId,
+                json_encode($brandScores, JSON_UNESCAPED_UNICODE),
+                json_encode($categoryScores, JSON_UNESCAPED_UNICODE),
+                round($budgetMin),
+                round($budgetMax),
+                json_encode(array_slice($searchKeywords, 0, 5), JSON_UNESCAPED_UNICODE)
             ]);
-            exit;
-        }
 
-        echo json_encode([
-            'success' => true,
-            'answer' => $aiResult['answer'],
-            'intent' => $intent,
-            'grounding' => $grounding
-        ]);
+            // 4. Dọn dẹp log thô cũ hơn 30 ngày (Database Cleanup)
+            $cleanupTime = date('Y-m-d H:i:s', $nowTime - (30 * 24 * 60 * 60));
+            $cleanupStmt = $this->db->prepare("DELETE FROM user_behavior_logs WHERE user_id = ? AND created_at < ?");
+            $cleanupStmt->execute([$userId, $cleanupTime]);
+
+            $this->db->commit();
+
+            // Trả lại 50 logs gần nhất cho Frontend cập nhật localStorage
+            $stmt = $this->db->prepare(
+                "SELECT action_type as type, metadata, created_at 
+                 FROM user_behavior_logs 
+                 WHERE user_id = ? 
+                 ORDER BY created_at DESC LIMIT 50"
+            );
+            $stmt->execute([$userId]);
+            $dbLogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $syncedHistory = [];
+            foreach ($dbLogs as $dbL) {
+                $meta = json_decode($dbL['metadata'] ?? '{}', true) ?: [];
+                $value = isset($meta['name']) ? ['name' => $meta['name']] : ($meta['value'] ?? '');
+                
+                $syncedHistory[] = [
+                    'type' => $dbL['type'],
+                    'value' => $value,
+                    'metadata' => $meta,
+                    'timestamp' => strtotime($dbL['created_at']) * 1000
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'profile' => $profileData,
+                'history' => $syncedHistory
+            ]);
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            echo json_encode(['success' => false, 'message' => 'Lỗi xử lý đồng bộ: ' . $e->getMessage()]);
+        }
         exit;
     }
 }

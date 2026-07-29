@@ -395,6 +395,7 @@
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
             overflow: hidden;
             padding: 0;
+            animation: tpMascotFloat 3s ease-in-out infinite;
         }
         .tp-chatbot-launcher:hover {
             transform: scale(1.1);
@@ -415,18 +416,25 @@
             0% { transform: scale(1); opacity: 0.6; }
             100% { transform: scale(1.5); opacity: 0; }
         }
+        @keyframes tpMascotFloat {
+            0% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.05); }
+            100% { transform: translateY(0px) scale(1); }
+        }
 
-        /* Chat Window */
+        /* Chat Window with Glassmorphism & Neon Glow */
         .tp-chatbot-window {
             position: fixed;
             bottom: 105px;
             right: 30px;
             width: 380px;
-            height: 580px;
+            height: 590px;
             border-radius: 16px;
-            background: var(--surface-card, #FFFFFF);
-            border: 1px solid var(--border, #E2E8F0);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: 0 15px 40px rgba(10, 91, 255, 0.15);
             z-index: 100004 !important;
             display: flex;
             flex-direction: column;
@@ -436,10 +444,88 @@
             transform: translateY(20px) scale(0.95);
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
+        .dark-mode .tp-chatbot-window {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
         .tp-chatbot-window.is-open {
             opacity: 1;
             pointer-events: auto;
             transform: translateY(0) scale(1);
+            animation: tpBorderGlow 4s linear infinite;
+        }
+        @keyframes tpBorderGlow {
+            0%, 100% { border-color: rgba(10, 91, 255, 0.4); box-shadow: 0 15px 40px rgba(10, 91, 255, 0.2); }
+            50% { border-color: rgba(147, 51, 234, 0.4); box-shadow: 0 15px 40px rgba(147, 51, 234, 0.2); }
+        }
+
+        /* Voice Advisor Button */
+        .tp-speech-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary, #64748B);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 13px;
+            transition: color 0.2s, transform 0.1s;
+            margin-top: 4px;
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start;
+            outline: none;
+        }
+        .tp-speech-btn:hover {
+            color: var(--primary);
+            transform: scale(1.15);
+        }
+        .tp-speech-btn.speaking {
+            color: #EF4444;
+            animation: tpVoiceWave 1.2s ease-in-out infinite;
+        }
+        @keyframes tpVoiceWave {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+        }
+
+        /* Suggestion Chips styling */
+        .tp-chatbot-suggestions-chips {
+            display: flex;
+            gap: 6px;
+            padding: 8px 12px;
+            background: rgba(248, 250, 252, 0.65);
+            border-top: 1px solid rgba(226, 232, 240, 0.4);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .dark-mode .tp-chatbot-suggestions-chips {
+            background: rgba(15, 23, 42, 0.45);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .tp-chatbot-suggestions-chips::-webkit-scrollbar {
+            height: 3px;
+        }
+        .tp-chatbot-suggestions-chips::-webkit-scrollbar-thumb {
+            background: rgba(10, 91, 255, 0.2);
+            border-radius: 3px;
+        }
+        .tp-chip {
+            background: var(--surface-card, #FFFFFF);
+            border: 1px solid var(--border, #E2E8F0);
+            border-radius: 100px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary, #0F172A);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .tp-chip:hover {
+            border-color: var(--primary);
+            background: rgba(10, 91, 255, 0.05);
+            color: var(--primary);
+            transform: translateY(-1px);
         }
 
         /* Header */
@@ -1027,6 +1113,13 @@
             </div>
         </div>
 
+        <!-- Smart Suggestions -->
+        <div class="tp-chatbot-suggestions-chips" id="tpChatbotChips">
+            <button type="button" class="tp-chip" onclick="askChip('So sánh i5 và Ryzen 5')">So sánh i5 & Ryzen 5</button>
+            <button type="button" class="tp-chip" onclick="askChip('Laptop sinh viên dưới 15 triệu')">Laptop < 15tr</button>
+            <button type="button" class="tp-chip" onclick="askChip('Tư vấn PC 20 triệu chơi game')">PC Gaming 20tr</button>
+        </div>
+
         <!-- Footer Input -->
         <div class="tp-chatbot-footer">
             <input type="text" id="tpChatbotInput" placeholder="Hỏi AI về Laptop, RAM, CPU..." onkeydown="handleChatbotKey(event)">
@@ -1036,6 +1129,167 @@
 
     <!-- Chatbot Logics -->
     <script>
+        // ==========================================
+        // SYSTEM ARCHITECTURE: BEHAVIOR TRACKER & INTEREST ANALYZER (Phase 1 & 2)
+        // ==========================================
+        class BehaviorTracker {
+            constructor() {
+                this.MAX_HISTORY = 50;
+                this.weights = {
+                    'view_category': 1,
+                    'view_product': 3,
+                    'product_detail': 5,
+                    'read_review': 4,
+                    'search': 3,
+                    'compare': 10,
+                    'wishlist': 8,
+                    'add_cart': 15,
+                    'purchase': 100,
+                    'click_image': 2,
+                    'filter': 2,
+                    'sort': 2
+                };
+            }
+
+            getHistory() {
+                try {
+                    const saved = localStorage.getItem('tp_user_history');
+                    return saved ? JSON.parse(saved) : [];
+                } catch(e) {
+                    return [];
+                }
+            }
+
+            pushAction(type, value, metadata = {}) {
+                try {
+                    let history = this.getHistory();
+                    
+                    // Tránh ghi nhận trùng lặp liên tiếp của cùng loại hoạt động trong 2 giây
+                    if (history.length > 0 && history[0].type === type && JSON.stringify(history[0].value) === JSON.stringify(value)) {
+                        if (Date.now() - history[0].timestamp < 2000) {
+                            return; 
+                        }
+                    }
+
+                    history.unshift({
+                        type: type,
+                        value: value,
+                        metadata: metadata,
+                        timestamp: Date.now()
+                    });
+
+                    if (history.length > this.MAX_HISTORY) {
+                        history = history.slice(0, this.MAX_HISTORY);
+                    }
+
+                    localStorage.setItem('tp_user_history', JSON.stringify(history));
+                    
+                    // Đồng bộ phân tích ngay sau khi có hành động
+                    this.updateInterestProfile();
+                    this.updateCurrentSession();
+                } catch(e) {
+                    console.error("Tracker push error:", e);
+                }
+            }
+
+            updateCurrentSession() {
+                let history = this.getHistory();
+                let counts = {};
+                history.forEach(act => {
+                    if (act.type === 'product_detail' || act.type === 'view_product') {
+                        const name = (typeof act.value === 'object') ? (act.value.name || '') : act.value;
+                        if (name) {
+                            counts[name] = (counts[name] || 0) + 1;
+                        }
+                    }
+                });
+                sessionStorage.setItem('tp_current_session_views', JSON.stringify(counts));
+            }
+
+            updateInterestProfile() {
+                let history = this.getHistory();
+                let brandScores = {};
+                let categoryScores = {};
+                let searchKeywords = [];
+                let budgetList = [];
+
+                history.forEach(act => {
+                    const weight = this.weights[act.type] || 1;
+                    
+                    // Thuật toán Interest Decay (Giảm 2% mỗi ngày)
+                    const daysPassed = (Date.now() - act.timestamp) / (1000 * 60 * 60 * 24);
+                    const decayFactor = Math.pow(0.98, daysPassed);
+                    const finalScore = weight * decayFactor;
+
+                    const meta = act.metadata || {};
+                    
+                    if (meta.brand) {
+                        const bName = meta.brand.toUpperCase().trim();
+                        brandScores[bName] = (brandScores[bName] || 0) + finalScore;
+                    }
+                    
+                    if (meta.category) {
+                        categoryScores[meta.category] = (categoryScores[meta.category] || 0) + finalScore;
+                    }
+
+                    if (act.type === 'search' && typeof act.value === 'string') {
+                        if (!searchKeywords.includes(act.value)) {
+                            searchKeywords.push(act.value);
+                        }
+                    }
+
+                    if (meta.price) {
+                        budgetList.push(parseFloat(meta.price));
+                    }
+                });
+
+                let budgetMin = 0;
+                let budgetMax = 0;
+                if (budgetList.length > 0) {
+                    budgetMin = Math.min(...budgetList) * 0.8;
+                    budgetMax = Math.max(...budgetList) * 1.2;
+                }
+
+                const profile = {
+                    brands: brandScores,
+                    categories: categoryScores,
+                    keywords: searchKeywords.slice(0, 5),
+                    budget: { min: Math.round(budgetMin), max: Math.round(budgetMax) },
+                    updatedAt: Date.now()
+                };
+
+                localStorage.setItem('tp_interest_profile', JSON.stringify(profile));
+            }
+        }
+        window.tpBehaviorTracker = new BehaviorTracker();
+
+        // Cloud Database & Sync (Phase 3)
+        window.syncUserBehavior = function() {
+            const history = window.tpBehaviorTracker.getHistory();
+            fetch('<?= url("chatbot/sync") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ history: history })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    localStorage.setItem('tp_user_history', JSON.stringify(res.history));
+                    localStorage.setItem('tp_interest_profile', JSON.stringify(res.profile));
+                }
+            })
+            .catch(err => console.error("Cloud Sync error:", err));
+        }
+
+        <?php if (currentUser()): ?>
+        // Tự động đồng bộ khi người dùng đã đăng nhập tải trang
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(window.syncUserBehavior, 1000); // delay nhẹ để không chặn trang chính
+        });
+        <?php endif; ?>
+
         let chatbotOpen = false;
         let chatbotProducts = [];
         let chatbotQuizState = {
@@ -1092,6 +1346,10 @@
         cardObserver.observe(document.body, { childList: true, subtree: true });
         
         document.addEventListener('DOMContentLoaded', () => {
+            // Theo dõi hoạt động để đề xuất gợi ý động
+            trackUserActivity();
+            registerEventTrackers();
+
             document.querySelectorAll('.product-card').forEach(card => {
                 card.setAttribute('draggable', 'true');
             });
@@ -1159,6 +1417,341 @@
             }
         });
 
+        // Track User Activity dynamically for Smart AI suggestions using sliding queue (MAX 20 items)
+        const MAX_HISTORY = 20;
+
+        function pushUserActivity(type, value) {
+            try {
+                let history = [];
+                const saved = localStorage.getItem('tp_user_history');
+                if (saved) {
+                    history = JSON.parse(saved);
+                }
+                
+                // Tránh trùng lặp liên tiếp của cùng loại hoạt động
+                if (history.length > 0 && history[0].type === type && JSON.stringify(history[0].value) === JSON.stringify(value)) {
+                    return; 
+                }
+                
+                // Thêm vào đầu queue
+                history.unshift({
+                    type: type,
+                    value: value,
+                    timestamp: Date.now()
+                });
+                
+                // Xóa phần tử cũ hơn nếu vượt quá giới hạn
+                if (history.length > MAX_HISTORY) {
+                    history = history.slice(0, MAX_HISTORY);
+                }
+                
+                localStorage.setItem('tp_user_history', JSON.stringify(history));
+            } catch(e) {
+                console.error("Error saving user history:", e);
+            }
+        }
+
+        function trackUserActivity() {
+            try {
+                // 1. Nếu đang ở trang chi tiết sản phẩm
+                const productNameEl = document.querySelector('.product-detail__info h1') || document.querySelector('.product-detail__name') || document.querySelector('.product-info h1') || document.querySelector('.product-detail-name');
+                if (productNameEl) {
+                    const name = productNameEl.innerText.trim();
+                    const urlPath = window.location.pathname;
+                    const slug = urlPath.substring(urlPath.lastIndexOf('/') + 1);
+                    const brand = document.querySelector('.product-detail__brand')?.innerText?.trim() || '';
+                    const priceText = document.querySelector('.price-now')?.innerText || '0';
+                    const price = parseFloat(priceText.replace(/[^\d]/g, '')) || 0;
+                    
+                    window.tpBehaviorTracker.pushAction('product_detail', { name: name, slug: slug }, { brand: brand, price: price });
+                }
+
+                // 2. Nếu đang ở trang tìm kiếm / danh mục
+                const urlParams = new URLSearchParams(window.location.search);
+                const cat = urlParams.get('cat');
+                const q = urlParams.get('q');
+                if (cat) {
+                    window.tpBehaviorTracker.pushAction('view_category', cat, { category: cat });
+                }
+                if (q) {
+                    window.tpBehaviorTracker.pushAction('search', q, { keyword: q });
+                }
+            } catch(e) {
+                console.error("Tracking error:", e);
+            }
+        }
+
+        function registerEventTrackers() {
+            try {
+                // 1. Theo dõi thêm vào giỏ hàng & Wishlist qua form submit
+                document.addEventListener('submit', (e) => {
+                    const form = e.target;
+                    const action = form.action || '';
+                    if (action.includes('cart/add')) {
+                        const productId = form.querySelector('input[name="product_id"]')?.value;
+                        const card = form.closest('.product-card') || form.closest('.product-detail');
+                        const name = card?.querySelector('.product-card__name, .product-detail__info h1')?.innerText?.trim() || ('Product #' + productId);
+                        const brand = card?.querySelector('.product-detail__brand')?.innerText?.trim() || '';
+                        const priceText = card?.querySelector('.price-now, .product-card__price-now')?.innerText || '0';
+                        const price = parseFloat(priceText.replace(/[^\d]/g, '')) || 0;
+                        window.tpBehaviorTracker.pushAction('add_cart', { id: productId, name: name }, { price: price, brand: brand });
+                    }
+                    if (action.includes('wishlist/add')) {
+                        const productId = form.querySelector('input[name="product_id"]')?.value;
+                        const card = form.closest('.product-card') || form.closest('.product-detail');
+                        const name = card?.querySelector('.product-card__name, .product-detail__info h1')?.innerText?.trim() || ('Product #' + productId);
+                        const brand = card?.querySelector('.product-detail__brand')?.innerText?.trim() || '';
+                        window.tpBehaviorTracker.pushAction('wishlist', { id: productId, name: name }, { brand: brand });
+                    }
+                });
+
+                // 2. Theo dõi click ảnh thumbnail
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.product-detail__thumb')) {
+                        const detailContainer = e.target.closest('.product-detail');
+                        const name = detailContainer?.querySelector('.product-detail__info h1')?.innerText?.trim() || 'Product';
+                        window.tpBehaviorTracker.pushAction('click_image', name);
+                    }
+                });
+
+                // 3. Theo dõi đọc review
+                document.addEventListener('click', (e) => {
+                    const target = e.target;
+                    if (target.closest('[href="#reviews"]') || target.closest('.review-tab-trigger')) {
+                        const name = document.querySelector('.product-detail__info h1')?.innerText?.trim() || 'Product';
+                        window.tpBehaviorTracker.pushAction('read_review', name);
+                    }
+                });
+
+                // 4. Theo dõi đổi Sort
+                document.addEventListener('change', (e) => {
+                    if (e.target.id === 'sortBy') {
+                        window.tpBehaviorTracker.pushAction('sort', e.target.value);
+                    }
+                });
+
+                // 5. Theo dõi bộ lọc (Filter)
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.price-apply-btn') || e.target.closest('.btn-filter-apply')) {
+                        const activeFilter = localStorage.getItem('tp_last_category') || 'Filter';
+                        window.tpBehaviorTracker.pushAction('filter', activeFilter);
+                    }
+                });
+            } catch(e) {
+                console.error("Event trackers registration failed:", e);
+            }
+        }
+
+        function generateDynamicChips() {
+            const chipsContainer = document.getElementById('tpChatbotChips');
+            if (!chipsContainer) return;
+
+            let chips = [];
+            const path = window.location.pathname;
+
+            // 1. Kiểm tra ngữ cảnh Trang hiện tại (Phase 7: Context-Aware Chips)
+            if (path.includes('/product/')) {
+                chips.push({
+                    label: "Có đáng mua không?",
+                    query: "Mẫu máy tính này có ưu nhược điểm gì chính và có đáng để xuống tiền không?"
+                });
+                chips.push({
+                    label: "So sánh Lenovo LOQ",
+                    query: "So sánh cấu hình máy này với Lenovo LOQ xem dòng nào ngon hơn và đáng mua hơn?"
+                });
+                chips.push({
+                    label: "Chơi Wukong được không?",
+                    query: "Mẫu máy này cấu hình có đủ chơi game Black Myth Wukong mượt không?"
+                });
+            } else if (path.includes('/cart') || path.includes('/checkout')) {
+                chips.push({
+                    label: "Mã giảm giá",
+                    query: "TechPilot hiện đang có những chương trình khuyến mãi hay mã giảm giá nào không?"
+                });
+                chips.push({
+                    label: "Freeship",
+                    query: "Chính sách giao hàng và miễn phí vận chuyển của TechPilot như thế nào?"
+                });
+                chips.push({
+                    label: "Hỗ trợ trả góp",
+                    query: "TechPilot có hỗ trợ mua trả góp không và lãi suất như thế nào?"
+                });
+            } else {
+                // Sử dụng Lịch sử cá nhân hóa (Personalized Prompt Chips)
+                let history = [];
+                try {
+                    const saved = localStorage.getItem('tp_user_history');
+                    if (saved) history = JSON.parse(saved);
+                } catch(e) {}
+
+                const viewedProducts = history.filter(h => h.type === 'product_detail').map(h => h.value);
+                const viewedCategories = history.filter(h => h.type === 'view_category').map(h => h.value);
+                const searchKeywords = history.filter(h => h.type === 'search').map(h => h.value);
+
+                if (viewedProducts.length >= 2) {
+                    const p1 = viewedProducts[0];
+                    const p2 = viewedProducts[1];
+                    if (p1.name !== p2.name) {
+                        const s1 = p1.name.split(' ').slice(0, 2).join(' ');
+                        const s2 = p2.name.split(' ').slice(0, 2).join(' ');
+                        chips.push({
+                            label: `So sánh ${s1} & ${s2}`,
+                            query: `Hãy so sánh cấu hình chi tiết giữa "${p1.name}" và "${p2.name}"`
+                        });
+                    }
+                }
+
+                if (viewedProducts.length >= 1) {
+                    const p = viewedProducts[0];
+                    const shortName = p.name.split(' ').slice(0, 3).join(' ');
+                    chips.push({
+                        label: `Đánh giá ${shortName}`,
+                        query: `Đánh giá hiệu năng và phân tích cấu hình của mẫu "${p.name}"`
+                    });
+                }
+
+                if (viewedCategories.length >= 1) {
+                    const cat = viewedCategories[0];
+                    const catFormatted = cat.replace(/-/g, ' ');
+                    chips.push({
+                        label: `Tư vấn ${catFormatted}`,
+                        query: `Tư vấn cho tôi mẫu máy tốt nhất thuộc danh mục "${catFormatted}"`
+                    });
+                }
+
+                if (searchKeywords.length >= 1) {
+                    const kw = searchKeywords[0];
+                    chips.push({
+                        label: `Hỏi về "${kw}"`,
+                        query: `Tôi đang quan tâm đến "${kw}", tư vấn sản phẩm thích hợp`
+                    });
+                }
+            }
+
+            // Fallback gợi ý mặc định
+            if (chips.length < 3) {
+                chips.push({
+                    label: "Tư vấn nhu cầu",
+                    query: "Tôi muốn tư vấn chọn Laptop theo nhu cầu"
+                });
+            }
+            if (chips.length < 3) {
+                chips.push({
+                    label: "AI So sánh",
+                    query: "Tôi muốn so sánh cấu hình các máy"
+                });
+            }
+            if (chips.length < 3) {
+                chips.push({
+                    label: "Chọn theo ngân sách",
+                    query: "Tôi muốn tìm laptop theo khoảng giá cụ thể"
+                });
+            }
+
+            // Lọc bỏ những Prompt Chips đã bị tắt (dismissed) trước đó
+            let dismissed = [];
+            try {
+                const saved = localStorage.getItem('tp_dismissed_chips');
+                if (saved) dismissed = JSON.parse(saved);
+            } catch(e) {}
+
+            const activeChips = chips.filter(c => !dismissed.includes(c.label));
+
+            // Render active chips kèm nút tắt "x"
+            chipsContainer.innerHTML = '';
+            activeChips.slice(0, 3).forEach(chip => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'tp-chip-wrapper';
+                wrapper.style.display = 'inline-flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.background = 'rgba(255, 255, 255, 0.1)';
+                wrapper.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+                wrapper.style.borderRadius = '20px';
+                wrapper.style.margin = '4px';
+                wrapper.style.padding = '4px 10px';
+                wrapper.style.cursor = 'pointer';
+                wrapper.style.fontSize = '12px';
+                wrapper.style.backdropFilter = 'blur(10px)';
+                wrapper.style.color = '#FFFFFF';
+                wrapper.style.transition = 'all 0.2s';
+
+                const textSpan = document.createElement('span');
+                textSpan.innerText = chip.label;
+                textSpan.style.marginRight = '6px';
+                textSpan.onclick = () => askChip(chip.query);
+
+                const closeBtn = document.createElement('span');
+                closeBtn.innerHTML = '&times;';
+                closeBtn.style.fontWeight = 'bold';
+                closeBtn.style.color = 'rgba(255,255,255,0.6)';
+                closeBtn.style.cursor = 'pointer';
+                closeBtn.style.fontSize = '14px';
+                closeBtn.style.lineHeight = '1';
+                closeBtn.onmouseover = () => closeBtn.style.color = '#FF4D4D';
+                closeBtn.onmouseout = () => closeBtn.style.color = 'rgba(255,255,255,0.6)';
+                closeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    dismissed.push(chip.label);
+                    localStorage.setItem('tp_dismissed_chips', JSON.stringify(dismissed));
+                    window.tpBehaviorTracker.pushAction('dismiss_chip', chip.label);
+                    generateDynamicChips();
+                };
+
+                wrapper.appendChild(textSpan);
+                wrapper.appendChild(closeBtn);
+                chipsContainer.appendChild(wrapper);
+            });
+        }
+
+        function loadChatHistory() {
+            try {
+                const history = JSON.parse(sessionStorage.getItem('tp_chat_history') || '[]');
+                const msgBox = document.getElementById('tpChatbotMessages');
+                if (!msgBox) return;
+
+                if (msgBox.children.length > 0) return;
+
+                if (history.length === 0) {
+                    const hour = new Date().getHours();
+                    const month = new Date().getMonth() + 1;
+                    let greeting = "Xin chào! 👋 Tôi là trợ lý ảo **TechPilot AI**.";
+
+                    if (hour >= 22) {
+                        greeting = "Chào bạn buổi tối muộn! 🌙 Bạn vẫn đang online tìm kiếm cấu hình máy tốt sao? Mình luôn sẵn sàng tư vấn giúp bạn nhé!";
+                    } else if (hour >= 18) {
+                        greeting = "Chào buổi tối! 🌆 Đã đến lúc nghỉ ngơi thư giãn, bạn đang tìm cấu hình để làm việc hay chiến game thế?";
+                    } else if (hour >= 12) {
+                        greeting = "Chào buổi trưa/chiều! ☀️ Chúc bạn ngày làm việc hiệu quả. Hôm nay mình có thể giúp gì cho bạn nhỉ?";
+                    } else {
+                        greeting = "Chào buổi sáng! 🌅 Ngày mới năng lượng nhé. Hãy cho mình biết bạn đang tìm mẫu laptop hay PC như thế nào?";
+                    }
+
+                    if (month === 8 || month === 9) {
+                        greeting += " 🎓 Đặc biệt, chương trình **Back To School** đang bùng nổ tại cửa hàng! Rất nhiều laptop học tập cực chất giá ưu đãi đang chờ bạn khám phá đấy!";
+                    }
+
+                    renderBotMessage(greeting, true, true);
+                    renderInitialActions();
+                    return;
+                }
+
+                history.forEach(msg => {
+                    if (msg.sender === 'user') {
+                        renderUserMessage(msg.content, false);
+                    } else {
+                        if (msg.type === 'recommendations') {
+                            renderBotMessage(msg.content, false, false);
+                            renderRecommendations(msg.recommendations, false);
+                        } else {
+                            renderBotMessage(msg.content, false, false);
+                        }
+                    }
+                });
+            } catch(e) {
+                console.error("Error loading chat history:", e);
+            }
+        }
+
         // Toggle Chat Window
         function toggleChatbot() {
             const windowEl = document.getElementById('tpChatbotWindow');
@@ -1167,12 +1760,13 @@
             if (chatbotOpen) {
                 windowEl.classList.add('is-open');
                 if (launcherEl) launcherEl.style.display = 'none';
-                // Khởi tạo tin nhắn chào mừng nếu chưa có
-                const msgBox = document.getElementById('tpChatbotMessages');
-                if (msgBox.children.length === 0) {
-                    renderBotMessage("Xin chào! 👋 Tôi là trợ lý ảo **TechPilot AI**. Tôi có thể giúp gì cho bạn hôm nay?");
-                    renderInitialActions();
-                }
+                
+                // Khởi tạo gợi ý động dựa trên lịch sử xem/tìm kiếm của user
+                generateDynamicChips();
+
+                // Tải lại lịch sử cuộc trò chuyện (Phase 6: Conversation Retention)
+                loadChatHistory();
+                
                 // Tải trước danh sách laptop nếu chưa tải
                 if (chatbotProducts.length === 0) {
                     loadChatbotProducts();
@@ -1195,21 +1789,159 @@
                 .catch(err => console.error("Error loading chatbot products:", err));
         }
 
+        // Voice Advisor & Typewriter Logic
+        let currentUtterance = null;
+        window.speakText = function(btn, text) {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                document.querySelectorAll('.tp-speech-btn').forEach(b => b.classList.remove('speaking'));
+                if (currentUtterance && currentUtterance.btn === btn) {
+                    currentUtterance = null;
+                    return;
+                }
+            }
+
+            const cleanText = text.replace(/[*#_`~]/g, ''); // strip markdown formatting for clean reading
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.btn = btn;
+            
+            const voices = window.speechSynthesis.getVoices();
+            const viVoice = voices.find(voice => voice.lang.includes('vi') || voice.lang.includes('VI'));
+            if (viVoice) {
+                utterance.voice = viVoice;
+            }
+            
+            utterance.rate = 1.05;
+            utterance.pitch = 1.0;
+            
+            utterance.onstart = () => {
+                btn.classList.add('speaking');
+                currentUtterance = utterance;
+            };
+            
+            utterance.onend = () => {
+                btn.classList.remove('speaking');
+                currentUtterance = null;
+            };
+            
+            utterance.onerror = () => {
+                btn.classList.remove('speaking');
+                currentUtterance = null;
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        window.feedbackMessage = function(btn, isPositive, text) {
+            const icon = btn.querySelector('i');
+            if (isPositive) {
+                icon.className = 'fa-solid fa-thumbs-up';
+                btn.style.color = '#10B981';
+                window.tpBehaviorTracker.pushAction('recommend_success', text.substring(0, 100));
+            } else {
+                icon.className = 'fa-solid fa-thumbs-down';
+                btn.style.color = '#EF4444';
+                window.tpBehaviorTracker.pushAction('recommend_failed', text.substring(0, 100));
+            }
+            const parent = btn.parentElement;
+            parent.querySelectorAll('.tp-feedback-btn').forEach(b => {
+                b.disabled = true;
+                b.style.cursor = 'default';
+                if (b !== btn) b.style.opacity = '0.3';
+            });
+        }
+
+        window.askChip = function(text) {
+            const input = document.getElementById('tpChatbotInput');
+            if (input) {
+                input.value = text;
+                sendChatbotMessage();
+            }
+        }
+
         // Renders
-        function renderBotMessage(html) {
+        function renderBotMessage(html, useTypewriter = true, shouldSave = true) {
             const msgBox = document.getElementById('tpChatbotMessages');
             const wrapper = document.createElement('div');
             wrapper.className = 'tp-message bot';
+            
+            const tempDiv = document.createElement('div');
+            const formatted = formatMarkdownText(html);
+            tempDiv.innerHTML = formatted;
+            const plainText = tempDiv.textContent || tempDiv.innerText || "";
+            const sanitizedText = plainText.replace(/"/g, '&quot;').replace(/'/g, "\\'").replace(/\n/g, ' ');
+            
+            if (shouldSave) {
+                saveToChatHistory('bot', html, 'text');
+            }
+
             wrapper.innerHTML = `
-                <div class="tp-message-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>
-                <div class="tp-message-content">${formatMarkdownText(html)}</div>
+                <div class="tp-message-avatar">
+                    <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                    <div class="tp-message-content"></div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                        <button type="button" class="tp-speech-btn" onclick="speakText(this, '${sanitizedText.trim()}')" title="Đọc tin nhắn">
+                            <i class="fa-solid fa-volume-high"></i> Đọc thành tiếng
+                        </button>
+                        <button type="button" class="tp-feedback-btn thumbs-up" onclick="feedbackMessage(this, true, '${sanitizedText.trim()}')" title="Hữu ích" style="border: none; background: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 4px; transition: all 0.2s;">
+                            <i class="fa-regular fa-thumbs-up"></i>
+                        </button>
+                        <button type="button" class="tp-feedback-btn thumbs-down" onclick="feedbackMessage(this, false, '${sanitizedText.trim()}')" title="Không hữu ích" style="border: none; background: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 4px; transition: all 0.2s;">
+                            <i class="fa-regular fa-thumbs-down"></i>
+                        </button>
+                    </div>
+                </div>
             `;
             msgBox.appendChild(wrapper);
-            scrollChatToBottom();
+            
+            const contentEl = wrapper.querySelector('.tp-message-content');
+            
+            if (useTypewriter && html.length > 10) {
+                const words = html.split(' ');
+                let currentWordIndex = 0;
+                contentEl.innerHTML = "";
+                
+                function typeWord() {
+                    if (currentWordIndex < words.length) {
+                        contentEl.innerHTML = formatMarkdownText(words.slice(0, currentWordIndex + 1).join(' '));
+                        currentWordIndex++;
+                        scrollChatToBottom();
+                        setTimeout(typeWord, 40); // natural fast reading pace
+                    } else {
+                        scrollChatToBottom();
+                    }
+                }
+                typeWord();
+            } else {
+                contentEl.innerHTML = formatted;
+                scrollChatToBottom();
+            }
+            
             return wrapper;
         }
 
-        function renderUserMessage(text) {
+        function saveToChatHistory(sender, content, type = 'text', recommendations = null) {
+            try {
+                let history = JSON.parse(sessionStorage.getItem('tp_chat_history') || '[]');
+                history.push({
+                    sender: sender,
+                    content: content,
+                    type: type,
+                    recommendations: recommendations,
+                    timestamp: Date.now()
+                });
+                if (history.length > 50) {
+                    history = history.slice(history.length - 50);
+                }
+                sessionStorage.setItem('tp_chat_history', JSON.stringify(history));
+            } catch(e) {
+                console.error("Error saving chat history:", e);
+            }
+        }
+
+        function renderUserMessage(text, shouldSave = true) {
             const msgBox = document.getElementById('tpChatbotMessages');
             const wrapper = document.createElement('div');
             wrapper.className = 'tp-message user';
@@ -1218,6 +1950,10 @@
             `;
             msgBox.appendChild(wrapper);
             scrollChatToBottom();
+            
+            if (shouldSave) {
+                saveToChatHistory('user', text);
+            }
         }
 
         function renderTypingIndicator() {
@@ -1392,7 +2128,8 @@
                     const params = new URLSearchParams({
                         group: chatbotQuizState.profile.group,
                         budget: chatbotQuizState.profile.budget,
-                        priority: chatbotQuizState.profile.priority
+                        priority: chatbotQuizState.profile.priority,
+                        _t: Date.now()
                     });
 
                     fetch('<?= url("chatbot/query?") ?>' + params.toString())
@@ -1415,8 +2152,12 @@
         }
 
         // Hiển thị Card các sản phẩm đề xuất
-        function renderRecommendations(recs) {
+        function renderRecommendations(recs, shouldSave = true) {
             if (!recs || recs.length === 0) return;
+
+            if (shouldSave) {
+                saveToChatHistory('bot', 'Dưới đây là một số đề xuất sản phẩm dành cho bạn:', 'recommendations', recs);
+            }
 
             const msgBox = document.getElementById('tpChatbotMessages');
             const container = document.createElement('div');
@@ -1790,7 +2531,7 @@
             renderUserMessage(label);
             
             const indicator = renderTypingIndicator();
-            fetch(`<?= url("chatbot/query?budget=") ?>${bracket}`)
+            fetch(`<?= url("chatbot/query?budget=") ?>${bracket}&_t=${Date.now()}`)
                 .then(res => res.json())
                 .then(res => {
                     removeTypingIndicator(indicator);
@@ -1851,9 +2592,25 @@
             inputEl.value = '';
             renderUserMessage(text);
 
+            const lower = text.toLowerCase().trim();
+            if (lower === 'reset' || lower === 'từ đầu' || lower === 'tu dau') {
+                sessionStorage.removeItem('tp_chat_history');
+                const msgBox = document.getElementById('tpChatbotMessages');
+                if (msgBox) msgBox.innerHTML = '';
+            }
+
             const indicator = renderTypingIndicator();
 
-            fetch('<?= url("chatbot/query?q=") ?>' + encodeURIComponent(text))
+            const profile = localStorage.getItem('tp_interest_profile') || '';
+            const sessionViews = sessionStorage.getItem('tp_current_session_views') || '';
+            const currentPage = window.location.pathname;
+
+            let url = '<?= url("chatbot/query?q=") ?>' + encodeURIComponent(text);
+            if (profile) url += '&profile=' + encodeURIComponent(profile);
+            if (sessionViews) url += '&session_views=' + encodeURIComponent(sessionViews);
+            if (currentPage) url += '&current_page=' + encodeURIComponent(currentPage);
+
+            fetch(url)
                 .then(res => res.json())
                 .then(res => {
                     removeTypingIndicator(indicator);
@@ -1866,9 +2623,6 @@
                             renderRecommendations(res.recommendations);
                         } else {
                             renderBotMessage(res.message);
-                            setTimeout(() => {
-                                renderInitialActions();
-                            }, 500);
                         }
                     } else {
                         // Tìm kiếm thô sản phẩm phù hợp nếu AI không nhận diện được từ khóa cụ thể
@@ -1883,7 +2637,16 @@
 
         function searchRawProducts(text) {
             const indicator = renderTypingIndicator();
-            fetch('<?= url("chatbot/query?q=") ?>' + encodeURIComponent(text) + '&priority=performance')
+            const profile = localStorage.getItem('tp_interest_profile') || '';
+            const sessionViews = sessionStorage.getItem('tp_current_session_views') || '';
+            const currentPage = window.location.pathname;
+
+            let url = '<?= url("chatbot/query?q=") ?>' + encodeURIComponent(text) + '&priority=performance';
+            if (profile) url += '&profile=' + encodeURIComponent(profile);
+            if (sessionViews) url += '&session_views=' + encodeURIComponent(sessionViews);
+            if (currentPage) url += '&current_page=' + encodeURIComponent(currentPage);
+
+            fetch(url)
                 .then(res => res.json())
                 .then(res => {
                     removeTypingIndicator(indicator);
