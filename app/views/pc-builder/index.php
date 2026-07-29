@@ -970,13 +970,16 @@
         productIds.forEach(id => formData.append('product_ids[]', id));
         
         // CSRF Token
-        const csrfToken = document.querySelector('input[name="csrf_token"]') || document.querySelector('input[name="_csrf"]');
-        if (csrfToken) {
-            formData.append('csrf_token', csrfToken.value);
-        }
+        const csrfTokenVal = document.querySelector('input[name="csrf_token"]')?.value 
+            || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+            || '<?= $_SESSION["csrf_token"] ?? "" ?>';
+        formData.append('csrf_token', csrfTokenVal);
 
         fetch('<?= url("pc-builder/add-to-cart") ?>', {
             method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrfTokenVal
+            },
             body: formData
         })
         .then(res => res.json())
