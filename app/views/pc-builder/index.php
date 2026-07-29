@@ -587,6 +587,7 @@
     let pcConfig = {};
     let activePartKey = '';
     let searchDebounceTimeout = null;
+    let psuAnalysisAbortController = null;
 
     // Phục hồi từ localStorage nếu đã chọn từ trước
     if (localStorage.getItem('pc_config')) {
@@ -778,10 +779,7 @@
     }
 
     /** Gọi API phân tích tương thích chéo toàn cấu hình & tính toán công suất nguồn */
-    function analyzeBuild() {
-    let psuAnalysisAbortController = null;
-
-    async function updatePsuAnalysis() {
+    async function analyzeBuild() {
         if (psuAnalysisAbortController) {
             psuAnalysisAbortController.abort();
         }
@@ -889,60 +887,61 @@
             let hasBlockers = false;
             let missingCores = [];
 
-                    // Yêu cầu linh kiện cốt lõi để mua hàng
-                    if (cpuId === 0) missingCores.push('CPU');
-                    if (mainboardId === 0) missingCores.push('Bo mạch chủ');
-                    if (ramId === 0) missingCores.push('RAM');
-                    if (storageId === 0) missingCores.push('Ổ cứng');
-                    if (psuId === 0) missingCores.push('Nguồn (PSU)');
+            // Yêu cầu linh kiện cốt lõi để mua hàng
+            if (cpuId === 0) missingCores.push('CPU');
+            if (mainboardId === 0) missingCores.push('Bo mạch chủ');
+            if (ramId === 0) missingCores.push('RAM');
+            if (storageId === 0) missingCores.push('Ổ cứng');
+            if (psuId === 0) missingCores.push('Nguồn (PSU)');
 
-                    // Duyệt các lỗi nghiêm trọng (Blockers)
-                    if (data.blockers && data.blockers.length > 0) {
-                        hasBlockers = true;
-                        data.blockers.forEach(msg => {
-                            alertsList.innerHTML += `
-                                <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
-                                    <i class="fa-solid fa-circle-xmark"></i> ${msg}
-                                </div>
-                            `;
-                        });
-                    }
+            // Duyệt các lỗi nghiêm trọng (Blockers)
+            if (data.blockers && data.blockers.length > 0) {
+                hasBlockers = true;
+                data.blockers.forEach(msg => {
+                    alertsList.innerHTML += `
+                        <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
+                            <i class="fa-solid fa-circle-xmark"></i> ${msg}
+                        </div>
+                    `;
+                });
+            }
 
-                    if (missingCores.length > 0) {
-                        hasBlockers = true; // Not technically a "blocker" array element from backend, but it blocks purchase
-                        alertsList.innerHTML += `
-                            <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
-                                <i class="fa-solid fa-circle-xmark"></i> Thiếu linh kiện cốt lõi: ${missingCores.join(', ')}
-                            </div>
-                        `;
-                    }
+            if (missingCores.length > 0) {
+                hasBlockers = true;
+                alertsList.innerHTML += `
+                    <div style="color:#EF4444; background:#FEF2F2; border: 1px solid #FCA5A5; padding:8px 12px; border-radius:6px; font-weight:600;">
+                        <i class="fa-solid fa-circle-xmark"></i> Thiếu linh kiện cốt lõi: ${missingCores.join(', ')}
+                    </div>
+                `;
+            }
 
-                    // Duyệt các cảnh báo (Warnings)
-                    if (data.warnings && data.warnings.length > 0) {
-                        data.warnings.forEach(msg => {
-                            alertsList.innerHTML += `
-                                <div style="color:#D97706; background:#FFFBEB; border: 1px solid #FCD34D; padding:8px 12px; border-radius:6px; font-weight:600;">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> ${msg}
-                                </div>
-                            `;
-                        });
-                    }
+            // Duyệt các cảnh báo (Warnings)
+            if (data.warnings && data.warnings.length > 0) {
+                data.warnings.forEach(msg => {
+                    alertsList.innerHTML += `
+                        <div style="color:#D97706; background:#FFFBEB; border: 1px solid #FCD34D; padding:8px 12px; border-radius:6px; font-weight:600;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> ${msg}
+                        </div>
+                    `;
+                });
+            }
 
-                    if (hasBlockers || (data.warnings && data.warnings.length > 0)) {
-                        alertsContainer.style.display = 'block';
-                    } else {
-                        alertsContainer.style.display = 'none';
-                    }
+            if (hasBlockers || (data.warnings && data.warnings.length > 0)) {
+                alertsContainer.style.display = 'block';
+            } else {
+                alertsContainer.style.display = 'none';
+            }
 
-                    // Vô hiệu hóa nút thêm vào giỏ hàng nếu cấu hình có Blockers
-                    if (hasBlockers) {
-                        btnAddToCart.disabled = true;
-                        btnAddToCart.style.opacity = '0.5';
-                        btnAddToCart.style.cursor = 'not-allowed';
-                    } else {
-                        btnAddToCart.disabled = false;
-                        btnAddToCart.style.opacity = '1';
-                        btnAddToCart.style.cursor = 'pointer';
+            // Vô hiệu hóa nút thêm vào giỏ hàng nếu cấu hình có Blockers
+            if (hasBlockers) {
+                btnAddToCart.disabled = true;
+                btnAddToCart.style.opacity = '0.5';
+                btnAddToCart.style.cursor = 'not-allowed';
+            } else {
+                btnAddToCart.disabled = false;
+                btnAddToCart.style.opacity = '1';
+                btnAddToCart.style.cursor = 'pointer';
+            }
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error("Analysis error: ", err);
