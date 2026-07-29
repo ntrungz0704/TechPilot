@@ -1645,8 +1645,10 @@ class ChatbotController extends Controller
         $userId = $isLoggedIn ? (int)$_SESSION['user']['id'] : null;
 
         $limit = $isLoggedIn ? 20 : 5;
-        $identifier = $isLoggedIn ? ('user:' . $userId) : ('ip:' . $this->getClientIp());
-        $today = date('Y-m-d');
+        // Đảm bảo tính ngày theo Múi giờ Hà Nội / Việt Nam (Asia/Ho_Chi_Minh - UTC+7)
+        $tz = new DateTimeZone('Asia/Ho_Chi_Minh');
+        $dt = new DateTime('now', $tz);
+        $today = $dt->format('Y-m-d');
 
         // 1. Đảm bảo bảng tồn tại
         try {
