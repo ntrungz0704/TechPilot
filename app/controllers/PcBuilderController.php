@@ -132,7 +132,7 @@ class PcBuilderController extends Controller
                 'price' => (float)$p['price'],
                 'price_formatted' => formatPrice((float)$p['price']),
                 'stock' => (int)$p['stock'],
-                'image_url' => empty($p['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($p['image'], 'http') ? $p['image'] : '/assets/images/products/' . $p['image']),
+                'image_url' => empty($p['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($p['image'], 'http') ? $p['image'] : (str_starts_with($p['image'], 'assets/') ? '/' . $p['image'] : '/assets/images/products/' . $p['image'])),
                 'specs' => $p['specs'],
                 'compatible' => empty($compat['blockers']),
                 'blockers' => $compat['blockers'],
