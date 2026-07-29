@@ -72,6 +72,19 @@ if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', dirname(__DIR__));
 }
 
-// Bật hiển thị lỗi khi phát triển (tắt khi lên production)
+// Chuẩn hóa môi trường APP_ENV (mặc định production nếu thiếu hoặc không hợp lệ)
+$rawEnv = strtolower(trim((string)(getenv('APP_ENV') ?: 'production')));
+$appEnv = in_array($rawEnv, ['development', 'testing', 'production'], true) ? $rawEnv : 'production';
+if (!defined('APP_ENV')) {
+    define('APP_ENV', $appEnv);
+}
+
+// Bật/tắt display_errors dựa theo môi trường
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+if (APP_ENV === 'development') {
+    ini_set('display_errors', '1');
+    ini_set('log_errors', '1');
+} else {
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
+}

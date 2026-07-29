@@ -29,14 +29,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($path, $exactExemptions, true)) {
         $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $savedToken = $_SESSION['csrf_token'] ?? '';
+
+        $contentType   = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? ''));
+        $accept        = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
+        $requestedWith = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+
+        $isJsonRequest = str_contains($contentType, 'application/json')
+            || str_contains($accept, 'application/json')
+            || $requestedWith === 'xmlhttprequest';
+
         if ($token === '' || !hash_equals($savedToken, $token)) {
             http_response_code(403);
-            $isJson = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-            if ($isJson || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            if ($isJsonRequest) {
                 header('Content-Type: application/json; charset=utf-8');
-                echo json_encode(['success' => false, 'error' => 'CSRF Token mismatch. Vui lòng làm mới trang.']);
+                echo json_encode([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'CSRF_TOKEN_MISMATCH',
+                        'message' => 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang.'
+                    ]
+                ], JSON_UNESCAPED_UNICODE);
             } else {
-                die('Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng tải lại trang.');
+                ErrorHandler::renderErrorView(403);
             }
             exit;
         }

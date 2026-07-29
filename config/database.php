@@ -56,7 +56,12 @@ if (!class_exists('Database')) {
                 try {
                     self::$instance = new PDO($dsn, $user, $pass, $options);
                 } catch (PDOException $e) {
-                    error_log('Database connection error: ' . $e->getMessage());
+                    $appEnv = defined('APP_ENV') ? APP_ENV : 'production';
+                    if ($appEnv === 'development') {
+                        error_log('Database connection error: ' . $e->getMessage());
+                    } else {
+                        error_log('Database connection failed (Code: ' . $e->getCode() . ')');
+                    }
                     self::$instance = null;
                 }
             }

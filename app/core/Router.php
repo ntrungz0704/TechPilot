@@ -28,9 +28,12 @@ class Router
     public function dispatch(string $url): void
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if ($method === 'HEAD') {
+            $method = 'GET';
+        }
         
         // Loại bỏ query string nếu có
-        $path = '/' . trim(parse_url($url, PHP_URL_PATH), '/');
+        $path = '/' . trim(parse_url($url, PHP_URL_PATH) ?? '', '/');
 
         // 1. Kiểm tra trong danh sách route đã đăng ký (GET/POST với regex)
         if (isset($this->routes[$method])) {
