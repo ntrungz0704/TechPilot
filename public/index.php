@@ -14,9 +14,9 @@ $url = $_GET['url'] ?? '';
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Exclude /api/chat if needed or validate token from header / JSON input
+    // Exclude /api/chat và /chatbot/sync nếu gửi dữ liệu JSON từ client
     $uri = $_SERVER['REQUEST_URI'] ?? '';
-    if (strpos($uri, '/api/chat') === false) {
+    if (strpos($uri, '/api/chat') === false && strpos($uri, '/chatbot/sync') === false) {
         $token = $_POST['csrf_token'] ?? $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $savedToken = $_SESSION['csrf_token'] ?? '';
         if ($token === '' || !hash_equals($savedToken, $token)) {
@@ -59,7 +59,10 @@ $router->get('/api/inventory/category/{id}', 'InventoryApiController@category');
 // API Notifications & Wishlist & Chatbot
 $router->get('/api/notifications/unread', 'ProfileController@apiUnreadNotifications');
 $router->post('/wishlist/toggle', 'WishlistController@toggle');
-$router->post('/api/chat', 'ChatbotController@apiChat');
+$router->get('/chatbot/products', 'ChatbotController@products');
+$router->get('/chatbot/compare', 'ChatbotController@compare');
+$router->get('/chatbot/query', 'ChatbotController@query');
+$router->post('/chatbot/sync', 'ChatbotController@sync');
 
 // Admin Dashboard Route
 $router->get('/admin', 'AdminController@index');
