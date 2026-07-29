@@ -35,7 +35,6 @@ class UploadService
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $realMime = finfo_file($finfo, $tmpPath);
-        finfo_close($finfo);
 
         if (!isset(self::$allowedMimeTypes[$realMime])) {
             throw new Exception('Định dạng tệp không hợp lệ. Chỉ chấp nhận JPG, PNG, WEBP, GIF.');

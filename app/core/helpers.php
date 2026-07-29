@@ -552,36 +552,38 @@ if (!function_exists('readingMinutes')) {
  * Không tự tạo hoặc giả lập logo.
  */
 if (!function_exists('brandLogoUrl')) {
-    function brandLogoUrl(?string $path, ?string $slug = null): ?string
+    function brandLogoUrl(?string $path): ?string
     {
         if (empty($path)) {
             return null;
         }
 
         $relativePath = ltrim(str_replace('\\', '/', trim($path)), '/');
-        if (str_contains($relativePath, '..') || preg_match('/^[A-Za-z]:/', $relativePath)) {
+        if (str_contains($relativePath, '..') || str_starts_with($relativePath, 'http://') || str_starts_with($relativePath, 'https://') || preg_match('/^[A-Za-z]:/', $relativePath)) {
             return null;
         }
 
-        if (!str_starts_with($relativePath, 'assets/')) {
-            $relativePath = 'assets/images/brands/' . $relativePath;
+        if (!str_starts_with($relativePath, 'assets/images/brands/')) {
+            return null;
         }
 
         $fullDiskPath = ROOT_PATH . '/public/' . $relativePath;
-        if (!file_exists($fullDiskPath) || !is_file($fullDiskPath)) {
+        if (!file_exists($fullDiskPath) || !is_file($fullDiskPath) || filesize($fullDiskPath) === 0) {
             return null;
         }
 
         $ext = strtolower(pathinfo($fullDiskPath, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['svg', 'png'], true)) {
+            return null;
+        }
+
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $fullDiskPath);
 
         $isValidMime = false;
         if ($ext === 'png' && $mime === 'image/png') {
             $isValidMime = true;
-        } elseif (($ext === 'jpg' || $ext === 'jpeg') && $mime === 'image/jpeg') {
-            $isValidMime = true;
-        } elseif ($ext === 'svg' && ($mime === 'image/svg+xml' || $mime === 'text/plain' || $mime === 'text/xml')) {
+        } elseif ($ext === 'svg' && in_array($mime, ['image/svg+xml', 'text/plain', 'text/xml'], true)) {
             $isValidMime = true;
         }
 

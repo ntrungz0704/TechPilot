@@ -15,7 +15,7 @@ class Brand
     {
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->query('SELECT * FROM brands WHERE status = \'active\' ORDER BY id ASC');
+                $stmt = $this->db->query("SELECT * FROM brands WHERE status = 'active' ORDER BY id ASC");
                 $res = $stmt->fetchAll();
                 if (!empty($res)) {
                     return $res;
@@ -23,23 +23,23 @@ class Brand
             } catch (Exception $e) {}
         }
 
-        return [
-            ['id' => 1, 'name' => 'ASUS', 'slug' => 'asus', 'logo' => 'asus.png'],
-            ['id' => 2, 'name' => 'MSI', 'slug' => 'msi', 'logo' => 'msi.png'],
-            ['id' => 3, 'name' => 'GIGABYTE', 'slug' => 'gigabyte', 'logo' => 'gigabyte.png'],
-            ['id' => 4, 'name' => 'DELL', 'slug' => 'dell', 'logo' => 'dell.png'],
-            ['id' => 5, 'name' => 'HP', 'slug' => 'hp', 'logo' => 'hp.png'],
-            ['id' => 6, 'name' => 'Lenovo', 'slug' => 'lenovo', 'logo' => 'lenovo.png'],
-            ['id' => 7, 'name' => 'Razer', 'slug' => 'razer', 'logo' => 'razer.png'],
-            ['id' => 8, 'name' => 'Corsair', 'slug' => 'corsair', 'logo' => 'corsair.png'],
-            ['id' => 9, 'name' => 'Intel', 'slug' => 'intel', 'logo' => 'intel.png'],
-            ['id' => 10, 'name' => 'AMD', 'slug' => 'amd', 'logo' => 'amd.png'],
-            ['id' => 11, 'name' => 'Samsung', 'slug' => 'samsung', 'logo' => 'samsung.png'],
-            ['id' => 12, 'name' => 'Apple', 'slug' => 'apple', 'logo' => 'apple.png'],
-            ['id' => 13, 'name' => 'Logitech', 'slug' => 'logitech', 'logo' => 'logitech.png'],
-            ['id' => 14, 'name' => 'LG', 'slug' => 'lg', 'logo' => 'lg.png'],
-            ['id' => 15, 'name' => 'Acer', 'slug' => 'acer', 'logo' => 'acer.png'],
-            ['id' => 16, 'name' => 'Kingston', 'slug' => 'kingston', 'logo' => 'kingston.png'],
-        ];
+        $sourcesPath = ROOT_PATH . '/config/brand-logo-sources.php';
+        if (file_exists($sourcesPath)) {
+            $sources = require $sourcesPath;
+            $fallback = [];
+            $idCounter = 1;
+            foreach ($sources as $slug => $info) {
+                $fallback[] = [
+                    'id'     => $idCounter++,
+                    'name'   => $info['brand_name'] ?? ucfirst($slug),
+                    'slug'   => $slug,
+                    'logo'   => $info['file'] ?? null,
+                    'status' => 'active'
+                ];
+            }
+            return $fallback;
+        }
+
+        return [];
     }
 }
