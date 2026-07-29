@@ -236,7 +236,10 @@ class ProductIntelligenceService
 
         foreach ($candidates as $i => $c) {
             $specs = json_decode($c['specs'] ?? '{}', true) ?: [];
-            $specsStr = implode(', ', array_map(function($k, $v) { return "$k: $v"; }, array_keys($specs), $specs));
+            $specsStr = implode(', ', array_map(function($k, $v) {
+                $valStr = is_array($v) ? implode('/', array_filter($v, 'is_scalar')) : (string)$v;
+                return "$k: $valStr";
+            }, array_keys($specs), $specs));
             
             $contextCandidates[] = [
                 'id' => $c['id'],
@@ -315,7 +318,10 @@ class ProductIntelligenceService
     public static function chatProduct(array $product, string $question): string
     {
         $specs = json_decode($product['specs'] ?? '{}', true) ?: [];
-        $specsStr = implode(', ', array_map(function($k, $v) { return "$k: $v"; }, array_keys($specs), $specs));
+        $specsStr = implode(', ', array_map(function($k, $v) {
+            $valStr = is_array($v) ? implode('/', array_filter($v, 'is_scalar')) : (string)$v;
+            return "$k: $valStr";
+        }, array_keys($specs), $specs));
 
         $promptText = "Bạn là trợ lý ảo TechPilot AI. Khách hàng đang xem trang sản phẩm sau và hỏi bạn một câu hỏi:\n\n";
         $promptText .= "Sản phẩm: " . $product['name'] . "\n";
