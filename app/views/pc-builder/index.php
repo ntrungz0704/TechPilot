@@ -816,6 +816,7 @@
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-Token': csrfToken
                 },
                 body: JSON.stringify(payload),

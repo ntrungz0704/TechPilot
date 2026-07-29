@@ -1243,11 +1243,18 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-Token': <?= json_encode($_SESSION['csrf_token'] ?? '') ?>
                 },
                 body: JSON.stringify({ history: history })
             })
-            .then(res => res.json())
+            .then(res => {
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                return res.json();
+            })
             .then(res => {
                 if (res.success) {
                     localStorage.setItem('tp_user_history', JSON.stringify(res.history));
