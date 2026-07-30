@@ -804,7 +804,8 @@ document.addEventListener('DOMContentLoaded', function() {
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
                     <?php if ($logoUrl): ?>
-                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy" decoding="async">
+                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy" decoding="async" onerror="handleBrandLogoError(this, '<?= e($brand['slug'] ?? '') ?>')">
+                        <span class="brand-logo-text-fallback" style="display: none;"><?= e($brand['name']) ?></span>
                     <?php else: ?>
                         <span class="brand-logo-text-fallback"><?= e($brand['name']) ?></span>
                     <?php endif; ?>

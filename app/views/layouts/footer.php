@@ -2026,6 +2026,7 @@
                 });
         }
     </script>
+    <script type="module" src="<?= url('assets/js/brandLogos.js') ?>"></script>
 </body>
 
 </html>
