@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80"><text x="120" y="45" font-family="Impact, Arial Black, sans-serif" font-weight="900" font-size="26" fill="#FF6600" text-anchor="middle" dominant-baseline="middle">XIGMATEK</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(30, 24)">
+    <path fill="#FF5722" d="M0,0 L12,14 L0,28 L8,28 L16,18 L24,28 L32,28 L20,14 L32,0 L24,0 L16,10 L8,0 Z"/>
+    <text x="36" y="24" font-family="'Arial Black', sans-serif" font-size="20" font-weight="900" fill="#111111" letter-spacing="1">XIGMATEK</text>
+  </g>
+</svg>

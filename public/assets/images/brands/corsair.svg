@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80"><path fill="#000" d="M40,25 L80,25 L80,55 L40,55 Z"/><path fill="#FFF" d="M50,30 L70,40 L50,50 Z"/><text x="145" y="45" font-family="Arial, sans-serif" font-weight="900" font-size="22" fill="#000" text-anchor="middle" dominant-baseline="middle">CORSAIR</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(30, 18)">
+    <path fill="#1C1C1C" d="M15,5 L35,35 L5,35 Z M22,12 L35,30 L18,30 Z"/>
+    <text x="45" y="32" font-family="'Arial Black', sans-serif" font-size="22" font-weight="900" fill="#1C1C1C" letter-spacing="1">CORSAIR</text>
+  </g>
+</svg>

@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80"><circle cx="120" cy="40" r="32" fill="#0096D6"/><path fill="#FFF" d="M102,22 L110,22 L100,58 L92,58 Z M114,22 L122,22 L117,40 L126,40 C132,40 136,37 137,33 C138,29 136,26 130,26 L124,26 L125,22 L131,22 C142,22 147,28 144,35 C142,42 134,46 124,46 L112,46 Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(95, 15)">
+    <circle cx="25" cy="25" r="25" fill="#0096D6"/>
+    <g transform="skewX(-15)">
+      <text x="7" y="34" font-family="'Arial Black', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF">hp</text>
+    </g>
+  </g>
+</svg>

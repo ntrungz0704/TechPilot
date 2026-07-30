@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80"><text x="120" y="45" font-family="Impact, Arial Black, sans-serif" font-weight="900" font-size="28" fill="#FFB800" text-anchor="middle" dominant-baseline="middle" letter-spacing="2">ZOTAC</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(55, 24)">
+    <text x="65" y="25" font-family="'Arial Black', sans-serif" font-size="30" font-weight="900" fill="#FF6600" text-anchor="middle" letter-spacing="2">ZOTAC</text>
+  </g>
+</svg>

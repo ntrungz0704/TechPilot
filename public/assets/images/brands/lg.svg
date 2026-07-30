@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80"><circle cx="65" cy="40" r="22" fill="#A50034"/><text x="65" y="45" font-family="Arial, sans-serif" font-weight="bold" font-size="18" fill="#FFF" text-anchor="middle" dominant-baseline="middle">LG</text><text x="145" y="45" font-family="Arial, sans-serif" font-weight="bold" font-size="32" fill="#A50034" text-anchor="middle" dominant-baseline="middle">LG</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(65, 18)">
+    <circle cx="22" cy="22" r="20" fill="#A50034"/>
+    <circle cx="16" cy="16" r="3" fill="#FFFFFF"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="3" d="M28,22 A10,10 0 1,1 18,12 L18,22 L26,22"/>
+    <text x="52" y="32" font-family="'Arial Black', sans-serif" font-size="30" font-weight="900" fill="#A50034">LG</text>
+  </g>
+</svg>

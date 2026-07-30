@@ -147,7 +147,7 @@
             </label>
             <div style="position: relative;">
                 <input type="text" id="compareSearchInput" placeholder="Bấm vào để xem danh sách gợi ý hoặc nhập tên sản phẩm..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box;" oninput="onCompareSearchInput(this.value)" onfocus="onCompareSearchInput(this.value)" onclick="onCompareSearchInput(this.value)">
-                <div id="compareSearchResults" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; max-height: 320px; overflow-y: auto; margin-top: 4px;"></div>
+                <div id="compareSearchResults" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; max-height: 420px; overflow-y: auto; margin-top: 4px;"></div>
             </div>
         </div>
     <?php endif; ?>
@@ -243,7 +243,7 @@
                     <tr style="border-bottom: 1px solid var(--border);">
                         <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Tồn kho thực tế</td>
                         <?php foreach ($products as $p): ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border); font-weight: 700; color: #10B981;">Còn <?= (int)$p['stock'] ?> máy</td>
+                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border); font-weight: 700; color: #10B981;"><?= formatStockText((int)$p['stock'], $p['category_slug'] ?? $activeCategorySlug) ?></td>
                         <?php endforeach; ?>
                         <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
                             <td style="border-left: 1px solid var(--border); text-align: center; color: #94A3B8; font-style: italic; font-size: 12px;">Chưa chọn</td>
@@ -314,7 +314,12 @@
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data && res.data.length > 0) {
-                        const headerText = `<div style="padding: 8px 16px; font-size: 11px; font-weight: 700; color: #64748B; background: #F8FAFC; text-transform: uppercase; border-bottom: 1px solid var(--border);">💡 Sản phẩm danh mục [${activeCatSlug.toUpperCase()}]:</div>`;
+                        const catTitle = (res.category_label || activeCatSlug).toUpperCase();
+                        const countBadge = `(Hiển thị ${res.data.length} sản phẩm)`;
+                        const headerText = `<div style="padding: 10px 16px; font-size: 11.5px; font-weight: 800; color: #475569; background: #F1F5F9; text-transform: uppercase; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <span>💡 DANH SÁCH SẢN PHẨM [${catTitle}]:</span>
+                            <span style="color: #10B981; font-weight: 700;">${countBadge}</span>
+                        </div>`;
                         resultsBox.innerHTML = headerText + res.data.map(p => `
                             <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">

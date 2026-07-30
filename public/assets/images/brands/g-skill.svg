@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(35, 24)">
+    <g transform="skewX(-12)">
+      <text x="85" y="24" font-family="'Arial Black', sans-serif" font-size="24" font-weight="900" fill="#D32F2F" text-anchor="middle" letter-spacing="1">G.SKILL</text>
+    </g>
+  </g>
+</svg>

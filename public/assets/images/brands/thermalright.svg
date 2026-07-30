@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(20, 25)">
+    <text x="100" y="20" font-family="'Impact', 'Arial Black', sans-serif" font-size="21" font-weight="900" fill="#D32F2F" text-anchor="middle" letter-spacing="1">THERMALRIGHT</text>
+  </g>
+</svg>
