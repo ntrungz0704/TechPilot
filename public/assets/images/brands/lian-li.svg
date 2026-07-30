@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
   <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
   <g transform="translate(45, 24)">
-    <text x="75" y="24" font-family="'Impact', 'Arial Black', sans-serif" font-size="28" font-weight="900" fill="#0080FF" text-anchor="middle" letter-spacing="1">ASRock</text>
+    <text x="75" y="24" font-family="'Arial Black', sans-serif" font-size="24" font-weight="900" fill="#E53935" text-anchor="middle" letter-spacing="2">LIAN LI</text>
   </g>
 </svg>

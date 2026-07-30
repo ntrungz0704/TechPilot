@@ -173,6 +173,7 @@ class CompareController extends Controller
         $compareConfig = require ROOT_PATH . '/config/product-comparison.php';
         $categoryIdFilter = 0;
         $categorySlugsFilter = [];
+        $activeCatLabel = '';
 
         // Nếu đã có sản phẩm trong compare session -> Khóa chặt danh mục của sản phẩm đó
         if (!empty($_SESSION['compare'])) {
@@ -180,9 +181,24 @@ class CompareController extends Controller
             $firstProduct = $productModel->getById($_SESSION['compare'][0]);
             if ($firstProduct) {
                 $categoryIdFilter = (int)$firstProduct['category_id'];
+                $activeCatLabel = $firstProduct['category_name'] ?? '';
             }
-        } elseif (!empty($requestedCatSlug) && isset($compareConfig['categories'][$requestedCatSlug])) {
-            $categorySlugsFilter = $compareConfig['categories'][$requestedCatSlug]['slugs'];
+        } elseif (!empty($requestedCatSlug)) {
+            if (isset($compareConfig['categories'][$requestedCatSlug])) {
+                $categorySlugsFilter = $compareConfig['categories'][$requestedCatSlug]['slugs'];
+                $activeCatLabel = $compareConfig['categories'][$requestedCatSlug]['label'] ?? '';
+            } else {
+                foreach ($compareConfig['categories'] as $cKey => $cMeta) {
+                    if (isset($cMeta['slugs']) && in_array($requestedCatSlug, $cMeta['slugs'])) {
+                        $categorySlugsFilter = $cMeta['slugs'];
+                        $activeCatLabel = $cMeta['label'];
+                        break;
+                    }
+                }
+            }
+            if (empty($categorySlugsFilter)) {
+                $categorySlugsFilter = [$requestedCatSlug];
+            }
         }
 
         try {
@@ -221,7 +237,7 @@ class CompareController extends Controller
                 $params[] = '%' . $query . '%';
             }
 
-            // FILTER THEO CATEGORY DÃ KHÓA HOẶC CATEGORY ĐÃ CHỌN
+            // FILTER THEO CATEGORY ĐÃ KHÓA HOẶC CATEGORY ĐÃ CHỌN
             if ($categoryIdFilter > 0) {
                 $sql .= " AND p.category_id = ?";
                 $params[] = $categoryIdFilter;
@@ -241,7 +257,7 @@ class CompareController extends Controller
                 }
             }
 
-            $sql .= " ORDER BY relevance ASC, p.rating DESC, p.id DESC LIMIT 8";
+            $sql .= " ORDER BY relevance ASC, p.rating DESC, p.id DESC LIMIT 100";
 
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
@@ -252,7 +268,14 @@ class CompareController extends Controller
                 $r['image_url']       = productImageUrl($r['image'] ?? '', $r['category_slug'] ?? '', (int)$r['id']);
             }
 
-            echo json_encode(['success' => true, 'data' => $rows]);
+            $catNameResult = $activeCatLabel !== '' ? $activeCatLabel : (!empty($rows[0]['category_name']) ? $rows[0]['category_name'] : '');
+
+            echo json_encode([
+                'success'        => true,
+                'data'           => $rows,
+                'total_count'    => count($rows),
+                'category_label' => $catNameResult
+            ]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }

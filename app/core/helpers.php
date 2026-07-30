@@ -43,6 +43,22 @@ if (!function_exists('formatPrice')) {
     }
 }
 
+if (!function_exists('formatStockText')) {
+    function formatStockText(int $stock, string $categorySlug = ''): string
+    {
+        $slug = strtolower(trim($categorySlug));
+        $unit = 'sản phẩm';
+        if (in_array($slug, ['laptop', 'pc', 'prebuilt_pc', 'prebuilt-pc'])) {
+            $unit = 'máy';
+        } elseif (in_array($slug, ['monitor', 'man-hinh', 'màn-hình'])) {
+            $unit = 'chiếc';
+        } elseif (in_array($slug, ['cpu', 'vga', 'mainboard', 'ram', 'storage', 'psu', 'case', 'cooling', 'keyboard', 'mouse', 'headset', 'chair', 'speaker', 'console', 'accessories'])) {
+            $unit = 'cái';
+        }
+        return 'Còn ' . $stock . ' ' . $unit;
+    }
+}
+
 if (!function_exists('renderStars')) {
     function renderStars(float $rating): string
     {

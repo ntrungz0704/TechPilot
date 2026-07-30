@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
+  <rect width="240" height="80" rx="10" fill="#FFFFFF"/>
+  <g transform="translate(25, 24)">
+    <polygon points="0,0 18,12 0,24" fill="#00529B"/>
+    <text x="24" y="20" font-family="'Arial Black', sans-serif" font-size="20" font-weight="900" fill="#00529B" letter-spacing="0.5">TEAMGROUP</text>
+  </g>
+</svg>
