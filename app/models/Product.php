@@ -1712,4 +1712,34 @@ class Product
         $res = array_filter(self::getSampleProducts(), fn($p) => in_array($p['id'], $ids));
         return array_values($res);
     }
+
+    /**
+     * Lấy danh sách thương hiệu thực tế có sản phẩm thuộc các danh mục
+     */
+    public function getBrandsForCategories(array $categorySlugs): array
+    {
+        if (empty($categorySlugs)) {
+            return [];
+        }
+        if ($this->db === null) {
+            return [];
+        }
+        try {
+            $placeholders = implode(',', array_fill(0, count($categorySlugs), '?'));
+            $sql = "
+                SELECT DISTINCT b.id, b.name, b.slug, b.logo
+                FROM brands b
+                INNER JOIN products p ON p.brand_id = b.id
+                INNER JOIN categories c ON p.category_id = c.id
+                WHERE c.slug IN ($placeholders) AND p.status = 'active'
+                ORDER BY b.name ASC
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(array_values($categorySlugs));
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) {
+            error_log('getBrandsForCategories error: ' . $e->getMessage());
+            return [];
+        }
+    }
 }
