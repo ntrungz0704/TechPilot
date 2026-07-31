@@ -258,6 +258,19 @@ if (!function_exists('productImageUrl')) {
             $catSlug = 'accessories';
         }
 
+        // Check if user dropped any image file in category subfolder
+        $catDir = ROOT_PATH . '/public/assets/images/products/' . $catSlug;
+        if (is_dir($catDir)) {
+            $files = scandir($catDir);
+            foreach ($files as $f) {
+                if ($f === '.' || $f === '..') continue;
+                $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'])) {
+                    return url('assets/images/products/' . $catSlug . '/' . $f);
+                }
+            }
+        }
+
         $phFile = 'placeholder-' . $catSlug . '-1.png';
         if ($catSlug === 'networking') $phFile = 'placeholder-office-equipment-1.png';
         
