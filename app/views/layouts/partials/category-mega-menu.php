@@ -100,7 +100,11 @@ $formatRangeName = function (string $name): string {
                                                     $link = url('home/search?cat=' . urlencode($subSlug));
                                                 } else {
                                                     $subQuery = is_array($subitem) ? $subitem['query'] : ('q=' . urlencode($subitem));
-                                                    $link = url('home/search?cat=' . urlencode($slug) . '&' . $subQuery);
+                                                    if (str_contains($subQuery, 'cat=')) {
+                                                        $link = url('home/search?' . $subQuery);
+                                                    } else {
+                                                        $link = url('home/search?cat=' . urlencode($slug) . '&' . $subQuery);
+                                                    }
                                                 }
                                                 ?>
                                                 <li><a href="<?= $link ?>"><?= e($subName) ?></a></li>
@@ -153,7 +157,11 @@ $formatRangeName = function (string $name): string {
                                             $link = url('home/search?cat=' . urlencode($subSlug));
                                         } else {
                                             $subQuery = is_array($subitem) ? $subitem['query'] : ('q=' . urlencode($subitem));
-                                            $link = url('home/search?cat=' . urlencode($slug) . '&' . $subQuery);
+                                            if (str_contains($subQuery, 'cat=')) {
+                                                $link = url('home/search?' . $subQuery);
+                                            } else {
+                                                $link = url('home/search?cat=' . urlencode($slug) . '&' . $subQuery);
+                                            }
                                         }
                                         ?>
                                         <li><a href="<?= $link ?>"><?= e($subName) ?></a></li>
