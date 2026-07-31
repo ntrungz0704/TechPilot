@@ -54,47 +54,6 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
 </section>
 
 <section class="container search-page">
-    <!-- Sidebar -->
-    <aside class="search-sidebar">
-        <div class="search-widget">
-            <h3>Bộ lọc tìm kiếm</h3>
-            <form method="get" action="<?= url('home/search') ?>" class="search-widget__form">
-                <?php if (!empty($categorySlug)): ?>
-                    <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
-                <?php endif; ?>
-                <input type="text" name="q" placeholder="Nhập từ khóa tìm kiếm..." value="<?= e($keyword) ?>">
-                <input type="hidden" name="min_price" value="<?= (int)$minPrice ?>">
-                <input type="hidden" name="max_price" value="<?= (int)$maxPrice ?>">
-                <button type="submit" class="btn btn--block"><i class="fa-solid fa-magnifying-glass"></i> Lọc kết quả</button>
-            </form>
-        </div>
-
-        <div class="search-widget">
-            <h3>Khoảng giá bán</h3>
-            <form class="price-range" onsubmit="event.preventDefault(); applyPriceFilter(document.querySelector('.price-slider').value);">
-                <input type="range" min="0" max="50000000" step="1000000" value="<?= $maxPrice > 0 ? $maxPrice : 50000000 ?>" class="price-slider" onchange="applyPriceFilter(this.value)" oninput="updatePriceSlider(this.value)">
-                <div class="price-display">
-                    <span>0đ</span>
-                    <span id="priceMaxDisplay"><?= $maxPrice > 0 ? number_format($maxPrice / 1000000, 0) . ' triệu đ' : '50 triệu đ' ?></span>
-                </div>
-                <button type="submit" class="btn btn--block price-apply-btn">Áp dụng khoảng giá</button>
-            </form>
-        </div>
-
-        <div class="search-widget">
-            <h3>Danh mục sản phẩm</h3>
-            <div class="category-list">
-                <a href="<?= $buildSearchUrl(['cat' => '']) ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
-                <?php foreach ($categories as $cat): ?>
-                    <a href="<?= $buildSearchUrl(['cat' => $cat['slug']]) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
-                        <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>" style="margin-right: 8px;"></i>
-                        <?= e($cat['name']) ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </aside>
-
     <!-- Main Results -->
     <main class="search-main">
         <div class="search-results-header">
@@ -379,11 +338,13 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
     }
 
     .search-page {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 30px;
-        margin: 24px auto 60px;
-        align-items: start;
+        display: block;
+        width: 100%;
+        margin: 20px auto 60px;
+    }
+
+    .search-main {
+        width: 100%;
     }
 
     .search-widget {
