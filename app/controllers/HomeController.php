@@ -224,15 +224,17 @@ class HomeController extends Controller
             'price' => [
                 'label' => 'Giá',
                 'options' => [
-                    '15000000' => 'Dưới 15 triệu',
+                    '5000000' => 'Dưới 5 triệu',
+                    '10000000' => 'Từ 5 - 10 triệu',
+                    '15000000' => 'Từ 10 - 15 triệu',
                     '20000000' => 'Từ 15 - 20 triệu',
-                    '25000000' => 'Từ 20 - 25 triệu',
-                    '30000000' => 'Từ 25 - 30 triệu',
+                    '30000000' => 'Từ 20 - 30 triệu',
                     '50000000' => 'Trên 30 triệu',
                 ]
             ]
         ];
 
+        // 1. Laptop & Laptop Gaming
         if (in_array($categorySlug, ['laptop', 'laptop-gaming'], true)) {
             $base['cpu'] = [
                 'label' => 'CPU',
@@ -288,6 +290,229 @@ class HomeController extends Controller
                     'RTX 4080' => 'NVIDIA RTX 4080',
                     'RTX 4090' => 'NVIDIA RTX 4090',
                 ]
+            ];
+        }
+        // 2. PC (PC Lắp sẵn / PC Gaming)
+        elseif (in_array($categorySlug, ['pc', 'pc-gaming', 'pc-van-phong'], true)) {
+            $base['cpu'] = [
+                'label' => 'CPU',
+                'options' => [
+                    'i3' => 'Intel Core i3',
+                    'i5' => 'Intel Core i5',
+                    'i7' => 'Intel Core i7',
+                    'i9' => 'Intel Core i9',
+                    'Ultra 5' => 'Intel Core Ultra 5',
+                    'Ultra 7' => 'Intel Core Ultra 7',
+                    'Ryzen 5' => 'AMD Ryzen 5',
+                    'Ryzen 7' => 'AMD Ryzen 7',
+                ]
+            ];
+            $base['ram'] = [
+                'label' => 'RAM',
+                'options' => [
+                    '8GB' => '8 GB',
+                    '16GB' => '16 GB',
+                    '32GB' => '32 GB',
+                    '64GB' => '64 GB',
+                ]
+            ];
+            $base['ssd'] = [
+                'label' => 'SSD',
+                'options' => [
+                    '256GB' => '256 GB',
+                    '512GB' => '512 GB',
+                    '1TB' => '1 TB',
+                    '2TB' => '2 TB',
+                ]
+            ];
+            $base['vga'] = [
+                'label' => 'VGA',
+                'options' => [
+                    'GTX 1650' => 'NVIDIA GTX 1650',
+                    'RTX 3050' => 'NVIDIA RTX 3050',
+                    'RTX 4060' => 'NVIDIA RTX 4060',
+                    'RTX 4070' => 'NVIDIA RTX 4070',
+                    'RTX 4080' => 'NVIDIA RTX 4080',
+                    'RX 6500XT' => 'AMD RX 6500XT',
+                    'RX 7600' => 'AMD RX 7600',
+                ]
+            ];
+        }
+        // 3. VGA (Card màn hình)
+        elseif ($categorySlug === 'vga') {
+            $base['vga_series'] = [
+                'label' => 'Dòng VGA',
+                'options' => [
+                    'RTX 50 Series' => 'NVIDIA RTX 50 Series',
+                    'RTX 40 Series' => 'NVIDIA RTX 40 Series',
+                    'RTX 30 Series' => 'NVIDIA RTX 30 Series',
+                    'RX 7000 Series' => 'AMD RX 7000 Series',
+                    'RX 6000 Series' => 'AMD RX 6000 Series',
+                ]
+            ];
+            $base['vram'] = [
+                'label' => 'Dung lượng bộ nhớ',
+                'options' => [
+                    '6GB' => '6 GB',
+                    '8GB' => '8 GB',
+                    '12GB' => '12 GB',
+                    '16GB' => '16 GB',
+                    '24GB' => '24 GB',
+                    '32GB' => '32 GB',
+                ]
+            ];
+            $base['gpu_chip'] = [
+                'label' => 'Nhân đồ họa',
+                'options' => [
+                    'NVIDIA' => 'NVIDIA',
+                    'AMD' => 'AMD',
+                    'Intel' => 'Intel Arc',
+                ]
+            ];
+        }
+        // 4. Mainboard
+        elseif ($categorySlug === 'mainboard') {
+            $base['chipset'] = [
+                'label' => 'Chipset',
+                'options' => [
+                    'H610' => 'Intel H610',
+                    'B760' => 'Intel B760',
+                    'Z790' => 'Intel Z790',
+                    'Z890' => 'Intel Z890',
+                    'B650' => 'AMD B650',
+                    'X670' => 'AMD X670',
+                    'X870' => 'AMD X870',
+                ]
+            ];
+            $base['form_factor'] = [
+                'label' => 'Kích thước',
+                'options' => [
+                    'Micro ATX' => 'Micro ATX',
+                    'ATX' => 'ATX',
+                    'Mini ITX' => 'Mini ITX',
+                ]
+            ];
+            $base['ram_type'] = [
+                'label' => 'Loại RAM',
+                'options' => [
+                    'DDR4' => 'DDR4',
+                    'DDR5' => 'DDR5',
+                ]
+            ];
+            $base['socket'] = [
+                'label' => 'Socket',
+                'options' => [
+                    'LGA 1700' => 'LGA 1700',
+                    'LGA 1851' => 'LGA 1851',
+                    'AM4' => 'AM4',
+                    'AM5' => 'AM5',
+                ]
+            ];
+        }
+        // 5. CPU
+        elseif ($categorySlug === 'cpu') {
+            $base['cpu_series'] = [
+                'label' => 'Dòng CPU',
+                'options' => [
+                    'Core i3' => 'Intel Core i3',
+                    'Core i5' => 'Intel Core i5',
+                    'Core i7' => 'Intel Core i7',
+                    'Core i9' => 'Intel Core i9',
+                    'Core Ultra 5' => 'Intel Core Ultra 5',
+                    'Core Ultra 7' => 'Intel Core Ultra 7',
+                    'Ryzen 5' => 'AMD Ryzen 5',
+                    'Ryzen 7' => 'AMD Ryzen 7',
+                    'Ryzen 9' => 'AMD Ryzen 9',
+                ]
+            ];
+            $base['socket'] = [
+                'label' => 'Socket',
+                'options' => [
+                    'LGA 1700' => 'LGA 1700',
+                    'LGA 1851' => 'LGA 1851',
+                    'AM4' => 'AM4',
+                    'AM5' => 'AM5',
+                ]
+            ];
+            $base['generation'] = [
+                'label' => 'Thế hệ CPU',
+                'options' => [
+                    'Intel Core Gen 12' => 'Intel Gen 12',
+                    'Intel Core Gen 13' => 'Intel Gen 13',
+                    'Intel Core Gen 14' => 'Intel Gen 14',
+                    'Intel Core Ultra' => 'Intel Core Ultra',
+                    'AMD Ryzen 7000' => 'AMD Ryzen 7000',
+                    'AMD Ryzen 9000' => 'AMD Ryzen 9000',
+                ]
+            ];
+            $base['igpu'] = [
+                'label' => 'Đồ họa tích hợp',
+                'options' => [
+                    '1' => 'Có đồ họa tích hợp',
+                    '0' => 'Không (Yêu cầu card rời)',
+                ]
+            ];
+        }
+        // 6. Monitor
+        elseif ($categorySlug === 'monitor') {
+            $base['screen_size'] = [
+                'label' => 'Kích thước',
+                'options' => [
+                    '24' => '24 inch',
+                    '27' => '27 inch',
+                    '32' => '32 inch',
+                    '34' => '34 inch Ultrawide',
+                ]
+            ];
+            $base['refresh_rate'] = [
+                'label' => 'Tần số quét',
+                'options' => [
+                    '100Hz' => '100Hz',
+                    '144Hz' => '144Hz',
+                    '180Hz' => '180Hz',
+                    '240Hz' => '240Hz',
+                ]
+            ];
+            $base['panel'] = [
+                'label' => 'Tấm nền',
+                'options' => [
+                    'IPS' => 'IPS',
+                    'VA' => 'VA',
+                    'OLED' => 'OLED',
+                ]
+            ];
+        }
+        // 7. RAM
+        elseif ($categorySlug === 'ram') {
+            $base['ram_type'] = [
+                'label' => 'Loại RAM',
+                'options' => ['DDR4' => 'DDR4', 'DDR5' => 'DDR5']
+            ];
+            $base['capacity'] = [
+                'label' => 'Dung lượng',
+                'options' => ['8GB' => '8 GB', '16GB' => '16 GB', '32GB' => '32 GB', '64GB' => '64 GB']
+            ];
+            $base['bus'] = [
+                'label' => 'Bus RAM',
+                'options' => ['3200MHz' => '3200 MHz', '3600MHz' => '3600 MHz', '5600MHz' => '5600 MHz', '6000MHz' => '6000 MHz']
+            ];
+        }
+        // 8. Storage
+        elseif ($categorySlug === 'storage') {
+            $base['type'] = [
+                'label' => 'Loại ổ cứng',
+                'options' => ['SSD NVMe' => 'SSD NVMe M.2', 'SSD SATA' => 'SSD SATA 2.5"', 'HDD' => 'HDD 3.5"']
+            ];
+            $base['capacity'] = [
+                'label' => 'Dung lượng',
+                'options' => ['256GB' => '256 GB', '512GB' => '512 GB', '1TB' => '1 TB', '2TB' => '2 TB']
+            ];
+        }
+        // 9. PSU
+        elseif ($categorySlug === 'psu') {
+            $base['wattage'] = [
+                'label' => 'Công suất Nguồn',
+                'options' => ['550W' => '550W', '650W' => '650W', '750W' => '750W', '850W' => '850W', '1000W' => '1000W', '1600W' => '1600W']
             ];
         }
 
