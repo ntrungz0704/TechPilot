@@ -131,10 +131,10 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 10px 20px;
+    padding: 7.5px 16px;
     color: var(--text-primary);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 500;
     transition: background 0.15s ease, color 0.15s ease;
     cursor: pointer;
