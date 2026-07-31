@@ -1469,7 +1469,18 @@ class Product
 
         // 5.5. Promotion Only (Khuyến mãi)
         if ($promoOnly) {
-            $conditions[] = '(p.is_flash_sale = 1 OR p.id IN (SELECT product_id FROM flash_sale_items fsi JOIN flash_sales fs ON fsi.flash_sale_id = fs.id WHERE fs.status = \'active\') OR (p.sale_price IS NOT NULL AND p.sale_price > 0 AND (p.price - p.sale_price)/p.price >= 0.10))';
+            $conditions[] = '(
+                (p.sale_price IS NOT NULL AND p.sale_price > 0 AND p.sale_price < p.price)
+                OR (p.old_price IS NOT NULL AND p.old_price > p.price)
+                OR (p.is_flash_sale = 1 AND p.sale_price IS NOT NULL AND p.sale_price < p.price)
+                OR p.id IN (
+                    SELECT fsi.product_id 
+                    FROM flash_sale_items fsi 
+                    JOIN flash_sales fs ON fsi.flash_sale_id = fs.id 
+                    JOIN products p2 ON fsi.product_id = p2.id
+                    WHERE fs.status = \'active\' AND fsi.discount_price > 0 AND fsi.discount_price < p2.price
+                )
+            )';
         }
 
         // 6. Xử lý từ khóa tìm kiếm còn lại (MỖI PLACEHOLDER CHỈ DÙNG ĐÚNG 1 LẦN DÀNH CHO NATIVE PDO PREPARED STATEMENTS)
@@ -1610,10 +1621,18 @@ class Product
                     b.name as brand_name,
                     c.name as category_name,
                     c.slug as category_slug,
+                    active_fs.flash_sale_price as discount_price,
                     $scoreSql
                 FROM products p
                 LEFT JOIN brands b ON p.brand_id = b.id
                 LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN (
+                    SELECT fsi.product_id, MIN(fsi.discount_price) as flash_sale_price
+                    FROM flash_sale_items fsi
+                    JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
+                    WHERE fs.status = 'active' AND fsi.discount_price > 0
+                    GROUP BY fsi.product_id
+                ) active_fs ON active_fs.product_id = p.id
                 WHERE $whereClause
                 ORDER BY $sortClause
                 LIMIT :limit OFFSET :offset
