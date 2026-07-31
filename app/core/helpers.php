@@ -258,12 +258,15 @@ if (!function_exists('productImageUrl')) {
             $catSlug = 'accessories';
         }
 
-        $catImgPath = ROOT_PATH . '/public/assets/images/categories/category-' . $catSlug . '.png';
-        if (file_exists($catImgPath)) {
-            return url('assets/images/categories/category-' . $catSlug . '.png');
+        $phFile = 'placeholder-' . $catSlug . '-1.png';
+        if ($catSlug === 'networking') $phFile = 'placeholder-office-equipment-1.png';
+        
+        $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . $phFile;
+        if (file_exists($phPath)) {
+            return url('assets/images/placeholders/' . $phFile);
         }
 
-        return url('assets/images/categories/category-laptop.png');
+        return url('assets/images/placeholders/placeholder-laptop-1.png');
     }
 }
 
