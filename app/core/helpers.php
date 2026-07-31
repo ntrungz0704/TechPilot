@@ -271,6 +271,30 @@ if (!function_exists('productImageUrl')) {
             }
         }
 
+        // Map user custom placeholder files in assets/images/placeholders/
+        $userCustomMap = [
+            'laptop' => 'laptop.png',
+            'monitor' => 'màn-hình.png',
+            'vga' => 'vga.png',
+            'cpu' => 'cpu.png',
+            'storage' => 'ssd.png',
+            'case' => 'case.png',
+            'cooling' => 'fan.png',
+            'psu' => 'psu.png',
+            'console' => 'placeholder-console-1.png',
+            'pc' => 'case.png',
+            'mainboard' => 'cpu.png',
+            'ram' => 'ssd.png',
+        ];
+
+        if (isset($userCustomMap[$catSlug])) {
+            $customFile = $userCustomMap[$catSlug];
+            $customPath = ROOT_PATH . '/public/assets/images/placeholders/' . $customFile;
+            if (file_exists($customPath)) {
+                return url('assets/images/placeholders/' . $customFile);
+            }
+        }
+
         $phFile = 'placeholder-' . $catSlug . '-1.png';
         if ($catSlug === 'networking') $phFile = 'placeholder-office-equipment-1.png';
         
@@ -279,7 +303,7 @@ if (!function_exists('productImageUrl')) {
             return url('assets/images/placeholders/' . $phFile);
         }
 
-        return url('assets/images/placeholders/placeholder-laptop-1.png');
+        return url('assets/images/placeholders/laptop.png');
     }
 }
 
