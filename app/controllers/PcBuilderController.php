@@ -54,10 +54,20 @@ class PcBuilderController extends Controller
             'icon' => 'fa-solid fa-tv',
             'query' => "category_id = 3"
         ],
-        'gear' => [
-            'name' => 'Gaming Gear',
+        'mouse' => [
+            'name' => 'Chuột',
+            'icon' => 'fa-solid fa-computer-mouse',
+            'query' => "category_id = 13"
+        ],
+        'keyboard' => [
+            'name' => 'Bàn phím',
             'icon' => 'fa-solid fa-keyboard',
-            'query' => "category_id IN (12, 13)"
+            'query' => "category_id = 12"
+        ],
+        'chair' => [
+            'name' => 'Ghế Gaming',
+            'icon' => 'fa-solid fa-chair',
+            'query' => "category_id = 14"
         ]
     ];
 
@@ -91,7 +101,7 @@ class PcBuilderController extends Controller
                 'slug' => $pc['slug'],
                 'price' => (float)$pc['price'],
                 'price_formatted' => formatPrice((float)$pc['price']),
-                'image_url' => empty($pc['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($pc['image'], 'http') ? $pc['image'] : (str_starts_with($pc['image'], 'assets/') ? '/' . $pc['image'] : '/assets/images/products/' . $pc['image'])),
+                'image_url' => productImageUrl($pc['image'] ?? '', 'pc', (int)$pc['id']),
                 'specs' => $specs
             ];
         }
@@ -350,7 +360,11 @@ class PcBuilderController extends Controller
             'cooler' => [10],
             'psu' => [11],
             'monitor' => [3],
-            'gear' => [12, 13]
+            'keyboard' => [12],
+            'mouse' => [13],
+            'chair' => [14],
+            'headset' => [15],
+            'speaker' => [16]
         ];
 
         foreach ($this->parts as $key => $info) {

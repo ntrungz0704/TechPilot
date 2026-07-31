@@ -1169,7 +1169,7 @@
                 res.data.forEach(pc => {
                     html += `
                         <div class="prebuilt-card">
-                            <img class="prebuilt-img" src="${pc.image_url}" alt="${pc.name}">
+                            <img class="prebuilt-img" src="${pc.image_url}" alt="${pc.name}" onerror="this.onerror=null; this.src='<?= url('assets/images/categories/category-pc.png') ?>';">
                             <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:8px;">${pc.name}</div>
                             <div style="font-size:16px; font-weight:800; color:#EF4444; margin-bottom:12px;">${pc.price_formatted}</div>
                             <div style="display:flex; flex-direction:column; gap:8px;">
