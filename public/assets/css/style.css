@@ -1472,6 +1472,43 @@ html.dark-mode .logo-text span {
     box-shadow: var(--shadow-hover);
 }
 
+/* Quick Specs Badge Box inside Product Card (GearVN Style) */
+.product-card__specs-box {
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin: 8px 0;
+}
+
+.specs-pill-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+}
+
+.specs-pill {
+    font-size: 11.5px;
+    color: #475569;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.specs-pill i {
+    font-size: 10px;
+    color: #64748b;
+}
+
+html.dark-mode .product-card__specs-box {
+    background: #1e293b;
+}
+
+html.dark-mode .specs-pill {
+    color: #94a3b8;
+}
+
 .product-card__badge {
     position: absolute;
     top: 12px;
