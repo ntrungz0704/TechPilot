@@ -1584,7 +1584,11 @@ class Product
             }
 
             // Sắp xếp
-            if ($sort === 'price_asc' || $sort === 'price-low') {
+            if ($sort === 'title-asc' || $sort === 'title_asc') {
+                $sortClause = 'p.name ASC, p.id DESC';
+            } elseif ($sort === 'title-desc' || $sort === 'title_desc') {
+                $sortClause = 'p.name DESC, p.id DESC';
+            } elseif ($sort === 'price_asc' || $sort === 'price-low') {
                 $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.id DESC';
             } elseif ($sort === 'price_desc' || $sort === 'price-high') {
                 $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';

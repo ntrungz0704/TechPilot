@@ -101,12 +101,13 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
             <h1><?= e($pageTitle) ?></h1>
             <p class="results-count">Tìm thấy <strong><?= number_format($totalResults) ?></strong> mẫu sản phẩm phù hợp</p>
             <div class="sort-options">
-                <label for="sortBy">Sắp xếp:</label>
+                <label for="sortBy">Xếp theo:</label>
                 <select id="sortBy" class="sort-select" onchange="applySort(this.value)">
-                    <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Mới nhất</option>
+                    <option value="title-asc" <?= $sort === 'title-asc' ? 'selected' : '' ?>>Tên từ A-Z</option>
+                    <option value="title-desc" <?= $sort === 'title-desc' ? 'selected' : '' ?>>Tên từ Z-A</option>
                     <option value="price-low" <?= $sort === 'price-low' ? 'selected' : '' ?>>Giá từ thấp đến cao</option>
                     <option value="price-high" <?= $sort === 'price-high' ? 'selected' : '' ?>>Giá từ cao đến thấp</option>
-                    <option value="best-selling" <?= $sort === 'best-selling' ? 'selected' : '' ?>>Bán chạy nhất</option>
+                    <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Mới nhất</option>
                     <option value="rating" <?= $sort === 'rating' ? 'selected' : '' ?>>Đánh giá cao nhất</option>
                 </select>
             </div>

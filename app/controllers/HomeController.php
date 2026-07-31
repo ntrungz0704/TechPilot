@@ -220,13 +220,77 @@ class HomeController extends Controller
      */
     private function getFilterConfig(string $categorySlug): array
     {
-        return [
-            'price_ranges' => [
-                ['name' => 'Dưới 10 triệu', 'max' => 10000000],
-                ['name' => '10tr - 20tr', 'min' => 10000000, 'max' => 20000000],
-                ['name' => '20tr - 30tr', 'min' => 20000000, 'max' => 30000000],
-                ['name' => 'Trên 30 triệu', 'min' => 30000000],
+        $base = [
+            'price' => [
+                'label' => 'Giá',
+                'options' => [
+                    '15000000' => 'Dưới 15 triệu',
+                    '20000000' => 'Từ 15 - 20 triệu',
+                    '25000000' => 'Từ 20 - 25 triệu',
+                    '30000000' => 'Từ 25 - 30 triệu',
+                    '50000000' => 'Trên 30 triệu',
+                ]
             ]
         ];
+
+        if (in_array($categorySlug, ['laptop', 'laptop-gaming'], true)) {
+            $base['cpu'] = [
+                'label' => 'CPU',
+                'options' => [
+                    'i3' => 'Intel Core i3',
+                    'i5' => 'Intel Core i5',
+                    'i7' => 'Intel Core i7',
+                    'i9' => 'Intel Core i9',
+                    'Ultra' => 'Intel Core Ultra',
+                    'Ryzen 5' => 'AMD Ryzen 5',
+                    'Ryzen 7' => 'AMD Ryzen 7',
+                    'Ryzen 9' => 'AMD Ryzen 9',
+                    'M3' => 'Apple M3 / M3 Max',
+                ]
+            ];
+            $base['screen'] = [
+                'label' => 'Kích thước màn hình',
+                'options' => [
+                    '14' => '14 inch',
+                    '15.6' => '15.6 inch',
+                    '16' => '16 inch',
+                    'OLED' => 'Màn hình OLED',
+                    '144Hz' => '144Hz',
+                    '240Hz' => '240Hz',
+                ]
+            ];
+            $base['ram'] = [
+                'label' => 'RAM',
+                'options' => [
+                    '8GB' => '8 GB',
+                    '16GB' => '16 GB',
+                    '32GB' => '32 GB',
+                    '64GB' => '64 GB',
+                ]
+            ];
+            $base['ssd'] = [
+                'label' => 'SSD',
+                'options' => [
+                    '256GB' => '256 GB',
+                    '512GB' => '512 GB',
+                    '1TB' => '1 TB (1024GB)',
+                    '2TB' => '2 TB',
+                ]
+            ];
+            $base['vga'] = [
+                'label' => 'VGA',
+                'options' => [
+                    'Intel' => 'Intel Graphics / UHD',
+                    'RTX 3050' => 'NVIDIA RTX 3050',
+                    'RTX 4050' => 'NVIDIA RTX 4050',
+                    'RTX 4060' => 'NVIDIA RTX 4060',
+                    'RTX 4070' => 'NVIDIA RTX 4070',
+                    'RTX 4080' => 'NVIDIA RTX 4080',
+                    'RTX 4090' => 'NVIDIA RTX 4090',
+                ]
+            ];
+        }
+
+        return $base;
     }
 }

@@ -52,6 +52,44 @@
             <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__name">
                 <?= e($p['name'] ?? '') ?>
             </a>
+
+            <?php
+            $quickSpecs = [];
+            if (!empty($p['specs'])) {
+                $rawS = is_array($p['specs']) ? $p['specs'] : json_decode($p['specs'], true);
+                if (isset($rawS['specs']) && is_array($rawS['specs'])) $rawS = $rawS['specs'];
+                if (is_array($rawS)) {
+                    if (!empty($rawS['cpu_short'])) $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => $rawS['cpu_short']];
+                    elseif (!empty($rawS['cpu_model'])) $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => mb_substr($rawS['cpu_model'], 0, 15)];
+                    
+                    if (!empty($rawS['gpu_short'])) $quickSpecs[] = ['icon' => 'fa-desktop', 'text' => $rawS['gpu_short']];
+                    elseif (!empty($rawS['vga_short'])) $quickSpecs[] = ['icon' => 'fa-desktop', 'text' => $rawS['vga_short']];
+                    
+                    if (!empty($rawS['ram_capacity_gb'])) $quickSpecs[] = ['icon' => 'fa-memory', 'text' => $rawS['ram_capacity_gb'] . 'GB'];
+                    elseif (!empty($rawS['ram'])) $quickSpecs[] = ['icon' => 'fa-memory', 'text' => $rawS['ram']];
+                    
+                    if (!empty($rawS['storage_capacity_gb'])) {
+                        $cap = (int)$rawS['storage_capacity_gb'];
+                        $quickSpecs[] = ['icon' => 'fa-hard-drive', 'text' => $cap >= 1024 ? round($cap/1024) . 'TB' : $cap . 'GB'];
+                    } elseif (!empty($rawS['ssd'])) {
+                        $quickSpecs[] = ['icon' => 'fa-hard-drive', 'text' => $rawS['ssd']];
+                    }
+
+                    if (!empty($rawS['screen_short'])) $quickSpecs[] = ['icon' => 'fa-tv', 'text' => $rawS['screen_short']];
+                    elseif (!empty($rawS['screen_size_inch'])) $quickSpecs[] = ['icon' => 'fa-tv', 'text' => $rawS['screen_size_inch'] . '"'];
+                }
+            }
+            ?>
+
+            <?php if (!empty($quickSpecs)): ?>
+                <div class="product-card__specs-box">
+                    <div class="specs-pill-grid">
+                        <?php foreach (array_slice($quickSpecs, 0, 4) as $qs): ?>
+                            <span class="specs-pill"><i class="fa-solid <?= $qs['icon'] ?>"></i> <?= e($qs['text']) ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
             
             <div class="product-card__price">
                 <span class="product-card__price-now"><?= formatPrice($currentPrice) ?></span>
