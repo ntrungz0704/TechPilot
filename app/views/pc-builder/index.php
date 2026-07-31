@@ -1153,6 +1153,8 @@
         });
     }
 
+    let prebuiltPcsMap = {};
+
     function loadPrebuiltPcs() {
         const grid = document.getElementById('prebuiltProductsGrid');
         grid.innerHTML = '<div style="padding:30px; text-align:center; color:#64748B; grid-column: 1/-1;"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang nạp danh sách PC lắp sẵn...</div>';
@@ -1165,8 +1167,10 @@
                     return;
                 }
 
+                prebuiltPcsMap = {};
                 let html = '';
                 res.data.forEach(pc => {
+                    prebuiltPcsMap[pc.id] = pc;
                     html += `
                         <div class="prebuilt-card">
                             <img class="prebuilt-img" src="${pc.image_url}" alt="${pc.name}" onerror="this.onerror=null; this.src='<?= url('assets/images/categories/category-pc.png') ?>';">
@@ -1189,8 +1193,33 @@
     }
 
     function customizePrebuiltPc(pcId) {
-        alert('Đã chuyển linh kiện PC mẫu vào PC Builder. Bạn có thể tùy chỉnh thêm linh kiện theo ý muốn!');
+        const pc = prebuiltPcsMap[pcId];
+        if (!pc || !pc.components || Object.keys(pc.components).length === 0) {
+            alert('Không thể nạp linh kiện chi tiết của mẫu PC này.');
+            return;
+        }
+
+        pcConfig = {};
+        for (const [key, comp] of Object.entries(pc.components)) {
+            if (comp && comp.id) {
+                pcConfig[key] = {
+                    id: comp.id,
+                    name: comp.name,
+                    price: comp.price,
+                    price_formatted: comp.price_formatted,
+                    image_url: comp.image_url,
+                    specs: comp.specs,
+                    isOwned: false
+                };
+            }
+        }
+
+        localStorage.setItem('pc_config', JSON.stringify(pcConfig));
+        updateUI();
+        analyzeBuild();
         setFlowMode('build_full');
+
+        alert(`Đã nạp đầy đủ cấu hình PC "${pc.name}" vào PC Builder! Bạn có thể tùy chỉnh hoặc thay thế từng linh kiện theo ý muốn.`);
     }
 
     function resetConfig() {

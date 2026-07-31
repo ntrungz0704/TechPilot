@@ -81,7 +81,7 @@ class PcBuilderController extends Controller
         $this->render('pc-builder/index', $data);
     }
 
-    /** API: Trả về danh sách PC lắp sẵn (Pre-built PCs) */
+    /** API: Trả về danh sách PC lắp sẵn (Pre-built PCs) kèm cấu hình linh kiện chi tiết */
     public function prebuilt(): void
     {
         header('Content-Type: application/json');
@@ -95,6 +95,7 @@ class PcBuilderController extends Controller
         $result = [];
         foreach ($pcs as $pc) {
             $specs = json_decode($pc['specs'] ?? '{}', true) ?: [];
+            $components = $this->resolvePrebuiltComponents($db, $specs);
             $result[] = [
                 'id' => (int)$pc['id'],
                 'name' => $pc['name'],
@@ -102,12 +103,74 @@ class PcBuilderController extends Controller
                 'price' => (float)$pc['price'],
                 'price_formatted' => formatPrice((float)$pc['price']),
                 'image_url' => productImageUrl($pc['image'] ?? '', 'pc', (int)$pc['id']),
-                'specs' => $specs
+                'specs' => $specs,
+                'components' => $components
             ];
         }
 
         echo json_encode(['success' => true, 'data' => $result]);
         exit;
+    }
+
+    private function resolvePrebuiltComponents(PDO $db, array $rawSpecs): array
+    {
+        $specs = $rawSpecs['specs'] ?? $rawSpecs;
+        $cpuModel = $specs['cpu_model'] ?? '';
+        $mbModel = $specs['mainboard_model'] ?? '';
+        $gpuModel = $specs['gpu_model'] ?? '';
+        $ramGb = (int)($specs['ram_gb'] ?? 16);
+        $psuWattage = (int)($specs['psu_wattage'] ?? 650);
+
+        $cats = [
+            'cpu'       => ['cat' => 5, 'search' => str_contains(strtolower($cpuModel), '7600x') ? '7600X' : (str_contains(strtolower($cpuModel), '14400f') ? '14400F' : '')],
+            'mainboard' => ['cat' => 4, 'search' => str_contains(strtolower($mbModel), 'b650') ? 'B650' : 'B760'],
+            'vga'       => ['cat' => 6, 'search' => str_contains(strtolower($gpuModel), '4070') ? '4070' : '4060'],
+            'ram'       => ['cat' => 7, 'search' => $ramGb >= 32 ? '32GB' : '16GB'],
+            'storage'   => ['cat' => 8, 'search' => ''],
+            'psu'       => ['cat' => 11, 'search' => ''],
+            'case'      => ['cat' => 9, 'search' => ''],
+            'cooler'    => ['cat' => 10, 'search' => '']
+        ];
+
+        $components = [];
+        foreach ($cats as $key => $conf) {
+            $catId = $conf['cat'];
+            $searchKey = $conf['search'];
+            
+            $sql = "SELECT id, name, price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0";
+            $params = [':cat' => $catId];
+
+            if (!empty($searchKey)) {
+                $sql .= " AND name LIKE :s";
+                $params[':s'] = '%' . $searchKey . '%';
+            }
+
+            $sql .= " ORDER BY price ASC LIMIT 1";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $prod = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$prod && !empty($searchKey)) {
+                $stmtFb = $db->prepare("SELECT id, name, price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0 ORDER BY price ASC LIMIT 1");
+                $stmtFb->execute([':cat' => $catId]);
+                $prod = $stmtFb->fetch(PDO::FETCH_ASSOC);
+            }
+
+            if ($prod) {
+                $parsedSpecs = json_decode($prod['specs'] ?? '{}', true) ?: [];
+                $components[$key] = [
+                    'id'              => (int)$prod['id'],
+                    'name'            => $prod['name'],
+                    'price'           => (float)$prod['price'],
+                    'price_formatted' => formatPrice((float)$prod['price']),
+                    'stock'           => (int)$prod['stock'],
+                    'image_url'       => productImageUrl($prod['image'] ?? '', $key, (int)$prod['id']),
+                    'specs'           => json_encode($parsedSpecs)
+                ];
+            }
+        }
+
+        return $components;
     }
 
     /** API: Trả về danh sách linh kiện */
