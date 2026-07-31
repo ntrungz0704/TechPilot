@@ -7,10 +7,16 @@ $sort = $sort ?? 'newest';
 $maxPrice = $maxPrice ?? 0;
 $totalResults = $totalResults ?? 0;
 $products = $products ?? [];
-$priceMaxLimit = 50000000;
+$priceMaxLimit = 200000000;
 $minPrice = max(0, (int)($minPrice ?? 0));
 $maxPrice = max(0, (int)($maxPrice ?? $priceMaxLimit));
 $maxPrice = min($priceMaxLimit, $maxPrice);
+$brandSlug = $brandSlug ?? '';
+$inStockOnly = $inStockOnly ?? false;
+$promoOnly = $promoOnly ?? false;
+$activeBrands = $activeBrands ?? [];
+$filterConfig = $filterConfig ?? [];
+$subgroups = $subgroups ?? [];
 
 if ($maxPrice < $minPrice) {
     [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
@@ -100,10 +106,106 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                     <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Mới nhất</option>
                     <option value="price-low" <?= $sort === 'price-low' ? 'selected' : '' ?>>Giá từ thấp đến cao</option>
                     <option value="price-high" <?= $sort === 'price-high' ? 'selected' : '' ?>>Giá từ cao đến thấp</option>
+                    <option value="best-selling" <?= $sort === 'best-selling' ? 'selected' : '' ?>>Bán chạy nhất</option>
                     <option value="rating" <?= $sort === 'rating' ? 'selected' : '' ?>>Đánh giá cao nhất</option>
                 </select>
             </div>
         </div>
+
+        <!-- ===== Subcategory Chips (Danh mục con) ===== -->
+        <?php if (!empty($subgroups)): ?>
+            <div class="subcategory-bar">
+                <a href="<?= $buildSearchUrl(['cat' => $categorySlug]) ?>" class="subcategory-chip is-active">Tất cả</a>
+                <?php foreach ($subgroups as $sub): ?>
+                    <a href="<?= $buildSearchUrl(['cat' => $sub['slug']]) ?>" class="subcategory-chip <?= $categorySlug === $sub['slug'] ? 'is-active' : '' ?>">
+                        <?= e($sub['name']) ?>
+                        <?php if (!empty($sub['product_count'])): ?>
+                            <span style="font-weight:400; opacity:.6; margin-left:4px;">(<?= (int)$sub['product_count'] ?>)</span>
+                        <?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- ===== Filter Chips Bar ===== -->
+        <div class="filter-bar">
+            <!-- Quick Toggle: Sẵn hàng -->
+            <span class="filter-chip <?= $inStockOnly ? 'is-active' : '' ?>" data-filter-key="stock" data-filter-value="1" title="Chỉ hiện sản phẩm còn hàng">
+                <i class="fa-solid fa-box-open"></i> Sẵn hàng
+            </span>
+
+            <!-- Quick Toggle: Khuyến mãi -->
+            <span class="filter-chip <?= $promoOnly ? 'is-active' : '' ?>" data-filter-key="promo" data-filter-value="1" title="Sản phẩm đang giảm giá">
+                <i class="fa-solid fa-tags"></i> Đang giảm giá
+            </span>
+
+            <!-- Price Range Dropdown -->
+            <span class="filter-chip <?= ($minPrice > 0 || ($maxPrice > 0 && $maxPrice < $priceMaxLimit)) ? 'is-active' : '' ?>" data-dropdown>
+                <i class="fa-solid fa-coins"></i> Xem theo giá <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                <div class="filter-chip__dropdown">
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="5000000">Dưới 5 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="10000000">Dưới 10 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="15000000">Dưới 15 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="20000000">Dưới 20 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="30000000">Dưới 30 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="50000000">Dưới 50 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="100000000">Dưới 100 triệu</div>
+                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="">Tất cả mức giá</div>
+                </div>
+            </span>
+
+            <!-- Brand Dropdown (if brands available) -->
+            <?php if (!empty($activeBrands)): ?>
+                <span class="filter-chip <?= !empty($brandSlug) ? 'is-active' : '' ?>" data-dropdown>
+                    <i class="fa-solid fa-building"></i>
+                    <?= !empty($brandSlug) ? e(ucfirst($brandSlug)) : 'Thương hiệu' ?>
+                    <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                    <div class="filter-chip__dropdown">
+                        <div class="filter-chip__dropdown-item <?= empty($brandSlug) ? 'is-selected' : '' ?>" data-filter-key="brand" data-filter-value="">Tất cả thương hiệu</div>
+                        <?php foreach ($activeBrands as $b): ?>
+                            <div class="filter-chip__dropdown-item <?= $brandSlug === $b['slug'] ? 'is-selected' : '' ?>" data-filter-key="brand" data-filter-value="<?= e($b['slug']) ?>"><?= e($b['name']) ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                </span>
+            <?php endif; ?>
+
+            <!-- Per-Category Spec Filters -->
+            <?php foreach ($filterConfig as $filterKey => $filterDef): ?>
+                <span class="filter-chip" data-dropdown>
+                    <?= e($filterDef['label'] ?? $filterKey) ?> <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                    <div class="filter-chip__dropdown">
+                        <div class="filter-chip__dropdown-item" data-filter-key="<?= e($filterKey) ?>" data-filter-value="">Tất cả</div>
+                        <?php foreach ($filterDef['options'] ?? [] as $optVal => $optLabel): ?>
+                            <div class="filter-chip__dropdown-item <?= ($_GET[$filterKey] ?? '') === (string)$optVal ? 'is-selected' : '' ?>" data-filter-key="<?= e($filterKey) ?>" data-filter-value="<?= e($optVal) ?>"><?= e($optLabel) ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                </span>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- ===== Active Filters Summary ===== -->
+        <?php
+        $activeFilters = [];
+        if (!empty($brandSlug)) $activeFilters['brand'] = 'Thương hiệu: ' . ucfirst($brandSlug);
+        if ($inStockOnly) $activeFilters['stock'] = 'Sẵn hàng';
+        if ($promoOnly) $activeFilters['promo'] = 'Đang giảm giá';
+        if ($minPrice > 0) $activeFilters['min_price'] = 'Từ ' . number_format($minPrice / 1000000, 0) . ' triệu';
+        if ($maxPrice > 0 && $maxPrice < $priceMaxLimit) $activeFilters['max_price'] = 'Đến ' . number_format($maxPrice / 1000000, 0) . ' triệu';
+        foreach ($filterConfig as $fKey => $fDef) {
+            if (!empty($_GET[$fKey])) $activeFilters[$fKey] = ($fDef['label'] ?? $fKey) . ': ' . e($_GET[$fKey]);
+        }
+        ?>
+        <?php if (!empty($activeFilters)): ?>
+            <div class="active-filters">
+                <?php foreach ($activeFilters as $fKey => $fLabel): ?>
+                    <span class="active-filter-tag">
+                        <?= $fLabel ?>
+                        <i class="fa-solid fa-xmark active-filter-tag__remove" data-remove-key="<?= e($fKey) ?>"></i>
+                    </span>
+                <?php endforeach; ?>
+                <button type="button" class="clear-all-filters"><i class="fa-solid fa-filter-circle-xmark"></i> Xóa bộ lọc</button>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($isStopwordQuery)): ?>
             <div class="stopword-suggestion-card" style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-card);">

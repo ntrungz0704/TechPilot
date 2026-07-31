@@ -114,6 +114,28 @@ class HomeController extends Controller
             $pageTitle = CatalogGroupService::getDisplayName($categorySlug);
         }
 
+        // 5. Load brands & subgroups for filter chips
+        $activeBrands = [];
+        $subgroups = [];
+        $filterConfig = [];
+
+        if (!empty($categorySlug)) {
+            $sourceSlugs = CatalogGroupService::resolveSourceSlugs($categorySlug);
+            $activeBrands = $productModel->getBrandsForCategories($sourceSlugs);
+            
+            // Load subgroups from virtual group
+            $groupKey = CatalogGroupService::resolveGroupKey($categorySlug);
+            if ($groupKey) {
+                $allGroups = CatalogGroupService::getAllVirtualGroups();
+                if (isset($allGroups[$groupKey]['subgroups'])) {
+                    $subgroups = $allGroups[$groupKey]['subgroups'];
+                }
+            }
+
+            // Per-category filter config
+            $filterConfig = $this->getFilterConfig($categorySlug);
+        }
+
         $this->render('home/search', [
             'pageTitle'        => $pageTitle,
             'keyword'          => $keyword,
@@ -131,6 +153,11 @@ class HomeController extends Controller
             'totalResults'     => $totalResults,
             'isStopwordQuery'  => $isStopwordQuery,
             'searchError'      => $searchError,
+            'activeBrands'     => $activeBrands,
+            'subgroups'        => $subgroups,
+            'filterConfig'     => $filterConfig,
+            'pageStyles'       => ['assets/css/search-filters.css?v=1.0'],
+            'pageScripts'      => ['assets/js/search-filters.js?v=1.0'],
         ]);
     }
 

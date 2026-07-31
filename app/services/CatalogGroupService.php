@@ -63,7 +63,7 @@ class CatalogGroupService
             'name'            => 'Thiết bị mạng',
             'virtual_slug'    => 'networking',
             'icon'            => 'fa-solid fa-wifi',
-            'source_slugs'    => ['accessories', 'office-equipment'],
+            'source_slugs'    => ['networking'],
             'group_aliases'   => ['networking', 'thiet-bi-mang'],
         ],
     ];
@@ -92,6 +92,7 @@ class CatalogGroupService
         'accessories'       => ['phụ kiện', 'hub', 'cáp', 'adapter', 'webcam', 'dây cáp'],
         'office-equipment'  => ['thiết bị văn phòng', 'máy in', 'máy scan', 'văn phòng'],
         'power-bank'        => ['sạc dự phòng', 'pin dự phòng', 'power bank', 'sạc dp'],
+        'networking'        => ['thiết bị mạng', 'router', 'wifi', 'adapter mạng', 'switch', 'modem', 'access point'],
     ];
 
     /**
@@ -125,6 +126,22 @@ class CatalogGroupService
         'lap'               => ['laptop'],
         'máy tính'          => ['laptop', 'pc'],
         'may tinh'          => ['laptop', 'pc'],
+        'máy in'            => ['office-equipment'],
+        'may in'            => ['office-equipment'],
+        'máy scan'          => ['office-equipment'],
+        'may scan'          => ['office-equipment'],
+        'máy chiếu'         => ['office-equipment'],
+        'may chieu'         => ['office-equipment'],
+        'webcam'            => ['office-equipment'],
+        'router'            => ['networking'],
+        'wifi'              => ['networking'],
+        'wifi adapter'      => ['networking'],
+        'switch mạng'       => ['networking'],
+        'switch mang'       => ['networking'],
+        'access point'      => ['networking'],
+        'modem'             => ['networking'],
+        'adapter mạng'      => ['networking'],
+        'adapter mang'      => ['networking'],
         'máy'               => ['laptop', 'pc'],
         'may'               => ['laptop', 'pc'],
 
@@ -182,10 +199,10 @@ class CatalogGroupService
         'văn phòng'         => ['office-equipment'],
         'van phong'         => ['office-equipment'],
 
-        'thiết bị mạng'     => ['accessories', 'office-equipment'],
-        'thiet bi mang'     => ['accessories', 'office-equipment'],
-        'mạng'              => ['accessories'],
-        'mang'              => ['accessories'],
+        'thiết bị mạng'     => ['networking'],
+        'thiet bi mang'     => ['networking'],
+        'mạng'              => ['networking'],
+        'mang'              => ['networking'],
 
         'console'           => ['console'],
         'máy chơi game'     => ['console'],
