@@ -46,18 +46,19 @@ class PcCompatibilityService
         }
 
         // PSU Aliases
-        if (!isset($flat['cpu_power_w'])) {
-            $flat['cpu_power_w'] = $flat['max_turbo_power_w']
-                ?? $flat['max_power_w']
+        if (!isset($flat['cpu_power_w']) || $flat['cpu_power_w'] === null) {
+            $flat['cpu_power_w'] = $flat['max_power_w']
+                ?? $flat['max_turbo_power_w']
                 ?? $flat['power_draw_w']
                 ?? $flat['tdp_w']
                 ?? $flat['base_power_w']
                 ?? null;
         }
 
-        if (!isset($flat['gpu_power_w'])) {
+        if (!isset($flat['gpu_power_w']) || $flat['gpu_power_w'] === null) {
             $flat['gpu_power_w'] = $flat['board_power_w']
                 ?? $flat['power_draw_w']
+                ?? $flat['power_w']
                 ?? $flat['tgp_w']
                 ?? $flat['tbp_w']
                 ?? null;
