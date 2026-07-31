@@ -214,4 +214,19 @@ class HomeController extends Controller
         http_response_code(404);
         $this->render('home/404', ['pageTitle' => 'Không tìm thấy trang']);
     }
+
+    /**
+     * Lấy cấu hình bộ lọc phù hợp theo từng danh mục
+     */
+    private function getFilterConfig(string $categorySlug): array
+    {
+        return [
+            'price_ranges' => [
+                ['name' => 'Dưới 10 triệu', 'max' => 10000000],
+                ['name' => '10tr - 20tr', 'min' => 10000000, 'max' => 20000000],
+                ['name' => '20tr - 30tr', 'min' => 20000000, 'max' => 30000000],
+                ['name' => 'Trên 30 triệu', 'min' => 30000000],
+            ]
+        ];
+    }
 }
