@@ -130,20 +130,7 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                 <i class="fa-solid fa-tags"></i> Đang giảm giá
             </span>
 
-            <!-- Price Range Dropdown -->
-            <span class="filter-chip <?= ($minPrice > 0 || ($maxPrice > 0 && $maxPrice < $priceMaxLimit)) ? 'is-active' : '' ?>" data-dropdown>
-                <i class="fa-solid fa-coins"></i> Xem theo giá <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
-                <div class="filter-chip__dropdown">
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="5000000">Dưới 5 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="10000000">Dưới 10 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="15000000">Dưới 15 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="20000000">Dưới 20 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="30000000">Dưới 30 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="50000000">Dưới 50 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="100000000">Dưới 100 triệu</div>
-                    <div class="filter-chip__dropdown-item" data-filter-key="max_price" data-filter-value="">Tất cả mức giá</div>
-                </div>
-            </span>
+
 
             <!-- Brand Dropdown (if brands available) -->
             <?php if (!empty($activeBrands)): ?>

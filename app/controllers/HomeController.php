@@ -57,7 +57,7 @@ class HomeController extends Controller
         $categorySlug = trim($_GET['cat'] ?? '');
         $brandSlug = trim($_GET['brand'] ?? '');
         $minPrice = filter_input(INPUT_GET, 'min_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
-        $maxPrice = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
+        $maxPrice = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT) ?: (filter_input(INPUT_GET, 'price', FILTER_VALIDATE_FLOAT) ?: 0.0);
         $inStockOnly = ($_GET['stock'] ?? '') === '1';
         $promoOnly = ($_GET['promo'] ?? '') === '1';
         $sort = $_GET['sort'] ?? ($keyword !== '' ? 'relevance' : 'newest');
