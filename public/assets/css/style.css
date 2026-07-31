@@ -1536,8 +1536,10 @@ html.dark-mode .specs-pill {
 }
 
 .product-card__image {
-    max-height: 90%;
-    max-width: 90%;
+    width: 85%;
+    height: 85%;
+    max-height: 85%;
+    max-width: 85%;
     object-fit: contain;
     transition: var(--transition);
 }
