@@ -28,7 +28,7 @@
 
     $discountPercent = $hasDiscount
         ? round((($originalPrice - $currentPrice) / $originalPrice) * 100)
-        : (int)($p['discount_percent'] ?? 0);
+        : 0;
     $isFlashSaleCard = !empty($p['is_flash_sale']) || isset($p['discount_price']);
     ?>
 
