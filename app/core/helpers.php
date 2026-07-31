@@ -308,18 +308,17 @@ if (!function_exists('productImageUrl')) {
             case 'accessory':
                 $phName = 'placeholder-accessory.png';
                 break;
-            default:
-                $phName = 'placeholder-component.png';
+            $phName = 'placeholder-component.png';
                 break;
         }
         
-        // Check placeholders/ first, then fall back to products/
-        $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . $phName;
-        if (file_exists($phPath)) {
-            return url('assets/images/placeholders/' . $phName);
+        // Fallback to category image if placeholder is missing
+        $catImgPath = ROOT_PATH . '/public/assets/images/categories/category-' . $type . '.png';
+        if (file_exists($catImgPath)) {
+            return url('assets/images/categories/category-' . $type . '.png');
         }
-        // Legacy fallback
-        return url('assets/images/products/' . $phName);
+
+        return url('assets/images/categories/category-laptop.png');
     }
 }
 
