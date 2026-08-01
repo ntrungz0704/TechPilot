@@ -384,6 +384,7 @@ class ProfileController extends Controller
         $db->beginTransaction();
         try {
             require_once ROOT_PATH . '/app/services/InventoryService.php';
+            require_once ROOT_PATH . '/app/services/FlashSaleService.php';
 
             // Cập nhật trạng thái đơn hàng sang cancelled
             $stmt = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = :id AND user_id = :user_id");
@@ -391,6 +392,7 @@ class ProfileController extends Controller
 
             // Hoàn kho Idempotent bằng InventoryService
             InventoryService::releaseOrderInventory($db, $orderId, 'customer_cancelled');
+            FlashSaleService::releaseOrderReservations($db, $orderId, 'customer_cancelled');
 
             // Ghi nhận thông báo
             $stmt = $db->prepare('INSERT INTO notifications (user_id, title, content) VALUES (:user_id, :title, :content)');
@@ -403,7 +405,9 @@ class ProfileController extends Controller
             $db->commit();
             flash('success', 'Hủy đơn hàng thành công!');
         } catch (Throwable $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             flash('error', 'Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
         }
 

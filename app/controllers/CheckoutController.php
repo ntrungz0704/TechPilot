@@ -1,46 +1,61 @@
 <?php
 
+require_once ROOT_PATH . '/app/core/helpers.php';
+require_once ROOT_PATH . '/app/services/CartService.php';
+
 class CheckoutController extends Controller
 {
+    private function getCartSummary(): array
+    {
+        return (new CartService())->getSummary();
+    }
+
+    private function findActiveCoupon(PDO $db, string $code): array|false
+    {
+        $stmt = $db->prepare(
+            "SELECT * FROM coupons
+             WHERE code = :code
+               AND status = 'active'
+               AND start_date <= NOW()
+               AND end_date >= NOW()
+             LIMIT 1"
+        );
+        $stmt->execute([':code' => $code]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function index(): void
     {
         $user = currentUser();
-        $cart = $_SESSION['cart'] ?? [];
-        if (empty($cart)) {
+        $summary = $this->getCartSummary();
+        if (empty($summary['items'])) {
             $this->redirect('cart');
             return;
         }
 
-        $items = [];
-        $subtotal = 0.0;
+        $items = $summary['items'];
+        $subtotal = (float)$summary['subtotal'];
+        $shipping = (float)$summary['shipping'];
 
-        foreach ($cart as $item) {
-            $quantity = max(1, (int)($item['quantity'] ?? 1));
-            $lineTotal = (float)($item['price'] ?? 0) * $quantity;
-            $subtotal += $lineTotal;
-
-            $items[] = [
-                'product_id' => (int)($item['product_id'] ?? 0),
-                'name' => $item['name'] ?? 'Sản phẩm',
-                'price' => (float)($item['price'] ?? 0),
-                'quantity' => $quantity,
-                'line_total' => $lineTotal,
-                'image' => $item['image'] ?? '',
-                'slug' => $item['slug'] ?? '',
-                'category_slug' => $item['category_slug'] ?? '',
-            ];
-        }
-
-        // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
-        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
 
         // Xử lý mã giảm giá đang được áp dụng từ session (nếu có)
         $appliedCoupon = $_SESSION['applied_coupon'] ?? null;
         $discountAmount = 0.0;
-        if ($appliedCoupon) {
-            $discountAmount = (float)($appliedCoupon['discount'] ?? 0);
-            if ($discountAmount > $subtotal) {
-                $discountAmount = $subtotal;
+        if ($appliedCoupon && $db) {
+            $coupon = $this->findActiveCoupon($db, (string)($appliedCoupon['code'] ?? ''));
+            if ($coupon && $subtotal >= (float)$coupon['min_order_value']) {
+                $discountAmount = calculateCouponDiscount($coupon, $subtotal);
+                $_SESSION['applied_coupon'] = [
+                    'code' => (string)$coupon['code'],
+                    'discount' => $discountAmount,
+                    'id' => (int)$coupon['id'],
+                ];
+                $appliedCoupon = $_SESSION['applied_coupon'];
+            } else {
+                unset($_SESSION['applied_coupon']);
+                $appliedCoupon = null;
             }
         }
 
@@ -54,8 +69,6 @@ class CheckoutController extends Controller
         // Lấy danh sách Mã giảm giá khả dụng
         $availableCoupons = [];
         $savedAddresses = [];
-        require_once ROOT_PATH . '/config/database.php';
-        $db = Database::getConnection();
         if ($db) {
             $cStmt = $db->prepare("SELECT * FROM coupons WHERE status = 'active' AND start_date <= NOW() AND end_date >= NOW() ORDER BY min_order_value ASC");
             $cStmt->execute();
@@ -91,11 +104,17 @@ class CheckoutController extends Controller
         }
 
         $code = trim($_POST['coupon_code'] ?? '');
-        $subtotal = (float)($_POST['subtotal'] ?? 0);
+        $summary = $this->getCartSummary();
+        $subtotal = (float)$summary['subtotal'];
+
+        if (empty($summary['items'])) {
+            echo json_encode(['success' => false, 'message' => 'Giỏ hàng không còn sản phẩm hợp lệ.']);
+            exit;
+        }
 
         if ($code === '') {
             unset($_SESSION['applied_coupon']);
-            $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+            $shipping = (float)$summary['shipping'];
             $total = $subtotal + $shipping;
             echo json_encode([
                 'success' => true,
@@ -117,9 +136,7 @@ class CheckoutController extends Controller
         }
 
         // Tìm coupon active
-        $stmt = $db->prepare('SELECT * FROM coupons WHERE code = :code AND status = \'active\' AND start_date <= NOW() AND end_date >= NOW() LIMIT 1');
-        $stmt->execute([':code' => $code]);
-        $coupon = $stmt->fetch(PDO::FETCH_ASSOC);
+        $coupon = $this->findActiveCoupon($db, $code);
 
         if (!$coupon) {
             echo json_encode(['success' => false, 'message' => 'Mã giảm giá không hợp lệ hoặc đã hết hạn.']);
@@ -156,23 +173,7 @@ class CheckoutController extends Controller
             exit;
         }
 
-        $discount = 0.0;
-        $discountType = $coupon['type'];
-        $discountValue = (float)$coupon['discount_value'];
-
-        if ($discountType === 'percent') {
-            $discount = $subtotal * ($discountValue / 100);
-            $maxDiscount = (float)($coupon['max_discount'] ?? 0);
-            if ($maxDiscount > 0 && $discount > $maxDiscount) {
-                $discount = $maxDiscount;
-            }
-        } else {
-            $discount = $discountValue;
-        }
-
-        if ($discount > $subtotal) {
-            $discount = $subtotal;
-        }
+        $discount = calculateCouponDiscount($coupon, $subtotal);
 
         $_SESSION['applied_coupon'] = [
             'code' => $code,
@@ -180,7 +181,7 @@ class CheckoutController extends Controller
             'id' => $coupon['id'],
         ];
 
-        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $shipping = (float)$summary['shipping'];
         $newTotal = max(0.0, $subtotal - $discount + $shipping);
 
         echo json_encode([
@@ -204,10 +205,11 @@ class CheckoutController extends Controller
             exit;
         }
 
-        $subtotal = (float)($_POST['subtotal'] ?? 0);
+        $summary = $this->getCartSummary();
+        $subtotal = (float)$summary['subtotal'];
         unset($_SESSION['applied_coupon']);
 
-        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $shipping = (float)$summary['shipping'];
         $total = $subtotal + $shipping;
 
         echo json_encode([
@@ -228,9 +230,11 @@ class CheckoutController extends Controller
             return;
         }
 
-        $cart = $_SESSION['cart'] ?? [];
+        $summary = $this->getCartSummary();
+        $cart = $summary['items'];
         if (empty($cart)) {
             $this->redirect('cart');
+            return;
         }
 
         // Chống double submit đơn hàng bằng cách kiểm tra submit_token
@@ -275,11 +279,7 @@ class CheckoutController extends Controller
             }
         }
 
-        $subtotal = 0.0;
-        foreach ($cart as $item) {
-            $quantity = max(1, (int)($item['quantity'] ?? 1));
-            $subtotal += (float)($item['price'] ?? 0) * $quantity;
-        }
+        $subtotal = (float)$summary['subtotal'];
 
         $couponCode = '';
         $discountAmount = 0.0;
@@ -292,8 +292,7 @@ class CheckoutController extends Controller
             $couponId = (int)$applied['id'];
         }
 
-        // Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên
-        $shipping = ($subtotal >= 300000) ? 0 : ($subtotal > 0 ? 30000 : 0);
+        $shipping = (float)$summary['shipping'];
         $total = max(0.0, $subtotal - $discountAmount + $shipping);
 
         $orderModel = $this->model('Order');
@@ -319,6 +318,13 @@ class CheckoutController extends Controller
             $this->redirect('checkout');
             return;
         }
+
+        // Order là lớp bảo vệ cuối: luôn dùng lại tổng tiền đã được tính và khóa trong transaction.
+        $cart = $order['items'] ?? $cart;
+        $subtotal = (float)($order['subtotal'] ?? 0);
+        $discountAmount = (float)($order['discount_amount'] ?? 0);
+        $shipping = (float)($order['shipping_fee'] ?? 0);
+        $total = (float)($order['total_amount'] ?? 0);
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();

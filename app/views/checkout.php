@@ -208,7 +208,6 @@ $savedAddresses = $savedAddresses ?? [];
 
         function doRemoveCoupon() {
             const formData = new FormData();
-            formData.append('subtotal', '<?= (float)$subtotal ?>');
             formData.append('csrf_token', '<?= csrf_token() ?>');
 
             fetch('<?= url("checkout/remove_coupon") ?>', {
@@ -258,7 +257,6 @@ $savedAddresses = $savedAddresses ?? [];
 
                 const formData = new FormData();
                 formData.append('coupon_code', code);
-                formData.append('subtotal', '<?= (float)$subtotal ?>');
                 formData.append('csrf_token', '<?= csrf_token() ?>');
 
                 applyBtn.disabled = true;
