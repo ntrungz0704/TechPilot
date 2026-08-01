@@ -187,15 +187,19 @@ class HomeController extends Controller
         // Chỉ lấy 6 sản phẩm để hiển thị dropdown
         $all = $productModel->search($keyword, $categorySlug, 6);
 
-        // Chỉ trả về các trường cần thiết cho giao diện gợi ý
+        // Chỉ trả về các trường cần thiết cho giao diện gợi ý với giá đồng bộ tuyệt đối
         $products = array_map(function ($p) {
+            $eff = getEffectiveProductData($p);
             return [
-                'id'            => $p['id'],
-                'name'          => $p['name'],
-                'slug'          => $p['slug'],
-                'image'         => $p['image'] ?? '',
-                'price'         => $p['price'],
-                'category_name' => $p['category_name'] ?? '',
+                'id'              => $p['id'],
+                'name'            => $p['name'],
+                'slug'            => $p['slug'],
+                'image'           => $p['image'] ?? '',
+                'price'           => $eff['final_price'],
+                'original_price'  => $eff['original_price'],
+                'price_formatted' => formatPrice($eff['final_price']),
+                'has_discount'    => $eff['has_discount'],
+                'category_name'   => $p['category_name'] ?? '',
             ];
         }, $all);
 

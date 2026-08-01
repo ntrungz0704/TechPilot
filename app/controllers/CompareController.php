@@ -32,7 +32,15 @@ class CompareController extends Controller
         $ids = $_SESSION['compare'];
         $products = [];
         if (!empty($ids)) {
-            $products = $this->model->getProductsByIds($ids);
+            $rawProducts = $this->model->getProductsByIds($ids);
+            $products = array_map(function ($p) {
+                $eff = getEffectiveProductData($p);
+                $p['price'] = $eff['final_price'];
+                $p['original_price'] = $eff['original_price'];
+                $p['has_discount'] = $eff['has_discount'];
+                $p['discount_pct'] = $eff['discount_pct'];
+                return $p;
+            }, $rawProducts);
         }
 
         $compareConfig = require ROOT_PATH . '/config/product-comparison.php';
