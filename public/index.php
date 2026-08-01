@@ -124,7 +124,10 @@ $router->post('/profile/repay', 'ProfileController@repay');
 // Payment Callbacks
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
-$router->get('/payment/vnpay-sandbox-sim', 'PaymentController@vnpaySandboxSim');
+$vnpayConfig = require ROOT_PATH . '/config/vnpay.php';
+if (APP_ENV === 'development' && !empty($vnpayConfig['simulator_enabled'])) {
+    $router->get('/payment/vnpay-sandbox-sim', 'PaymentController@vnpaySandboxSim');
+}
 
 // Wishlist Routes
 $router->get('/wishlist', 'WishlistController@index');

@@ -98,7 +98,7 @@
                 <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="thumb">
                 <div class="fixed-buy-bar__txt">
                     <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
-                    <span class="fixed-buy-bar__price"><?= formatPrice($product['price']) ?></span>
+                    <span class="fixed-buy-bar__price"><?= formatPrice($product['final_price'] ?? $product['effective_price'] ?? $product['price']) ?></span>
                 </div>
             </div>
             <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>

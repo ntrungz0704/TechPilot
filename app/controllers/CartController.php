@@ -1,6 +1,7 @@
 <?php
 
 require_once ROOT_PATH . '/app/core/helpers.php';
+require_once ROOT_PATH . '/app/services/CartService.php';
 
 class CartController extends Controller
 {
@@ -46,10 +47,8 @@ class CartController extends Controller
         $cartId = $this->getOrCreateCartId($userId, $db);
         
         $stmt = $db->prepare("
-            SELECT ci.product_id, ci.quantity, p.name, p.price, p.slug, p.image, p.stock, c.slug as category_slug
+            SELECT ci.product_id, ci.quantity
             FROM cart_items ci
-            JOIN products p ON ci.product_id = p.id
-            LEFT JOIN categories c ON p.category_id = c.id
             WHERE ci.cart_id = :cart_id
         ");
         $stmt->execute([':cart_id' => $cartId]);
@@ -59,14 +58,7 @@ class CartController extends Controller
         foreach ($items as $item) {
             $sessionCart[(int)$item['product_id']] = [
                 'product_id' => (int)$item['product_id'],
-                'slug' => $item['slug'],
-                'category_slug' => $item['category_slug'] ?? '',
-                'name' => $item['name'],
-                'price' => (float)$item['price'],
                 'quantity' => (int)$item['quantity'],
-                'line_total' => (float)$item['price'] * (int)$item['quantity'],
-                'image' => $item['image'],
-                'stock' => (int)$item['stock'],
             ];
         }
         $_SESSION['cart'] = $sessionCart;
@@ -90,23 +82,14 @@ class CartController extends Controller
             $this->syncCartSession((int)$user['id'], $db);
         }
 
-        $cartItems = $_SESSION['cart'] ?? [];
-        $subtotal = 0.0;
-        foreach ($cartItems as &$item) {
-            $quantity = max(1, (int)($item['quantity'] ?? 1));
-            $price = (float)($item['price'] ?? 0);
-            $item['quantity'] = $quantity;
-            $item['line_total'] = $price * $quantity;
-            $subtotal += $item['line_total'];
-        }
-        unset($item);
+        $summary = (new CartService())->getSummary();
 
         $this->render('cart', [
             'pageTitle' => 'Giỏ hàng',
-            'cartItems' => array_values($cartItems),
-            'subtotal' => $subtotal,
-            'shipping' => 0.0,
-            'total' => $subtotal,
+            'cartItems' => $summary['items'],
+            'subtotal' => $summary['subtotal'],
+            'shipping' => $summary['shipping'],
+            'total' => $summary['total'],
             'flashes' => pullFlashes(),
         ]);
     }

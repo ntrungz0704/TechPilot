@@ -86,17 +86,15 @@
             
             <?php if ($isFlashSaleCard): ?>
                 <?php
-                $sold = (int)($p['fs_sold'] ?? 0);
-                $stock = (int)($p['fs_stock'] ?? $p['stock'] ?? 10);
-                // Tính tổng stock gốc = stock còn lại + đã bán
-                $totalStock = $stock + $sold;
-                $percent = $totalStock > 0 ? max(0, min(100, round(($sold / $totalStock) * 100))) : 0;
+                $allocation = max(0, (int)($p['fs_stock'] ?? 0));
+                $sold = max(0, min($allocation, (int)($p['fs_sold'] ?? 0)));
+                $percent = $allocation > 0 ? max(0, min(100, round(($sold / $allocation) * 100))) : 0;
                 ?>
                 <div class="sold-bar">
                     <div class="sold-bar__track">
                         <div class="sold-bar__fill" style="width: <?= $percent ?>%"></div>
                         <div class="sold-bar__text <?= $percent < 40 ? 'sold-bar__text-dark' : '' ?>">
-                            Đã bán <?= $sold ?>/<?= $totalStock ?>
+                            Đã giữ/bán <?= $sold ?>/<?= $allocation ?>
                         </div>
                     </div>
                 </div>

@@ -64,7 +64,7 @@ $total = $total ?? 0;
         <aside class="cart-summary">
             <h3>Tóm tắt đơn hàng</h3>
             <div class="summary-row"><span>Tạm tính</span><strong><?= formatPrice($subtotal) ?></strong></div>
-            <div class="summary-row"><span>Phí vận chuyển</span><strong style="color: var(--success);">Miễn phí</strong></div>
+            <div class="summary-row"><span>Phí vận chuyển</span><strong style="color: var(--success);"><?= $shipping > 0 ? formatPrice($shipping) : 'Miễn phí' ?></strong></div>
             <div class="summary-row total"><span>Tổng tiền thanh toán</span><strong><?= formatPrice($total) ?></strong></div>
             <a href="<?= url('checkout') ?>" class="btn btn--block" style="margin-top: 20px;">Tiến hành thanh toán <i class="fa-solid fa-credit-card"></i></a>
         </aside>
