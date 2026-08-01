@@ -17,7 +17,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 80px;">ID</th>
+                    <th style="width: 60px; text-align: center;">STT</th>
                     <th style="width: 120px;">Logo</th>
                     <th>Tên thương hiệu</th>
                     <th>Slug</th>
@@ -28,9 +28,9 @@
             </thead>
             <tbody>
                 <?php if (!empty($brands)): ?>
-                    <?php foreach ($brands as $b): ?>
+                    <?php foreach ($brands as $index => $b): ?>
                         <tr>
-                            <td><?= (int)$b['id'] ?></td>
+                            <td style="text-align: center; font-weight: 600; color: var(--text-secondary);"><?= $index + 1 ?></td>
                             <td>
                                 <?php $logoUrl = brandLogoUrl($b['logo'] ?? null, $b['slug'] ?? null); ?>
                                 <?php if ($logoUrl): ?>

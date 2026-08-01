@@ -8,8 +8,8 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 80px;">ID</th>
-                    <th style="width: 180px;">Hình ảnh</th>
+                    <th style="width: 60px; text-align: center;">STT</th>
+                    <th style="width: 160px;">Hình ảnh</th>
                     <th>Tiêu đề banner</th>
                     <th>Vị trí hiển thị (Type)</th>
                     <th>Thứ tự sắp xếp</th>
@@ -20,15 +20,11 @@
             </thead>
             <tbody>
                 <?php if (!empty($banners)): ?>
-                    <?php foreach ($banners as $bn): ?>
+                    <?php foreach ($banners as $index => $bn): ?>
                         <tr>
-                            <td><?= (int)$bn['id'] ?></td>
+                            <td style="text-align: center; font-weight: 600; color: var(--text-secondary);"><?= $index + 1 ?></td>
                             <td>
-                                <?php if (!empty($bn['image'])): ?>
-                                    <img src="<?= url('assets/images/' . e($bn['image'])) ?>" alt="<?= e($bn['title']) ?>" style="width: 150px; height: 60px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px;">
-                                <?php else: ?>
-                                    <div style="width: 150px; height: 60px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #9CA3AF;">No image</div>
-                                <?php endif; ?>
+                                <img src="<?= bannerImageUrl($bn['image'] ?? '') ?>" alt="<?= e($bn['title']) ?>" style="width: 140px; height: 55px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; padding: 2px; background: #FFF;">
                             </td>
                             <td><strong><?= e($bn['title']) ?></strong></td>
                             <td>

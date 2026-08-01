@@ -5,15 +5,10 @@ class CheckoutController extends Controller
     public function index(): void
     {
         $user = currentUser();
-        if (!$user) {
-            flash('error', 'Vui lòng đăng nhập trước khi tiến hành thanh toán.');
-            $this->redirect('auth/login');
-            return;
-        }
-
         $cart = $_SESSION['cart'] ?? [];
         if (empty($cart)) {
             $this->redirect('cart');
+            return;
         }
 
         $items = [];
@@ -227,14 +222,10 @@ class CheckoutController extends Controller
     public function submit(): void
     {
         $user = currentUser();
-        if (!$user) {
-            flash('error', 'Vui lòng đăng nhập trước khi thanh toán.');
-            $this->redirect('auth/login');
-            return;
-        }
 
         if (!$this->isPost()) {
             $this->redirect('checkout');
+            return;
         }
 
         $cart = $_SESSION['cart'] ?? [];

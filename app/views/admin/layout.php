@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <title><?= e($pageTitle ?? 'Quản trị hệ thống') ?> - TechPilot Admin</title>
     <!-- Google Fonts & FontAwesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -544,8 +545,8 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="adminSidebar" style="background-color: #091830;">
-        <a href="<?= url('admin') ?>" class="sidebar__logo">
-            <i class="fa-solid fa-rocket" style="color: #0B63E5;"></i> TechPilot
+        <a href="<?= url('admin') ?>" class="sidebar__logo" style="display: flex; align-items: center; gap: 10px; padding: 16px 20px;">
+            <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Admin Logo" style="height: 32px; max-width: 160px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
         </a>
         <ul class="sidebar__menu">
             <li class="sidebar__menu-item <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">

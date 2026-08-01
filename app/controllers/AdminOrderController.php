@@ -146,23 +146,22 @@ class AdminOrderController extends Controller
             }
 
             // Cho phép chuyển đổi linh hoạt 100% giữa tất cả các trạng thái để Admin dễ dàng kiểm thử và sửa lỗi vận chuyển
-            $allStatuses = ['pending', 'confirmed', 'processing', 'shipping', 'completed', 'cancelled'];
             $validTransitions = [
                 'pending'   => ['confirmed', 'cancelled'],
                 'confirmed' => ['processing', 'cancelled'],
                 'processing'=> ['shipping', 'cancelled'],
-                'shipping'  => ['completed', 'cancelled'],
+                'shipping'  => ['completed'],
                 'completed' => [],
                 'cancelled' => []
             ];
 
             if ($newStatus === 'confirmed' && $currentOrder['payment_method'] === 'VNPAY' && $currentOrder['payment_status'] !== 'paid') {
-                flash('error', 'Đơn VNPay chỉ được xác nhận sau khi thanh toán thành công.');
+                flash('error', 'Đơn VNPay chỉ được xác nhận (Confirmed) sau khi thanh toán thành công (Paid).');
                 $this->redirect('admin/orders/detail/' . $id);
                 return;
             }
 
-            if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
+            if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [], true)) {
                 flash('error', 'Chuyển đổi trạng thái không hợp lệ (Không thể chuyển từ ' . $currentStatus . ' sang ' . $newStatus . ').');
                 $this->redirect('admin/orders/detail/' . $id);
                 return;

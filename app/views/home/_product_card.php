@@ -1,40 +1,17 @@
 <?php if (!empty($p)): ?>
     <?php
     $imageUrl = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $p['name'] ?? '', (int)($p['id'] ?? 0));
-    $price = (float)($p['price'] ?? 0);
-
-    // Giá gốc: ưu tiên old_price nếu lớn hơn price, kế đó dùng price
-    $oldPrice = isset($p['old_price']) && (float)$p['old_price'] > $price ? (float)$p['old_price'] : null;
-
-    // Giá khuyến mãi: ưu tiên sale_price, rồi discount_price (alias từ flash sale query)
-    $salePrice = isset($p['sale_price']) && $p['sale_price'] !== null ? (float)$p['sale_price'] : (isset($p['discount_price']) ? (float)$p['discount_price'] : null);
-
-    // Xác định giá hiện tại và giá gốc để hiển thị
-    if ($salePrice !== null && $salePrice > 0 && $salePrice < $price) {
-        // Trường hợp: price là giá gốc, sale_price là giá sale
-        $currentPrice   = $salePrice;
-        $originalPrice  = $price;
-        $hasDiscount    = true;
-    } elseif ($oldPrice !== null) {
-        // Trường hợp: old_price là giá gốc, price là giá đã giảm
-        $currentPrice   = $price;
-        $originalPrice  = $oldPrice;
-        $hasDiscount    = true;
-    } else {
-        $currentPrice   = $price;
-        $originalPrice  = $price;
-        $hasDiscount    = false;
-    }
-
-    $discountPercent = $hasDiscount
-        ? round((($originalPrice - $currentPrice) / $originalPrice) * 100)
-        : 0;
-    $isFlashSaleCard = !empty($p['is_flash_sale']) || isset($p['discount_price']);
+    $priceData = getEffectiveProductData($p);
+    $currentPrice = $priceData['final_price'];
+    $originalPrice = $priceData['original_price'];
+    $hasDiscount = $priceData['has_discount'];
+    $discountPercent = $priceData['discount_pct'];
+    $isFlashSaleCard = $priceData['is_flash_sale'];
     ?>
 
     <div class="product-card">
-        <?php if ($discountPercent > 0): ?>
-            <span class="product-card__badge">-<?= (int)$discountPercent ?>%</span>
+        <?php if ($hasDiscount && $discountPercent > 0): ?>
+            <span class="product-card__badge" style="background: linear-gradient(135deg, #EF4444, #DC2626); font-weight: 700;" title="Sản phẩm Flash Sale"><i class="fa-solid fa-bolt"></i> -<?= (int)$discountPercent ?>%</span>
         <?php endif; ?>
         
         <button type="button" class="product-card__wishlist-btn" onclick="toggleWishlist(<?= (int)($p['id'] ?? 0) ?>, this)" title="Thêm vào yêu thích" style="position: absolute; top: 12px; right: 12px; z-index: 5; background: var(--bg-card, #FFFFFF); border: 1px solid var(--border, #E2E8F0); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary, #64748B); box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.2s ease;">

@@ -52,29 +52,74 @@
         </div>
     </form>
 
+    <style>
+        .status-toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        .status-toggle-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .status-toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #CBD5E1;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px;
+        }
+        .status-toggle-knob {
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .status-toggle-input:checked + .status-toggle-slider {
+            background-color: #10B981;
+        }
+        .status-toggle-input:checked + .status-toggle-slider .status-toggle-knob {
+            transform: translateX(20px);
+        }
+        .status-toggle-input:disabled + .status-toggle-slider {
+            opacity: 0.6;
+            cursor: wait;
+        }
+    </style>
+
     <div class="table-responsive">
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 80px;">ID</th>
-                    <th style="width: 80px;">Ảnh</th>
+                    <th style="width: 60px; text-align: center;">STT</th>
                     <th>Tên sản phẩm</th>
                     <th>Danh mục / Brand</th>
                     <th>Giá gốc</th>
                     <th>Giá Sale</th>
                     <th>Tồn kho</th>
-                    <th>Trạng thái</th>
-                    <th style="width: 180px; text-align: center;">Hành động</th>
+                    <th style="text-align: center; width: 100px;">Trạng thái</th>
+                    <th style="width: 160px; text-align: center;">Hành động</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($products)): ?>
-                    <?php foreach ($products as $p): ?>
+                    <?php 
+                        $pageLimit = (int)($limit ?? 10);
+                        $stt = ($page - 1) * $pageLimit;
+                        foreach ($products as $idx => $p): 
+                            $stt++;
+                    ?>
                         <tr>
-                            <td><?= (int)$p['id'] ?></td>
-                            <td>
-                                <img src="<?= e(productImageUrl($p['image'] ?? '', $p['name'] ?? '')) ?>" alt="<?= e($p['name']) ?>" style="width: 44px; height: 44px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; padding: 2px; background: var(--bg-body);">
-                            </td>
+                            <td style="text-align: center; font-weight: 600; color: var(--text-secondary);"><?= $stt ?></td>
                             <td>
                                 <strong style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px;"><?= e($p['name']) ?></strong>
                             </td>
@@ -102,8 +147,18 @@
                                     </button>
                                 </div>
                             </td>
-                            <td>
-                                <span class="badge <?= $p['status'] === 'active' ? 'badge--success' : 'badge--danger' ?>">
+                            <td style="text-align: center;">
+                                <label class="status-toggle-switch" title="Bấm để bật/tắt hiển thị sản phẩm">
+                                    <input type="checkbox"
+                                           class="status-toggle-input"
+                                           data-id="<?= (int)$p['id'] ?>"
+                                           <?= $p['status'] === 'active' ? 'checked' : '' ?>
+                                           onchange="toggleProductStatus(this, <?= (int)$p['id'] ?>)">
+                                    <span class="status-toggle-slider">
+                                        <span class="status-toggle-knob"></span>
+                                    </span>
+                                </label>
+                                <span class="status-label-text" id="status-label-<?= (int)$p['id'] ?>" style="font-size: 11px; font-weight: 600; color: <?= $p['status'] === 'active' ? '#10B981' : '#6B7280' ?>; display: block; margin-top: 2px;">
                                     <?= $p['status'] === 'active' ? 'Hiển thị' : 'Ẩn/Khoá' ?>
                                 </span>
                             </td>
@@ -111,9 +166,9 @@
                                 <div style="display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
                                     <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                                     
-                                    <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá sản phẩm này?');" style="margin: 0;">
+                                    <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn ẩn sản phẩm này khỏi cửa hàng (Bảo toàn lịch sử dữ liệu)?');" style="margin: 0;">
                                         <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
+                                        <button type="submit" class="btn btn--secondary btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;" title="Tạm ẩn / Ngừng kinh doanh"><i class="fa-solid fa-eye-slash"></i> Ẩn</button>
                                     </form>
                                 </div>
                             </td>
@@ -121,12 +176,47 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 30px;">Không tìm thấy sản phẩm nào.</td>
+                        <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">Không tìm thấy sản phẩm nào.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
+
+    <script>
+    function toggleProductStatus(input, productId) {
+        const originalChecked = !input.checked;
+        input.disabled = true;
+        
+        fetch('<?= url("admin/products/toggle-status/") ?>' + productId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-Token': '<?= $_SESSION["csrf_token"] ?? "" ?>'
+            },
+            body: '_csrf=' + encodeURIComponent('<?= $_SESSION["csrf_token"] ?? "" ?>')
+        })
+        .then(res => res.json())
+        .then(data => {
+            input.disabled = false;
+            if (data.success) {
+                const label = document.getElementById('status-label-' + productId);
+                if (label) {
+                    label.innerText = data.status_text;
+                    label.style.color = data.status === 'active' ? '#10B981' : '#6B7280';
+                }
+            } else {
+                input.checked = originalChecked;
+                alert(data.error || 'Không thể thay đổi trạng thái');
+            }
+        })
+        .catch(err => {
+            input.disabled = false;
+            input.checked = originalChecked;
+            alert('Lỗi kết nối máy chủ');
+        });
+    }
+    </script>
 
     <!-- Pagination -->
     <?php if ($totalPages > 1): ?>

@@ -17,7 +17,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 70px;">ID</th>
+                    <th style="width: 60px; text-align: center;">STT</th>
                     <th>Tên danh mục</th>
                     <th>Slug</th>
                     <th>Thứ tự</th>
@@ -29,9 +29,9 @@
             </thead>
             <tbody>
                 <?php if (!empty($categories)): ?>
-                    <?php foreach ($categories as $cat): ?>
+                    <?php foreach ($categories as $index => $cat): ?>
                         <tr>
-                            <td><?= (int)$cat['id'] ?></td>
+                            <td style="text-align: center; font-weight: 600; color: var(--text-secondary);"><?= $index + 1 ?></td>
                             <td><strong><?= e($cat['name']) ?></strong></td>
                             <td><code><?= e($cat['slug']) ?></code></td>
                             <td><?= (int)$cat['sort_order'] ?></td>

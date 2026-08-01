@@ -101,6 +101,7 @@ class AdminProductController extends Controller
             'status'        => $status,
             'lowStock'      => $lowStock,
             'page'          => $page,
+            'limit'         => $limit,
             'totalPages'    => $totalPages,
             'totalProducts' => $totalProducts
         ]);
@@ -131,6 +132,12 @@ class AdminProductController extends Controller
         $this->requireAdmin();
         if (!$this->isPost()) {
             $this->redirect('admin/products');
+        }
+
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc đã hết hạn hoặc token CSRF không hợp lệ.');
+            $this->redirect('admin/products/create');
+            return;
         }
 
         $name = trim($_POST['name'] ?? '');
@@ -262,6 +269,12 @@ class AdminProductController extends Controller
             $this->redirect('admin/products');
         }
 
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc đã hết hạn hoặc token CSRF không hợp lệ.');
+            $this->redirect('admin/products/edit/' . $id);
+            return;
+        }
+
         $name = trim($_POST['name'] ?? '');
         $slug = trim($_POST['slug'] ?? '');
         $categoryId = (int)($_POST['category_id'] ?? 0);
@@ -352,6 +365,7 @@ class AdminProductController extends Controller
         }
     }
 
+    /** Soft Disable / Hide product logic - NO physical DELETE */
     public function delete(string $id = ''): void
     {
         $this->requireAdmin();
@@ -360,35 +374,86 @@ class AdminProductController extends Controller
             $this->redirect('admin/products');
         }
 
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc đã hết hạn hoặc token CSRF không hợp lệ.');
+            $this->redirect('admin/products');
+            return;
+        }
+
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
         if ($db) {
-            // Kiểm tra xem sản phẩm đã có đơn hàng nào chưa
-            $stmt = $db->prepare('SELECT COUNT(*) FROM order_items WHERE product_id = :id');
-            $stmt->execute([':id' => $id]);
-            $orderCount = (int)$stmt->fetchColumn();
-
-            if ($orderCount > 0) {
-                // Soft Delete: Chuyển sang inactive
-                $stmt = $db->prepare('UPDATE products SET status = \'inactive\' WHERE id = :id');
-                if ($stmt->execute([':id' => $id])) {
-                    flash('success', 'Sản phẩm này đã có lịch sử đơn hàng. Hệ thống đã tự động chuyển trạng thái sản phẩm sang ẩn (Tạm khoá) để bảo toàn dữ liệu.');
-                } else {
-                    flash('error', 'Không thể khoá sản phẩm.');
-                }
+            // Strictly soft-disable (hide) product - NEVER physical DELETE
+            $stmt = $db->prepare("UPDATE products SET status = 'inactive' WHERE id = :id");
+            if ($stmt->execute([':id' => $id])) {
+                flash('success', 'Đã ẩn sản phẩm (chuyển sang trạng thái Tạm ẩn/Ngừng kinh doanh) thành công!');
             } else {
-                // Hard Delete: Xoá hẳn khỏi MySQL
-                $stmt = $db->prepare('DELETE FROM products WHERE id = :id');
-                if ($stmt->execute([':id' => $id])) {
-                    flash('success', 'Đã xoá hoàn toàn sản phẩm khỏi hệ thống thành công!');
-                } else {
-                    flash('error', 'Không thể xoá sản phẩm.');
-                }
+                flash('error', 'Không thể ẩn sản phẩm.');
             }
         }
 
         $this->redirect('admin/products');
+    }
+
+    /** Toggle trạng thái Hiển thị / Tạm ẩn cho sản phẩm qua AJAX (POST /admin/products/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'CSRF Token invalid']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+
+        if (!$db) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database error']);
+            exit;
+        }
+
+        $stmt = $db->prepare('SELECT status FROM products WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $currentStatus = $stmt->fetchColumn();
+
+        if ($currentStatus === false) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Sản phẩm không tồn tại']);
+            exit;
+        }
+
+        $newStatus = ($currentStatus === 'active') ? 'inactive' : 'active';
+        $updateStmt = $db->prepare('UPDATE products SET status = :status WHERE id = :id');
+        $ok = $updateStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        header('Content-Type: application/json; charset=utf-8');
+        if ($ok) {
+            echo json_encode([
+                'success'     => true,
+                'status'      => $newStatus,
+                'status_text' => ($newStatus === 'active' ? 'Hiển thị' : 'Ẩn/Khoá'),
+                'message'     => ($newStatus === 'active' ? 'Đã hiển thị sản phẩm!' : 'Đã ẩn sản phẩm!')
+            ], JSON_UNESCAPED_UNICODE);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Không thể cập nhật trạng thái']);
+        }
+        exit;
     }
 
     /** Xử lý Nhập kho / Xuất kho nhanh từ Admin: POST /admin/products/adjust-stock */
@@ -476,5 +541,58 @@ class AdminProductController extends Controller
         }
 
         $this->redirect('admin/products');
+    }
+
+    /** API Hỗ trợ sinh dữ liệu sản phẩm bằng AI: POST /admin/products/ai-assistant */
+    public function aiAssistant(): void
+    {
+        $adminUser = $this->requireApiAdmin();
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'CSRF Token invalid']);
+            exit;
+        }
+
+        $inputQuery = trim($_POST['product_name'] ?? $_POST['query'] ?? '');
+        if ($inputQuery === '') {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Vui lòng nhập tên sản phẩm hoặc model']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        require_once ROOT_PATH . '/app/services/AiProductAssistantService.php';
+
+        $db = Database::getConnection();
+        $categories = [];
+        $brands = [];
+        if ($db) {
+            $categories = $db->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+            $brands = $db->query('SELECT id, name FROM brands ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        try {
+            $data = AiProductAssistantService::generateProductData($inputQuery, $categories, $brands);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => true,
+                'data'    => $data
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (Throwable $e) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
     }
 }

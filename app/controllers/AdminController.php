@@ -59,33 +59,52 @@ class AdminController extends Controller
 
     public function notifications(): void
     {
-        header('Content-Type: application/json');
+        $adminUser = $this->requireApiAdmin();
+        $adminUserId = (int)($adminUser['id'] ?? 1);
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
         $items = [];
         $unreadCount = 0;
+
         if ($db) {
-            $stmt = $db->prepare('SELECT * FROM notifications WHERE user_id = 1 ORDER BY id DESC LIMIT 10');
-            $stmt->execute();
+            $stmt = $db->prepare('SELECT id, title, content, is_read, created_at FROM notifications WHERE user_id = :uid OR user_id = 1 ORDER BY id DESC LIMIT 10');
+            $stmt->execute([':uid' => $adminUserId]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $stmt2 = $db->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = 1 AND is_read = 0');
-            $stmt2->execute();
+            $stmt2 = $db->prepare('SELECT COUNT(*) FROM notifications WHERE (user_id = :uid OR user_id = 1) AND is_read = 0');
+            $stmt2->execute([':uid' => $adminUserId]);
             $unreadCount = (int)$stmt2->fetchColumn();
         }
-        echo json_encode(['success' => true, 'unread' => $unreadCount, 'items' => $items]);
+
+        echo json_encode(['success' => true, 'unread' => $unreadCount, 'items' => $items], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     public function markReadNotifications(): void
     {
-        header('Content-Type: application/json');
+        $adminUser = $this->requireApiAdmin();
+        $adminUserId = (int)($adminUser['id'] ?? 1);
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
+
         if ($db) {
-            $db->exec('UPDATE notifications SET is_read = 1 WHERE user_id = 1');
+            $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = :uid OR user_id = 1');
+            $stmt->execute([':uid' => $adminUserId]);
         }
-        echo json_encode(['success' => true]);
+
+        echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
