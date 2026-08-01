@@ -119,6 +119,7 @@ Mở `.env` và điền các cấu hình cần thiết:
 
 ```env
 # === Ứng dụng ===
+APP_ENV=development
 APP_URL=http://127.0.0.1:8000
 
 # === Cơ sở dữ liệu ===
@@ -139,6 +140,17 @@ VNPAY_HASH_SECRET=
 VNPAY_RETURN_URL=http://127.0.0.1:8000/payment/vnpay-return
 VNPAY_IPN_URL=
 ```
+
+Quy tắc môi trường VNPay:
+
+- Local development: đặt `APP_ENV=development` và để trống cả
+  `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` để dùng simulator tích hợp.
+- Development có đủ credential: ứng dụng dùng VNPay Sandbox thật và route
+  simulator local trả về `404`.
+- Production: đặt `APP_ENV=production` và cung cấp đủ hai credential. Nếu thiếu,
+  VNPay bị vô hiệu hóa an toàn; COD vẫn hoạt động và route simulator luôn trả
+  về `404`.
+- Không dùng credential production trong simulator hoặc commit secret vào Git.
 
 ---
 
@@ -164,7 +176,7 @@ Hoặc chạy lệnh 1 dòng trên PowerShell / CMD:
 mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot < database\seed.sql
 ```
 
-Sau khi import thành công, database sẽ có **20 bảng vật lý**, 650+ sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
+Sau khi import thành công, database sẽ có **26 bảng vật lý**, 650+ sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
 
 ---
 
@@ -192,6 +204,36 @@ Nếu kết quả xuất hiện:
 ✅ Cài đặt hợp lệ. Website sẵn sàng chạy.
 ```
 Website đã sẵn sàng để truy cập tại: **`http://127.0.0.1:8000`**
+
+---
+
+### Bước 6: Chạy PHP Migration an toàn
+
+Kiểm tra migration nào đã chạy và migration nào còn pending:
+
+```powershell
+php scripts/database/migrate.php --status
+```
+
+Chỉ chạy những migration chưa có trong bảng `migrations`:
+
+```powershell
+php scripts/database/migrate.php
+```
+
+Runner ghi ledger sau khi `up()` trả về thành công, tự bỏ qua migration đã ghi,
+khóa chống hai runner chạy đồng thời và dừng ngay tại migration đầu tiên bị lỗi.
+
+`database/seed.sql` đã baseline toàn bộ migration có trong snapshot. Với database
+legacy được tạo trước khi runner có ledger, chỉ sau khi đã backup và xác minh
+schema/data khớp seed hiện tại mới chạy đúng một lần:
+
+```powershell
+php scripts/database/migrate.php --baseline-existing
+```
+
+Lệnh baseline **không gọi `up()`**; nó chỉ ghi tên các migration hiện có vào
+ledger để ngăn dữ liệu cũ bị chạy lại.
 
 ---
 
