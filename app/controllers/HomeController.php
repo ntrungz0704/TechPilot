@@ -20,8 +20,8 @@ class HomeController extends Controller
             'promoProducts'          => $productModel->getPromoProducts(6),
 
             // Các danh mục sản phẩm lớn ở trang chủ
-            'laptopGaming'           => $productModel->getByCategorySlug('laptop-gaming', 6),
-            'laptopVanPhong'         => $productModel->getByCategorySlug('laptop-van-phong', 6),
+            'laptopGaming'           => $productModel->search('', 'laptop-gaming', 6) ?: [],
+            'laptopVanPhong'         => $productModel->search('', 'laptop-van-phong', 6) ?: [],
             'pcBuildSan'             => $productModel->getByCategorySlug('pc-build-san', 6),
             'pcLinhKien'             => $productModel->getByCategorySlug('pc-linh-kien', 6),
             'gamingGear'             => $productModel->getByCategorySlug('gaming-gear', 6),
@@ -54,7 +54,7 @@ class HomeController extends Controller
     public function search(): void
     {
         $keyword = trim($_GET['q'] ?? '');
-        $categorySlug = trim($_GET['cat'] ?? '');
+        $requestedCategorySlug = trim($_GET['cat'] ?? '');
         $brandSlug = trim($_GET['brand'] ?? '');
         $minPrice = filter_input(INPUT_GET, 'min_price', FILTER_VALIDATE_FLOAT) ?: 0.0;
         $maxPrice = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT) ?: (filter_input(INPUT_GET, 'price', FILTER_VALIDATE_FLOAT) ?: 0.0);
@@ -64,11 +64,17 @@ class HomeController extends Controller
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 24;
 
+        require_once ROOT_PATH . '/app/services/ProductFacetService.php';
+        $facetFilters = ProductFacetService::normalizeFilters($requestedCategorySlug, $_GET);
+        $categorySlug = ProductFacetService::canonicalCategorySlug($requestedCategorySlug);
+        $facetDefinitions = ProductFacetService::getFacetDefinitions($categorySlug);
+        $priceRanges = ProductFacetService::getPriceRanges();
+
         $productModel = $this->model('Product');
 
         // 1. Đếm tổng kết quả trước
         $totalResults = $productModel->countSearch(
-            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
+            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters
         );
 
         // 2. Tính toán số trang và Clamp page nếu xơ vơ vượt quá
@@ -80,7 +86,7 @@ class HomeController extends Controller
 
         // 3. Query danh sách sản phẩm theo Search Plan thống nhất
         $searchResult = $productModel->search(
-            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly
+            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly, $facetFilters
         );
 
         $searchError = false;
@@ -117,7 +123,6 @@ class HomeController extends Controller
         // 5. Load brands & subgroups for filter chips
         $activeBrands = [];
         $subgroups = [];
-        $filterConfig = [];
 
         if (!empty($categorySlug)) {
             $sourceSlugs = CatalogGroupService::resolveSourceSlugs($categorySlug);
@@ -131,9 +136,6 @@ class HomeController extends Controller
                     $subgroups = $allGroups[$groupKey]['subgroups'];
                 }
             }
-
-            // Per-category filter config
-            $filterConfig = $this->getFilterConfig($categorySlug);
         }
 
         $this->render('home/search', [
@@ -155,7 +157,9 @@ class HomeController extends Controller
             'searchError'      => $searchError,
             'activeBrands'     => $activeBrands,
             'subgroups'        => $subgroups,
-            'filterConfig'     => $filterConfig,
+            'facetDefinitions' => $facetDefinitions,
+            'facetFilters'     => $facetFilters,
+            'priceRanges'      => $priceRanges,
             'pageStyles'       => ['assets/css/search-filters.css?v=1.0'],
             'pageScripts'      => ['assets/js/search-filters.js?v=1.0'],
         ]);

@@ -26,18 +26,19 @@ class CategoryMenuService
                     ],
                     'Giá bán' => [
                         ['name' => 'Dưới 15 triệu', 'query' => 'max_price=15000000'],
-                        ['name' => 'Từ 15 đến 20 triệu', 'query' => 'min_price=15000000&max_price=20000000'],
-                        ['name' => 'Trên 20 triệu', 'query' => 'min_price=20000000'],
+                        ['name' => 'Từ 15 đến 20 triệu', 'query' => 'min_price=15000001&max_price=20000000'],
+                        ['name' => 'Trên 20 triệu', 'query' => 'min_price=20000001'],
                     ],
                     'CPU Intel - AMD' => [
-                        ['name' => 'Intel Core i3', 'query' => 'q=Core+i3'],
-                        ['name' => 'Intel Core i5', 'query' => 'q=Core+i5'],
-                        ['name' => 'Intel Core i7', 'query' => 'q=Core+i7'],
-                        ['name' => 'AMD Ryzen', 'query' => 'q=AMD+Ryzen'],
+                        ['name' => 'Intel Core i5', 'query' => 'cpu_family=core-i5'],
+                        ['name' => 'Intel Core i7', 'query' => 'cpu_family=core-i7'],
+                        ['name' => 'Intel Core i9', 'query' => 'cpu_family=core-i9'],
+                        ['name' => 'Intel Core Ultra', 'query' => 'cpu_family=core-ultra'],
+                        ['name' => 'AMD Ryzen 7', 'query' => 'cpu_family=ryzen-7'],
                     ],
                     'Nhu cầu sử dụng' => [
                         ['name' => 'Đồ họa - Studio', 'query' => 'q=Đồ+họa'],
-                        ['name' => 'Học sinh - Sinh viên', 'query' => 'q=Văn+phòng'],
+                        ['name' => 'Học tập - Văn phòng', 'query' => 'gpu=integrated'],
                         ['name' => 'Mỏng nhẹ cao cấp', 'query' => 'q=Mỏng+nhẹ'],
                     ],
                     'Linh phụ kiện Laptop' => [
@@ -72,6 +73,7 @@ class CategoryMenuService
                 'id' => 'laptop-gaming',
                 'name' => 'Laptop Gaming',
                 'slug' => 'laptop',
+                'query' => 'gpu=dedicated',
                 'icon' => 'fa-solid fa-gamepad',
                 'mega_columns' => [
                     'Thương hiệu' => [
@@ -83,9 +85,9 @@ class CategoryMenuService
                     ],
                     'Giá bán' => [
                         ['name' => 'Dưới 20 triệu', 'query' => 'max_price=20000000'],
-                        ['name' => 'Từ 20 đến 25 triệu', 'query' => 'min_price=20000000&max_price=25000000'],
-                        ['name' => 'Từ 25 đến 30 triệu', 'query' => 'min_price=25000000&max_price=30000000'],
-                        ['name' => 'Trên 30 triệu', 'query' => 'min_price=30000000'],
+                        ['name' => 'Từ 20 đến 25 triệu', 'query' => 'min_price=20000001&max_price=25000000'],
+                        ['name' => 'Từ 25 đến 30 triệu', 'query' => 'min_price=25000001&max_price=30000000'],
+                        ['name' => 'Trên 30 triệu', 'query' => 'min_price=30000001'],
                         ['name' => 'Gaming RTX 50 Series', 'query' => 'q=RTX+50'],
                     ],
                     'ACER | PREDATOR' => [
@@ -134,10 +136,10 @@ class CategoryMenuService
                 'mega_columns' => [
                     'PC THEO GIÁ' => [
                         ['name' => 'PC DƯỚI 30 TRIỆU', 'query' => 'max_price=30000000'],
-                        ['name' => 'PC TỪ 30 - 50 TRIỆU', 'query' => 'min_price=30000000&max_price=50000000'],
-                        ['name' => 'PC TỪ 50 - 70 TRIỆU', 'query' => 'min_price=50000000&max_price=70000000'],
-                        ['name' => 'PC TỪ 70 - 100 TRIỆU', 'query' => 'min_price=70000000&max_price=100000000'],
-                        ['name' => 'PC TRÊN 100 TRIỆU', 'query' => 'min_price=100000000'],
+                        ['name' => 'PC TỪ 30 - 50 TRIỆU', 'query' => 'min_price=30000001&max_price=50000000'],
+                        ['name' => 'PC TỪ 50 - 70 TRIỆU', 'query' => 'min_price=50000001&max_price=70000000'],
+                        ['name' => 'PC TỪ 70 - 100 TRIỆU', 'query' => 'min_price=70000001&max_price=100000000'],
+                        ['name' => 'PC TRÊN 100 TRIỆU', 'query' => 'min_price=100000001'],
                     ],
                     'PC theo CPU Intel' => [
                         ['name' => 'PC Core i3', 'query' => 'q=Core+i3'],
@@ -311,9 +313,9 @@ class CategoryMenuService
                     ],
                     'Giá tiền' => [
                         ['name' => 'Dưới 5 triệu', 'query' => 'cat=monitor&max_price=5000000'],
-                        ['name' => 'Từ 5 đến 10 triệu', 'query' => 'cat=monitor&min_price=5000000&max_price=10000000'],
-                        ['name' => 'Từ 10 đến 20 triệu', 'query' => 'cat=monitor&min_price=10000000&max_price=20000000'],
-                        ['name' => 'Trên 20 triệu', 'query' => 'cat=monitor&min_price=20000000'],
+                        ['name' => 'Từ 5 đến 10 triệu', 'query' => 'cat=monitor&min_price=5000001&max_price=10000000'],
+                        ['name' => 'Từ 10 đến 20 triệu', 'query' => 'cat=monitor&min_price=10000001&max_price=20000000'],
+                        ['name' => 'Trên 20 triệu', 'query' => 'cat=monitor&min_price=20000001'],
                     ],
                     'Độ phân giải & Tần số quét' => [
                         ['name' => 'Màn hình Full HD', 'query' => 'cat=monitor&q=Full+HD'],
@@ -344,8 +346,8 @@ class CategoryMenuService
                     ],
                     'Giá tiền & Kết nối' => [
                         ['name' => '1 triệu - 2 triệu', 'query' => 'cat=keyboard&min_price=1000000&max_price=2000000'],
-                        ['name' => '2 triệu - 3 triệu', 'query' => 'cat=keyboard&min_price=2000000&max_price=3000000'],
-                        ['name' => 'Trên 3 triệu', 'query' => 'cat=keyboard&min_price=3000000'],
+                        ['name' => '2 triệu - 3 triệu', 'query' => 'cat=keyboard&min_price=2000001&max_price=3000000'],
+                        ['name' => 'Trên 3 triệu', 'query' => 'cat=keyboard&min_price=3000001'],
                         ['name' => 'Bàn phím Bluetooth / Wireless', 'query' => 'cat=keyboard&q=Wireless'],
                     ],
                     'Phụ kiện phím cơ' => [
@@ -371,9 +373,9 @@ class CategoryMenuService
                     ],
                     'Chuột theo giá tiền' => [
                         ['name' => 'Dưới 500 nghìn', 'query' => 'cat=mouse&max_price=500000'],
-                        ['name' => 'Từ 500k - 1 triệu', 'query' => 'cat=mouse&min_price=500000&max_price=1000000'],
-                        ['name' => 'Từ 1 - 2 triệu', 'query' => 'cat=mouse&min_price=1000000&max_price=2000000'],
-                        ['name' => 'Trên 2 triệu', 'query' => 'cat=mouse&min_price=2000000'],
+                        ['name' => 'Từ 500k - 1 triệu', 'query' => 'cat=mouse&min_price=500001&max_price=1000000'],
+                        ['name' => 'Từ 1 - 2 triệu', 'query' => 'cat=mouse&min_price=1000001&max_price=2000000'],
+                        ['name' => 'Trên 2 triệu', 'query' => 'cat=mouse&min_price=2000001'],
                     ],
                     'Loại Chuột & Lót chuột' => [
                         ['name' => 'Chuột chơi game siêu nhẹ', 'query' => 'cat=mouse&q=Gaming'],
@@ -398,9 +400,9 @@ class CategoryMenuService
                     ],
                     'Tai nghe theo giá' => [
                         ['name' => 'Tai nghe dưới 1 triệu', 'query' => 'cat=headset&max_price=1000000'],
-                        ['name' => 'Tai nghe 1 đến 2 triệu', 'query' => 'cat=headset&min_price=1000000&max_price=2000000'],
-                        ['name' => 'Tai nghe 2 đến 3 triệu', 'query' => 'cat=headset&min_price=2000000&max_price=3000000'],
-                        ['name' => 'Tai nghe trên 3 triệu', 'query' => 'cat=headset&min_price=3000000'],
+                        ['name' => 'Tai nghe 1 đến 2 triệu', 'query' => 'cat=headset&min_price=1000001&max_price=2000000'],
+                        ['name' => 'Tai nghe 2 đến 3 triệu', 'query' => 'cat=headset&min_price=2000001&max_price=3000000'],
+                        ['name' => 'Tai nghe trên 3 triệu', 'query' => 'cat=headset&min_price=3000001'],
                     ],
                     'Kiểu dáng & Kết nối' => [
                         ['name' => 'Tai nghe Wireless / Bluetooth', 'query' => 'cat=headset&q=Wireless'],
@@ -426,8 +428,8 @@ class CategoryMenuService
                         ['name' => 'Ghế Công thái học (Ergonomic)', 'query' => 'cat=chair&q=Công+thái+học'],
                         ['name' => 'Ghế Gaming bọc da', 'query' => 'cat=chair&q=Gaming'],
                         ['name' => 'Dưới 5 triệu', 'query' => 'cat=chair&max_price=5000000'],
-                        ['name' => 'Từ 5 đến 10 triệu', 'query' => 'cat=chair&min_price=5000000&max_price=10000000'],
-                        ['name' => 'Trên 10 triệu', 'query' => 'cat=chair&min_price=10000000'],
+                        ['name' => 'Từ 5 đến 10 triệu', 'query' => 'cat=chair&min_price=5000001&max_price=10000000'],
+                        ['name' => 'Trên 10 triệu', 'query' => 'cat=chair&min_price=10000001'],
                     ],
                     'Bàn Gaming & Công thái học' => [
                         ['name' => 'Bàn Gaming DXRacer / E-Dra', 'query' => 'cat=chair&q=Bàn+Gaming'],

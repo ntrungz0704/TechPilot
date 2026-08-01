@@ -40,6 +40,28 @@
         window.location.href = url.toString();
     }
 
+    // Apply a canonical price range using two explicit URL boundaries.
+    function applyPriceRange(minPrice, maxPrice) {
+        const url = new URL(window.location.href);
+        const min = Number.parseInt(minPrice || '0', 10);
+        const max = Number.parseInt(maxPrice || '0', 10);
+
+        url.searchParams.delete('price'); // Remove legacy single-bound param.
+        if (Number.isFinite(min) && min > 0) {
+            url.searchParams.set('min_price', String(min));
+        } else {
+            url.searchParams.delete('min_price');
+        }
+        if (Number.isFinite(max) && max > 0) {
+            url.searchParams.set('max_price', String(max));
+        } else {
+            url.searchParams.delete('max_price');
+        }
+
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+    }
+
     // Toggle a multi-value filter (comma-separated)
     function toggleMultiFilter(key, value) {
         const url = new URL(window.location.href);
@@ -99,9 +121,17 @@
         document.querySelectorAll('.filter-chip__dropdown-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 e.stopPropagation();
+
+                if (this.hasAttribute('data-price-min')) {
+                    applyPriceRange(this.dataset.priceMin, this.dataset.priceMax);
+                    return;
+                }
+
                 const key = this.dataset.filterKey;
                 const value = this.dataset.filterValue;
                 const isMulti = this.dataset.multi === 'true';
+
+                if (!key) return;
                 
                 if (isMulti) {
                     toggleMultiFilter(key, value);
@@ -157,6 +187,7 @@
     // Expose for external use
     window.TechPilotFilters = {
         applyFilter,
+        applyPriceRange,
         toggleMultiFilter,
         removeFilter,
         clearAllFilters
