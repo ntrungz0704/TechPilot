@@ -67,6 +67,13 @@
     <!-- Stat 5: Hết hàng -->
     <div class="stat-card">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+                <span class="stat-label">Hết hàng <i class="fa-solid fa-circle-info" title="Số mẫu có tồn kho bằng 0" style="font-size: 11px; cursor: help;"></i></span>
+                <strong class="stat-value" id="val_out_of_stock_models" style="color: #DC2626;"><?= number_format($stats['out_of_stock_models']) ?></strong>
+                <div class="stat-trend">
+                    <span class="trend-text" style="color: #DC2626;">Cần nhập thêm hàng</span>
+                </div>
+            </div>
             <div class="stat-icon-wrapper stat-icon--red">
                 <i class="fa-solid fa-ban"></i>
             </div>
