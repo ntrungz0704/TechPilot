@@ -8,7 +8,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 80px;">ID</th>
+                    <th style="width: 60px; text-align: center;">STT</th>
                     <th style="width: 120px;">Ảnh đại diện</th>
                     <th>Tiêu đề bài viết</th>
                     <th>Tác giả</th>
@@ -20,9 +20,9 @@
             </thead>
             <tbody>
                 <?php if (!empty($posts)): ?>
-                    <?php foreach ($posts as $pst): ?>
+                    <?php foreach ($posts as $index => $pst): ?>
                         <tr>
-                            <td><?= (int)$pst['id'] ?></td>
+                            <td style="text-align: center; font-weight: 600; color: var(--text-secondary);"><?= $index + 1 ?></td>
                             <td>
                                 <?php if (!empty($pst['image'])): ?>
                                     <img src="<?= postImageUrl($pst['image']) ?>" alt="<?= e($pst['title']) ?>" style="width: 100px; height: 50px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px;">
@@ -42,7 +42,8 @@
                                 ?>
                                 <span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                             </td>
-                            <td><?= !empty($pst['published_at']) ? date('d/m/Y H:i', strtotime((string)$pst['published_at'])) : 'Chưa xuất bản' ?></td>
+                            <?php $pubDate = !empty($pst['published_at']) ? $pst['published_at'] : (($pst['status'] === 'published') ? ($pst['created_at'] ?? null) : null); ?>
+                            <td><?= !empty($pubDate) ? date('d/m/Y H:i', strtotime((string)$pubDate)) : 'Chưa xuất bản' ?></td>
                             <td style="text-align: center;">
                                 <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
                                     <a href="<?= url('admin/posts/edit/' . $pst['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
