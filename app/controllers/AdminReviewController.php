@@ -86,7 +86,7 @@ class AdminReviewController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            $stmt = $db->prepare('UPDATE reviews SET status = \'approved\' WHERE id = :id');
+            $stmt = $db->prepare('UPDATE reviews SET status = \'published\' WHERE id = :id');
             if ($stmt->execute([':id' => $id])) {
                 flash('success', 'Đã phê duyệt hiển thị đánh giá thành công!');
             } else {

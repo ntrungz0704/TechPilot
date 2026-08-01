@@ -150,6 +150,9 @@ class AdminProductController extends Controller
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
+        if (!in_array($status, ['draft', 'active', 'inactive'], true)) {
+            $status = 'active';
+        }
 
         // Validation
         if ($name === '' || $categoryId === 0 || $brandId === 0) {
@@ -285,6 +288,9 @@ class AdminProductController extends Controller
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
+        if (!in_array($status, ['draft', 'active', 'inactive'], true)) {
+            $status = 'active';
+        }
 
         // Validation
         if ($name === '' || $categoryId === 0 || $brandId === 0) {
