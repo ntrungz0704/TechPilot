@@ -502,12 +502,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="container section mobile-explore-section">
     <div class="mobile-explore-header">
         <h2>Khám phá theo danh mục</h2>
-        <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more" id="mobileExploreSeeAll">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+        <a href="<?= url('home/search?cat=laptop') ?>" class="section__more" id="mobileExploreSeeAll">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     
     <!-- Tab Navigation di động cuộn ngang -->
     <div class="mobile-explore-tabs scroll-x-container">
-        <button class="explore-tab-btn active" data-target="m-tab-laptop" data-url="<?= url('home/search?cat=laptop-gaming') ?>">Laptop</button>
+        <button class="explore-tab-btn active" data-target="m-tab-laptop" data-url="<?= url('home/search?cat=laptop') ?>">Laptop</button>
         <button class="explore-tab-btn" data-target="m-tab-pc" data-url="<?= url('home/search?cat=pc-build-san') ?>">PC Build</button>
         <button class="explore-tab-btn" data-target="m-tab-components" data-url="<?= url('home/search?cat=pc-linh-kien') ?>">Linh kiện</button>
         <button class="explore-tab-btn" data-target="m-tab-gear" data-url="<?= url('home/search?cat=gaming-gear') ?>">Gaming Gear</button>
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="container section">
     <div class="section__head">
         <h2>Laptop Gaming</h2>
-        <a href="<?= url('home/search?cat=laptop-gaming') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+        <a href="<?= url('home/search?cat=laptop&gpu=dedicated') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="product-grid product-grid--6">
         <?php foreach ($laptopGaming as $p): ?>
@@ -613,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="container section">
     <div class="section__head">
         <h2>Laptop Văn Phòng</h2>
-        <a href="<?= url('home/search?cat=laptop-van-phong') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+        <a href="<?= url('home/search?cat=laptop&gpu=integrated') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
     <div class="product-grid product-grid--6">
         <?php foreach ($laptopVanPhong as $p): ?>

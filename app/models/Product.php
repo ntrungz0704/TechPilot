@@ -1,5 +1,6 @@
 <?php
 require_once ROOT_PATH . '/config/database.php';
+require_once ROOT_PATH . '/app/core/helpers.php';
 
 class Product
 {
@@ -915,7 +916,8 @@ class Product
     {
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->prepare('SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id ORDER BY p.id DESC LIMIT :limit');
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -932,29 +934,25 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashItemId = activeFlashSaleItemIdSql('p');
                 $stmt = $this->db->prepare(
-                    'SELECT p.*,
+                    "SELECT p.*,
                             fsi.discount_price as discount_price,
                             fsi.allocation_quantity as fs_stock,
-                            COALESCE(sold_data.total_sold, 0) as fs_sold,
+                            fsi.sold_quantity as fs_sold,
+                            GREATEST(fsi.allocation_quantity - fsi.sold_quantity, 0) as fs_remaining,
                             fs.end_time as end_time,
                             fs.end_time as end_date
                      FROM products p
                      INNER JOIN flash_sale_items fsi ON p.id = fsi.product_id
                      INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
-                     LEFT JOIN (
-                         SELECT oi.product_id, SUM(oi.quantity) as total_sold
-                         FROM order_items oi
-                         INNER JOIN orders o ON oi.order_id = o.id
-                         WHERE o.status = \'completed\'
-                         GROUP BY oi.product_id
-                     ) sold_data ON sold_data.product_id = p.id
-                     WHERE p.status = \'active\' 
-                       AND p.verification_status = \'verified\'
-                       AND fs.status = \'active\' 
+                     WHERE p.status = 'active'
+                       AND p.verification_status = 'verified'
+                       AND fs.status = 'active'
                        AND fs.start_time <= NOW()
                        AND fs.end_time > NOW()
-                     ORDER BY p.id DESC LIMIT :limit'
+                       AND fsi.id = {$activeFlashItemId}
+                     ORDER BY p.id DESC LIMIT :limit"
                 );
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
@@ -972,8 +970,9 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashPrice = activeFlashPriceSql('p');
                 $stmt = $this->db->prepare(
-                    "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
@@ -996,8 +995,9 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashPrice = activeFlashPriceSql('p');
                 $stmt = $this->db->prepare(
-                    "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
@@ -1020,14 +1020,16 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $effectivePrice = effectiveProductPriceSql('p');
                 $stmt = $this->db->prepare(
-                    "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
                      FROM products p
                      JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
                      WHERE p.status = 'active' AND p.verification_status = 'verified' AND c.status = 'active'
-                       AND p.sale_price IS NOT NULL AND p.sale_price < p.price
-                     ORDER BY ((p.price - p.sale_price) / p.price) DESC, p.id DESC
+                       AND {$effectivePrice} < p.price
+                     ORDER BY ((p.price - {$effectivePrice}) / p.price) DESC, p.id DESC
                      LIMIT :limit"
                 );
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -1065,7 +1067,8 @@ class Product
             }
 
             $inClause = implode(', ', $placeholders);
-            $sql = "SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+            $activeFlashPrice = activeFlashPriceSql('p');
+            $sql = "SELECT p.*, {$activeFlashPrice} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
                     FROM products p
                     JOIN categories c ON p.category_id = c.id
                     LEFT JOIN brands b ON p.brand_id = b.id
@@ -1090,12 +1093,13 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashPrice = activeFlashPriceSql('p');
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
                      FROM products p
                      LEFT JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.id = :id LIMIT 1'
+                     WHERE p.id = :id LIMIT 1"
                 );
                 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
                 $stmt->execute();
@@ -1119,12 +1123,13 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashPrice = activeFlashPriceSql('p');
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
                      FROM products p
                      LEFT JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.slug = :slug LIMIT 1'
+                     WHERE p.slug = :slug LIMIT 1"
                 );
                 $stmt->bindValue(':slug', $slug);
                 $stmt->execute();
@@ -1174,14 +1179,16 @@ class Product
     {
         if ($this->db !== null) {
             try {
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $effectivePrice = effectiveProductPriceSql('p');
                 $stmt = $this->db->prepare(
-                    'SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
                      LEFT JOIN categories c ON p.category_id = c.id
-                     WHERE p.category_id = :cat AND p.id != :id AND p.status = \'active\'
-                     ORDER BY ABS(p.price - :price) ASC, p.rating DESC, p.id DESC
-                     LIMIT :limit'
+                     WHERE p.category_id = :cat AND p.id != :id AND p.status = 'active'
+                     ORDER BY ABS({$effectivePrice} - :price) ASC, p.rating DESC, p.id DESC
+                     LIMIT :limit"
                 );
                 $stmt->bindValue(':cat', $categoryId, PDO::PARAM_INT);
                 $stmt->bindValue(':id', $excludeId, PDO::PARAM_INT);
@@ -1251,7 +1258,8 @@ class Product
                 }
 
                 $inQuery = implode(',', array_fill(0, count($slugs), '?'));
-                $sql = "SELECT p.*, b.name as brand_name
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $sql = "SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name
                         FROM products p
                         JOIN categories c ON p.category_id = c.id
                         LEFT JOIN brands b ON p.brand_id = b.id
@@ -1279,7 +1287,8 @@ class Product
     {
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->prepare('SELECT p.*, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_best_seller = 1 ORDER BY p.id DESC LIMIT :limit');
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_best_seller = 1 ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -1296,7 +1305,8 @@ class Product
     {
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->prepare('SELECT p.*, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_new_arrival = 1 ORDER BY p.id DESC LIMIT :limit');
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_new_arrival = 1 ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -1313,7 +1323,8 @@ class Product
     {
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->prepare('SELECT p.*, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_ai_recommend = 1 ORDER BY p.id DESC LIMIT :limit');
+                $activeFlashPrice = activeFlashPriceSql('p');
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_ai_recommend = 1 ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -1357,6 +1368,116 @@ class Product
     }
 
     /**
+     * Build one scalar expression that reads schema v2, legacy nested and
+     * legacy flat JSON without mutating products.specs.
+     */
+    private function buildFacetScalarExpression(array $keys): string
+    {
+        $safeJson = "(CASE WHEN JSON_VALID(p.specs) THEN p.specs ELSE JSON_OBJECT() END)";
+        $extracts = [];
+
+        foreach ($keys as $key) {
+            $key = (string)$key;
+            if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $key) !== 1) {
+                continue;
+            }
+
+            foreach (["$.attributes.{$key}", "$.specs.{$key}", "$.{$key}"] as $path) {
+                $extracts[] = "NULLIF(JSON_UNQUOTE(JSON_EXTRACT({$safeJson}, '{$path}')), '')";
+            }
+        }
+
+        return $extracts === [] ? 'NULL' : 'COALESCE(' . implode(', ', $extracts) . ')';
+    }
+
+    /**
+     * Convert allowlisted facet selections into parameterized SQL fragments.
+     */
+    private function buildFacetSearchConditions(
+        string $categorySlug,
+        array $facetFilters,
+        array &$params
+    ): array {
+        require_once ROOT_PATH . '/app/services/ProductFacetService.php';
+
+        $normalizedFilters = ProductFacetService::normalizeFilters($categorySlug, $facetFilters);
+        $definitions = ProductFacetService::getFacetDefinitions($categorySlug);
+        $conditions = [];
+
+        foreach ($normalizedFilters as $facetParam => $selectedValue) {
+            $definition = $definitions[$facetParam] ?? null;
+            $option = $definition['options'][$selectedValue] ?? null;
+            if (!is_array($definition) || !is_array($option)) {
+                continue;
+            }
+
+            $scalar = $this->buildFacetScalarExpression($definition['keys'] ?? []);
+            if ($scalar === 'NULL') {
+                continue;
+            }
+
+            $safeParam = preg_replace('/[^a-z0-9_]/', '_', strtolower((string)$facetParam));
+            $operator = (string)($definition['operator'] ?? '');
+
+            if ($operator === 'contains' || $operator === 'equals') {
+                $matches = $option['match'] ?? [];
+                if (!is_array($matches)) {
+                    $matches = [$matches];
+                }
+
+                $matchConditions = [];
+                foreach (array_values(array_filter($matches, static fn($value): bool => is_scalar($value) && trim((string)$value) !== '')) as $index => $match) {
+                    $placeholder = ':facet_' . $safeParam . '_' . $index;
+                    $normalizedMatch = mb_strtolower(trim((string)$match), 'UTF-8');
+                    if ($operator === 'equals') {
+                        $matchConditions[] = "LOWER(TRIM({$scalar})) = {$placeholder}";
+                        $params[$placeholder] = $normalizedMatch;
+                    } else {
+                        $matchConditions[] = "LOWER({$scalar}) LIKE {$placeholder}";
+                        $params[$placeholder] = '%' . $normalizedMatch . '%';
+                    }
+                }
+
+                if ($matchConditions !== []) {
+                    $conditions[] = '(' . implode(' OR ', $matchConditions) . ')';
+                }
+                continue;
+            }
+
+            $numericScalar = "CAST({$scalar} AS DECIMAL(20,4))";
+            if ($operator === 'gte' || $operator === 'lte') {
+                if (!isset($option['value']) || !is_numeric($option['value'])) {
+                    continue;
+                }
+
+                $placeholder = ':facet_' . $safeParam . '_value';
+                $conditions[] = $numericScalar . ($operator === 'gte' ? ' >= ' : ' <= ') . $placeholder;
+                $params[$placeholder] = (float)$option['value'];
+                continue;
+            }
+
+            if ($operator === 'range') {
+                $rangeConditions = [];
+                if (isset($option['min']) && is_numeric($option['min'])) {
+                    $placeholder = ':facet_' . $safeParam . '_min';
+                    $rangeConditions[] = "{$numericScalar} >= {$placeholder}";
+                    $params[$placeholder] = (float)$option['min'];
+                }
+                if (isset($option['max']) && $option['max'] !== null && is_numeric($option['max'])) {
+                    $placeholder = ':facet_' . $safeParam . '_max';
+                    $rangeConditions[] = "{$numericScalar} <= {$placeholder}";
+                    $params[$placeholder] = (float)$option['max'];
+                }
+                if ($rangeConditions !== []) {
+                    $conditions[] = '(' . implode(' AND ', $rangeConditions) . ')';
+                }
+            }
+        }
+
+        return $conditions;
+    }
+
+    /**
      * Xây dựng điều kiện WHERE và các tham số bindings.
      * Tách phần category aliases ra khỏi tên sản phẩm / thương hiệu.
      */
@@ -1375,10 +1496,13 @@ class Product
         float $minPrice = 0,
         float $maxPrice = 0,
         bool $inStockOnly = false,
-        bool $promoOnly = false
+        bool $promoOnly = false,
+        array $facetFilters = []
     ): array {
         $conditions = ["p.status = 'active'", "p.verification_status = 'verified'", "c.status = 'active'"];
         $params = [];
+        $effectivePrice = effectiveProductPriceSql('p');
+        $activeFlashPrice = activeFlashPriceSql('p');
 
         require_once ROOT_PATH . '/app/services/CatalogGroupService.php';
 
@@ -1454,11 +1578,11 @@ class Product
 
         // 4. Filter Price
         if ($minPrice > 0) {
-            $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) >= :minPrice';
+            $conditions[] = "{$effectivePrice} >= :minPrice";
             $params[':minPrice'] = $minPrice;
         }
         if ($maxPrice > 0) {
-            $conditions[] = 'COALESCE(NULLIF(p.sale_price, 0), p.price) <= :maxPrice';
+            $conditions[] = "{$effectivePrice} <= :maxPrice";
             $params[':maxPrice'] = $maxPrice;
         }
 
@@ -1473,14 +1597,13 @@ class Product
                 (p.sale_price IS NOT NULL AND p.sale_price > 0 AND p.sale_price < p.price)
                 OR (p.old_price IS NOT NULL AND p.old_price > p.price)
                 OR (p.is_flash_sale = 1 AND p.sale_price IS NOT NULL AND p.sale_price < p.price)
-                OR p.id IN (
-                    SELECT fsi.product_id 
-                    FROM flash_sale_items fsi 
-                    JOIN flash_sales fs ON fsi.flash_sale_id = fs.id 
-                    JOIN products p2 ON fsi.product_id = p2.id
-                    WHERE fs.status = \'active\' AND fsi.discount_price > 0 AND fsi.discount_price < p2.price
-                )
+                OR ' . $activeFlashPrice . ' IS NOT NULL
             )';
+        }
+
+        // 5.6. Per-category technical facets (CPU/RAM/SSD/GPU/display...).
+        foreach ($this->buildFacetSearchConditions($categorySlug, $facetFilters, $params) as $facetCondition) {
+            $conditions[] = $facetCondition;
         }
 
         // 6. Xử lý từ khóa tìm kiếm còn lại (MỖI PLACEHOLDER CHỈ DÙNG ĐÚNG 1 LẦN DÀNH CHO NATIVE PDO PREPARED STATEMENTS)
@@ -1531,9 +1654,10 @@ class Product
         float $minPrice = 0,
         float $maxPrice = 0,
         bool $inStockOnly = false,
-        bool $promoOnly = false
+        bool $promoOnly = false,
+        array $facetFilters = []
     ): array {
-        $plan = $this->getSearchPlan($keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly);
+        $plan = $this->getSearchPlan($keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters);
         return [$plan['conditions'], $plan['params'], $plan['remaining_keyword']];
     }
 
@@ -1551,7 +1675,8 @@ class Product
         float $maxPrice = 0,
         string $sort = 'relevance',
         bool $inStockOnly = false,
-        bool $promoOnly = false
+        bool $promoOnly = false,
+        array $facetFilters = []
     ): array|false {
         if ($this->db === null) {
             return false;
@@ -1559,7 +1684,7 @@ class Product
 
         try {
             $plan = $this->getSearchPlan(
-                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters
             );
 
             $conditions = $plan['conditions'];
@@ -1567,6 +1692,8 @@ class Product
             $scoreKw    = $plan['score_keyword'];
 
             $whereClause = implode(' AND ', $conditions);
+            $activeFlashPrice = activeFlashPriceSql('p');
+            $effectivePrice = effectiveProductPriceSql('p');
 
             // Xây dựng điểm số relevance score nếu còn keyword chưa bị tiêu thụ hoàn toàn làm alias danh mục
             $scoreSql = '0 AS search_score';
@@ -1600,9 +1727,9 @@ class Product
             } elseif ($sort === 'title-desc' || $sort === 'title_desc') {
                 $sortClause = 'p.name DESC, p.id DESC';
             } elseif ($sort === 'price_asc' || $sort === 'price-low') {
-                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) ASC, p.id DESC';
+                $sortClause = "{$effectivePrice} ASC, p.id DESC";
             } elseif ($sort === 'price_desc' || $sort === 'price-high') {
-                $sortClause = 'COALESCE(NULLIF(p.sale_price, 0), p.price) DESC, p.id DESC';
+                $sortClause = "{$effectivePrice} DESC, p.id DESC";
             } elseif ($sort === 'newest') {
                 $sortClause = 'p.created_at DESC, p.id DESC';
             } elseif ($sort === 'best_selling' || $sort === 'best-selling') {
@@ -1621,18 +1748,11 @@ class Product
                     b.name as brand_name,
                     c.name as category_name,
                     c.slug as category_slug,
-                    active_fs.flash_sale_price as discount_price,
+                    {$activeFlashPrice} as discount_price,
                     $scoreSql
                 FROM products p
                 LEFT JOIN brands b ON p.brand_id = b.id
                 LEFT JOIN categories c ON p.category_id = c.id
-                LEFT JOIN (
-                    SELECT fsi.product_id, MIN(fsi.discount_price) as flash_sale_price
-                    FROM flash_sale_items fsi
-                    JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
-                    WHERE fs.status = 'active' AND fsi.discount_price > 0
-                    GROUP BY fsi.product_id
-                ) active_fs ON active_fs.product_id = p.id
                 WHERE $whereClause
                 ORDER BY $sortClause
                 LIMIT :limit OFFSET :offset
@@ -1663,7 +1783,8 @@ class Product
         float $minPrice = 0,
         float $maxPrice = 0,
         bool $inStockOnly = false,
-        bool $promoOnly = false
+        bool $promoOnly = false,
+        array $facetFilters = []
     ): int {
         if ($this->db === null) {
             return 0;
@@ -1671,7 +1792,7 @@ class Product
 
         try {
             $plan = $this->getSearchPlan(
-                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters
             );
 
             $conditions = $plan['conditions'];
@@ -1717,8 +1838,9 @@ class Product
         if ($this->db !== null) {
             try {
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $activeFlashPrice = activeFlashPriceSql('p');
                 $stmt = $this->db->prepare(
-                    "SELECT p.*, b.name as brand_name, c.name as category_name
+                    "SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
                      LEFT JOIN categories c ON p.category_id = c.id

@@ -45,8 +45,10 @@ $formatRangeName = function (string $name): string {
                 $icon = !empty($cat['icon']) ? $cat['icon'] : 'fa-solid fa-list';
                 $megaColumns = $cat['mega_columns'] ?? [];
                 $hasMega = !empty($megaColumns);
-                $virtualUrl = url('home/search?cat=' . urlencode($slug));
-                $key = !empty($slug) ? $slug : $catId;
+                $categoryQuery = trim((string)($cat['query'] ?? ''));
+                $categoryQuerySuffix = $categoryQuery !== '' ? '&' . $categoryQuery : '';
+                $virtualUrl = url('home/search?cat=' . urlencode($slug) . $categoryQuerySuffix);
+                $key = !empty($catId) ? $catId : $slug;
                 $prefix = $isStatic ? 'static-' : '';
                 $panelId = 'panel-' . $prefix . $key;
                 $accordionBtnId = 'acc-btn-' . $prefix . $key;
@@ -103,7 +105,7 @@ $formatRangeName = function (string $name): string {
                                                     if (str_contains($subQuery, 'cat=')) {
                                                         $link = url('home/search?' . $subQuery);
                                                     } else {
-                                                        $link = url('home/search?cat=' . urlencode($slug) . '&' . $subQuery);
+                                                        $link = url('home/search?cat=' . urlencode($slug) . $categoryQuerySuffix . '&' . $subQuery);
                                                     }
                                                 }
                                                 ?>
@@ -128,8 +130,10 @@ $formatRangeName = function (string $name): string {
                 $groupName = !empty($cat['name']) ? $cat['name'] : '';
                 $megaColumns = $cat['mega_columns'] ?? [];
                 if (empty($megaColumns)) continue;
-                $virtualUrl = url('home/search?cat=' . urlencode($slug));
-                $key = !empty($slug) ? $slug : $catId;
+                $categoryQuery = trim((string)($cat['query'] ?? ''));
+                $categoryQuerySuffix = $categoryQuery !== '' ? '&' . $categoryQuery : '';
+                $virtualUrl = url('home/search?cat=' . urlencode($slug) . $categoryQuerySuffix);
+                $key = !empty($catId) ? $catId : $slug;
                 $prefix = $isStatic ? 'static-' : '';
                 $panelId = 'panel-' . $prefix . $key;
                 ?>
@@ -160,7 +164,7 @@ $formatRangeName = function (string $name): string {
                                             if (str_contains($subQuery, 'cat=')) {
                                                 $link = url('home/search?' . $subQuery);
                                             } else {
-                                                $link = url('home/search?cat=' . urlencode($slug) . '&' . $subQuery);
+                                                $link = url('home/search?cat=' . urlencode($slug) . $categoryQuerySuffix . '&' . $subQuery);
                                             }
                                         }
                                         ?>

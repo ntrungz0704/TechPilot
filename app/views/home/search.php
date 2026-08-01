@@ -15,32 +15,39 @@ $brandSlug = $brandSlug ?? '';
 $inStockOnly = $inStockOnly ?? false;
 $promoOnly = $promoOnly ?? false;
 $activeBrands = $activeBrands ?? [];
-$filterConfig = $filterConfig ?? [];
+$facetDefinitions = $facetDefinitions ?? [];
+$facetFilters = $facetFilters ?? [];
+$priceRanges = $priceRanges ?? [];
 $subgroups = $subgroups ?? [];
 
-if ($maxPrice < $minPrice) {
+if ($maxPrice > 0 && $maxPrice < $minPrice) {
     [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
 }
 
-$buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug, $minPrice, $maxPrice, $priceMaxLimit): string {
-    $params = array_merge([
-        'q' => $keyword,
-        'cat' => $categorySlug,
-        'min_price' => $minPrice,
-        'max_price' => $maxPrice,
-    ], $overrides);
+$currentQuery = [
+    'q' => $keyword,
+    'cat' => $categorySlug,
+    'brand' => $brandSlug,
+    'min_price' => $minPrice,
+    'max_price' => $maxPrice,
+    'stock' => $inStockOnly ? '1' : '',
+    'promo' => $promoOnly ? '1' : '',
+    'sort' => $sort,
+];
+foreach ($facetFilters as $facetKey => $facetValue) {
+    $currentQuery[$facetKey] = $facetValue;
+}
 
-    if (($params['q'] ?? '') === '') {
-        unset($params['q']);
+$buildSearchUrl = function (array $overrides = [], array $removeKeys = []) use ($currentQuery): string {
+    $params = array_merge($currentQuery, $overrides);
+    foreach ($removeKeys as $removeKey) {
+        unset($params[$removeKey]);
     }
-    if (($params['cat'] ?? '') === '') {
-        unset($params['cat']);
-    }
-    if ((int)($params['min_price'] ?? 0) <= 0) {
-        unset($params['min_price']);
-    }
-    if ((int)($params['max_price'] ?? $priceMaxLimit) >= $priceMaxLimit) {
-        unset($params['max_price']);
+
+    foreach ($params as $key => $value) {
+        if ($value === '' || $value === null || ($key === 'min_price' && (int)$value <= 0) || ($key === 'max_price' && (int)$value <= 0)) {
+            unset($params[$key]);
+        }
     }
 
     $query = http_build_query($params);
@@ -64,8 +71,15 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                     <input type="hidden" name="cat" value="<?= e($categorySlug) ?>">
                 <?php endif; ?>
                 <input type="text" name="q" placeholder="Nhập từ khóa tìm kiếm..." value="<?= e($keyword) ?>">
-                <input type="hidden" name="min_price" value="<?= (int)$minPrice ?>">
-                <input type="hidden" name="max_price" value="<?= (int)$maxPrice ?>">
+                <?php if ($minPrice > 0): ?><input type="hidden" name="min_price" value="<?= (int)$minPrice ?>"><?php endif; ?>
+                <?php if ($maxPrice > 0): ?><input type="hidden" name="max_price" value="<?= (int)$maxPrice ?>"><?php endif; ?>
+                <?php if ($brandSlug !== ''): ?><input type="hidden" name="brand" value="<?= e($brandSlug) ?>"><?php endif; ?>
+                <?php if ($inStockOnly): ?><input type="hidden" name="stock" value="1"><?php endif; ?>
+                <?php if ($promoOnly): ?><input type="hidden" name="promo" value="1"><?php endif; ?>
+                <?php if ($sort !== ''): ?><input type="hidden" name="sort" value="<?= e($sort) ?>"><?php endif; ?>
+                <?php foreach ($facetFilters as $facetKey => $facetValue): ?>
+                    <input type="hidden" name="<?= e($facetKey) ?>" value="<?= e($facetValue) ?>">
+                <?php endforeach; ?>
                 <button type="submit" class="btn btn--block"><i class="fa-solid fa-magnifying-glass"></i> Lọc kết quả</button>
             </form>
         </div>
@@ -74,9 +88,9 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         <div class="search-widget">
             <h3>Danh mục sản phẩm</h3>
             <div class="category-list">
-                <a href="<?= $buildSearchUrl(['cat' => '']) ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
+                <a href="<?= $buildSearchUrl(['cat' => ''], array_keys($facetFilters)) ?>" class="category-list__item <?= empty($categorySlug) ? 'is-active' : '' ?>">Tất cả danh mục</a>
                 <?php foreach ($categories as $cat): ?>
-                    <a href="<?= $buildSearchUrl(['cat' => $cat['slug']]) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
+                    <a href="<?= $buildSearchUrl(['cat' => $cat['slug']], array_keys($facetFilters)) ?>" class="category-list__item <?= $categorySlug === $cat['slug'] ? 'is-active' : '' ?>">
                         <i class="<?= e($cat['icon'] ?? 'fa-solid fa-tag') ?>" style="margin-right: 8px;"></i>
                         <?= e($cat['name']) ?>
                     </a>
@@ -106,9 +120,9 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         <!-- ===== Subcategory Chips (Danh mục con) ===== -->
         <?php if (!empty($subgroups)): ?>
             <div class="subcategory-bar">
-                <a href="<?= $buildSearchUrl(['cat' => $categorySlug]) ?>" class="subcategory-chip is-active">Tất cả</a>
+                <a href="<?= $buildSearchUrl(['cat' => $categorySlug], array_keys($facetFilters)) ?>" class="subcategory-chip is-active">Tất cả</a>
                 <?php foreach ($subgroups as $sub): ?>
-                    <a href="<?= $buildSearchUrl(['cat' => $sub['slug']]) ?>" class="subcategory-chip <?= $categorySlug === $sub['slug'] ? 'is-active' : '' ?>">
+                    <a href="<?= $buildSearchUrl(['cat' => $sub['slug']], array_keys($facetFilters)) ?>" class="subcategory-chip <?= $categorySlug === $sub['slug'] ? 'is-active' : '' ?>">
                         <?= e($sub['name']) ?>
                         <?php if (!empty($sub['product_count'])): ?>
                             <span style="font-weight:400; opacity:.6; margin-left:4px;">(<?= (int)$sub['product_count'] ?>)</span>
@@ -130,7 +144,33 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
                 <i class="fa-solid fa-tags"></i> Đang giảm giá
             </span>
 
-
+            <!-- Price Range Dropdown -->
+            <?php
+            $activePriceRange = null;
+            foreach ($priceRanges as $priceRangeKey => $priceRange) {
+                if ((int)($priceRange['min_price'] ?? 0) === $minPrice && (int)($priceRange['max_price'] ?? 0) === $maxPrice) {
+                    $activePriceRange = $priceRangeKey;
+                    break;
+                }
+            }
+            ?>
+            <?php if (!empty($priceRanges)): ?>
+                <span class="filter-chip <?= ($minPrice > 0 || $maxPrice > 0) ? 'is-active' : '' ?>" data-dropdown>
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                    <?= $activePriceRange !== null ? e($priceRanges[$activePriceRange]['label']) : 'Giá' ?>
+                    <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                    <div class="filter-chip__dropdown">
+                        <div class="filter-chip__dropdown-item <?= ($minPrice <= 0 && $maxPrice <= 0) ? 'is-selected' : '' ?>" data-price-min="0" data-price-max="0">Tất cả mức giá</div>
+                        <?php foreach ($priceRanges as $priceRangeKey => $priceRange): ?>
+                            <div class="filter-chip__dropdown-item <?= $activePriceRange === $priceRangeKey ? 'is-selected' : '' ?>"
+                                 data-price-min="<?= (int)($priceRange['min_price'] ?? 0) ?>"
+                                 data-price-max="<?= (int)($priceRange['max_price'] ?? 0) ?>">
+                                <?= e($priceRange['label'] ?? $priceRangeKey) ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </span>
+            <?php endif; ?>
 
             <!-- Brand Dropdown (if brands available) -->
             <?php if (!empty($activeBrands)): ?>
@@ -148,13 +188,17 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
             <?php endif; ?>
 
             <!-- Per-Category Spec Filters -->
-            <?php foreach ($filterConfig as $filterKey => $filterDef): ?>
-                <span class="filter-chip" data-dropdown>
-                    <?= e($filterDef['label'] ?? $filterKey) ?> <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+            <?php foreach ($facetDefinitions as $filterKey => $filterDef): ?>
+                <?php
+                $selectedFacetValue = $facetFilters[$filterKey] ?? '';
+                $selectedFacetOption = $selectedFacetValue !== '' ? ($filterDef['options'][$selectedFacetValue] ?? null) : null;
+                ?>
+                <span class="filter-chip <?= $selectedFacetValue !== '' ? 'is-active' : '' ?>" data-dropdown>
+                    <?= e($selectedFacetOption['label'] ?? $filterDef['label'] ?? $filterKey) ?> <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                     <div class="filter-chip__dropdown">
-                        <div class="filter-chip__dropdown-item" data-filter-key="<?= e($filterKey) ?>" data-filter-value="">Tất cả</div>
+                        <div class="filter-chip__dropdown-item <?= $selectedFacetValue === '' ? 'is-selected' : '' ?>" data-filter-key="<?= e($filterKey) ?>" data-filter-value="">Tất cả</div>
                         <?php foreach ($filterDef['options'] ?? [] as $optVal => $optLabel): ?>
-                            <div class="filter-chip__dropdown-item <?= ($_GET[$filterKey] ?? '') === (string)$optVal ? 'is-selected' : '' ?>" data-filter-key="<?= e($filterKey) ?>" data-filter-value="<?= e($optVal) ?>"><?= e($optLabel) ?></div>
+                            <div class="filter-chip__dropdown-item <?= $selectedFacetValue === (string)$optVal ? 'is-selected' : '' ?>" data-filter-key="<?= e($filterKey) ?>" data-filter-value="<?= e($optVal) ?>"><?= e($optLabel['label'] ?? $optVal) ?></div>
                         <?php endforeach; ?>
                     </div>
                 </span>
@@ -169,15 +213,17 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
         if ($promoOnly) $activeFilters['promo'] = 'Đang giảm giá';
         if ($minPrice > 0) $activeFilters['min_price'] = 'Từ ' . number_format($minPrice / 1000000, 0) . ' triệu';
         if ($maxPrice > 0 && $maxPrice < $priceMaxLimit) $activeFilters['max_price'] = 'Đến ' . number_format($maxPrice / 1000000, 0) . ' triệu';
-        foreach ($filterConfig as $fKey => $fDef) {
-            if (!empty($_GET[$fKey])) $activeFilters[$fKey] = ($fDef['label'] ?? $fKey) . ': ' . e($_GET[$fKey]);
+        foreach ($facetFilters as $fKey => $fValue) {
+            $fDef = $facetDefinitions[$fKey] ?? [];
+            $fOption = $fDef['options'][$fValue] ?? [];
+            $activeFilters[$fKey] = ($fDef['label'] ?? $fKey) . ': ' . ($fOption['label'] ?? $fValue);
         }
         ?>
         <?php if (!empty($activeFilters)): ?>
             <div class="active-filters">
                 <?php foreach ($activeFilters as $fKey => $fLabel): ?>
                     <span class="active-filter-tag">
-                        <?= $fLabel ?>
+                        <?= e($fLabel) ?>
                         <i class="fa-solid fa-xmark active-filter-tag__remove" data-remove-key="<?= e($fKey) ?>"></i>
                     </span>
                 <?php endforeach; ?>
@@ -287,12 +333,7 @@ $buildSearchUrl = function (array $overrides = []) use ($keyword, $categorySlug,
     function applySort(val) {
         const u = new URL(window.location.href);
         u.searchParams.set('sort', val);
-        window.location.href = u.toString();
-    }
-
-    function applyPriceFilter(val) {
-        const u = new URL(window.location.href);
-        u.searchParams.set('max_price', val);
+        u.searchParams.delete('page');
         window.location.href = u.toString();
     }
 
