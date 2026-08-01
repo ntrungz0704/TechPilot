@@ -314,9 +314,9 @@
             <!-- Tab 1: Generate Container -->
             <div id="aiTabGenerate">
                 <div style="margin-bottom: 16px;">
-                    <label style="font-size: 13px; font-weight: 700; color: #1E293B; display: block; margin-bottom: 6px;">Nhập Model, SKU hoặc Link Hãng (Ví dụ: ROG G16 GU605MI, RTX 4060, i9-14900K):</label>
+                    <label style="font-size: 13px; font-weight: 700; color: #1E293B; display: block; margin-bottom: 6px;">Nhập tên sản phẩm, Model hoặc từ khóa (Ví dụ: lap, Laptop Gaming, RTX 4060):</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="aiInputQuery" class="form-control" placeholder="Nhập tên Model hoặc Link website hãng..." style="flex: 1; padding: 10px 14px; font-size: 13.5px;">
+                        <input type="text" id="aiInputQuery" class="form-control" placeholder="Nhập tên sản phẩm, Model hoặc từ khóa..." style="flex: 1; padding: 10px 14px; font-size: 13.5px;">
                         <button type="button" id="btnRunAiGenerate" class="btn" style="background: linear-gradient(135deg, #4F46E5, #7C3AED); border: none; padding: 10px 18px; font-weight: 600; white-space: nowrap;">
                             <i class="fa-solid fa-magnifying-glass"></i> Phân Tích AI
                         </button>

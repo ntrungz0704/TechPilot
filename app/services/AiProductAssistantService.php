@@ -11,7 +11,7 @@ require_once ROOT_PATH . '/app/services/AiService.php';
 class AiProductAssistantService
 {
     /**
-     * Kiểm tra tính hợp lệ của Model / SKU / URL nhập vào (BƯỚC 1, 2 & SAFETY)
+     * Kiểm tra tính hợp lệ của Model / SKU / Query nhập vào (Flexibility & Safety)
      */
     public static function validateModelInput(string $query): array
     {
@@ -19,52 +19,30 @@ class AiProductAssistantService
         if ($cleanQuery === '') {
             return [
                 'valid' => false,
-                'message' => 'Vui lòng nhập Tên Model, SKU hoặc Đường dẫn trang chủ hãng.'
+                'message' => 'Vui lòng nhập tên sản phẩm, Model, SKU hoặc linh kiện.'
             ];
         }
 
-        // Kiểm tra nếu là URL hợp lệ
+        // Nếu là URL hợp lệ
         if (filter_var($cleanQuery, FILTER_VALIDATE_URL)) {
             return ['valid' => true, 'type' => 'url', 'query' => $cleanQuery];
         }
 
-        $queryLower = strtolower($cleanQuery);
-
-        // Phát hiện tên thương hiệu/dòng sản phẩm công nghệ phổ biến
-        $techKeywords = [
-            'rog', 'tuf', 'strix', 'zephyrus', 'flow', 'zenbook', 'vivobook', 'asus',
-            'msi', 'titan', 'raider', 'stealth', 'vector', 'cyborg', 'katana', 'thin',
-            'legion', 'loq', 'thinkpad', 'ideapad', 'yoga', 'lenovo',
-            'predator', 'nitro', 'swift', 'aspire', 'acer',
-            'alienware', 'xps', 'g15', 'g16', 'latitude', 'vostro', 'inspiron', 'dell',
-            'omen', 'victus', 'envy', 'spectre', 'pavilion', 'hp',
-            'aorus', 'aero', 'gigabyte',
-            'macbook', 'mac', 'apple', 'retina',
-            'rtx', 'gtx', 'geforce', 'radeon', 'intel', 'core', 'ryzen', 'amd',
-            'nvme', 'ssd', 'ram', 'ddr4', 'ddr5', 'monitor', 'oled', 'ips'
-        ];
-
-        $matched = false;
-        foreach ($techKeywords as $kw) {
-            if (str_contains($queryLower, $kw)) {
-                $matched = true;
-                break;
-            }
+        // Tự động mở rộng từ viết tắt ngắn (ví dụ: lap -> Laptop)
+        $expanded = $cleanQuery;
+        if (strtolower($cleanQuery) === 'lap') {
+            $expanded = 'Laptop Gaming & Văn Phòng';
+        } elseif (strtolower($cleanQuery) === 'pc') {
+            $expanded = 'Máy tính để bàn PC Gaming';
+        } elseif (strtolower($cleanQuery) === 'vga') {
+            $expanded = 'Card màn hình VGA Gaming';
+        } elseif (strtolower($cleanQuery) === 'cpu') {
+            $expanded = 'Bộ vi xử lý CPU Intel/AMD';
+        } elseif (strtolower($cleanQuery) === 'ram') {
+            $expanded = 'Bộ nhớ RAM DDR4/DDR5';
         }
 
-        // Nếu chuỗi chứa các ký tự mã model điển hình (ví dụ: GU605MI, 14900K, 7800X3D, 9530, 4090)
-        if (!$matched && preg_match('/[a-z0-9]{3,}-[a-z0-9]{3,}|[0-9]{4,}[a-z]*/i', $cleanQuery)) {
-            $matched = true;
-        }
-
-        if (!$matched) {
-            return [
-                'valid' => false,
-                'message' => 'Không tìm thấy model hoặc đường dẫn sản phẩm hợp lệ. Vui lòng nhập đúng Tên Model, SKU hoặc Link website chính hãng (VD: ROG G16 GU605MI, RTX 4060, i9-14900K).'
-            ];
-        }
-
-        return ['valid' => true, 'type' => 'model', 'query' => $cleanQuery];
+        return ['valid' => true, 'type' => 'model', 'query' => $cleanQuery, 'expanded' => $expanded];
     }
 
     /**
@@ -163,6 +141,7 @@ class AiProductAssistantService
         }
 
         $cleanQuery = trim($inputQuery);
+        $targetQuery = $valResult['expanded'] ?? $cleanQuery;
         $modelKey = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $cleanQuery), '-'));
 
         $db = Database::getConnection();
@@ -197,7 +176,7 @@ class AiProductAssistantService
         // BƯỚC 5: AI Generate với cấu trúc 8 Section bắt buộc
         $prompt = <<<PROMPT
 Bạn là chuyên gia kiến trúc thương mại điện tử công nghệ phần cứng PC & Laptop hàng đầu.
-Hãy tạo dữ liệu chi tiết cho sản phẩm: "{$cleanQuery}".
+Hãy tạo dữ liệu chi tiết cho sản phẩm: "{$targetQuery}".
 
 Danh mục hiện có: [{$categoriesStr}]
 Thương hiệu hiện có: [{$brandsStr}]
