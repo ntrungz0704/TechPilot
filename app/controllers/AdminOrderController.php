@@ -177,10 +177,12 @@ class AdminOrderController extends Controller
                 }
 
                 require_once ROOT_PATH . '/app/services/InventoryService.php';
+                require_once ROOT_PATH . '/app/services/FlashSaleService.php';
 
                 // Nếu đơn hàng bị Huỷ (Cancelled) -> Hoàn kho Idempotent bằng InventoryService
                 if ($newStatus === 'cancelled' && $currentStatus !== 'cancelled') {
                     InventoryService::releaseOrderInventory($db, $id, 'admin_cancelled');
+                    FlashSaleService::releaseOrderReservations($db, $id, 'admin_cancelled');
                 }
 
                 // Nếu đơn hàng từ Trạng thái Cancelled phục hồi lại -> Phải reserve lại kho nếu đủ
@@ -191,6 +193,13 @@ class AdminOrderController extends Controller
                 // Nếu đơn hàng hoàn thành (Completed) -> Chuyển inventory_status sang committed
                 if ($newStatus === 'completed') {
                     InventoryService::commitOrderInventory($db, $id);
+                    FlashSaleService::commitOrderReservations($db, $id);
+                }
+
+                // Confirmed là thời điểm đơn COD được cửa hàng chấp nhận. Đơn
+                // VNPay chỉ đi tới đây sau khi callback đã đánh dấu paid.
+                if ($newStatus === 'confirmed') {
+                    FlashSaleService::commitOrderReservations($db, $id);
                 }
 
                 // Thực hiện cập nhật đơn hàng
@@ -226,8 +235,10 @@ class AdminOrderController extends Controller
                 $db->commit();
                 flash('success', 'Đã cập nhật trạng thái đơn hàng thành công!');
 
-            } catch (Exception $e) {
-                $db->rollBack();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
                 flash('error', 'Lỗi: ' . $e->getMessage());
             }
         }

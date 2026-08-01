@@ -2,6 +2,51 @@
 
 class AdminProductController extends Controller
 {
+    private const DEFAULT_PRODUCT_STATUS = 'active';
+
+    /**
+     * Contract duy nhất cho lifecycle status tại admin.
+     * Thứ tự ở đây là thứ tự hiển thị; thứ tự ENUM được migration giữ riêng để
+     * không thay đổi vị trí ba giá trị legacy trong MySQL.
+     */
+    private const PRODUCT_STATUSES = [
+        'active' => [
+            'label' => 'Đang bán',
+            'form_label' => '🟢 Đang bán (Active - Hiển thị Frontend)',
+        ],
+        'draft' => [
+            'label' => 'Bản nháp',
+            'form_label' => '🟡 Bản nháp (Draft)',
+        ],
+        'hidden' => [
+            'label' => 'Tạm ẩn',
+            'form_label' => '⚪ Tạm ẩn khỏi Website (Hidden)',
+        ],
+        'out_of_stock' => [
+            'label' => 'Hết hàng',
+            'form_label' => '🟠 Hết hàng (Out Of Stock)',
+        ],
+        'discontinued' => [
+            'label' => 'Ngừng kinh doanh',
+            'form_label' => '🔴 Ngừng kinh doanh (Discontinued)',
+        ],
+        'archived' => [
+            'label' => 'Lưu trữ',
+            'form_label' => '🟣 Lưu trữ (Archived - Đã từng kinh doanh)',
+        ],
+        'inactive' => [
+            'label' => 'Tạm khóa',
+            'form_label' => '⚫ Tạm khóa (Inactive - Trạng thái tương thích cũ)',
+        ],
+    ];
+
+    private static function normalizeProductStatus(string $status): string
+    {
+        return array_key_exists($status, self::PRODUCT_STATUSES)
+            ? $status
+            : self::DEFAULT_PRODUCT_STATUS;
+    }
+
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -11,6 +56,9 @@ class AdminProductController extends Controller
         $categoryId = (int)($_GET['category_id'] ?? 0);
         $brandId = (int)($_GET['brand_id'] ?? 0);
         $status = trim($_GET['status'] ?? '');
+        if ($status !== '' && !array_key_exists($status, self::PRODUCT_STATUSES)) {
+            $status = '';
+        }
         $lowStock = (int)($_GET['low_stock'] ?? 0);
 
         $categories = [];
@@ -99,6 +147,7 @@ class AdminProductController extends Controller
             'categoryId'    => $categoryId,
             'brandId'       => $brandId,
             'status'        => $status,
+            'productStatuses' => self::PRODUCT_STATUSES,
             'lowStock'      => $lowStock,
             'page'          => $page,
             'limit'         => $limit,
@@ -123,7 +172,8 @@ class AdminProductController extends Controller
             'pageTitle'  => 'Thêm sản phẩm mới',
             'activeMenu' => 'products',
             'categories' => $categories,
-            'brands'     => $brands
+            'brands'     => $brands,
+            'productStatuses' => self::PRODUCT_STATUSES,
         ]);
     }
 
@@ -149,11 +199,7 @@ class AdminProductController extends Controller
         $stock = (int)($_POST['stock'] ?? 0);
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
-        $status = trim($_POST['status'] ?? 'active');
-        $validStatuses = ['draft', 'active', 'hidden', 'out_of_stock', 'discontinued', 'archived', 'inactive'];
-        if (!in_array($status, $validStatuses, true)) {
-            $status = 'active';
-        }
+        $status = self::normalizeProductStatus(trim($_POST['status'] ?? self::DEFAULT_PRODUCT_STATUS));
 
         // Validation
         if ($name === '' || $categoryId === 0 || $brandId === 0) {
@@ -261,7 +307,8 @@ class AdminProductController extends Controller
             'activeMenu' => 'products',
             'product'    => $product,
             'categories' => $categories,
-            'brands'     => $brands
+            'brands'     => $brands,
+            'productStatuses' => self::PRODUCT_STATUSES,
         ]);
     }
 
@@ -288,11 +335,7 @@ class AdminProductController extends Controller
         $stock = (int)($_POST['stock'] ?? 0);
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
-        $status = trim($_POST['status'] ?? 'active');
-        $validStatuses = ['draft', 'active', 'hidden', 'out_of_stock', 'discontinued', 'archived', 'inactive'];
-        if (!in_array($status, $validStatuses, true)) {
-            $status = 'active';
-        }
+        $status = self::normalizeProductStatus(trim($_POST['status'] ?? self::DEFAULT_PRODUCT_STATUS));
 
         // Validation
         if ($name === '' || $categoryId === 0 || $brandId === 0) {

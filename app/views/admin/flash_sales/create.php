@@ -42,7 +42,7 @@
                     <tr>
                         <th style="width: 50px;">Chọn</th>
                         <th>Tên sản phẩm</th>
-                        <th>Giá gốc (đ)</th>
+                        <th>Giá bán hiện tại (đ)</th>
                         <th>Giá Flash Sale (đ)</th>
                         <th>Số lượng mở bán</th>
                         <th>Giới hạn mỗi khách</th>
@@ -50,14 +50,20 @@
                 </thead>
                 <tbody>
                     <?php foreach ($products as $p): ?>
+                        <?php $regularPrice = (float)($p['regular_price'] ?? $p['price']); ?>
                         <tr>
                             <td style="text-align: center;">
                                 <input type="checkbox" name="items[<?= (int)$p['id'] ?>][active]" value="1">
                             </td>
                             <td><strong><?= e($p['name']) ?></strong></td>
-                            <td><?= formatPrice($p['price']) ?></td>
                             <td>
-                                <input type="number" name="items[<?= (int)$p['id'] ?>][discount_price]" class="form-control" style="width: 130px; padding: 6px 10px;" placeholder="Ví dụ: 1500000" min="0">
+                                <?= formatPrice($regularPrice) ?>
+                                <?php if ($regularPrice < (float)$p['price']): ?>
+                                    <small style="display: block; color: var(--text-secondary);">Gốc: <?= formatPrice($p['price']) ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <input type="number" name="items[<?= (int)$p['id'] ?>][discount_price]" class="form-control" style="width: 130px; padding: 6px 10px;" placeholder="Ví dụ: 1500000" min="1" max="<?= max(1, (int)$regularPrice - 1) ?>">
                             </td>
                             <td>
                                 <input type="number" name="items[<?= (int)$p['id'] ?>][allocation_quantity]" class="form-control" style="width: 100px; padding: 6px 10px;" value="10" min="1">

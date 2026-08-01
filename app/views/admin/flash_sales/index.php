@@ -13,6 +13,7 @@
                     <th>Thời gian bắt đầu</th>
                     <th>Thời gian kết thúc</th>
                     <th>Số sản phẩm</th>
+                    <th>Quota</th>
                     <th>Trạng thái</th>
                     <th style="width: 200px; text-align: center;">Hành động</th>
                 </tr>
@@ -26,6 +27,21 @@
                             <td><code><?= date('d/m/Y H:i', strtotime($fs['start_time'])) ?></code></td>
                             <td><code><?= date('d/m/Y H:i', strtotime($fs['end_time'])) ?></code></td>
                             <td><span class="badge badge--success" style="background-color: #E0F2FE; color: #0369A1;"><?= (int)$fs['item_count'] ?> sản phẩm</span></td>
+                            <td>
+                                <?php if ($quotaAuditAvailable ?? false): ?>
+                                    <?php $quota = $fs['quota_audit'] ?? []; ?>
+                                    <span class="badge <?= (int)($quota['drift_count'] ?? 0) > 0 ? 'badge--danger' : 'badge--success' ?>">
+                                        <?= (int)($quota['sold_quantity'] ?? 0) ?>/<?= (int)($quota['allocation_quantity'] ?? 0) ?> đã giữ/bán
+                                    </span>
+                                    <?php if ((int)($quota['drift_count'] ?? 0) > 0): ?>
+                                        <small style="display: block; margin-top: 4px; color: #B91C1C;">
+                                            <?= (int)$quota['drift_count'] ?> sản phẩm lệch sổ quota
+                                        </small>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="badge badge--warning">Chưa có sổ quota</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php
                                 $now = date('Y-m-d H:i:s');
@@ -67,7 +83,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">Chưa có chiến dịch Flash Sale nào.</td>
+                        <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">Chưa có chiến dịch Flash Sale nào.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
