@@ -552,13 +552,56 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         function renderAiResult(data) {
-            document.getElementById('aiSourceBadge').innerHTML = '<i class="fa-solid fa-building-columns"></i> Nguồn: ' + (data.source_name || 'Hãng sản xuất');
-            document.getElementById('aiConfidenceBadge').innerHTML = '<i class="fa-solid fa-bullseye"></i> Điểm tin cậy: ' + (data.confidence_score || 90) + '%';
-            document.getElementById('aiConfidenceBadge').style.background = (data.confidence_score >= 80) ? '#D1FAE5' : '#FEF3C7';
-            document.getElementById('aiConfidenceBadge').style.color = (data.confidence_score >= 80) ? '#065F46' : '#92400E';
+            let primaryUrl = (data.source_urls && data.source_urls.length > 0) ? data.source_urls[0] : '';
+            let sourceHtml = '<i class="fa-solid fa-link"></i> Nguồn: ';
+            if (primaryUrl) {
+                sourceHtml += `<a href="${primaryUrl}" target="_blank" style="color:#0369A1; text-decoration:underline;">${data.source_name || 'Link nguồn'}</a>`;
+            } else {
+                sourceHtml += (data.source_name || 'Hãng sản xuất');
+            }
+            document.getElementById('aiSourceBadge').innerHTML = sourceHtml;
 
-            document.getElementById('aiProviderBadge').innerHTML = '<i class="fa-solid fa-robot"></i> ' + (data.provider || 'AI Engine') + (data.is_cached ? ' (Cached)' : '');
-            document.getElementById('aiManualReviewWarning').style.display = data.needs_manual_review ? 'block' : 'none';
+            let score = data.confidence_score || 0;
+            let scoreBg = '#D1FAE5';
+            let scoreColor = '#065F46';
+            if (score < 50) {
+                scoreBg = '#FEE2E2';
+                scoreColor = '#991B1B';
+            } else if (score < 80) {
+                scoreBg = '#FEF3C7';
+                scoreColor = '#92400E';
+            }
+            document.getElementById('aiConfidenceBadge').innerHTML = '<i class="fa-solid fa-bullseye"></i> Confidence: ' + score + '% (Thực tế)';
+            document.getElementById('aiConfidenceBadge').style.background = scoreBg;
+            document.getElementById('aiConfidenceBadge').style.color = scoreColor;
+
+            document.getElementById('aiProviderBadge').innerHTML = '<i class="fa-solid fa-robot"></i> ' + (data.provider || 'TSIE Engine') + (data.is_cached ? ' (Cached)' : '');
+            
+            const warningBox = document.getElementById('aiManualReviewWarning');
+            if (data.needs_manual_review || score < 50) {
+                warningBox.style.display = 'block';
+                warningBox.style.background = '#FEF2F2';
+                warningBox.style.borderColor = '#FCA5A5';
+                warningBox.style.color = '#991B1B';
+                warningBox.innerHTML = `
+                    <div style="margin-bottom: 6px;"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Cảnh báo TSIE (Confidence ${score}%):</strong> Thiếu thông số [${missingFieldsStr(data.missing_fields)}]. Cần kiểm tra thủ công trước khi áp dụng.</div>
+                    <label style="font-size: 12px; font-weight: 700; color: #991B1B; cursor: pointer;">
+                        <input type="checkbox" id="chkConfirmLowConfidence" style="margin-right: 6px;"> Tôi đã kiểm tra thủ công thông số kỹ thuật trước khi áp dụng.
+                    </label>
+                `;
+                applyBtn.disabled = true;
+                setTimeout(() => {
+                    const chk = document.getElementById('chkConfirmLowConfidence');
+                    if (chk) {
+                        chk.addEventListener('change', function() {
+                            applyBtn.disabled = !this.checked;
+                        });
+                    }
+                }, 100);
+            } else {
+                warningBox.style.display = 'none';
+                applyBtn.disabled = false;
+            }
 
             document.getElementById('aiResName').innerText = data.name || '';
             document.getElementById('aiResSlug').innerText = data.slug || '';
@@ -576,6 +619,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('aiResSpecs').innerHTML = specsHtml;
 
             document.getElementById('aiRewriteTextarea').value = data.description || '';
+        }
+
+        function missingFieldsStr(arr) {
+            return (arr && arr.length > 0) ? arr.join(', ') : 'Nguồn chưa xác minh';
         }
 
         runBtn.addEventListener('click', () => executeAiGenerate(false));

@@ -176,6 +176,7 @@ $router->post('/admin/products/ai-assistant', 'AdminProductController@aiAssistan
 $router->post('/admin/products/ai-assistant/rewrite', 'AdminProductController@aiAssistantRewrite');
 $router->get('/admin/products/ai-assistant/history', 'AdminProductController@aiAssistantHistory');
 $router->post('/admin/products/ai-assistant/history/action', 'AdminProductController@aiAssistantHistoryAction');
+$router->post('/admin/products/ai-assistant/feedback', 'AdminProductController@aiAssistantFeedback');
 $router->post('/admin/products/adjust-stock', 'AdminProductController@adjustStock');
 $router->get('/admin/inventory/logs', 'AdminInventoryController@logs');
 
