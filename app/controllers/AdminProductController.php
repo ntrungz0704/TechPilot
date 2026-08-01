@@ -749,4 +749,35 @@ class AdminProductController extends Controller
         echo json_encode(['success' => true, 'message' => 'Cập nhật lịch sử thành công']);
         exit;
     }
+
+    /** API Feedback cho TSIE Engine: POST /admin/products/ai-assistant/feedback */
+    public function aiAssistantFeedback(): void
+    {
+        $adminUser = $this->requireApiAdmin();
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        $logId = (int)($_POST['log_id'] ?? 0);
+        $fieldKey = trim($_POST['field_key'] ?? '');
+        $feedbackType = trim($_POST['type'] ?? 'incorrect');
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+
+        if ($db && $logId > 0) {
+            try {
+                $stmt = $db->prepare('UPDATE ai_assistant_logs SET status = \'rejected\' WHERE id = :id');
+                $stmt->execute([':id' => $logId]);
+            } catch (Throwable $e) {}
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => true, 'message' => 'Đã ghi nhận phản hồi để hoàn thiện TSIE Engine.']);
+        exit;
+    }
 }
