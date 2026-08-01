@@ -41,8 +41,12 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
     <!-- Gallery -->
     <div class="product-detail__gallery">
         <div class="product-detail__main-image">
-            <?php if (!empty($product['discount_percent']) && $product['discount_percent'] > 0): ?>
-                <span class="product-card__badge">-<?= (int)$product['discount_percent'] ?>%</span>
+            <?php if (!empty($product['has_discount']) && !empty($product['discount_pct'])): ?>
+                <?php if (!empty($product['is_flash_sale'])): ?>
+                    <span class="product-card__badge product-card__badge--flash" style="font-size: 13px; padding: 6px 14px;" title="⚡ Flash Sale Giảm Sâu"><i class="fa-solid fa-fire-flame-curved"></i> 🔥 -<?= (int)$product['discount_pct'] ?>% FLASH SALE</span>
+                <?php else: ?>
+                    <span class="product-card__badge product-card__badge--promo" style="font-size: 13px; padding: 6px 14px;" title="🏷️ Sản phẩm Khuyến Mãi"><i class="fa-solid fa-tag"></i> -<?= (int)$product['discount_pct'] ?>% TIẾT KIỆM</span>
+                <?php endif; ?>
             <?php endif; ?>
             <img src="<?= e(productImageUrl($galleryImages[0] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
         </div>

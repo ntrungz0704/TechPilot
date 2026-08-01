@@ -67,14 +67,14 @@
     <!-- Stat 5: Hết hàng -->
     <div class="stat-card">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-            <div>
-                <span class="stat-label">Hết hàng <i class="fa-solid fa-circle-info" title="Số mẫu có tồn kho bằng 0" style="font-size: 11px; cursor: help;"></i></span>
-                <strong class="stat-value" id="val_out_of_stock_models" style="color: #DC2626;"><?= number_format($stats['out_of_stock_models']) ?></strong>
-                <div class="stat-trend">
-                    <span class="trend-text" style="color: #DC2626;">Cần nhập thêm hàng</span>
-                </div>
+            <div class="stat-icon-wrapper stat-icon--red">
+                <i class="fa-solid fa-ban"></i>
             </div>
-            <div class="stat-icon-wrapper" style="background-colo<!-- KHU VỰC BIỂU ĐỒ (CHARTS GRID) -->
+        </div>
+    </div>
+</div>
+
+<!-- KHU VỰC BIỂU ĐỒ (CHARTS GRID) -->
 <div class="charts-grid" style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 24px; margin-bottom: 24px;">
     <?php
     // Prepare dynamic SVG line coordinates and bar heights
