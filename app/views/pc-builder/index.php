@@ -29,6 +29,121 @@
         font-size: 15.5px;
     }
 
+    /* Dark Mode Overrides cho PC Builder */
+    html.dark-mode .tp-flow-banner {
+        background: #111827 !important;
+        border-color: #1E293B !important;
+    }
+    html.dark-mode .btn-flow-tab {
+        background: #1E293B !important;
+        border-color: #334155 !important;
+        color: #E2E8F0 !important;
+    }
+    html.dark-mode .btn-flow-tab:hover {
+        background: #334155 !important;
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .btn-flow-tab.active {
+        background: #0B63E5 !important;
+        border-color: #0B63E5 !important;
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .pc-builder-list {
+        background: #111827 !important;
+        border-color: #1E293B !important;
+    }
+    html.dark-mode .pc-builder-row {
+        background: #1E293B !important;
+        border-color: #334155 !important;
+    }
+    html.dark-mode .pc-builder-row:hover {
+        background: #334155 !important;
+        border-color: #475569 !important;
+    }
+    html.dark-mode .pc-builder-icon {
+        background: #0F172A !important;
+        color: #38BDF8 !important;
+    }
+    html.dark-mode .pc-builder-part-name {
+        color: #F8FAFC !important;
+    }
+    html.dark-mode .pc-builder-selected-title {
+        color: #F8FAFC !important;
+    }
+    html.dark-mode .pc-builder-selected-img {
+        background: #0F172A !important;
+        border-color: #334155 !important;
+    }
+    html.dark-mode .btn-select-part {
+        background: #0F172A !important;
+        border-color: #0B63E5 !important;
+        color: #38BDF8 !important;
+    }
+    html.dark-mode .btn-select-part:hover {
+        background: #0B63E5 !important;
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .btn-change-part {
+        background: #1E293B !important;
+        border-color: #334155 !important;
+        color: #CBD5E1 !important;
+    }
+    html.dark-mode .btn-change-part:hover {
+        background: #334155 !important;
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .pc-builder-summary-card {
+        background: #111827 !important;
+        border-color: #1E293B !important;
+    }
+    html.dark-mode .pc-builder-summary-title {
+        color: #F8FAFC !important;
+        border-bottom-color: #1E293B !important;
+    }
+    html.dark-mode .pc-builder-summary-row {
+        color: #94A3B8 !important;
+    }
+    html.dark-mode .btn-reset-config {
+        background: #1E293B !important;
+        border-color: #334155 !important;
+        color: #94A3B8 !important;
+    }
+    html.dark-mode .btn-reset-config:hover {
+        background: #334155 !important;
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .pc-modal {
+        background: #111827 !important;
+        border: 1px solid #1E293B !important;
+        color: #F8FAFC !important;
+    }
+    html.dark-mode .pc-modal-header {
+        border-bottom-color: #1E293B !important;
+    }
+    html.dark-mode .pc-modal-title {
+        color: #F8FAFC !important;
+    }
+    html.dark-mode .pc-modal-close {
+        color: #94A3B8 !important;
+    }
+    html.dark-mode .pc-search-box input {
+        background: #1E293B !important;
+        border-color: #334155 !important;
+        color: #F8FAFC !important;
+    }
+    html.dark-mode .pc-modal-item {
+        background: #1E293B !important;
+        border-color: #334155 !important;
+        color: #F8FAFC !important;
+    }
+    html.dark-mode .pc-modal-item:hover {
+        background: #334155 !important;
+        border-color: #0B63E5 !important;
+    }
+    html.dark-mode .pc-modal-item-name {
+        color: #F8FAFC !important;
+    }
+
     /* Flow Tab Bar */
     .tp-flow-banner {
         background: #F8FAFC;

@@ -81,6 +81,20 @@ html.dark-mode {
     --shadow-hover: 0 8px 30px rgba(56, 189, 248, 0.15);
 }
 
+/* Global Dark Mode Safety Overrides for Form Controls & Cards */
+html.dark-mode input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+html.dark-mode select,
+html.dark-mode textarea {
+    background-color: #1E293B !important;
+    color: #F8FAFC !important;
+    border-color: #334155 !important;
+}
+
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
+    color: #94A3B8 !important;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
