@@ -33,7 +33,7 @@ class CartService
             $ids[] = (int)($item['product_id'] ?? $key);
         }
 
-        $catalog = $this->products->getByIds($ids);
+        $catalog = $this->products->getProductsByIds($ids);
         $items = [];
 
         foreach ($cart as $key => $stored) {
