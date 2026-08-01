@@ -74,123 +74,122 @@
                     <span class="trend-text" style="color: #DC2626;">Cần nhập thêm hàng</span>
                 </div>
             </div>
-            <div class="stat-icon-wrapper" style="background-color: #FEF2F2; color: #DC2626;">
-                <i class="fa-solid fa-ban"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- KHU VỰC BIỂU ĐỒ (CHARTS GRID) -->
+            <div class="stat-icon-wrapper" style="background-colo<!-- KHU VỰC BIỂU ĐỒ (CHARTS GRID) -->
 <div class="charts-grid" style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 24px; margin-bottom: 24px;">
+    <?php
+    // Prepare dynamic SVG line coordinates and bar heights
+    $chartLabels = $chartLabels ?? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    $dailyRevenue = $dailyRevenue ?? [0, 0, 0, 0, 0, 0, 0];
+    $dailyOrders = $dailyOrders ?? [0, 0, 0, 0, 0, 0, 0];
+    $maxRev = max($dailyRevenue) ?: 1000000;
+    $maxOrd = max($dailyOrders) ?: 1;
+
+    $xCoords = [40, 115, 190, 265, 340, 415, 490];
+    $svgPathPoints = [];
+    $circlePoints = [];
+
+    for ($i = 0; $i < 7; $i++) {
+        $x = $xCoords[$i];
+        $ord = $dailyOrders[$i] ?? 0;
+        $y = 150 - (int)(($ord / $maxOrd) * 90);
+        $svgPathPoints[] = "{$x},{$y}";
+        $circlePoints[] = ['x' => $x, 'y' => $y, 'val' => $ord];
+    }
+    $pathD = implode(' L ', $svgPathPoints);
+
+    // Conic gradient calculations for Donut Chart
+    $statusPcts = $statusPcts ?? ['pending' => 0, 'shipping' => 0, 'completed' => 100, 'cancelled' => 0];
+    $pPending = $statusPcts['pending'] ?? 0;
+    $pShipping = $statusPcts['shipping'] ?? 0;
+    $pCompleted = $statusPcts['completed'] ?? 0;
+    $pCancelled = $statusPcts['cancelled'] ?? 0;
+
+    $stop1 = $pPending;
+    $stop2 = $stop1 + $pShipping;
+    $stop3 = $stop2 + $pCompleted;
+    $conicGrad = "#3B82F6 0% {$stop1}%, #06B6D4 {$stop1}% {$stop2}%, #10B981 {$stop2}% {$stop3}%, #EF4444 {$stop3}% 100%";
+    ?>
+
     <!-- Biểu đồ doanh thu 7 ngày -->
     <div class="card" style="margin-bottom: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 class="card-title" style="margin-bottom: 0;">Doanh thu 7 ngày gần nhất</h3>
+            <h3 class="card-title" style="margin-bottom: 0;"><i class="fa-solid fa-chart-column" style="color: #8B5CF6;"></i> Doanh thu 7 ngày gần nhất (Realtime)</h3>
             <div style="display: flex; gap: 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary);">
-                <span><i class="fa-solid fa-circle" style="color: #0B63E5;"></i> Doanh thu (đ)</span>
-                <span><i class="fa-solid fa-circle" style="color: #3B82F6;"></i> Đơn hàng</span>
+                <span><i class="fa-solid fa-square" style="color: #8B5CF6; border-radius: 2px;"></i> Doanh thu (VND)</span>
+                <span><i class="fa-solid fa-circle" style="color: #06B6D4;"></i> Số đơn hàng</span>
             </div>
         </div>
-        <!-- SVG Chart representation matching mockup styling -->
+
         <div style="position: relative; height: 260px; width: 100%; display: flex; flex-direction: column; justify-content: space-between; padding-top: 10px;">
             <!-- Grid background lines -->
             <div style="position: absolute; left: 0; right: 0; top: 0; bottom: 30px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;">
-                <div style="border-top: 1px dashed #E2E8F0; width: 100%;"></div>
-                <div style="border-top: 1px dashed #E2E8F0; width: 100%;"></div>
-                <div style="border-top: 1px dashed #E2E8F0; width: 100%;"></div>
-                <div style="border-top: 1px dashed #E2E8F0; width: 100%;"></div>
-                <div style="border-top: 1px dashed #E2E8F0; width: 100%;"></div>
+                <div style="border-top: 1px dashed var(--border); width: 100%;"></div>
+                <div style="border-top: 1px dashed var(--border); width: 100%;"></div>
+                <div style="border-top: 1px dashed var(--border); width: 100%;"></div>
+                <div style="border-top: 1px dashed var(--border); width: 100%;"></div>
+                <div style="border-top: 1px dashed var(--border); width: 100%;"></div>
             </div>
             
             <!-- Graphic content: Bars and lines -->
             <div style="position: relative; flex: 1; margin-bottom: 20px; display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px; z-index: 2;">
-                <!-- Day 1 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 60%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 15.000.000đ"></div>
-                </div>
-                <!-- Day 2 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 75%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 20.000.000đ"></div>
-                </div>
-                <!-- Day 3 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 50%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 12.000.000đ"></div>
-                </div>
-                <!-- Day 4 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 65%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 16.000.000đ"></div>
-                </div>
-                <!-- Day 5 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 45%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 11.000.000đ"></div>
-                </div>
-                <!-- Day 6 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 60%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 15.000.000đ"></div>
-                </div>
-                <!-- Day 7 -->
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
-                    <div style="height: 80%; width: 18px; background: #0B63E5; border-radius: 4px 4px 0 0;" title="Doanh thu: 24.000.000đ"></div>
-                </div>
+                <?php for ($i = 0; $i < 7; $i++): ?>
+                    <?php
+                    $rev = $dailyRevenue[$i] ?? 0;
+                    $barH = $maxRev > 0 ? max(12, (int)(($rev / $maxRev) * 85)) : 12;
+                    ?>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 40px; position: relative;">
+                        <div style="height: <?= $barH ?>%; width: 20px; background: linear-gradient(180deg, #8B5CF6 0%, #6366F1 100%); border-radius: 6px 6px 0 0; transition: all 0.3s;" title="Doanh thu: <?= formatPrice($rev) ?>"></div>
+                    </div>
+                <?php endfor; ?>
                 
                 <!-- Overlay line path for order counts -->
                 <svg style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;">
-                    <path d="M 40,110 L 115,70 L 190,130 L 265,95 L 340,140 L 415,100 L 490,50" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                    <!-- Points -->
-                    <circle cx="40" cy="110" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="115" cy="70" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="190" cy="130" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="265" cy="95" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="340" cy="140" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="415" cy="100" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="490" cy="50" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2" />
+                    <path d="M <?= $pathD ?>" fill="none" stroke="#06B6D4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    <?php foreach ($circlePoints as $pt): ?>
+                        <circle cx="<?= $pt['x'] ?>" cy="<?= $pt['y'] ?>" r="5" fill="#06B6D4" stroke="#FFFFFF" stroke-width="2" />
+                    <?php endforeach; ?>
                 </svg>
             </div>
             
             <!-- X Axis labels -->
-            <div style="display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding-top: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">
-                <span>14/05</span>
-                <span>15/05</span>
-                <span>16/05</span>
-                <span>17/05</span>
-                <span>18/05</span>
-                <span>19/05</span>
-                <span>20/05</span>
+            <div style="display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding-top: 8px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary);">
+                <?php foreach ($chartLabels as $lbl): ?>
+                    <span><?= e($lbl) ?></span>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
     
     <!-- Biểu đồ donut trạng thái đơn -->
     <div class="card" style="margin-bottom: 0;">
-        <h3 class="card-title" style="margin-bottom: 15px;">Trạng thái đơn hàng</h3>
+        <h3 class="card-title" style="margin-bottom: 15px;"><i class="fa-solid fa-chart-pie" style="color: #3B82F6;"></i> Trạng thái đơn hàng</h3>
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
             <!-- Donut chart generated via CSS conic-gradient -->
-            <div class="donut-chart" style="width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(#EF4444 0% 9.1%, #F59E0B 9.1% 24.7%, #10B981 24.7% 54.8%, #3B82F6 54.8% 100%); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+            <div class="donut-chart" style="width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(<?= $conicGrad ?>); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                 <!-- Inner circle to create the donut hole -->
-                <div style="width: 90px; height: 90px; border-radius: 50%; background-color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif;">
+                <div class="donut-inner-circle" style="width: 90px; height: 90px; border-radius: 50%; background-color: var(--bg-card); display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <span style="font-size: 10px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Tổng đơn</span>
                     <strong style="font-size: 18px; color: var(--text-primary); font-weight: 800;"><?= number_format($stats['total_orders']) ?></strong>
                 </div>
             </div>
             
-            <!-- Legends list layout matching mockup color tokens -->
+            <!-- Legends list layout with real DB data -->
             <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-weight: 500;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span><i class="fa-solid fa-circle" style="color: #3B82F6; margin-right: 6px; font-size: 10px;"></i> Chờ xác nhận</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">45.2%</span>
+                    <span><i class="fa-solid fa-circle" style="color: #3B82F6; margin-right: 6px; font-size: 10px;"></i> Chờ xác nhận (<?= number_format($statusCounts['pending'] ?? 0) ?>)</span>
+                    <span style="font-weight: 700; color: var(--text-primary);"><?= $pPending ?>%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span><i class="fa-solid fa-circle" style="color: #10B981; margin-right: 6px; font-size: 10px;"></i> Đang giao</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">30.1%</span>
+                    <span><i class="fa-solid fa-circle" style="color: #06B6D4; margin-right: 6px; font-size: 10px;"></i> Đang giao (<?= number_format($statusCounts['shipping'] ?? 0) ?>)</span>
+                    <span style="font-weight: 700; color: var(--text-primary);"><?= $pShipping ?>%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span><i class="fa-solid fa-circle" style="color: #F59E0B; margin-right: 6px; font-size: 10px;"></i> Hoàn thành</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">15.6%</span>
+                    <span><i class="fa-solid fa-circle" style="color: #10B981; margin-right: 6px; font-size: 10px;"></i> Hoàn thành (<?= number_format($statusCounts['completed'] ?? 0) ?>)</span>
+                    <span style="font-weight: 700; color: var(--text-primary);"><?= $pCompleted ?>%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span><i class="fa-solid fa-circle" style="color: #EF4444; margin-right: 6px; font-size: 10px;"></i> Đã hủy</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">9.1%</span>
+                    <span><i class="fa-solid fa-circle" style="color: #EF4444; margin-right: 6px; font-size: 10px;"></i> Đã hủy (<?= number_format($statusCounts['cancelled'] ?? 0) ?>)</span>
+                    <span style="font-weight: 700; color: var(--text-primary);"><?= $pCancelled ?>%</span>
                 </div>
             </div>
         </div>
@@ -251,7 +250,7 @@
                                 <td style="color: var(--text-secondary); font-size: 12.5px; font-weight: 500;">
                                     <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?>
                                 </td>
-                            </tr>
+                                </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
@@ -273,10 +272,10 @@
         <div class="low-stock-list" style="display: flex; flex-direction: column; gap: 12px;">
             <?php if (!empty($lowStockProducts)): ?>
                 <?php foreach (array_slice($lowStockProducts, 0, 7) as $prod): ?>
-                    <a href="<?= url('admin/products/edit/' . (int)$prod['id']) ?>" class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: #FFFFFF; transition: var(--transition); text-decoration: none;">
+                    <a href="<?= url('admin/products/edit/' . (int)$prod['id']) ?>" class="low-stock-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-elem); background-color: var(--bg-card); transition: var(--transition); text-decoration: none;">
                         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
                             <!-- Product Mini Image -->
-                            <img src="<?= productImageUrl($prod['image'] ?? '', $prod['name'] ?? '') ?>" alt="<?= e($prod['name']) ?>" style="width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: #FFFFFF; flex-shrink: 0;" onerror="this.src='https://placehold.co/100x100?text=SP'">
+                            <img src="<?= productImageUrl($prod['image'] ?? '', $prod['name'] ?? '') ?>" alt="<?= e($prod['name']) ?>" style="width: 42px; height: 42px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: var(--bg-card); flex-shrink: 0;" onerror="this.src='https://placehold.co/100x100?text=SP'">
                             <div style="min-width: 0;">
                                 <span class="product-title-cell" style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="<?= e($prod['name']) ?>"><?= e($prod['name']) ?></span>
                                 <small style="color: var(--text-secondary); font-size: 11px; font-weight: 500; display: block;">Giá: <?= formatPrice($prod['price']) ?></small>

@@ -26,6 +26,16 @@ class AdminController extends Controller
 
         $lowStockProducts = [];
         $recentOrders = [];
+        $chartLabels = [];
+        $dailyRevenue = [];
+        $dailyOrders = [];
+        $maxRevenue = 100000.0;
+        $statusCounts = [
+            'pending' => 0,
+            'shipping' => 0,
+            'completed' => 0,
+            'cancelled' => 0,
+        ];
 
         if ($db) {
             // Tổng số khách hàng
@@ -38,7 +48,7 @@ class AdminController extends Controller
             $stats['total_revenue'] = (float)$db->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status = 'completed'")->fetchColumn();
 
             // Sản phẩm tồn kho thấp (1 - 9)
-            $stmt = $db->prepare("SELECT id, name, price, stock, image FROM products WHERE status = 'active' AND stock < 10 ORDER BY stock ASC LIMIT 5");
+            $stmt = $db->prepare("SELECT id, name, price, stock, image FROM products WHERE status = 'active' AND stock < 10 ORDER BY stock ASC LIMIT 7");
             $stmt->execute();
             $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -46,14 +56,66 @@ class AdminController extends Controller
             $stmt = $db->prepare("SELECT id, order_code, customer_name, total_amount, status, created_at FROM orders ORDER BY id DESC LIMIT 5");
             $stmt->execute();
             $recentOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Realtime 7-day revenue & order counts
+            for ($i = 6; $i >= 0; $i--) {
+                $timestamp = strtotime("-$i days");
+                $dateStr = date('Y-m-d', $timestamp);
+                $labelStr = date('d/m', $timestamp);
+                $chartLabels[] = $labelStr;
+
+                $stmtRev = $db->prepare("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status = 'completed' AND DATE(created_at) = :d");
+                $stmtRev->execute([':d' => $dateStr]);
+                $rev = (float)$stmtRev->fetchColumn();
+                $dailyRevenue[] = $rev;
+                if ($rev > $maxRevenue) {
+                    $maxRevenue = $rev;
+                }
+
+                $stmtOrd = $db->prepare("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = :d");
+                $stmtOrd->execute([':d' => $dateStr]);
+                $cnt = (int)$stmtOrd->fetchColumn();
+                $dailyOrders[] = $cnt;
+            }
+
+            // Realtime Order status distribution
+            $stmtSt = $db->query("SELECT status, COUNT(*) as cnt FROM orders GROUP BY status");
+            if ($stmtSt) {
+                while ($row = $stmtSt->fetch(PDO::FETCH_ASSOC)) {
+                    $st = $row['status'];
+                    if ($st === 'pending' || $st === 'confirmed' || $st === 'processing') {
+                        $statusCounts['pending'] += (int)$row['cnt'];
+                    } elseif ($st === 'shipping') {
+                        $statusCounts['shipping'] += (int)$row['cnt'];
+                    } elseif ($st === 'completed') {
+                        $statusCounts['completed'] += (int)$row['cnt'];
+                    } elseif ($st === 'cancelled') {
+                        $statusCounts['cancelled'] += (int)$row['cnt'];
+                    }
+                }
+            }
         }
+
+        $totalOrdersCount = array_sum($statusCounts);
+        $statusPcts = [
+            'pending'   => $totalOrdersCount > 0 ? round(($statusCounts['pending'] / $totalOrdersCount) * 100, 1) : 0,
+            'shipping'  => $totalOrdersCount > 0 ? round(($statusCounts['shipping'] / $totalOrdersCount) * 100, 1) : 0,
+            'completed' => $totalOrdersCount > 0 ? round(($statusCounts['completed'] / $totalOrdersCount) * 100, 1) : 0,
+            'cancelled' => $totalOrdersCount > 0 ? round(($statusCounts['cancelled'] / $totalOrdersCount) * 100, 1) : 0,
+        ];
 
         $this->renderAdmin('admin/dashboard', [
             'pageTitle'        => 'Dashboard Thống Kê',
             'activeMenu'       => 'dashboard',
             'stats'            => $stats,
             'lowStockProducts' => $lowStockProducts,
-            'recentOrders'     => $recentOrders
+            'recentOrders'     => $recentOrders,
+            'chartLabels'      => $chartLabels,
+            'dailyRevenue'     => $dailyRevenue,
+            'dailyOrders'      => $dailyOrders,
+            'maxRevenue'       => $maxRevenue,
+            'statusCounts'     => $statusCounts,
+            'statusPcts'       => $statusPcts
         ]);
     }
 

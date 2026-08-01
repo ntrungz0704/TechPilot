@@ -43,10 +43,54 @@
             --bg-sidebar: #090D1A;
             --bg-card: #111827;
             --text-primary: #F9FAFB;
-            --text-secondary: #A7B0C0;
-            --border: #334155;
-            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
-            --shadow-focus: 0 0 0 3px rgba(10, 91, 255, 0.25);
+            --text-secondary: #94A3B8;
+            --border: #1E293B;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-focus: 0 0 0 3px rgba(10, 91, 255, 0.3);
+        }
+
+        html.dark-mode .table-responsive {
+            background-color: #111827 !important;
+            border-color: #1E293B !important;
+        }
+
+        html.dark-mode .table th {
+            background-color: #1E293B !important;
+            color: #94A3B8 !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        html.dark-mode .table td {
+            border-bottom-color: #1E293B !important;
+            color: #F8FAFC !important;
+        }
+
+        html.dark-mode .table tr:hover td {
+            background-color: #1E293B !important;
+        }
+
+        html.dark-mode .form-control {
+            background-color: #1E293B !important;
+            color: #F8FAFC !important;
+            border-color: #334155 !important;
+        }
+
+        html.dark-mode .low-stock-item {
+            background-color: #1E293B !important;
+            border-color: #334155 !important;
+        }
+
+        html.dark-mode .low-stock-item:hover {
+            background-color: #334155 !important;
+        }
+
+        html.dark-mode .low-stock-item img {
+            background-color: #0F172A !important;
+            border-color: #334155 !important;
+        }
+
+        html.dark-mode .donut-inner-circle {
+            background-color: #111827 !important;
         }
 
         * {
