@@ -88,7 +88,9 @@ class PcBuilderController extends Controller
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
-        $stmt = $db->prepare("SELECT id, name, slug, price, stock, image, specs FROM products WHERE category_id = 2 AND status = 'active' ORDER BY price ASC LIMIT 12");
+        $activeFlashPrice = activeFlashPriceSql('products');
+        $effectivePrice = effectiveProductPriceSql('products');
+        $stmt = $db->prepare("SELECT id, name, slug, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs FROM products WHERE category_id = 2 AND status = 'active' ORDER BY {$effectivePrice} ASC LIMIT 12");
         $stmt->execute();
         $pcs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -116,6 +118,8 @@ class PcBuilderController extends Controller
 
     private function resolvePrebuiltComponents(PDO $db, array $rawSpecs): array
     {
+        $activeFlashPrice = activeFlashPriceSql('products');
+        $effectivePrice = effectiveProductPriceSql('products');
         $specs = $rawSpecs['specs'] ?? $rawSpecs;
         $cpuModel = $specs['cpu_model'] ?? '';
         $mbModel = $specs['mainboard_model'] ?? '';
@@ -139,7 +143,7 @@ class PcBuilderController extends Controller
             $catId = $conf['cat'];
             $searchKey = $conf['search'];
             
-            $sql = "SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0";
+            $sql = "SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0";
             $params = [':cat' => $catId];
 
             if (!empty($searchKey)) {
@@ -147,13 +151,13 @@ class PcBuilderController extends Controller
                 $params[':s'] = '%' . $searchKey . '%';
             }
 
-            $sql .= " ORDER BY price ASC LIMIT 1";
+            $sql .= " ORDER BY {$effectivePrice} ASC LIMIT 1";
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
             $prod = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$prod && !empty($searchKey)) {
-                $stmtFb = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0 ORDER BY price ASC LIMIT 1");
+                $stmtFb = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0 ORDER BY {$effectivePrice} ASC LIMIT 1");
                 $stmtFb->execute([':cat' => $catId]);
                 $prod = $stmtFb->fetch(PDO::FETCH_ASSOC);
             }
@@ -190,6 +194,8 @@ class PcBuilderController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
+        $activeFlashPrice = activeFlashPriceSql('products');
+        $effectivePrice = effectiveProductPriceSql('products');
 
         $whereClause = $this->parts[$partKey]['query'];
         $search = trim($_GET['search'] ?? '');
@@ -197,7 +203,7 @@ class PcBuilderController extends Controller
             $whereClause .= " AND name LIKE :search";
         }
         
-        $sql = "SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE ($whereClause) AND status = 'active' AND stock > 0 ORDER BY price ASC";
+        $sql = "SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE ($whereClause) AND status = 'active' AND stock > 0 ORDER BY {$effectivePrice} ASC";
         $stmt = $db->prepare($sql);
         if ($search) {
             $stmt->execute([':search' => '%' . $search . '%']);
@@ -257,7 +263,8 @@ class PcBuilderController extends Controller
     private function getProductById(?PDO $db, int $id): ?array
     {
         if (!$db) return null;
-        $stmt = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs, category_id, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
+        $activeFlashPrice = activeFlashPriceSql('products');
+        $stmt = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs, category_id, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
         $stmt->execute([':id' => $id]);
         $prod = $stmt->fetch(PDO::FETCH_ASSOC);
         

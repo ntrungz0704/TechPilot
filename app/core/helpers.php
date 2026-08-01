@@ -43,6 +43,76 @@ if (!function_exists('formatPrice')) {
     }
 }
 
+if (!function_exists('activeFlashSaleItemSql')) {
+    /**
+     * SQL scalar subquery dùng chung để chọn đúng một Flash Sale item hợp lệ.
+     * Giá Flash phải tốt hơn cả giá gốc lẫn sale thường đang có hiệu lực.
+     */
+    function activeFlashSaleItemSql(string $selectedColumn, string $productAlias = 'p'): string
+    {
+        if (!in_array($selectedColumn, ['id', 'discount_price'], true)) {
+            throw new InvalidArgumentException('Cột Flash Sale cần chọn không hợp lệ.');
+        }
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $productAlias)) {
+            throw new InvalidArgumentException('Product SQL alias không hợp lệ.');
+        }
+
+        return "(SELECT pricing_fsi.{$selectedColumn}
+                 FROM flash_sale_items pricing_fsi
+                 INNER JOIN flash_sales pricing_fs ON pricing_fs.id = pricing_fsi.flash_sale_id
+                 WHERE pricing_fsi.product_id = {$productAlias}.id
+                   AND pricing_fs.status = 'active'
+                   AND pricing_fs.start_time <= NOW()
+                   AND pricing_fs.end_time > NOW()
+                   AND pricing_fsi.discount_price > 0
+                   AND pricing_fsi.allocation_quantity > 0
+                   AND pricing_fsi.sold_quantity >= 0
+                   AND pricing_fsi.sold_quantity < pricing_fsi.allocation_quantity
+                   AND pricing_fsi.limit_per_user > 0
+                   AND pricing_fsi.discount_price < CASE
+                       WHEN {$productAlias}.sale_price > 0
+                        AND {$productAlias}.sale_price < {$productAlias}.price
+                       THEN {$productAlias}.sale_price
+                       ELSE {$productAlias}.price
+                   END
+                 ORDER BY pricing_fsi.discount_price ASC, pricing_fsi.id ASC
+                 LIMIT 1)";
+    }
+}
+
+if (!function_exists('activeFlashPriceSql')) {
+    function activeFlashPriceSql(string $productAlias = 'p'): string
+    {
+        return activeFlashSaleItemSql('discount_price', $productAlias);
+    }
+}
+
+if (!function_exists('activeFlashSaleItemIdSql')) {
+    function activeFlashSaleItemIdSql(string $productAlias = 'p'): string
+    {
+        return activeFlashSaleItemSql('id', $productAlias);
+    }
+}
+
+if (!function_exists('effectiveProductPriceSql')) {
+    /** SQL expression tương đương getEffectiveProductData() để lọc/sắp xếp. */
+    function effectiveProductPriceSql(string $productAlias = 'p'): string
+    {
+        $flashPriceSql = activeFlashPriceSql($productAlias);
+
+        return "LEAST(
+                    {$productAlias}.price,
+                    CASE
+                        WHEN {$productAlias}.sale_price > 0
+                         AND {$productAlias}.sale_price < {$productAlias}.price
+                        THEN {$productAlias}.sale_price
+                        ELSE {$productAlias}.price
+                    END,
+                    COALESCE({$flashPriceSql}, {$productAlias}.price)
+                )";
+    }
+}
+
 if (!function_exists('getEffectiveProductData')) {
     /**
      * Đồng bộ duy nhất một nguồn sự thật (Single Source of Truth) cho giá sản phẩm:
@@ -50,16 +120,20 @@ if (!function_exists('getEffectiveProductData')) {
      */
     function getEffectiveProductData(array $product): array
     {
-        $price = (float)($product['price'] ?? 0);
-        $salePrice = isset($product['sale_price']) && (float)$product['sale_price'] > 0 ? (float)$product['sale_price'] : null;
-        $flashPrice = isset($product['discount_price']) && (float)$product['discount_price'] > 0 ? (float)$product['discount_price'] : null;
-        $isFlashSale = !empty($product['is_flash_sale']) || ($flashPrice !== null);
-
+        $price = max(0.0, (float)($product['price'] ?? 0));
         $finalPrice = $price;
-        if ($flashPrice !== null && $flashPrice > 0 && $flashPrice < $finalPrice) {
-            $finalPrice = $flashPrice;
-        } elseif ($salePrice !== null && $salePrice > 0 && $salePrice < $finalPrice) {
+        $priceSource = 'base';
+
+        $salePrice = (float)($product['sale_price'] ?? 0);
+        if ($salePrice > 0 && $salePrice < $finalPrice) {
             $finalPrice = $salePrice;
+            $priceSource = 'sale';
+        }
+
+        $flashPrice = (float)($product['discount_price'] ?? 0);
+        if ($flashPrice > 0 && $flashPrice < $finalPrice) {
+            $finalPrice = $flashPrice;
+            $priceSource = 'flash';
         }
 
         $hasDiscount = ($finalPrice < $price);
@@ -70,7 +144,8 @@ if (!function_exists('getEffectiveProductData')) {
             'final_price'    => $finalPrice,
             'has_discount'   => $hasDiscount,
             'discount_pct'   => (int)$discountPct,
-            'is_flash_sale'  => (bool)$isFlashSale
+            'is_flash_sale'  => $priceSource === 'flash',
+            'price_source'   => $priceSource,
         ];
     }
 }
@@ -386,11 +461,43 @@ if (!function_exists('cartCount')) {
 if (!function_exists('cartSubtotal')) {
     function cartSubtotal(): float
     {
-        $subtotal = 0.0;
-        foreach (cartItems() as $item) {
-            $subtotal += (float)($item['price'] ?? 0) * max(1, (int)($item['quantity'] ?? 1));
+        require_once ROOT_PATH . '/app/services/CartService.php';
+        return (float)(new CartService())->getSummary()['subtotal'];
+    }
+}
+
+if (!function_exists('shippingFee')) {
+    /** Một quy tắc phí vận chuyển dùng chung cho cart, checkout và order. */
+    function shippingFee(float $subtotal): float
+    {
+        if ($subtotal <= 0 || $subtotal >= 300000) {
+            return 0.0;
         }
-        return $subtotal;
+
+        return 30000.0;
+    }
+}
+
+if (!function_exists('calculateCouponDiscount')) {
+    /** Tính số tiền coupon từ subtotal đã được server xác nhận. */
+    function calculateCouponDiscount(array $coupon, float $subtotal): float
+    {
+        if ($subtotal <= 0 || $subtotal < (float)($coupon['min_order_value'] ?? 0)) {
+            return 0.0;
+        }
+
+        $value = max(0.0, (float)($coupon['discount_value'] ?? 0));
+        if (($coupon['type'] ?? '') === 'percent') {
+            $discount = $subtotal * ($value / 100);
+            $maxDiscount = max(0.0, (float)($coupon['max_discount'] ?? 0));
+            if ($maxDiscount > 0) {
+                $discount = min($discount, $maxDiscount);
+            }
+        } else {
+            $discount = $value;
+        }
+
+        return min($subtotal, max(0.0, $discount));
     }
 }
 

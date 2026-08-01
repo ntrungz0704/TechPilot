@@ -31,12 +31,21 @@ class PaymentController extends Controller
 
     public function vnpaySandboxSim(): void
     {
+        $config = require ROOT_PATH . '/config/vnpay.php';
+        if (APP_ENV !== 'development' || empty($config['simulator_enabled'])) {
+            ErrorHandler::renderErrorView(404);
+            return;
+        }
+
+        $secret = trim((string)($config['simulator_hash_secret'] ?? ''));
+        if ($secret === '') {
+            ErrorHandler::renderErrorView(404);
+            return;
+        }
+
         $txnRef = trim($_GET['vnp_TxnRef'] ?? '');
         $amount = (int)($_GET['vnp_Amount'] ?? 0);
-        $tmnCode = trim($_GET['vnp_TmnCode'] ?? 'DEMO0001');
-
-        $config = require ROOT_PATH . '/config/vnpay.php';
-        $secret = $config['hash_secret'] ?? 'TECHPILOT_VNPAY_SECRET_KEY_123456';
+        $tmnCode = trim((string)($config['tmn_code'] ?? 'DEMO0001'));
 
         // Prepare return parameters for success simulation
         $successParams = [
@@ -48,7 +57,7 @@ class PaymentController extends Controller
             'vnp_PayDate' => date('YmdHis'),
             'vnp_ResponseCode' => '00',
             'vnp_TmnCode' => $tmnCode,
-            'vnp_TransactionNo' => '1410' . rand(100000, 999999),
+            'vnp_TransactionNo' => '1410' . random_int(100000, 999999),
             'vnp_TransactionStatus' => '00',
             'vnp_TxnRef' => $txnRef,
         ];

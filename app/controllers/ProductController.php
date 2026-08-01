@@ -23,12 +23,19 @@ class ProductController extends Controller
             return;
         }
 
+        $eff = getEffectiveProductData($product);
+        $product['effective_price'] = $eff['final_price'];
+        $product['final_price'] = $eff['final_price'];
+        $product['original_price'] = $eff['original_price'];
+        $product['has_discount'] = $eff['has_discount'];
+        $product['discount_pct'] = $eff['discount_pct'];
+
         require_once ROOT_PATH . '/app/services/ProductSpecNormalizer.php';
         $rawSpecs = json_decode($product['specs'] ?? '{}', true) ?: [];
         $normalizedSpecData = ProductSpecNormalizer::normalize($product['category_slug'] ?? '', $rawSpecs);
         $specs = $normalizedSpecData['attributes'] ?? [];
 
-        $related = $productModel->getRelated((int)$product['category_id'], (int)$product['id'], 6, (float)($product['price'] ?? 0));
+        $related = $productModel->getRelated((int)$product['category_id'], (int)$product['id'], 6, (float)$product['final_price']);
         $productImages = $productModel->getProductImages((int)$product['id']);
         $reviews = $reviewModel->getByProduct((int)$product['id']);
 
@@ -60,13 +67,6 @@ class ProductController extends Controller
                 $recentlyViewedProducts = $productModel->getProductsByIds($rvIds);
             }
         }
-
-        $eff = getEffectiveProductData($product);
-        $product['effective_price'] = $eff['final_price'];
-        $product['final_price'] = $eff['final_price'];
-        $product['original_price'] = $eff['original_price'];
-        $product['has_discount'] = $eff['has_discount'];
-        $product['discount_pct'] = $eff['discount_pct'];
 
         $related = array_map(function($p) {
             $e = getEffectiveProductData($p);

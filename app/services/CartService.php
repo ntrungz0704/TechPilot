@@ -33,7 +33,11 @@ class CartService
             $ids[] = (int)($item['product_id'] ?? $key);
         }
 
-        $catalog = $this->products->getProductsByIds($ids);
+        $catalogRows = $this->products->getProductsByIds(array_values(array_unique($ids)));
+        $catalog = [];
+        foreach ($catalogRows as $product) {
+            $catalog[(int)($product['id'] ?? 0)] = $product;
+        }
         $items = [];
 
         foreach ($cart as $key => $stored) {
@@ -49,15 +53,20 @@ class CartService
                 $quantity = min($quantity, $stock);
             }
 
-            $price = max(0, (float)($product['price'] ?? 0));
+            $priceData = getEffectiveProductData($product);
+            $price = (float)$priceData['final_price'];
             $items[] = [
                 'product_id' => $productId,
                 'slug' => (string)($product['slug'] ?? ''),
+                'category_slug' => (string)($product['category_slug'] ?? ''),
                 'name' => (string)($product['name'] ?? 'Sản phẩm'),
                 'image' => (string)($product['image'] ?? ''),
                 'brand_name' => (string)($product['brand_name'] ?? ''),
                 'price' => $price,
-                'old_price' => (float)($product['old_price'] ?? 0),
+                'old_price' => (float)$priceData['original_price'],
+                'has_discount' => (bool)$priceData['has_discount'],
+                'is_flash_sale' => (bool)$priceData['is_flash_sale'],
+                'price_source' => (string)$priceData['price_source'],
                 'stock' => $stock,
                 'quantity' => $quantity,
                 'line_total' => $price * $quantity,
@@ -158,4 +167,3 @@ class CartService
         $_SESSION['cart'] = $cart;
     }
 }
-

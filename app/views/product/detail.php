@@ -103,10 +103,10 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
         <?php endif; ?>
 
         <div class="product-detail__price">
-            <span class="price-now"><?= formatPrice($product['price']) ?></span>
-            <?php if (!empty($product['old_price']) && $product['old_price'] > $product['price']): ?>
-                <span class="price-old"><?= formatPrice($product['old_price']) ?></span>
-                <span class="price-save">Tiết kiệm <?= formatPrice($product['old_price'] - $product['price']) ?></span>
+            <span class="price-now"><?= formatPrice($product['final_price']) ?></span>
+            <?php if (!empty($product['has_discount'])): ?>
+                <span class="price-old"><?= formatPrice($product['original_price']) ?></span>
+                <span class="price-save">Tiết kiệm <?= formatPrice($product['original_price'] - $product['final_price']) ?></span>
             <?php endif; ?>
         </div>
 
