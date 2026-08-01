@@ -194,6 +194,8 @@ if (!function_exists('absoluteUrl')) {
             $_SERVER
         );
     }
+}
+
 if (!function_exists('bannerImageUrl')) {
     function bannerImageUrl(?string $image = ''): string
     {
