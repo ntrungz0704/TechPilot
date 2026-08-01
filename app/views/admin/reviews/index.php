@@ -16,8 +16,9 @@
 
         <select name="status" class="form-control" style="max-width: 180px;">
             <option value="">Tất cả trạng thái</option>
-            <option value="approved" <?= $status === 'approved' ? 'selected' : '' ?>>Được hiển thị (Approved)</option>
-            <option value="hidden" <?= $status === 'hidden' ? 'selected' : '' ?>>Đã ẩn (Hidden)</option>
+            <option value="published" <?= $status === 'published' ? 'selected' : '' ?>>Đã duyệt / Hiển thị (Published)</option>
+            <option value="hidden" <?= $status === 'hidden' ? 'selected' : '' ?>>Đang ẩn (Hidden)</option>
+            <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Chờ duyệt (Pending)</option>
         </select>
 
         <button type="submit" class="btn btn--outline"><i class="fa-solid fa-filter"></i> Lọc đánh giá</button>
@@ -61,14 +62,14 @@
                                 </p>
                             </td>
                             <td>
-                                <span class="badge <?= $rev['status'] === 'approved' ? 'badge--success' : 'badge--danger' ?>">
-                                    <?= $rev['status'] === 'approved' ? 'Đã duyệt' : 'Đang ẩn' ?>
+                                <span class="badge <?= $rev['status'] === 'published' ? 'badge--success' : 'badge--danger' ?>">
+                                    <?= $rev['status'] === 'published' ? 'Đã duyệt' : ($rev['status'] === 'hidden' ? 'Đang ẩn' : 'Chờ duyệt') ?>
                                 </span>
                             </td>
                             <td><?= date('d/m/Y H:i', strtotime($rev['created_at'])) ?></td>
                             <td style="text-align: center;">
                                 <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
-                                    <?php if ($rev['status'] !== 'approved'): ?>
+                                    <?php if ($rev['status'] !== 'published'): ?>
                                         <form method="post" action="<?= url('admin/reviews/approve/' . $rev['id']) ?>" style="margin: 0;">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn--sm" style="padding: 6px 12px; font-size: 12px; background-color: #10B981; white-space: nowrap;"><i class="fa-solid fa-check"></i> Phê duyệt</button>
