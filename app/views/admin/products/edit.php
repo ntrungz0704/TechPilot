@@ -282,12 +282,9 @@
         <div class="form-group">
             <label for="status">Trạng thái vòng đời sản phẩm (Lifecycle Status)</label>
             <select name="status" id="status" class="form-control">
-                <option value="active" <?= $product['status'] === 'active' ? 'selected' : '' ?>>🟢 Đang bán (Active - Hiển thị Frontend)</option>
-                <option value="hidden" <?= $product['status'] === 'hidden' ? 'selected' : '' ?>>⚪ Tạm ẩn khỏi Website (Hidden)</option>
-                <option value="out_of_stock" <?= $product['status'] === 'out_of_stock' ? 'selected' : '' ?>>🟠 Hết hàng (Out Of Stock)</option>
-                <option value="discontinued" <?= $product['status'] === 'discontinued' ? 'selected' : '' ?>>🔴 Ngừng kinh doanh (Discontinued)</option>
-                <option value="archived" <?= $product['status'] === 'archived' ? 'selected' : '' ?>>🟣 Lưu trữ (Archived - Đã từng kinh doanh)</option>
-                <option value="draft" <?= $product['status'] === 'draft' ? 'selected' : '' ?>>🟡 Bản nháp (Draft)</option>
+                <?php foreach ($productStatuses as $value => $meta): ?>
+                    <option value="<?= e($value) ?>" <?= $product['status'] === $value ? 'selected' : '' ?>><?= e($meta['form_label']) ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
 

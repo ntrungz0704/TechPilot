@@ -170,24 +170,95 @@ class InventoryService
     /**
      * 4. Trừ/Reserve kho an toàn trong PDO Transaction (Atomic + Order Audit Log)
      */
+    private static function requireTransaction(PDO $db, string $operation): void
+    {
+        if (!$db->inTransaction()) {
+            throw new LogicException("{$operation} phải chạy bên trong database transaction.");
+        }
+    }
+
+    private static function getOrderInventoryItems(PDO $db, int $orderId): array
+    {
+        $itemsStmt = $db->prepare(
+            'SELECT product_id, SUM(quantity) AS quantity
+             FROM order_items
+             WHERE order_id = :order_id
+             GROUP BY product_id
+             ORDER BY product_id ASC'
+        );
+        $itemsStmt->execute([':order_id' => $orderId]);
+        return $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private static function hasCompleteInventoryAudit(
+        PDO $db,
+        int $orderId,
+        array $items,
+        string $type
+    ): bool {
+        if (empty($items) || !in_array($type, ['order_reserve', 'order_release'], true)) {
+            return false;
+        }
+
+        $expectedSign = $type === 'order_reserve' ? -1 : 1;
+        $expected = [];
+        foreach ($items as $item) {
+            $expected[(int)$item['product_id']] = $expectedSign * max(1, (int)$item['quantity']);
+        }
+
+        $logStmt = $db->prepare(
+            'SELECT product_id, COUNT(*) AS log_count, SUM(quantity_delta) AS quantity_delta
+             FROM inventory_logs
+             WHERE order_id = :order_id AND type = :type
+             GROUP BY product_id
+             ORDER BY product_id ASC'
+        );
+        $logStmt->execute([':order_id' => $orderId, ':type' => $type]);
+        $logs = $logStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($logs) !== count($expected)) {
+            return false;
+        }
+
+        foreach ($logs as $log) {
+            $productId = (int)$log['product_id'];
+            if (!array_key_exists($productId, $expected)
+                || (int)$log['log_count'] !== 1
+                || (int)$log['quantity_delta'] !== $expected[$productId]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static function reserveOrderInventory(PDO $db, int $orderId): bool
     {
         if ($orderId <= 0) return false;
+        self::requireTransaction($db, 'Reserve tồn kho');
 
         $stmt = $db->prepare("SELECT id, status, inventory_status FROM orders WHERE id = :id FOR UPDATE");
         $stmt->execute([':id' => $orderId]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$order) return false;
-        if (($order['inventory_status'] ?? '') === 'reserved') {
-            return true; // Đã reserve kho trước đó (Idempotent)
-        }
 
-        $itemsStmt = $db->prepare("SELECT product_id, quantity FROM order_items WHERE order_id = :order_id");
-        $itemsStmt->execute([':order_id' => $orderId]);
-        $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+        $items = self::getOrderInventoryItems($db, $orderId);
 
         if (empty($items)) return false;
+
+        $inventoryStatus = (string)($order['inventory_status'] ?? '');
+        if ($inventoryStatus === 'reserved') {
+            if (self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_reserve')) {
+                return true;
+            }
+            throw new RuntimeException("Đơn hàng #{$orderId} mang trạng thái reserved nhưng thiếu reserve audit log.");
+        }
+        if ($inventoryStatus !== 'not_reserved') {
+            throw new RuntimeException(
+                "Không thể reserve đơn hàng #{$orderId} từ trạng thái inventory {$inventoryStatus}."
+            );
+        }
 
         foreach ($items as $item) {
             $pid = (int)$item['product_id'];
@@ -230,8 +301,15 @@ class InventoryService
             );
         }
 
-        $upOrder = $db->prepare("UPDATE orders SET inventory_status = 'reserved', inventory_reserved_at = NOW() WHERE id = :id");
+        $upOrder = $db->prepare(
+            "UPDATE orders
+             SET inventory_status = 'reserved', inventory_reserved_at = NOW()
+             WHERE id = :id AND inventory_status = 'not_reserved'"
+        );
         $upOrder->execute([':id' => $orderId]);
+        if ($upOrder->rowCount() !== 1) {
+            throw new RuntimeException("Không thể đánh dấu reserved cho đơn hàng #{$orderId}.");
+        }
 
         return true;
     }
@@ -242,6 +320,7 @@ class InventoryService
     public static function releaseOrderInventory(PDO $db, int $orderId, string $reason = 'cancelled'): bool
     {
         if ($orderId <= 0) return false;
+        self::requireTransaction($db, 'Release tồn kho');
 
         $stmt = $db->prepare("SELECT id, inventory_status FROM orders WHERE id = :id FOR UPDATE");
         $stmt->execute([':id' => $orderId]);
@@ -249,14 +328,31 @@ class InventoryService
 
         if (!$order) return false;
 
-        // Nếu trạng thái kho KHÔNG PHẢI là 'reserved', không hoàn kho lại nữa
-        if (($order['inventory_status'] ?? '') !== 'reserved') {
+        $items = self::getOrderInventoryItems($db, $orderId);
+        if (empty($items)) return false;
+
+        $inventoryStatus = (string)($order['inventory_status'] ?? '');
+        if ($inventoryStatus === 'released') {
+            if (self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_reserve')
+                && self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_release')) {
+                return true;
+            }
+            throw new RuntimeException("Đơn hàng #{$orderId} mang trạng thái released nhưng audit log không đầy đủ.");
+        }
+        if ($inventoryStatus === 'not_reserved') {
             return true;
         }
-
-        $itemsStmt = $db->prepare("SELECT product_id, quantity FROM order_items WHERE order_id = :order_id");
-        $itemsStmt->execute([':order_id' => $orderId]);
-        $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($inventoryStatus !== 'reserved') {
+            throw new RuntimeException(
+                "Không thể release đơn hàng #{$orderId} từ trạng thái inventory {$inventoryStatus}."
+            );
+        }
+        if (!self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_reserve')) {
+            throw new RuntimeException("Từ chối hoàn kho đơn hàng #{$orderId}: thiếu bằng chứng reserve hợp lệ.");
+        }
+        if (self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_release')) {
+            throw new RuntimeException("Đơn hàng #{$orderId} đã có release audit nhưng trạng thái chưa đồng bộ.");
+        }
 
         foreach ($items as $item) {
             $pid = (int)$item['product_id'];
@@ -266,7 +362,9 @@ class InventoryService
             $pStmt->execute([':id' => $pid]);
             $product = $pStmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$product) continue;
+            if (!$product) {
+                throw new RuntimeException("Không tìm thấy sản phẩm ID {$pid} để hoàn kho.");
+            }
 
             $oldStock = (int)$product['stock'];
             $newStock = $oldStock + $qty;
@@ -298,9 +396,12 @@ class InventoryService
             SET inventory_status = 'released', 
                 inventory_released_at = NOW(), 
                 inventory_release_reason = :reason 
-            WHERE id = :id
+            WHERE id = :id AND inventory_status = 'reserved'
         ");
         $upOrder->execute([':reason' => substr($reason, 0, 100), ':id' => $orderId]);
+        if ($upOrder->rowCount() !== 1) {
+            throw new RuntimeException("Không thể đánh dấu released cho đơn hàng #{$orderId}.");
+        }
 
         return true;
     }
@@ -310,8 +411,36 @@ class InventoryService
      */
     public static function commitOrderInventory(PDO $db, int $orderId): bool
     {
-        $stmt = $db->prepare("UPDATE orders SET inventory_status = 'committed' WHERE id = :id AND inventory_status = 'reserved'");
-        return $stmt->execute([':id' => $orderId]);
+        if ($orderId <= 0) return false;
+        self::requireTransaction($db, 'Commit tồn kho');
+
+        $stmt = $db->prepare('SELECT id, inventory_status FROM orders WHERE id = :id FOR UPDATE');
+        $stmt->execute([':id' => $orderId]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$order) return false;
+
+        $items = self::getOrderInventoryItems($db, $orderId);
+        if (empty($items)) return false;
+
+        $inventoryStatus = (string)($order['inventory_status'] ?? '');
+        if ($inventoryStatus === 'committed') {
+            if (self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_reserve')) {
+                return true;
+            }
+            throw new RuntimeException("Đơn hàng #{$orderId} committed nhưng thiếu reserve audit log.");
+        }
+        if ($inventoryStatus !== 'reserved'
+            || !self::hasCompleteInventoryAudit($db, $orderId, $items, 'order_reserve')) {
+            throw new RuntimeException("Không thể commit tồn kho chưa được reserve hợp lệ cho đơn hàng #{$orderId}.");
+        }
+
+        $up = $db->prepare(
+            "UPDATE orders
+             SET inventory_status = 'committed'
+             WHERE id = :id AND inventory_status = 'reserved'"
+        );
+        $up->execute([':id' => $orderId]);
+        return $up->rowCount() === 1;
     }
 
     /**

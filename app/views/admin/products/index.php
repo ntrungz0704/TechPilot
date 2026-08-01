@@ -35,8 +35,9 @@
             <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 6px;">Trạng thái</label>
             <select name="status" class="form-control">
                 <option value="">Tất cả trạng thái</option>
-                <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Hiển thị</option>
-                <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>Tạm ẩn/Khoá</option>
+                <?php foreach ($productStatuses as $value => $meta): ?>
+                    <option value="<?= e($value) ?>" <?= $status === $value ? 'selected' : '' ?>><?= e($meta['label']) ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
         <div style="display: flex; align-items: flex-end; gap: 8px;">

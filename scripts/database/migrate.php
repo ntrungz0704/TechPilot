@@ -1,12 +1,12 @@
 <?php
+
 /**
- * TechPilot — Migration Runner
- *
- * Quét database/migrations/ và chạy method up(PDO $db) của từng migration
- * theo thứ tự tên file tăng dần. Mỗi migration phải idempotent.
+ * TechPilot — Ledger-aware Migration Runner
  *
  * Cách dùng:
  *   php scripts/database/migrate.php
+ *   php scripts/database/migrate.php --status
+ *   php scripts/database/migrate.php --baseline-existing
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -14,82 +14,101 @@ if (PHP_SAPI !== 'cli') {
     die('Migration runner chỉ chạy từ CLI.');
 }
 
-// Nạp config
 require_once __DIR__ . '/../../config/app.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/MigrationRunner.php';
+
+$printUsage = static function (): void {
+    echo "Cách dùng:\n";
+    echo "  php scripts/database/migrate.php                     Chạy migration pending\n";
+    echo "  php scripts/database/migrate.php --status            Chỉ xem trạng thái\n";
+    echo "  php scripts/database/migrate.php --baseline-existing Chỉ ghi ledger cho DB legacy đã đồng bộ\n";
+};
+
+$arguments = array_slice($argv, 1);
+if (count($arguments) > 1) {
+    fwrite(STDERR, "[FAIL] Chỉ chấp nhận một tùy chọn.\n");
+    $printUsage();
+    exit(2);
+}
+
+$command = $arguments[0] ?? '--run';
+$allowedCommands = ['--run', '--status', '--baseline-existing', '--help', '-h'];
+if (!in_array($command, $allowedCommands, true)) {
+    fwrite(STDERR, "[FAIL] Tùy chọn không hợp lệ: {$command}\n");
+    $printUsage();
+    exit(2);
+}
+
+if ($command === '--help' || $command === '-h') {
+    $printUsage();
+    exit(0);
+}
 
 $db = Database::getConnection();
-if ($db === null) {
+if (!$db instanceof PDO) {
     fwrite(STDERR, "[FAIL] Không thể kết nối database. Kiểm tra config/database.local.php hoặc .env\n");
     exit(1);
 }
 
-// Thư mục migrations
-$migrationsDir = __DIR__ . '/../../database/migrations';
-if (!is_dir($migrationsDir)) {
-    echo "[WARN] Thư mục database/migrations/ không tồn tại. Không có migration nào cần chạy.\n";
-    echo "[PASS] Migration runner hoàn tất.\n";
-    exit(0);
-}
+$runner = new MigrationRunner($db, __DIR__ . '/../../database/migrations');
 
-// Quét file PHP migration, sắp xếp tên tăng dần
-$files = glob($migrationsDir . '/*.php');
-if (empty($files)) {
-    echo "[INFO] Không có file migration nào trong database/migrations/\n";
-    echo "[PASS] Migration runner hoàn tất.\n";
-    exit(0);
-}
+try {
+    if ($command === '--status') {
+        $status = $runner->status();
+        echo "=== TechPilot Migration Status ===\n";
 
-sort($files, SORT_STRING);
-
-$totalFiles = count($files);
-$passed = 0;
-$failed = 0;
-
-echo "=== TechPilot Migration Runner ===\n";
-echo "Tìm thấy {$totalFiles} migration(s)\n\n";
-
-foreach ($files as $file) {
-    $basename = basename($file);
-    echo "[RUN ] {$basename} ... ";
-
-    // Nạp file
-    require_once $file;
-
-    // Tìm class migration trong file
-    // Convention: Migration_<tên_file_không_có_.php>
-    $nameWithoutExt = pathinfo($basename, PATHINFO_FILENAME);
-    $className = 'Migration_' . $nameWithoutExt;
-
-    if (!class_exists($className)) {
-        echo "SKIP (class {$className} không tồn tại)\n";
-        continue;
-    }
-
-    try {
-        $result = $className::up($db);
-
-        if ($result) {
-            echo "PASS\n";
-            $passed++;
-        } else {
-            echo "FAIL (up() trả về false)\n";
-            $failed++;
+        foreach ($status['entries'] as $entry) {
+            $label = $entry['state'] === 'applied' ? 'APPLIED' : 'PENDING';
+            echo "[{$label}] {$entry['migration']}\n";
         }
-    } catch (\Throwable $e) {
-        echo "FAIL\n";
-        fwrite(STDERR, "  Lỗi: " . $e->getMessage() . "\n");
-        $failed++;
+
+        echo "\nTổng: {$status['total']} | Applied: {$status['applied']} | Pending: {$status['pending']}\n";
+        exit(0);
     }
-}
 
-echo "\n=== Kết quả ===\n";
-echo "Tổng: {$totalFiles} | PASS: {$passed} | FAIL: {$failed}\n";
+    if ($command === '--baseline-existing') {
+        echo "=== TechPilot Existing Database Baseline ===\n";
+        echo "[WARN] Chế độ này chỉ ghi ledger, không gọi bất kỳ up() nào.\n";
+        $result = $runner->baseline();
 
-if ($failed > 0) {
-    echo "\n[FAIL] Có {$failed} migration bị lỗi.\n";
+        foreach ($result['entries'] as $entry) {
+            $labels = [
+                'baselined' => 'BASELINE',
+                'skipped' => 'SKIP',
+                'failed' => 'FAIL',
+            ];
+            $label = $labels[$entry['state']] ?? strtoupper($entry['state']);
+            echo "[{$label}] {$entry['migration']} — {$entry['message']}\n";
+        }
+
+        echo "\nTổng: {$result['total']} | Baselined: {$result['baselined']} | Skip: {$result['skipped']} | Fail: {$result['failed']}\n";
+        exit($result['failed'] > 0 ? 1 : 0);
+    }
+
+    echo "=== TechPilot Migration Runner ===\n";
+    $result = $runner->run();
+
+    foreach ($result['entries'] as $entry) {
+        $labels = [
+            'applied' => 'PASS',
+            'skipped' => 'SKIP',
+            'failed' => 'FAIL',
+        ];
+        $label = $labels[$entry['state']] ?? strtoupper($entry['state']);
+        echo "[{$label}] {$entry['migration']} — {$entry['message']}\n";
+    }
+
+    echo "\nTổng: {$result['total']} | Applied: {$result['applied']} | Skip: {$result['skipped']} | Fail: {$result['failed']}\n";
+
+    if ($result['failed'] > 0) {
+        echo "[FAIL] Runner đã dừng; các migration phía sau chưa được chạy.\n";
+        exit(1);
+    }
+
+    echo "[PASS] Không còn migration pending.\n";
+    exit(0);
+} catch (Throwable $error) {
+    fwrite(STDERR, "[FAIL] " . $error->getMessage() . "\n");
     exit(1);
 }
-
-echo "\n[PASS] Tất cả migration đã chạy thành công.\n";
-exit(0);

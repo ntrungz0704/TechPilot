@@ -245,13 +245,14 @@ try {
 
 echo "\n── Required Tables ──\n";
 
-// 19 bảng business/audit
+// 25 bảng business/audit
 $businessTables = [
     'users', 'categories', 'brands', 'products', 'product_images',
     'carts', 'cart_items', 'orders', 'order_items', 'posts',
-    'reviews', 'banners', 'flash_sales', 'flash_sale_items',
+    'reviews', 'banners', 'flash_sales', 'flash_sale_items', 'flash_sale_reservations',
     'coupons', 'user_addresses', 'wishlists', 'notifications',
-    'inventory_logs',
+    'inventory_logs', 'user_behavior_logs', 'user_interest_profiles',
+    'chatbot_rate_limits', 'return_requests', 'return_items',
 ];
 
 // 1 bảng technical
@@ -292,6 +293,11 @@ echo "\n── Required Columns ──\n";
 $requiredColumns = [
     'products' => ['stock', 'status', 'specs'],
     'inventory_logs' => ['quantity_delta', 'old_stock', 'new_stock', 'product_id', 'type'],
+    'user_behavior_logs' => ['user_id', 'action_type', 'target_type', 'target_id', 'metadata'],
+    'user_interest_profiles' => ['user_id', 'brand_scores', 'category_scores', 'budget_min', 'budget_max'],
+    'chatbot_rate_limits' => ['identifier', 'rate_date', 'query_count'],
+    'return_requests' => ['return_code', 'order_id', 'user_id', 'reason', 'status'],
+    'return_items' => ['return_request_id', 'order_item_id', 'quantity', 'resolution'],
 ];
 
 foreach ($requiredColumns as $table => $columns) {

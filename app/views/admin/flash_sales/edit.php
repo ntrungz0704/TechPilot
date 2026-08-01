@@ -44,7 +44,7 @@
                     <tr>
                         <th style="width: 50px;">Chọn</th>
                         <th>Tên sản phẩm</th>
-                        <th>Giá gốc (đ)</th>
+                        <th>Giá bán hiện tại (đ)</th>
                         <th>Giá Flash Sale (đ)</th>
                         <th>Mở bán</th>
                         <th>Đã bán</th>
@@ -56,16 +56,21 @@
                         <?php
                         $isSelected = isset($selectedItems[(int)$p['id']]);
                         $itemData = $isSelected ? $selectedItems[(int)$p['id']] : [];
+                        $regularPrice = (float)($p['regular_price'] ?? $p['price']);
                         ?>
                         <tr>
                             <td style="text-align: center;">
                                 <input type="checkbox" name="items[<?= (int)$p['id'] ?>][active]" value="1" <?= $isSelected ? 'checked' : '' ?>>
-                                <input type="hidden" name="items[<?= (int)$p['id'] ?>][sold_quantity]" value="<?= (int)($itemData['sold_quantity'] ?? 0) ?>">
                             </td>
                             <td><strong><?= e($p['name']) ?></strong></td>
-                            <td><?= formatPrice($p['price']) ?></td>
                             <td>
-                                <input type="number" name="items[<?= (int)$p['id'] ?>][discount_price]" class="form-control" style="width: 130px; padding: 6px 10px;" value="<?= $isSelected ? (float)$itemData['discount_price'] : '' ?>" placeholder="Giảm giá..." min="0">
+                                <?= formatPrice($regularPrice) ?>
+                                <?php if ($regularPrice < (float)$p['price']): ?>
+                                    <small style="display: block; color: var(--text-secondary);">Gốc: <?= formatPrice($p['price']) ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <input type="number" name="items[<?= (int)$p['id'] ?>][discount_price]" class="form-control" style="width: 130px; padding: 6px 10px;" value="<?= $isSelected ? (float)$itemData['discount_price'] : '' ?>" placeholder="Giảm giá..." min="1" max="<?= max(1, (int)$regularPrice - 1) ?>">
                             </td>
                             <td>
                                 <input type="number" name="items[<?= (int)$p['id'] ?>][allocation_quantity]" class="form-control" style="width: 100px; padding: 6px 10px;" value="<?= $isSelected ? (int)$itemData['allocation_quantity'] : '10' ?>" min="1">
