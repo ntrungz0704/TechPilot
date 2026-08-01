@@ -280,10 +280,14 @@
         </div>
 
         <div class="form-group">
-            <label for="status">Trạng thái hiển thị</label>
+            <label for="status">Trạng thái vòng đời sản phẩm (Lifecycle Status)</label>
             <select name="status" id="status" class="form-control">
-                <option value="active" <?= $product['status'] === 'active' ? 'selected' : '' ?>>Hiển thị bán hàng (Active)</option>
-                <option value="inactive" <?= $product['status'] === 'inactive' ? 'selected' : '' ?>>Tạm ẩn bán hàng (Inactive)</option>
+                <option value="active" <?= $product['status'] === 'active' ? 'selected' : '' ?>>🟢 Đang bán (Active - Hiển thị Frontend)</option>
+                <option value="hidden" <?= $product['status'] === 'hidden' ? 'selected' : '' ?>>⚪ Tạm ẩn khỏi Website (Hidden)</option>
+                <option value="out_of_stock" <?= $product['status'] === 'out_of_stock' ? 'selected' : '' ?>>🟠 Hết hàng (Out Of Stock)</option>
+                <option value="discontinued" <?= $product['status'] === 'discontinued' ? 'selected' : '' ?>>🔴 Ngừng kinh doanh (Discontinued)</option>
+                <option value="archived" <?= $product['status'] === 'archived' ? 'selected' : '' ?>>🟣 Lưu trữ (Archived - Đã từng kinh doanh)</option>
+                <option value="draft" <?= $product['status'] === 'draft' ? 'selected' : '' ?>>🟡 Bản nháp (Draft)</option>
             </select>
         </div>
 
@@ -299,82 +303,142 @@
     <div style="background: #FFFFFF; border-radius: 16px; width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
         
         <!-- Header -->
-        <div style="padding: 20px 24px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #7C3AED, #4F46E5); color: #FFFFFF; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+        <div style="padding: 18px 24px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #FFFFFF; border-top-left-radius: 16px; border-top-right-radius: 16px;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 38px; height: 38px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                 </div>
                 <div>
-                    <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #FFF;">Trợ Lý AI Bổ Sung Dữ Liệu Sản Phẩm</h3>
-                    <p style="font-size: 12px; margin: 2px 0 0 0; opacity: 0.9;">Tự động phân tích, bổ sung mô tả, thông số kỹ thuật & SEO</p>
+                    <h3 style="font-size: 16.5px; font-weight: 700; margin: 0; color: #FFF;">Trợ Lý AI Bổ Sung Dữ Liệu Sản Phẩm TechPilot v2</h3>
+                    <p style="font-size: 12px; margin: 2px 0 0 0; opacity: 0.9;">Validate Model · 8 Section Description · AI Editor · History & Cache</p>
                 </div>
             </div>
             <button type="button" id="btnCloseAiModal" style="background: none; border: none; color: #FFF; font-size: 20px; cursor: pointer; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <!-- Body -->
-        <div style="padding: 24px; flex: 1;">
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 13px; font-weight: 700; color: #1E293B; display: block; margin-bottom: 6px;">Nhập tên sản phẩm, Model hoặc link tham khảo:</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="aiInputQuery" class="form-control" value="<?= e($product['name']) ?>" style="flex: 1; padding: 10px 14px; font-size: 14px;">
-                    <button type="button" id="btnRunAiGenerate" class="btn" style="background: linear-gradient(135deg, #7C3AED, #4F46E5); border: none; padding: 10px 20px; font-weight: 600; white-space: nowrap;">
-                        <i class="fa-solid fa-bolt"></i> Sinh Dữ Liệu
-                    </button>
+        <div style="padding: 20px 24px; flex: 1; overflow-y: auto;">
+            <!-- Modal Navigation Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">
+                <button type="button" id="tabBtnGenerate" class="btn btn--sm" style="background: #4F46E5; color: #FFF; font-weight: 600;"><i class="fa-solid fa-bolt"></i> Sinh Dữ Liệu AI</button>
+                <button type="button" id="tabBtnRewrite" class="btn btn--outline btn--sm" style="font-weight: 600;"><i class="fa-solid fa-pen-nib"></i> AI Tone Editor</button>
+                <button type="button" id="tabBtnHistory" class="btn btn--outline btn--sm" style="font-weight: 600;"><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử & Cache</button>
+            </div>
+
+            <!-- Tab 1: Generate Container -->
+            <div id="aiTabGenerate">
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #1E293B; display: block; margin-bottom: 6px;">Nhập Model, SKU hoặc Link Hãng (Ví dụ: ROG G16 GU605MI, RTX 4060, i9-14900K):</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="aiInputQuery" class="form-control" value="<?= e($product['name']) ?>" style="flex: 1; padding: 10px 14px; font-size: 13.5px;">
+                        <button type="button" id="btnRunAiGenerate" class="btn" style="background: linear-gradient(135deg, #4F46E5, #7C3AED); border: none; padding: 10px 18px; font-weight: 600; white-space: nowrap;">
+                            <i class="fa-solid fa-magnifying-glass"></i> Phân Tích AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Validation Error Alert -->
+                <div id="aiValidationAlert" style="display: none; background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> <span id="aiValidationMsg">Không tìm thấy model hợp lệ.</span>
+                </div>
+
+                <!-- Loading State -->
+                <div id="aiLoadingState" style="display: none; text-align: center; padding: 30px 20px; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">
+                    <div style="font-size: 30px; color: #4F46E5; margin-bottom: 10px;" class="fa-spin-hover">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    </div>
+                    <h4 style="font-size: 14.5px; font-weight: 700; color: #1E293B; margin-bottom: 4px;">AI Engine đang phân tích thông số kỹ thuật...</h4>
+                    <p style="font-size: 12px; color: #64748B; margin: 0;">Truy vấn Nguồn Hãng (ASUS/Dell/MSI) & Chuẩn hóa đơn vị đo lường</p>
+                </div>
+
+                <!-- Result Preview Card -->
+                <div id="aiResultContainer" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;">
+                    <!-- Metadata Header Badges -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #E2E8F0; padding-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <span class="badge" style="background: #E0F2FE; color: #0369A1; font-weight: 700; font-size: 11px;" id="aiSourceBadge"><i class="fa-solid fa-building-columns"></i> Source</span>
+                            <span class="badge" style="background: #D1FAE5; color: #065F46; font-weight: 700; font-size: 11px;" id="aiConfidenceBadge"><i class="fa-solid fa-bullseye"></i> Confidence: 98%</span>
+                            <span class="badge" style="background: #F3E8FF; color: #6B21A8; font-weight: 600; font-size: 11px;" id="aiProviderBadge"><i class="fa-solid fa-robot"></i> AI Engine</span>
+                        </div>
+                        <button type="button" id="btnForceRefreshAi" class="btn btn--outline btn--sm" style="font-size: 11.5px;" title="Tải lại từ AI loại bỏ Cache"><i class="fa-solid fa-rotate-right"></i> Refresh Data</button>
+                    </div>
+
+                    <!-- Warning if manual review needed -->
+                    <div id="aiManualReviewWarning" style="display: none; background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 12px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Cảnh báo:</strong> Điểm tin cậy < 80%. Admin cần kiểm tra thủ công thông số trước khi áp dụng.
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; background: #FFF; padding: 12px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        <div>
+                            <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Tên sản phẩm đề xuất:</small>
+                            <strong style="font-size: 13px; color: #0F172A;" id="aiResName">-</strong>
+                        </div>
+                        <div>
+                            <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Slug chuẩn SEO:</small>
+                            <code style="font-size: 11.5px; color: #2563EB;" id="aiResSlug">-</code>
+                        </div>
+                        <div>
+                            <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Danh mục phù hợp:</small>
+                            <span style="font-size: 12px; font-weight: 600; color: #059669;" id="aiResCategory">-</span>
+                        </div>
+                        <div>
+                            <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Thương hiệu:</small>
+                            <span style="font-size: 12px; font-weight: 600; color: #D97706;" id="aiResBrand">-</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px; margin-bottom: 4px;">Mô tả sản phẩm chuẩn 8 Section (HTML Preview):</small>
+                        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-size: 12px; color: #334155; max-height: 140px; overflow-y: auto;" id="aiResDesc">-</div>
+                    </div>
+
+                    <div>
+                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px; margin-bottom: 4px;">Thông số kỹ thuật chuẩn hóa (Specs JSON):</small>
+                        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; font-size: 11.5px;" id="aiResSpecs">-</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Loading State -->
-            <div id="aiLoadingState" style="display: none; text-align: center; padding: 35px 20px; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">
-                <div style="font-size: 32px; color: #7C3AED; margin-bottom: 12px;" class="fa-spin-hover">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i>
-                </div>
-                <h4 style="font-size: 15px; font-weight: 700; color: #1E293B; margin-bottom: 6px;">AI Engine đang nghiên cứu sản phẩm...</h4>
-                <p style="font-size: 12.5px; color: #64748B; margin: 0;">Đang kết nối AI Multi-Provider (Gemini / Groq / Qwen Cloud)</p>
-            </div>
-
-            <!-- Result Preview Card -->
-            <div id="aiResultContainer" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #E2E8F0; padding-bottom: 10px;">
-                    <span style="font-size: 12px; font-weight: 700; color: #7C3AED; text-transform: uppercase; letter-spacing: 0.5px;" id="aiProviderBadge"><i class="fa-solid fa-robot"></i> AI Response Generated</span>
-                    <button type="button" id="btnAiRegenerate" class="btn btn--outline btn--sm" style="font-size: 12px; border-color: #CBD5E1;"><i class="fa-solid fa-rotate-right"></i> Tạo lại</button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-                    <div>
-                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Tên sản phẩm đề xuất:</small>
-                        <strong style="font-size: 13.5px; color: #0F172A;" id="aiResName">-</strong>
-                    </div>
-                    <div>
-                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Slug chuẩn SEO:</small>
-                        <code style="font-size: 12px; color: #2563EB;" id="aiResSlug">-</code>
-                    </div>
-                    <div>
-                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Danh mục phù hợp:</small>
-                        <span style="font-size: 12.5px; font-weight: 600; color: #059669;" id="aiResCategory">-</span>
-                    </div>
-                    <div>
-                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Thương hiệu:</small>
-                        <span style="font-size: 12.5px; font-weight: 600; color: #D97706;" id="aiResBrand">-</span>
-                    </div>
-                </div>
-
+            <!-- Tab 2: AI Tone Editor Container -->
+            <div id="aiTabRewrite" style="display: none;">
                 <div style="margin-bottom: 14px;">
-                    <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px; margin-bottom: 4px;">Mô tả sản phẩm (Preview):</small>
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-size: 12.5px; color: #334155; max-height: 120px; overflow-y: auto;" id="aiResDesc">-</div>
+                    <label style="font-size: 13px; font-weight: 700; color: #1E293B; display: block; margin-bottom: 6px;">Chọn Văn phong & Phong cách viết (AI Style Adjuster):</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="aiStyleSelect" class="form-control" style="flex: 1;">
+                            <option value="gearvn">🎮 Phong cách GearVN (Game thủ & Đam mê phần cứng)</option>
+                            <option value="phongvu">🏢 Phong cách Phong Vũ (Chuyên nghiệp & Tin cậy)</option>
+                            <option value="seo">🚀 Tối ưu SEO từ khóa công nghệ E-commerce</option>
+                            <option value="gaming">⚡ Văn phong Chuyên Game (Cực bốc & Mạnh mẽ)</option>
+                            <option value="office">💼 Văn phong Doanh Nhân & Văn Phòng (Trang nhã)</option>
+                            <option value="premium">👑 Văn phong Cao Cấp & Sang Trọng (Flagship)</option>
+                            <option value="short">📐 Súc tích & Ngắn gọn</option>
+                            <option value="detailed">📚 Chi tiết & Phân tích chuyên sâu</option>
+                        </select>
+                        <button type="button" id="btnExecuteRewrite" class="btn" style="background: #4F46E5; border: none; font-weight: 600; white-space: nowrap;"><i class="fa-solid fa-pen-nib"></i> Viết Lại Văn Phong</button>
+                    </div>
                 </div>
-
                 <div>
-                    <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px; margin-bottom: 4px;">Thông số kỹ thuật đề xuất (Specs):</small>
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; font-size: 12px;" id="aiResSpecs">-</div>
+                    <label style="font-size: 12px; font-weight: 600; color: #64748B; display: block; margin-bottom: 4px;">Nội dung viết lại (Preview):</label>
+                    <textarea id="aiRewriteTextarea" class="form-control" rows="8" style="font-size: 12.5px; font-family: monospace;" placeholder="Nội dung đã điều chỉnh văn phong sẽ xuất hiện ở đây..."></textarea>
+                </div>
+            </div>
+
+            <!-- Tab 3: History Container -->
+            <div id="aiTabHistory" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #475569;">Lịch sử 20 lượt sinh AI gần nhất (Database Cache):</span>
+                    <button type="button" id="btnRefreshHistory" class="btn btn--outline btn--sm" style="font-size: 11px;"><i class="fa-solid fa-rotate"></i> Làm mới danh sách</button>
+                </div>
+                <div id="aiHistoryList" style="max-height: 240px; overflow-y: auto; background: #FFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px;">
+                    <div style="text-align: center; color: #94A3B8; padding: 20px; font-size: 12px;">Đang tải lịch sử...</div>
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <div style="padding: 16px 24px; border-top: 1px solid #E2E8F0; background: #F8FAFC; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button type="button" id="btnCancelAiModal" class="btn btn--secondary">Hủy bỏ</button>
-            <button type="button" id="btnApplyAiToForm" class="btn" style="background: #10B981; border: none;" disabled><i class="fa-solid fa-check"></i> Áp Dụng Vào Form</button>
+        <div style="padding: 14px 24px; border-top: 1px solid #E2E8F0; background: #F8FAFC; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" id="btnCancelAiModal" class="btn btn--secondary">Đóng</button>
+            <button type="button" id="btnApplyAiToForm" class="btn" style="background: #10B981; border: none; font-weight: 600;" disabled><i class="fa-solid fa-check"></i> Áp Dụng Vào Form</button>
         </div>
     </div>
 </div>
@@ -386,13 +450,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeBtn = document.getElementById('btnCloseAiModal');
     const cancelBtn = document.getElementById('btnCancelAiModal');
     const runBtn = document.getElementById('btnRunAiGenerate');
-    const regenBtn = document.getElementById('btnAiRegenerate');
+    const refreshBtn = document.getElementById('btnForceRefreshAi');
     const applyBtn = document.getElementById('btnApplyAiToForm');
     const inputQuery = document.getElementById('aiInputQuery');
     const loadingState = document.getElementById('aiLoadingState');
     const resultContainer = document.getElementById('aiResultContainer');
+    const validationAlert = document.getElementById('aiValidationAlert');
+    const validationMsg = document.getElementById('aiValidationMsg');
+
+    // Tabs
+    const tabGenerate = document.getElementById('aiTabGenerate');
+    const tabRewrite = document.getElementById('aiTabRewrite');
+    const tabHistory = document.getElementById('aiTabHistory');
+    const btnTabGenerate = document.getElementById('tabBtnGenerate');
+    const btnTabRewrite = document.getElementById('tabBtnRewrite');
+    const btnTabHistory = document.getElementById('tabBtnHistory');
 
     let currentAiData = null;
+
+    function switchTab(target) {
+        tabGenerate.style.display = target === 'generate' ? 'block' : 'none';
+        tabRewrite.style.display = target === 'rewrite' ? 'block' : 'none';
+        tabHistory.style.display = target === 'history' ? 'block' : 'none';
+
+        btnTabGenerate.style.background = target === 'generate' ? '#4F46E5' : '#FFF';
+        btnTabGenerate.style.color = target === 'generate' ? '#FFF' : '#334155';
+        btnTabRewrite.style.background = target === 'rewrite' ? '#4F46E5' : '#FFF';
+        btnTabRewrite.style.color = target === 'rewrite' ? '#FFF' : '#334155';
+        btnTabHistory.style.background = target === 'history' ? '#4F46E5' : '#FFF';
+        btnTabHistory.style.color = target === 'history' ? '#FFF' : '#334155';
+
+        if (target === 'history') {
+            loadHistory();
+        }
+    }
+
+    btnTabGenerate.addEventListener('click', () => switchTab('generate'));
+    btnTabRewrite.addEventListener('click', () => switchTab('rewrite'));
+    btnTabHistory.addEventListener('click', () => switchTab('history'));
 
     if (openBtn && modal) {
         openBtn.addEventListener('click', function() {
@@ -401,22 +496,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 inputQuery.value = currentName;
             }
             modal.style.display = 'flex';
+            switchTab('generate');
         });
 
         const hideModal = () => { modal.style.display = 'none'; };
         closeBtn.addEventListener('click', hideModal);
         cancelBtn.addEventListener('click', hideModal);
 
-        const executeAiGenerate = () => {
+        const executeAiGenerate = (forceRefresh = false) => {
             const q = inputQuery.value.trim();
             if (!q) {
-                alert('Vui lòng nhập tên sản phẩm hoặc model');
+                validationAlert.style.display = 'block';
+                validationMsg.innerText = 'Vui lòng nhập Tên Model, SKU hoặc Link website chính hãng.';
                 return;
             }
 
+            validationAlert.style.display = 'none';
             loadingState.style.display = 'block';
             resultContainer.style.display = 'none';
             applyBtn.disabled = true;
+
+            const bodyParams = new URLSearchParams();
+            bodyParams.append('product_name', q);
+            bodyParams.append('_csrf', '<?= $_SESSION["csrf_token"] ?? "" ?>');
+            if (forceRefresh) {
+                bodyParams.append('force_refresh', '1');
+            }
 
             fetch('<?= url("admin/products/ai-assistant") ?>', {
                 method: 'POST',
@@ -424,44 +529,140 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRF-Token': '<?= $_SESSION["csrf_token"] ?? "" ?>'
                 },
-                body: 'product_name=' + encodeURIComponent(q) + '&_csrf=' + encodeURIComponent('<?= $_SESSION["csrf_token"] ?? "" ?>')
+                body: bodyParams.toString()
             })
             .then(res => res.json())
             .then(res => {
                 loadingState.style.display = 'none';
                 if (res.success && res.data) {
                     currentAiData = res.data;
-                    document.getElementById('aiProviderBadge').innerText = '🤖 Generated by ' + (res.data.provider || 'AI Engine');
-                    document.getElementById('aiResName').innerText = res.data.name || q;
-                    document.getElementById('aiResSlug').innerText = res.data.slug || '';
-                    document.getElementById('aiResCategory').innerText = res.data.proposed_category || 'N/A';
-                    document.getElementById('aiResBrand').innerText = res.data.proposed_brand || 'N/A';
-                    document.getElementById('aiResDesc').innerText = res.data.description || '';
-
-                    let specsHtml = '<table style="width:100%; border-collapse:collapse;">';
-                    if (res.data.specs && typeof res.data.specs === 'object') {
-                        Object.keys(res.data.specs).forEach(k => {
-                            specsHtml += `<tr style="border-bottom:1px solid #EDF2F7;"><td style="padding:4px 8px; font-weight:600; width:35%;">${k}</td><td style="padding:4px 8px; color:#4A5568;">${res.data.specs[k]}</td></tr>`;
-                        });
-                    }
-                    specsHtml += '</table>';
-                    document.getElementById('aiResSpecs').innerHTML = specsHtml;
-
+                    renderAiResult(res.data);
                     resultContainer.style.display = 'block';
                     applyBtn.disabled = false;
                 } else {
-                    alert(res.error || 'Không thể sinh dữ liệu AI.');
+                    validationAlert.style.display = 'block';
+                    validationMsg.innerText = res.message || res.error || 'Không thể phân tích model sản phẩm.';
                 }
             })
             .catch(err => {
                 loadingState.style.display = 'none';
-                alert('Lỗi khi gọi API AI Assistant.');
+                validationAlert.style.display = 'block';
+                validationMsg.innerText = 'Lỗi kết nối tới hệ thống AI Assistant.';
             });
         };
 
-        runBtn.addEventListener('click', executeAiGenerate);
-        regenBtn.addEventListener('click', executeAiGenerate);
+        function renderAiResult(data) {
+            document.getElementById('aiSourceBadge').innerHTML = '<i class="fa-solid fa-building-columns"></i> Nguồn: ' + (data.source_name || 'Hãng sản xuất');
+            document.getElementById('aiConfidenceBadge').innerHTML = '<i class="fa-solid fa-bullseye"></i> Điểm tin cậy: ' + (data.confidence_score || 90) + '%';
+            document.getElementById('aiConfidenceBadge').style.background = (data.confidence_score >= 80) ? '#D1FAE5' : '#FEF3C7';
+            document.getElementById('aiConfidenceBadge').style.color = (data.confidence_score >= 80) ? '#065F46' : '#92400E';
 
+            document.getElementById('aiProviderBadge').innerHTML = '<i class="fa-solid fa-robot"></i> ' + (data.provider || 'AI Engine') + (data.is_cached ? ' (Cached)' : '');
+            document.getElementById('aiManualReviewWarning').style.display = data.needs_manual_review ? 'block' : 'none';
+
+            document.getElementById('aiResName').innerText = data.name || '';
+            document.getElementById('aiResSlug').innerText = data.slug || '';
+            document.getElementById('aiResCategory').innerText = data.proposed_category || 'N/A';
+            document.getElementById('aiResBrand').innerText = data.proposed_brand || 'N/A';
+            document.getElementById('aiResDesc').innerHTML = data.description || '';
+
+            let specsHtml = '<table style="width:100%; border-collapse:collapse;">';
+            if (data.specs && typeof data.specs === 'object') {
+                Object.keys(data.specs).forEach(k => {
+                    specsHtml += `<tr style="border-bottom:1px solid #EDF2F7;"><td style="padding:4px 8px; font-weight:600; width:35%; color:#334155;">${k}</td><td style="padding:4px 8px; color:#475569;">${data.specs[k]}</td></tr>`;
+                });
+            }
+            specsHtml += '</table>';
+            document.getElementById('aiResSpecs').innerHTML = specsHtml;
+
+            document.getElementById('aiRewriteTextarea').value = data.description || '';
+        }
+
+        runBtn.addEventListener('click', () => executeAiGenerate(false));
+        refreshBtn.addEventListener('click', () => executeAiGenerate(true));
+
+        // Rewrite Tone Action
+        document.getElementById('btnExecuteRewrite').addEventListener('click', function() {
+            const content = document.getElementById('aiRewriteTextarea').value;
+            const style = document.getElementById('aiStyleSelect').value;
+            if (!content) return;
+
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang viết lại...';
+
+            fetch('<?= url("admin/products/ai-assistant/rewrite") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': '<?= $_SESSION["csrf_token"] ?? "" ?>'
+                },
+                body: 'content=' + encodeURIComponent(content) + '&style=' + encodeURIComponent(style) + '&_csrf=' + encodeURIComponent('<?= $_SESSION["csrf_token"] ?? "" ?>')
+            })
+            .then(res => res.json())
+            .then(res => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-pen-nib"></i> Viết Lại Văn Phong';
+                if (res.success && res.rewritten_text) {
+                    document.getElementById('aiRewriteTextarea').value = res.rewritten_text;
+                    if (currentAiData) {
+                        currentAiData.description = res.rewritten_text;
+                        document.getElementById('aiResDesc').innerHTML = res.rewritten_text;
+                    }
+                    alert('✨ Đã viết lại văn phong thành công!');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-pen-nib"></i> Viết Lại Văn Phong';
+            });
+        });
+
+        // Load History
+        function loadHistory() {
+            const container = document.getElementById('aiHistoryList');
+            fetch('<?= url("admin/products/ai-assistant/history") ?>')
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.history && res.history.length > 0) {
+                    let html = '';
+                    res.history.forEach(item => {
+                        let parsedData = {};
+                        try { parsedData = JSON.parse(item.response_data); } catch(e){}
+                        html += `
+                            <div style="border-bottom: 1px solid #F1F5F9; padding: 8px 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 12.5px; color: #1E293B;">${item.prompt}</strong>
+                                    <div style="font-size: 11px; color: #64748B;">Nguồn: ${item.source_name || 'N/A'} | Điểm: ${item.confidence_score}% | Ngày: ${item.created_at}</div>
+                                </div>
+                                <div style="display: flex; gap: 6px;">
+                                    <button type="button" class="btn btn--outline btn--sm btn-reuse-history" data-payload='${JSON.stringify(parsedData)}' style="font-size: 11px; padding: 3px 8px;">Tái sử dụng</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+
+                    container.querySelectorAll('.btn-reuse-history').forEach(b => {
+                        b.addEventListener('click', function() {
+                            const data = JSON.parse(this.getAttribute('data-payload'));
+                            if (data && data.name) {
+                                currentAiData = data;
+                                renderAiResult(data);
+                                switchTab('generate');
+                                resultContainer.style.display = 'block';
+                                applyBtn.disabled = false;
+                            }
+                        });
+                    });
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #94A3B8; padding: 15px; font-size: 12px;">Chưa có lịch sử sinh AI nào.</div>';
+                }
+            });
+        }
+        document.getElementById('btnRefreshHistory').addEventListener('click', loadHistory);
+
+        // Apply To Form
         applyBtn.addEventListener('click', function() {
             if (!currentAiData) return;
 
@@ -473,11 +674,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (currentAiData.specs && typeof currentAiData.specs === 'object') {
                 const specsTextarea = document.getElementById('specs');
                 specsTextarea.value = JSON.stringify(currentAiData.specs, null, 4);
-                // Trigger visual builder sync if available
                 const event = new Event('input', { bubbles: true });
                 specsTextarea.dispatchEvent(event);
                 
-                // Populate rowsContainer if function exists
                 const rowsContainer = document.getElementById('specsRowsContainer');
                 if (rowsContainer) {
                     rowsContainer.innerHTML = '';
@@ -500,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             modal.style.display = 'none';
-            alert('✨ Đã áp dụng thông tin từ AI vào Form thành công!');
+            alert('✨ Đã áp dụng đầy đủ thông tin từ AI vào Form thành công!');
         });
     }
 });
