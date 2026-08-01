@@ -46,31 +46,31 @@ if (!function_exists('formatPrice')) {
 if (!function_exists('getEffectiveProductData')) {
     /**
      * Đồng bộ duy nhất một nguồn sự thật (Single Source of Truth) cho giá sản phẩm:
-     * Sản phẩm CHỈ ĐƯỢC GIẢM GIÁ khi thuộc chiến dịch Flash Sale đang bật và còn thời hạn/số lượng.
-     * Nếu không thuộc Flash Sale -> Giá bán = Giá gốc (price).
+     * Giá bán (final_price) luôn là giá ưu đãi nhất hiện tại giữa discount_price (Flash sale), sale_price và price gốc.
      */
     function getEffectiveProductData(array $product): array
     {
         $price = (float)($product['price'] ?? 0);
-        $isFlashSale = !empty($product['is_flash_sale']) || isset($product['discount_price']);
-        $flashDiscountPrice = isset($product['discount_price']) ? (float)$product['discount_price'] : null;
+        $salePrice = isset($product['sale_price']) && (float)$product['sale_price'] > 0 ? (float)$product['sale_price'] : null;
+        $flashPrice = isset($product['discount_price']) && (float)$product['discount_price'] > 0 ? (float)$product['discount_price'] : null;
+        $isFlashSale = !empty($product['is_flash_sale']) || ($flashPrice !== null);
 
-        if ($isFlashSale && $flashDiscountPrice !== null && $flashDiscountPrice > 0 && $flashDiscountPrice < $price) {
-            $finalPrice = $flashDiscountPrice;
-            $hasDiscount = true;
-            $discountPct = round((($price - $finalPrice) / $price) * 100);
-        } else {
-            $finalPrice = $price;
-            $hasDiscount = false;
-            $discountPct = 0;
+        $finalPrice = $price;
+        if ($flashPrice !== null && $flashPrice > 0 && $flashPrice < $finalPrice) {
+            $finalPrice = $flashPrice;
+        } elseif ($salePrice !== null && $salePrice > 0 && $salePrice < $finalPrice) {
+            $finalPrice = $salePrice;
         }
+
+        $hasDiscount = ($finalPrice < $price);
+        $discountPct = ($hasDiscount && $price > 0) ? round((($price - $finalPrice) / $price) * 100) : 0;
 
         return [
             'original_price' => $price,
             'final_price'    => $finalPrice,
             'has_discount'   => $hasDiscount,
             'discount_pct'   => (int)$discountPct,
-            'is_flash_sale'  => $isFlashSale
+            'is_flash_sale'  => (bool)$isFlashSale
         ];
     }
 }

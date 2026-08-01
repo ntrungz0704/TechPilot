@@ -94,17 +94,19 @@ class PcBuilderController extends Controller
 
         $result = [];
         foreach ($pcs as $pc) {
+            $eff = getEffectiveProductData($pc);
             $specs = json_decode($pc['specs'] ?? '{}', true) ?: [];
             $components = $this->resolvePrebuiltComponents($db, $specs);
             $result[] = [
-                'id' => (int)$pc['id'],
-                'name' => $pc['name'],
-                'slug' => $pc['slug'],
-                'price' => (float)$pc['price'],
-                'price_formatted' => formatPrice((float)$pc['price']),
-                'image_url' => productImageUrl($pc['image'] ?? '', 'pc', (int)$pc['id']),
-                'specs' => $specs,
-                'components' => $components
+                'id'              => (int)$pc['id'],
+                'name'            => $pc['name'],
+                'slug'            => $pc['slug'],
+                'price'           => $eff['final_price'],
+                'original_price'  => $eff['original_price'],
+                'price_formatted' => formatPrice($eff['final_price']),
+                'image_url'       => productImageUrl($pc['image'] ?? '', 'pc', (int)$pc['id']),
+                'specs'           => $specs,
+                'components'      => $components
             ];
         }
 
@@ -137,7 +139,7 @@ class PcBuilderController extends Controller
             $catId = $conf['cat'];
             $searchKey = $conf['search'];
             
-            $sql = "SELECT id, name, price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0";
+            $sql = "SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0";
             $params = [':cat' => $catId];
 
             if (!empty($searchKey)) {
@@ -151,18 +153,20 @@ class PcBuilderController extends Controller
             $prod = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$prod && !empty($searchKey)) {
-                $stmtFb = $db->prepare("SELECT id, name, price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0 ORDER BY price ASC LIMIT 1");
+                $stmtFb = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0 ORDER BY price ASC LIMIT 1");
                 $stmtFb->execute([':cat' => $catId]);
                 $prod = $stmtFb->fetch(PDO::FETCH_ASSOC);
             }
 
             if ($prod) {
+                $eff = getEffectiveProductData($prod);
                 $parsedSpecs = json_decode($prod['specs'] ?? '{}', true) ?: [];
                 $components[$key] = [
                     'id'              => (int)$prod['id'],
                     'name'            => $prod['name'],
-                    'price'           => (float)$prod['price'],
-                    'price_formatted' => formatPrice((float)$prod['price']),
+                    'price'           => $eff['final_price'],
+                    'original_price'  => $eff['original_price'],
+                    'price_formatted' => formatPrice($eff['final_price']),
                     'stock'           => (int)$prod['stock'],
                     'image_url'       => productImageUrl($prod['image'] ?? '', $key, (int)$prod['id']),
                     'specs'           => json_encode($parsedSpecs)
@@ -193,7 +197,7 @@ class PcBuilderController extends Controller
             $whereClause .= " AND name LIKE :search";
         }
         
-        $sql = "SELECT id, name, price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE ($whereClause) AND status = 'active' AND stock > 0 ORDER BY price ASC";
+        $sql = "SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE ($whereClause) AND status = 'active' AND stock > 0 ORDER BY price ASC";
         $stmt = $db->prepare($sql);
         if ($search) {
             $stmt->execute([':search' => '%' . $search . '%']);
@@ -221,6 +225,7 @@ class PcBuilderController extends Controller
         // Format data to match frontend expectations
         $formattedProducts = [];
         foreach ($products as $p) {
+            $eff = getEffectiveProductData($p);
             $p['specs'] = $p['specs'] ?: '{}';
             $parsed = json_decode($p['specs'], true) ?: [];
             if (!empty($p['component_type'])) $parsed['component_type'] = $p['component_type'];
@@ -231,16 +236,17 @@ class PcBuilderController extends Controller
             $compat = PcCompatibilityService::checkCompatibility($build, $p, $partKey);
 
             $formattedProducts[] = [
-                'id' => (int)$p['id'],
-                'name' => $p['name'],
-                'price' => (float)$p['price'],
-                'price_formatted' => formatPrice((float)$p['price']),
-                'stock' => (int)$p['stock'],
-                'image_url' => empty($p['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($p['image'], 'http') ? $p['image'] : (str_starts_with($p['image'], 'assets/') ? '/' . $p['image'] : '/assets/images/products/' . $p['image'])),
-                'specs' => $p['specs'],
-                'compatible' => empty($compat['blockers']),
-                'blockers' => $compat['blockers'],
-                'warnings' => $compat['warnings']
+                'id'              => (int)$p['id'],
+                'name'            => $p['name'],
+                'price'           => $eff['final_price'],
+                'original_price'  => $eff['original_price'],
+                'price_formatted' => formatPrice($eff['final_price']),
+                'stock'           => (int)$p['stock'],
+                'image_url'       => empty($p['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($p['image'], 'http') ? $p['image'] : (str_starts_with($p['image'], 'assets/') ? '/' . $p['image'] : '/assets/images/products/' . $p['image'])),
+                'specs'           => $p['specs'],
+                'compatible'      => empty($compat['blockers']),
+                'blockers'        => $compat['blockers'],
+                'warnings'        => $compat['warnings']
             ];
         }
 
@@ -251,11 +257,14 @@ class PcBuilderController extends Controller
     private function getProductById(?PDO $db, int $id): ?array
     {
         if (!$db) return null;
-        $stmt = $db->prepare("SELECT id, name, price, stock, image, specs, category_id, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
+        $stmt = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, stock, image, specs, category_id, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
         $stmt->execute([':id' => $id]);
         $prod = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($prod) {
+            $eff = getEffectiveProductData($prod);
+            $prod['price'] = $eff['final_price'];
+            $prod['original_price'] = $eff['original_price'];
             $prod['specs'] = $prod['specs'] ?: '{}';
             $parsed = json_decode($prod['specs'], true) ?: [];
             if (!empty($prod['component_type'])) {

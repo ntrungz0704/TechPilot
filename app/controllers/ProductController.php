@@ -61,6 +61,31 @@ class ProductController extends Controller
             }
         }
 
+        $eff = getEffectiveProductData($product);
+        $product['effective_price'] = $eff['final_price'];
+        $product['final_price'] = $eff['final_price'];
+        $product['original_price'] = $eff['original_price'];
+        $product['has_discount'] = $eff['has_discount'];
+        $product['discount_pct'] = $eff['discount_pct'];
+
+        $related = array_map(function($p) {
+            $e = getEffectiveProductData($p);
+            $p['price'] = $e['final_price'];
+            $p['original_price'] = $e['original_price'];
+            $p['has_discount'] = $e['has_discount'];
+            $p['discount_pct'] = $e['discount_pct'];
+            return $p;
+        }, $related);
+
+        $recentlyViewedProducts = array_map(function($p) {
+            $e = getEffectiveProductData($p);
+            $p['price'] = $e['final_price'];
+            $p['original_price'] = $e['original_price'];
+            $p['has_discount'] = $e['has_discount'];
+            $p['discount_pct'] = $e['discount_pct'];
+            return $p;
+        }, $recentlyViewedProducts);
+
         $this->render('product/detail', [
             'pageTitle'              => $product['name'],
             'product'                => $product,
