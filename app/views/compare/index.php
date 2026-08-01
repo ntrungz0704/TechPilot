@@ -1,6 +1,13 @@
 <?php include ROOT_PATH . '/app/views/layouts/header.php'; ?>
 
 <style>
+    html.dark-mode .cat-bar-container { background: #111827 !important; border-color: #1E293B !important; }
+    html.dark-mode .cat-tab-btn { background: #1E293B !important; border-color: #334155 !important; color: #F1F5F9 !important; }
+    html.dark-mode .cat-tab-btn.active { background: var(--primary) !important; color: #FFFFFF !important; }
+    html.dark-mode .persona-box { background: #111827 !important; border-color: #1E293B !important; }
+    html.dark-mode .persona-pill { background: #1E293B !important; border-color: #334155 !important; color: #F1F5F9 !important; }
+    html.dark-mode .persona-pill.active { background: rgba(10, 91, 255, 0.25) !important; border-color: var(--primary) !important; color: #38BDF8 !important; }
+
     .cat-bar-container {
         display: flex;
         flex-wrap: wrap;
