@@ -148,7 +148,19 @@
                                 </div>
                             </td>
                             <td style="text-align: center;">
-                                <label class="status-toggle-switch" title="Bấm để bật/tắt hiển thị sản phẩm">
+                                <?php
+                                $statusBadgeMap = [
+                                    'active'       => ['bg' => '#D1FAE5', 'color' => '#065F46', 'label' => 'Đang bán'],
+                                    'hidden'       => ['bg' => '#F3F4F6', 'color' => '#374151', 'label' => 'Tạm ẩn'],
+                                    'out_of_stock' => ['bg' => '#FFEDD5', 'color' => '#C2410C', 'label' => 'Hết hàng'],
+                                    'discontinued' => ['bg' => '#FEE2E2', 'color' => '#991B1B', 'label' => 'Ngừng KD'],
+                                    'archived'     => ['bg' => '#F3E8FF', 'color' => '#6B21A8', 'label' => 'Lưu trữ'],
+                                    'inactive'     => ['bg' => '#E5E7EB', 'color' => '#4B5563', 'label' => 'Tạm khóa'],
+                                    'draft'        => ['bg' => '#FEF3C7', 'color' => '#92400E', 'label' => 'Bản nháp']
+                                ];
+                                $stInfo = $statusBadgeMap[$p['status']] ?? ['bg' => '#F3F4F6', 'color' => '#374151', 'label' => $p['status']];
+                                ?>
+                                <label class="status-toggle-switch" title="Bật/tắt trạng thái hiển thị">
                                     <input type="checkbox"
                                            class="status-toggle-input"
                                            data-id="<?= (int)$p['id'] ?>"
@@ -158,17 +170,21 @@
                                         <span class="status-toggle-knob"></span>
                                     </span>
                                 </label>
-                                <span class="status-label-text" id="status-label-<?= (int)$p['id'] ?>" style="font-size: 11px; font-weight: 600; color: <?= $p['status'] === 'active' ? '#10B981' : '#6B7280' ?>; display: block; margin-top: 2px;">
-                                    <?= $p['status'] === 'active' ? 'Hiển thị' : 'Ẩn/Khoá' ?>
+                                <span class="badge" id="status-label-<?= (int)$p['id'] ?>" style="background-color: <?= $stInfo['bg'] ?>; color: <?= $stInfo['color'] ?>; font-weight: 700; display: inline-block; margin-top: 4px; font-size: 11px;">
+                                    <?= $stInfo['label'] ?>
                                 </span>
                             </td>
                             <td style="text-align: center;">
                                 <div style="display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
                                     <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                                     
-                                    <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn ẩn sản phẩm này khỏi cửa hàng (Bảo toàn lịch sử dữ liệu)?');" style="margin: 0;">
+                                    <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('<?= ((int)($p['sold_count'] ?? 0) > 0 || $p['status'] === 'archived') ? 'Sản phẩm đã có lịch sử kinh doanh. Thao tác này sẽ chuyển sang trạng thái Lưu trữ (Archived) bảo toàn dữ liệu.' : 'Bạn có chắc chắn muốn xóa/lưu trữ sản phẩm này không?' ?>');" style="margin: 0;">
                                         <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--secondary btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;" title="Tạm ẩn / Ngừng kinh doanh"><i class="fa-solid fa-eye-slash"></i> Ẩn</button>
+                                        <?php if ((int)($p['sold_count'] ?? 0) > 0 || $p['status'] === 'archived'): ?>
+                                            <button type="submit" class="btn btn--secondary btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; background: #F3E8FF; color: #6B21A8; border: 1px solid #D8B4FE;" title="Lưu trữ bảo toàn dữ liệu"><i class="fa-solid fa-box-archive"></i> Lưu trữ</button>
+                                        <?php else: ?>
+                                            <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;" title="Xóa sản phẩm"><i class="fa-solid fa-trash-can"></i> Xóa</button>
+                                        <?php endif; ?>
                                     </form>
                                 </div>
                             </td>

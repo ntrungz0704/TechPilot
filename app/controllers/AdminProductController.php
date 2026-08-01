@@ -150,7 +150,8 @@ class AdminProductController extends Controller
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
-        if (!in_array($status, ['draft', 'active', 'inactive'], true)) {
+        $validStatuses = ['draft', 'active', 'hidden', 'out_of_stock', 'discontinued', 'archived', 'inactive'];
+        if (!in_array($status, $validStatuses, true)) {
             $status = 'active';
         }
 
@@ -288,7 +289,8 @@ class AdminProductController extends Controller
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
-        if (!in_array($status, ['draft', 'active', 'inactive'], true)) {
+        $validStatuses = ['draft', 'active', 'hidden', 'out_of_stock', 'discontinued', 'archived', 'inactive'];
+        if (!in_array($status, $validStatuses, true)) {
             $status = 'active';
         }
 
@@ -390,12 +392,56 @@ class AdminProductController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Strictly soft-disable (hide) product - NEVER physical DELETE
-            $stmt = $db->prepare("UPDATE products SET status = 'inactive' WHERE id = :id");
-            if ($stmt->execute([':id' => $id])) {
-                flash('success', 'Đã ẩn sản phẩm (chuyển sang trạng thái Tạm ẩn/Ngừng kinh doanh) thành công!');
+            // Kiểm tra xem sản phẩm đã từng có liên kết dữ liệu lịch sử nào hay chưa
+            $hasHistory = false;
+            $reasons = [];
+
+            // 1. Kiểm tra đơn hàng (order_items)
+            $stmtOrder = $db->prepare('SELECT COUNT(*) FROM order_items WHERE product_id = :id');
+            $stmtOrder->execute([':id' => $id]);
+            if ((int)$stmtOrder->fetchColumn() > 0) {
+                $hasHistory = true;
+                $reasons[] = 'Đơn hàng';
+            }
+
+            // 2. Kiểm tra đánh giá (reviews)
+            $stmtRev = $db->prepare('SELECT COUNT(*) FROM reviews WHERE product_id = :id');
+            $stmtRev->execute([':id' => $id]);
+            if ((int)$stmtRev->fetchColumn() > 0) {
+                $hasHistory = true;
+                $reasons[] = 'Đánh giá';
+            }
+
+            // 3. Kiểm tra Flash Sale (flash_sale_items)
+            $stmtFs = $db->prepare('SELECT COUNT(*) FROM flash_sale_items WHERE product_id = :id');
+            $stmtFs->execute([':id' => $id]);
+            if ((int)$stmtFs->fetchColumn() > 0) {
+                $hasHistory = true;
+                $reasons[] = 'Flash Sale';
+            }
+
+            // 4. Kiểm tra Nhật ký tồn kho (inventory_logs)
+            $stmtLog = $db->prepare('SELECT COUNT(*) FROM inventory_logs WHERE product_id = :id');
+            $stmtLog->execute([':id' => $id]);
+            if ((int)$stmtLog->fetchColumn() > 0) {
+                $hasHistory = true;
+                $reasons[] = 'Nhật ký kho';
+            }
+
+            if ($hasHistory) {
+                // Không được xóa thật -> Chuyển sang trạng thái Archived (Lưu trữ)
+                $stmtArchive = $db->prepare("UPDATE products SET status = 'archived' WHERE id = :id");
+                $stmtArchive->execute([':id' => $id]);
+
+                flash('warning', 'Sản phẩm đã phát sinh lịch sử (' . implode(', ', $reasons) . ') nên KHÔNG ĐƯỢC XÓA THẬT. Đã tự động chuyển sang Lưu Trữ (Archived) và ẩn khỏi website.');
             } else {
-                flash('error', 'Không thể ẩn sản phẩm.');
+                // Sản phẩm chưa từng bán hoặc phát sinh dữ liệu -> Cho phép Xóa thật
+                $stmtDel = $db->prepare("DELETE FROM products WHERE id = :id");
+                if ($stmtDel->execute([':id' => $id])) {
+                    flash('success', 'Đã xóa hoàn toàn sản phẩm chưa có dữ liệu thành công!');
+                } else {
+                    flash('error', 'Không thể xóa sản phẩm.');
+                }
             }
         }
 
@@ -569,10 +615,12 @@ class AdminProductController extends Controller
         }
 
         $inputQuery = trim($_POST['product_name'] ?? $_POST['query'] ?? '');
+        $forceRefresh = !empty($_POST['force_refresh']);
+
         if ($inputQuery === '') {
             header('Content-Type: application/json; charset=utf-8');
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Vui lòng nhập tên sản phẩm hoặc model']);
+            echo json_encode(['success' => false, 'error' => 'Vui lòng nhập Tên Model, SKU hoặc Link website chính hãng.']);
             exit;
         }
 
@@ -588,17 +636,117 @@ class AdminProductController extends Controller
         }
 
         try {
-            $data = AiProductAssistantService::generateProductData($inputQuery, $categories, $brands);
+            $data = AiProductAssistantService::generateProductData($inputQuery, $categories, $brands, $forceRefresh);
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
-                'success' => true,
-                'data'    => $data
-            ], JSON_UNESCAPED_UNICODE);
+            if (isset($data['success']) && !$data['success']) {
+                http_response_code(400);
+                echo json_encode($data, JSON_UNESCAPED_UNICODE);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'data'    => $data
+                ], JSON_UNESCAPED_UNICODE);
+            }
         } catch (Throwable $e) {
             header('Content-Type: application/json; charset=utf-8');
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
+        exit;
+    }
+
+    /** API AI Editor - Điều chỉnh văn phong & phong cách: POST /admin/products/ai-assistant/rewrite */
+    public function aiAssistantRewrite(): void
+    {
+        $adminUser = $this->requireApiAdmin();
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'CSRF Token invalid']);
+            exit;
+        }
+
+        $content = trim($_POST['content'] ?? '');
+        $style = trim($_POST['style'] ?? 'seo');
+
+        require_once ROOT_PATH . '/app/services/AiProductAssistantService.php';
+
+        try {
+            $res = AiProductAssistantService::rewriteTone($content, $style);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($res, JSON_UNESCAPED_UNICODE);
+        } catch (Throwable $e) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /** API Lịch sử sinh AI: GET /admin/products/ai-assistant/history */
+    public function aiAssistantHistory(): void
+    {
+        $adminUser = $this->requireApiAdmin();
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+
+        $history = [];
+        if ($db) {
+            $stmt = $db->query('SELECT id, prompt, provider, confidence_score, source_name, status, response_data, created_at FROM ai_assistant_logs ORDER BY id DESC LIMIT 20');
+            $history = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => true, 'history' => $history], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** API Thao tác Lịch sử AI: POST /admin/products/ai-assistant/history/action */
+    public function aiAssistantHistoryAction(): void
+    {
+        $adminUser = $this->requireApiAdmin();
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'CSRF Token invalid']);
+            exit;
+        }
+
+        $logId = (int)($_POST['log_id'] ?? 0);
+        $action = trim($_POST['action_type'] ?? '');
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+
+        if ($db && $logId > 0) {
+            if ($action === 'apply') {
+                $stmt = $db->prepare('UPDATE ai_assistant_logs SET status = \'applied\' WHERE id = :id');
+                $stmt->execute([':id' => $logId]);
+            } elseif ($action === 'delete') {
+                $stmt = $db->prepare('DELETE FROM ai_assistant_logs WHERE id = :id');
+                $stmt->execute([':id' => $logId]);
+            }
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => true, 'message' => 'Cập nhật lịch sử thành công']);
         exit;
     }
 }

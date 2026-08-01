@@ -173,6 +173,9 @@ $router->post('/admin/products/update/{id}', 'AdminProductController@update');
 $router->post('/admin/products/delete/{id}', 'AdminProductController@delete');
 $router->post('/admin/products/toggle-status/{id}', 'AdminProductController@toggleStatus');
 $router->post('/admin/products/ai-assistant', 'AdminProductController@aiAssistant');
+$router->post('/admin/products/ai-assistant/rewrite', 'AdminProductController@aiAssistantRewrite');
+$router->get('/admin/products/ai-assistant/history', 'AdminProductController@aiAssistantHistory');
+$router->post('/admin/products/ai-assistant/history/action', 'AdminProductController@aiAssistantHistoryAction');
 $router->post('/admin/products/adjust-stock', 'AdminProductController@adjustStock');
 $router->get('/admin/inventory/logs', 'AdminInventoryController@logs');
 
