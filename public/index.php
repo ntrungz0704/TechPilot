@@ -104,7 +104,10 @@ $router->post('/product/review', 'ProductController@review');
 // Profile & Account Routes
 $router->get('/profile', 'ProfileController@index');
 $router->get('/profile/orders', 'ProfileController@orders');
+$router->get('/profile/order_detail', 'ProfileController@order_detail');
 $router->get('/profile/order_detail/{id}', 'ProfileController@order_detail');
+$router->get('/profile/order-detail', 'ProfileController@order_detail');
+$router->get('/profile/order-detail/{id}', 'ProfileController@order_detail');
 $router->get('/profile/notifications', 'ProfileController@notifications');
 $router->get('/profile/wishlist', 'ProfileController@wishlist');
 $router->get('/profile/return/{id}', 'ProfileController@return');
@@ -121,6 +124,7 @@ $router->post('/profile/repay', 'ProfileController@repay');
 // Payment Callbacks
 $router->get('/payment/vnpay-return', 'PaymentController@vnpayReturn');
 $router->get('/payment/vnpay-ipn', 'PaymentController@vnpayIpn');
+$router->get('/payment/vnpay-sandbox-sim', 'PaymentController@vnpaySandboxSim');
 
 // Wishlist Routes
 $router->get('/wishlist', 'WishlistController@index');
@@ -167,6 +171,8 @@ $router->post('/admin/products/store', 'AdminProductController@store');
 $router->get('/admin/products/edit/{id}', 'AdminProductController@edit');
 $router->post('/admin/products/update/{id}', 'AdminProductController@update');
 $router->post('/admin/products/delete/{id}', 'AdminProductController@delete');
+$router->post('/admin/products/toggle-status/{id}', 'AdminProductController@toggleStatus');
+$router->post('/admin/products/ai-assistant', 'AdminProductController@aiAssistant');
 $router->post('/admin/products/adjust-stock', 'AdminProductController@adjustStock');
 $router->get('/admin/inventory/logs', 'AdminInventoryController@logs');
 

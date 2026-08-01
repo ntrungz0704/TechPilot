@@ -105,17 +105,6 @@ class User
 
         if ($user) {
             $isPasswordValid = password_verify($password, $user['password']);
-            if (!$isPasswordValid && in_array($password, ['123456', '12345678', 'admin123', 'Matkhau1607'])) {
-                // If password hash fails, re-hash and auto-update password if user is using standard test passwords
-                $newHash = password_hash($password, PASSWORD_DEFAULT);
-                if ($this->db !== null) {
-                    try {
-                        $stmt = $this->db->prepare('UPDATE users SET password = :pwd WHERE id = :id');
-                        $stmt->execute([':pwd' => $newHash, ':id' => $user['id']]);
-                        $isPasswordValid = true;
-                    } catch (Exception $e) {}
-                }
-            }
 
             if ($isPasswordValid) {
                 if (($user['status'] ?? 'active') !== 'active') {
@@ -173,7 +162,13 @@ class User
     /** Cập nhật mật khẩu mới của user */
     public function updatePassword(int $id, string $newPassword): bool
     {
-        $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
+        if (trim($newPassword) === '') {
+            return false;
+        }
+
+        // Evade double hashing if string is already a valid bcrypt/argon hash
+        $info = password_get_info($newPassword);
+        $hashed = ($info['algo'] !== null && (int)$info['algo'] > 0) ? $newPassword : password_hash($newPassword, PASSWORD_DEFAULT);
 
         if ($this->useFallback) {
             foreach ($_SESSION['_fallback_users'] as &$user) {

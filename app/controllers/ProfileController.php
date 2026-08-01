@@ -54,10 +54,10 @@ class ProfileController extends Controller
     }
 
     /** Chi tiết đơn hàng */
-    public function order_detail(): void
+    public function order_detail(mixed $id = null): void
     {
         $user = $this->requireLogin();
-        $orderId = (int)($_GET['id'] ?? 0);
+        $orderId = (int)($id ?: ($_GET['id'] ?? 0));
         $order = $this->orderModel->getById($orderId, (int)$user['id']);
 
         if (!$order) {

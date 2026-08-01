@@ -25,6 +25,12 @@ $savedAddresses = $savedAddresses ?? [];
         <?php endif; ?>
 
         <?php $user = currentUser(); ?>
+        <?php if (!$user): ?>
+            <div class="alert alert--info" style="background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13.5px;">
+                <i class="fa-solid fa-circle-info"></i> Bạn đang đặt hàng với vai trò <strong>Khách vãng lai</strong>. Bạn có thể <a href="<?= url('auth/login') ?>" style="color: #2563EB; font-weight: 700; text-decoration: underline;">Đăng nhập</a> để sử dụng sổ địa chỉ và theo dõi đơn hàng dễ dàng hơn.
+            </div>
+        <?php endif; ?>
+
         <form method="post" action="<?= url('checkout/submit') ?>" class="checkout-form">
             <?= csrf_field() ?>
             <input type="hidden" name="submit_token" value="<?= e($_SESSION['submit_token'] ?? '') ?>">
@@ -54,10 +60,12 @@ $savedAddresses = $savedAddresses ?? [];
                 <label>Địa chỉ nhận hàng</label>
                 <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($_POST['address'] ?? '') ?></textarea>
             </div>
-            <label class="save-address-option">
-                <input type="checkbox" name="save_address" value="1">
-                <span><strong>Lưu thông tin giao hàng vào sổ địa chỉ</strong><small>Dùng lại nhanh chóng cho lần mua hàng tiếp theo.</small></span>
-            </label>
+            <?php if ($user): ?>
+                <label class="save-address-option">
+                    <input type="checkbox" name="save_address" value="1">
+                    <span><strong>Lưu thông tin giao hàng vào sổ địa chỉ</strong><small>Dùng lại nhanh chóng cho lần mua hàng tiếp theo.</small></span>
+                </label>
+            <?php endif; ?>
             <div class="form-group">
                 <label>Phương thức thanh toán</label>
 

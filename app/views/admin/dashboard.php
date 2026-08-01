@@ -1,19 +1,3 @@
-<!-- WIDGET XANH DƯƠNG TRÊN CÙNG -->
-<div class="pc-builder-widget" style="background: linear-gradient(135deg, #0B63E5, #0051C4); border-radius: var(--radius-card); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; color: #FFFFFF; margin-bottom: 24px; box-shadow: 0 10px 20px -5px rgba(11, 99, 229, 0.25);">
-    <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-            <i class="fa-solid fa-shield-halved"></i>
-        </div>
-        <div>
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">Quản lý cấu hình PC</h3>
-            <p style="font-size: 13px; color: rgba(255, 255, 255, 0.85); font-weight: 500;">Kiểm tra tương thích linh kiện và build PC chuyên nghiệp</p>
-        </div>
-    </div>
-    <a href="#" class="pc-builder-widget__btn" style="width: 42px; height: 42px; background: #FFFFFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #0B63E5; text-decoration: none; font-size: 16px; transition: var(--transition);">
-        <i class="fa-solid fa-arrow-right"></i>
-    </a>
-</div>
-
 <!-- LƯỚI THẺ THỐNG KÊ (STATS GRID) -->
 <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
     <!-- Stat 1: Doanh thu COD -->

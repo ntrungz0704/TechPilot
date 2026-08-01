@@ -118,6 +118,39 @@ class Controller
         return $user;
     }
 
+    /** Yêu cầu quyền Admin cho API (trả về JSON + HTTP Status 401/403 nếu vi phạm) */
+    protected function requireApiAdmin(): array
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['user'])) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Unauthenticated',
+                'message' => 'Bạn cần đăng nhập để truy cập tài nguyên này.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $user = $_SESSION['user'];
+        if (($user['role'] ?? '') !== 'admin') {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Forbidden',
+                'message' => 'Bạn không có quyền quản trị viên để truy cập API này.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        return $user;
+    }
+
     /** Render view quản trị bằng cách bọc vào layout admin */
     protected function renderAdmin(string $view, array $data = []): void
     {

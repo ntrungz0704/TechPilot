@@ -203,13 +203,17 @@ class AuthController extends Controller
             
             if (empty($password) || strlen($password) < 8) {
                 $errors[] = 'Mật khẩu phải có ít nhất 8 ký tự.';
+            } elseif (!preg_match('/[0-9]/', $password) || !preg_match('/[a-zA-Z]/', $password)) {
+                $errors[] = 'Mật khẩu mới phải bao gồm cả chữ cái và chữ số để đảm bảo an toàn.';
             } elseif ($password !== $confirm) {
-                $errors[] = 'Mật khẩu xác nhận không khớp.';
+                $errors[] = 'Mật khẩu xác nhận không khớp với mật khẩu mới.';
             } else {
                 $userModel->updatePassword($user['id'], $password);
-                $userModel->setResetToken($user['email'], null, null); // Clear token
-                flash('success', 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.');
+                $userModel->setResetToken($user['email'], '', '1970-01-01 00:00:00'); // Invalidate token permanently
+                $userModel->updateRememberToken($user['id'], null); // Revoke old remember tokens
+                flash('success', 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay bằng mật khẩu mới.');
                 $this->redirect('auth/login');
+                return;
             }
         }
 

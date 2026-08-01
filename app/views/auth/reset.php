@@ -66,3 +66,28 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
         </div>
     </section>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle show/hide password
+    document.querySelectorAll('.auth-eye-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+            if (input) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        });
+    });
+});
+</script>

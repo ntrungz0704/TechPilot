@@ -43,6 +43,38 @@ if (!function_exists('formatPrice')) {
     }
 }
 
+if (!function_exists('getEffectiveProductData')) {
+    /**
+     * Đồng bộ duy nhất một nguồn sự thật (Single Source of Truth) cho giá sản phẩm:
+     * Sản phẩm CHỈ ĐƯỢC GIẢM GIÁ khi thuộc chiến dịch Flash Sale đang bật và còn thời hạn/số lượng.
+     * Nếu không thuộc Flash Sale -> Giá bán = Giá gốc (price).
+     */
+    function getEffectiveProductData(array $product): array
+    {
+        $price = (float)($product['price'] ?? 0);
+        $isFlashSale = !empty($product['is_flash_sale']) || isset($product['discount_price']);
+        $flashDiscountPrice = isset($product['discount_price']) ? (float)$product['discount_price'] : null;
+
+        if ($isFlashSale && $flashDiscountPrice !== null && $flashDiscountPrice > 0 && $flashDiscountPrice < $price) {
+            $finalPrice = $flashDiscountPrice;
+            $hasDiscount = true;
+            $discountPct = round((($price - $finalPrice) / $price) * 100);
+        } else {
+            $finalPrice = $price;
+            $hasDiscount = false;
+            $discountPct = 0;
+        }
+
+        return [
+            'original_price' => $price,
+            'final_price'    => $finalPrice,
+            'has_discount'   => $hasDiscount,
+            'discount_pct'   => (int)$discountPct,
+            'is_flash_sale'  => $isFlashSale
+        ];
+    }
+}
+
 if (!function_exists('formatStockText')) {
     function formatStockText(int $stock, string $categorySlug = ''): string
     {
@@ -161,6 +193,23 @@ if (!function_exists('absoluteUrl')) {
             defined('BASE_URL') ? BASE_URL : null,
             $_SERVER
         );
+    }
+if (!function_exists('bannerImageUrl')) {
+    function bannerImageUrl(?string $image = ''): string
+    {
+        $image = trim((string)$image);
+        if ($image !== '') {
+            $baseName = basename($image);
+            $legacyPath = ROOT_PATH . '/public/assets/images/' . $baseName;
+            if (file_exists($legacyPath) && !is_dir($legacyPath)) {
+                return url('assets/images/' . $baseName);
+            }
+            $publicPath = ROOT_PATH . '/public/' . ltrim($image, '/');
+            if (file_exists($publicPath) && !is_dir($publicPath)) {
+                return url(ltrim($image, '/'));
+            }
+        }
+        return url('assets/images/banner-1.jpg');
     }
 }
 

@@ -29,6 +29,60 @@ class PaymentController extends Controller
         ]);
     }
 
+    public function vnpaySandboxSim(): void
+    {
+        $txnRef = trim($_GET['vnp_TxnRef'] ?? '');
+        $amount = (int)($_GET['vnp_Amount'] ?? 0);
+        $tmnCode = trim($_GET['vnp_TmnCode'] ?? 'DEMO0001');
+
+        $config = require ROOT_PATH . '/config/vnpay.php';
+        $secret = $config['hash_secret'] ?? 'TECHPILOT_VNPAY_SECRET_KEY_123456';
+
+        // Prepare return parameters for success simulation
+        $successParams = [
+            'vnp_Amount' => $amount,
+            'vnp_BankCode' => 'NCB',
+            'vnp_BankTranNo' => 'VNP' . time(),
+            'vnp_CardType' => 'ATM',
+            'vnp_OrderInfo' => 'Thanh toan don hang ' . $txnRef,
+            'vnp_PayDate' => date('YmdHis'),
+            'vnp_ResponseCode' => '00',
+            'vnp_TmnCode' => $tmnCode,
+            'vnp_TransactionNo' => '1410' . rand(100000, 999999),
+            'vnp_TransactionStatus' => '00',
+            'vnp_TxnRef' => $txnRef,
+        ];
+        ksort($successParams);
+        $hashParts = [];
+        foreach ($successParams as $k => $v) {
+            $hashParts[] = urlencode($k) . '=' . urlencode((string)$v);
+        }
+        $successHash = hash_hmac('sha512', implode('&', $hashParts), $secret);
+        $successUrl = url('payment/vnpay-return?' . implode('&', $hashParts) . '&vnp_SecureHash=' . $successHash);
+
+        // Prepare return parameters for fail simulation
+        $failParams = $successParams;
+        $failParams['vnp_ResponseCode'] = '24'; // User cancelled
+        $failParams['vnp_TransactionStatus'] = '02';
+        ksort($failParams);
+        $failHashParts = [];
+        foreach ($failParams as $k => $v) {
+            $failHashParts[] = urlencode($k) . '=' . urlencode((string)$v);
+        }
+        $failHash = hash_hmac('sha512', implode('&', $failHashParts), $secret);
+        $failUrl = url('payment/vnpay-return?' . implode('&', $failHashParts) . '&vnp_SecureHash=' . $failHash);
+
+        $displayAmount = number_format($amount / 100, 0, ',', '.') . 'đ';
+
+        $this->render('payment/vnpay_sandbox', [
+            'pageTitle' => 'Cổng thanh toán VNPay (Sandbox Simulator)',
+            'orderCode' => $txnRef,
+            'displayAmount' => $displayAmount,
+            'successUrl' => $successUrl,
+            'failUrl' => $failUrl
+        ]);
+    }
+
     private function process(array $data): array
     {
         $service = new VnpayService();

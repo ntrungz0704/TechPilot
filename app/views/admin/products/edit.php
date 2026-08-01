@@ -7,7 +7,12 @@
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="form-group">
-                <label for="name">Tên sản phẩm <span style="color: red;">*</span></label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label for="name" style="margin-bottom: 0;">Tên sản phẩm <span style="color: red;">*</span></label>
+                    <button type="button" class="btn btn--outline btn--sm" id="btnOpenAiModal" style="border-color: #8B5CF6; color: #7C3AED; background: #F5F3FF; font-weight: 600; padding: 4px 10px; font-size: 12px;" title="Tự động bổ sung mô tả, thông số kỹ thuật và SEO bằng AI">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Tự động điền bằng AI
+                    </button>
+                </div>
                 <input type="text" name="name" id="name" class="form-control" value="<?= e($product['name']) ?>" required>
             </div>
 
@@ -288,3 +293,215 @@
         </div>
     </form>
 </div>
+
+<!-- MODAL AI ASSISTANT -->
+<div id="aiAssistantModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: #FFFFFF; border-radius: 16px; width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+        
+        <!-- Header -->
+        <div style="padding: 20px 24px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #7C3AED, #4F46E5); color: #FFFFFF; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #FFF;">Trợ Lý AI Bổ Sung Dữ Liệu Sản Phẩm</h3>
+                    <p style="font-size: 12px; margin: 2px 0 0 0; opacity: 0.9;">Tự động phân tích, bổ sung mô tả, thông số kỹ thuật & SEO</p>
+                </div>
+            </div>
+            <button type="button" id="btnCloseAiModal" style="background: none; border: none; color: #FFF; font-size: 20px; cursor: pointer; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 24px; flex: 1;">
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 13px; font-weight: 700; color: #1E293B; display: block; margin-bottom: 6px;">Nhập tên sản phẩm, Model hoặc link tham khảo:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="aiInputQuery" class="form-control" value="<?= e($product['name']) ?>" style="flex: 1; padding: 10px 14px; font-size: 14px;">
+                    <button type="button" id="btnRunAiGenerate" class="btn" style="background: linear-gradient(135deg, #7C3AED, #4F46E5); border: none; padding: 10px 20px; font-weight: 600; white-space: nowrap;">
+                        <i class="fa-solid fa-bolt"></i> Sinh Dữ Liệu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="aiLoadingState" style="display: none; text-align: center; padding: 35px 20px; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">
+                <div style="font-size: 32px; color: #7C3AED; margin-bottom: 12px;" class="fa-spin-hover">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                </div>
+                <h4 style="font-size: 15px; font-weight: 700; color: #1E293B; margin-bottom: 6px;">AI Engine đang nghiên cứu sản phẩm...</h4>
+                <p style="font-size: 12.5px; color: #64748B; margin: 0;">Đang kết nối AI Multi-Provider (Gemini / Groq / Qwen Cloud)</p>
+            </div>
+
+            <!-- Result Preview Card -->
+            <div id="aiResultContainer" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #E2E8F0; padding-bottom: 10px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #7C3AED; text-transform: uppercase; letter-spacing: 0.5px;" id="aiProviderBadge"><i class="fa-solid fa-robot"></i> AI Response Generated</span>
+                    <button type="button" id="btnAiRegenerate" class="btn btn--outline btn--sm" style="font-size: 12px; border-color: #CBD5E1;"><i class="fa-solid fa-rotate-right"></i> Tạo lại</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Tên sản phẩm đề xuất:</small>
+                        <strong style="font-size: 13.5px; color: #0F172A;" id="aiResName">-</strong>
+                    </div>
+                    <div>
+                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Slug chuẩn SEO:</small>
+                        <code style="font-size: 12px; color: #2563EB;" id="aiResSlug">-</code>
+                    </div>
+                    <div>
+                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Danh mục phù hợp:</small>
+                        <span style="font-size: 12.5px; font-weight: 600; color: #059669;" id="aiResCategory">-</span>
+                    </div>
+                    <div>
+                        <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px;">Thương hiệu:</small>
+                        <span style="font-size: 12.5px; font-weight: 600; color: #D97706;" id="aiResBrand">-</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px; margin-bottom: 4px;">Mô tả sản phẩm (Preview):</small>
+                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-size: 12.5px; color: #334155; max-height: 120px; overflow-y: auto;" id="aiResDesc">-</div>
+                </div>
+
+                <div>
+                    <small style="color: #64748B; font-weight: 600; display: block; font-size: 11px; margin-bottom: 4px;">Thông số kỹ thuật đề xuất (Specs):</small>
+                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; font-size: 12px;" id="aiResSpecs">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 16px 24px; border-top: 1px solid #E2E8F0; background: #F8FAFC; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" id="btnCancelAiModal" class="btn btn--secondary">Hủy bỏ</button>
+            <button type="button" id="btnApplyAiToForm" class="btn" style="background: #10B981; border: none;" disabled><i class="fa-solid fa-check"></i> Áp Dụng Vào Form</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('aiAssistantModal');
+    const openBtn = document.getElementById('btnOpenAiModal');
+    const closeBtn = document.getElementById('btnCloseAiModal');
+    const cancelBtn = document.getElementById('btnCancelAiModal');
+    const runBtn = document.getElementById('btnRunAiGenerate');
+    const regenBtn = document.getElementById('btnAiRegenerate');
+    const applyBtn = document.getElementById('btnApplyAiToForm');
+    const inputQuery = document.getElementById('aiInputQuery');
+    const loadingState = document.getElementById('aiLoadingState');
+    const resultContainer = document.getElementById('aiResultContainer');
+
+    let currentAiData = null;
+
+    if (openBtn && modal) {
+        openBtn.addEventListener('click', function() {
+            const currentName = document.getElementById('name').value.trim();
+            if (currentName !== '') {
+                inputQuery.value = currentName;
+            }
+            modal.style.display = 'flex';
+        });
+
+        const hideModal = () => { modal.style.display = 'none'; };
+        closeBtn.addEventListener('click', hideModal);
+        cancelBtn.addEventListener('click', hideModal);
+
+        const executeAiGenerate = () => {
+            const q = inputQuery.value.trim();
+            if (!q) {
+                alert('Vui lòng nhập tên sản phẩm hoặc model');
+                return;
+            }
+
+            loadingState.style.display = 'block';
+            resultContainer.style.display = 'none';
+            applyBtn.disabled = true;
+
+            fetch('<?= url("admin/products/ai-assistant") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': '<?= $_SESSION["csrf_token"] ?? "" ?>'
+                },
+                body: 'product_name=' + encodeURIComponent(q) + '&_csrf=' + encodeURIComponent('<?= $_SESSION["csrf_token"] ?? "" ?>')
+            })
+            .then(res => res.json())
+            .then(res => {
+                loadingState.style.display = 'none';
+                if (res.success && res.data) {
+                    currentAiData = res.data;
+                    document.getElementById('aiProviderBadge').innerText = '🤖 Generated by ' + (res.data.provider || 'AI Engine');
+                    document.getElementById('aiResName').innerText = res.data.name || q;
+                    document.getElementById('aiResSlug').innerText = res.data.slug || '';
+                    document.getElementById('aiResCategory').innerText = res.data.proposed_category || 'N/A';
+                    document.getElementById('aiResBrand').innerText = res.data.proposed_brand || 'N/A';
+                    document.getElementById('aiResDesc').innerText = res.data.description || '';
+
+                    let specsHtml = '<table style="width:100%; border-collapse:collapse;">';
+                    if (res.data.specs && typeof res.data.specs === 'object') {
+                        Object.keys(res.data.specs).forEach(k => {
+                            specsHtml += `<tr style="border-bottom:1px solid #EDF2F7;"><td style="padding:4px 8px; font-weight:600; width:35%;">${k}</td><td style="padding:4px 8px; color:#4A5568;">${res.data.specs[k]}</td></tr>`;
+                        });
+                    }
+                    specsHtml += '</table>';
+                    document.getElementById('aiResSpecs').innerHTML = specsHtml;
+
+                    resultContainer.style.display = 'block';
+                    applyBtn.disabled = false;
+                } else {
+                    alert(res.error || 'Không thể sinh dữ liệu AI.');
+                }
+            })
+            .catch(err => {
+                loadingState.style.display = 'none';
+                alert('Lỗi khi gọi API AI Assistant.');
+            });
+        };
+
+        runBtn.addEventListener('click', executeAiGenerate);
+        regenBtn.addEventListener('click', executeAiGenerate);
+
+        applyBtn.addEventListener('click', function() {
+            if (!currentAiData) return;
+
+            if (currentAiData.name) document.getElementById('name').value = currentAiData.name;
+            if (currentAiData.slug) document.getElementById('slug').value = currentAiData.slug;
+            if (currentAiData.description) document.getElementById('description').value = currentAiData.description;
+
+            // Populate Specs
+            if (currentAiData.specs && typeof currentAiData.specs === 'object') {
+                const specsTextarea = document.getElementById('specs');
+                specsTextarea.value = JSON.stringify(currentAiData.specs, null, 4);
+                // Trigger visual builder sync if available
+                const event = new Event('input', { bubbles: true });
+                specsTextarea.dispatchEvent(event);
+                
+                // Populate rowsContainer if function exists
+                const rowsContainer = document.getElementById('specsRowsContainer');
+                if (rowsContainer) {
+                    rowsContainer.innerHTML = '';
+                    Object.keys(currentAiData.specs).forEach(key => {
+                        const row = document.createElement('div');
+                        row.className = 'spec-row';
+                        row.style.display = 'grid';
+                        row.style.gridTemplateColumns = '0.4fr 0.6fr auto';
+                        row.style.gap = '8px';
+                        row.style.alignItems = 'center';
+                        row.innerHTML = `
+                            <input type="text" class="form-control spec-key" value="${key}" style="padding: 8px 12px; font-size: 13px;">
+                            <input type="text" class="form-control spec-value" value="${currentAiData.specs[key]}" style="padding: 8px 12px; font-size: 13px;">
+                            <button type="button" class="btn btn--danger btn--sm btn-delete-row" style="padding: 8px 10px; box-shadow: none;"><i class="fa-solid fa-trash-can"></i></button>
+                        `;
+                        row.querySelector('.btn-delete-row').addEventListener('click', function() { row.remove(); });
+                        rowsContainer.appendChild(row);
+                    });
+                }
+            }
+
+            modal.style.display = 'none';
+            alert('✨ Đã áp dụng thông tin từ AI vào Form thành công!');
+        });
+    }
+});
+</script>
