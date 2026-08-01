@@ -11,7 +11,11 @@
 
     <div class="product-card">
         <?php if ($hasDiscount && $discountPercent > 0): ?>
-            <span class="product-card__badge" style="background: linear-gradient(135deg, #EF4444, #DC2626); font-weight: 700;" title="Sản phẩm Flash Sale"><i class="fa-solid fa-bolt"></i> -<?= (int)$discountPercent ?>%</span>
+            <?php if ($isFlashSaleCard): ?>
+                <span class="product-card__badge product-card__badge--flash" title="⚡ Flash Sale Giảm Sâu"><i class="fa-solid fa-fire-flame-curved"></i> 🔥 -<?= (int)$discountPercent ?>%</span>
+            <?php else: ?>
+                <span class="product-card__badge product-card__badge--promo" title="🏷️ Sản phẩm Khuyến Mãi"><i class="fa-solid fa-tag"></i> -<?= (int)$discountPercent ?>%</span>
+            <?php endif; ?>
         <?php endif; ?>
         
         <button type="button" class="product-card__wishlist-btn" onclick="toggleWishlist(<?= (int)($p['id'] ?? 0) ?>, this)" title="Thêm vào yêu thích" style="position: absolute; top: 12px; right: 12px; z-index: 5; background: var(--bg-card, #FFFFFF); border: 1px solid var(--border, #E2E8F0); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary, #64748B); box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: all 0.2s ease;">

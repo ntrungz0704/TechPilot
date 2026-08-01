@@ -192,10 +192,10 @@
         </div>
 
         <!-- BẢNG SO SÁNH THÔNG SỐ SẠCH KHÔNG LỘ METADATA -->
-        <div style="overflow-x: auto; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-card); margin-bottom: 30px;">
+        <div style="overflow-x: auto; background-color: var(--surface-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-card); margin-bottom: 30px;">
             <table style="width: 100%; border-collapse: collapse; min-width: 700px; text-align: left; font-size: 14px;" id="compareMainTable">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--border); background-color: #F8FAFC;">
+                    <tr style="border-bottom: 2px solid var(--border); background-color: var(--surface-muted);">
                         <th style="padding: 20px; width: 20%; font-weight: 800; color: var(--text-primary);">Hạng mục so sánh</th>
                         <?php foreach ($products as $p): ?>
                             <th class="prod-col-<?= $p['id'] ?>" style="padding: 20px; width: 20%; text-align: center; position: relative; border-left: 1px solid var(--border);">
@@ -209,7 +209,7 @@
 
                                 <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 15px;">
                                     <img src="<?= productImageUrl($p['image'] ?? '', $p['category_slug'] ?? '', (int)$p['id']) ?>" alt="<?= e($p['name']) ?>" style="height: 90px; object-fit: contain; margin-bottom: 15px;">
-                                    <strong style="font-size: 13.5px; line-height: 1.4; height: 38px; overflow: hidden; display: block; margin-bottom: 8px;"><?= e($p['name']) ?></strong>
+                                    <strong style="font-size: 13.5px; line-height: 1.4; height: 38px; overflow: hidden; display: block; margin-bottom: 8px; color: var(--text-primary);"><?= e($p['name']) ?></strong>
                                     <span style="color: var(--primary); font-weight: 800; font-size: 16px;"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
                                 </div>
                             </th>
@@ -230,25 +230,25 @@
                 </thead>
                 <tbody>
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Thương hiệu</td>
+                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: var(--surface-muted);">Thương hiệu</td>
                         <?php foreach ($products as $p): ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 600; text-align: center; border-left: 1px solid var(--border);"><?= e($p['brand_name']) ?></td>
+                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; font-weight: 600; text-align: center; border-left: 1px solid var(--border); color: var(--text-primary);"><?= e($p['brand_name']) ?></td>
                         <?php endforeach; ?>
                         <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
                             <td style="border-left: 1px solid var(--border); text-align: center; color: #94A3B8; font-style: italic; font-size: 12px;">Chưa chọn</td>
                         <?php endfor; ?>
                     </tr>
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Danh mục</td>
+                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: var(--surface-muted);">Danh mục</td>
                         <?php foreach ($products as $p): ?>
-                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border);"><?= e($p['category_name']) ?></td>
+                            <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border); color: var(--text-primary);"><?= e($p['category_name']) ?></td>
                         <?php endforeach; ?>
                         <?php for ($i = 0; $i < (4 - count($products)); $i++): ?>
                             <td style="border-left: 1px solid var(--border); text-align: center; color: #94A3B8; font-style: italic; font-size: 12px;">Chưa chọn</td>
                         <?php endfor; ?>
                     </tr>
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: #F8FAFC;">Tồn kho thực tế</td>
+                        <td style="padding: 15px 20px; font-weight: 700; color: var(--text-secondary); background-color: var(--surface-muted);">Tồn kho thực tế</td>
                         <?php foreach ($products as $p): ?>
                             <td class="prod-col-<?= $p['id'] ?>" style="padding: 15px 20px; text-align: center; border-left: 1px solid var(--border); font-weight: 700; color: #10B981;"><?= formatStockText((int)$p['stock'], $p['category_slug'] ?? $activeCategorySlug) ?></td>
                         <?php endforeach; ?>

@@ -25,13 +25,13 @@ $groupedSpecs = ProductSpecPresenter::getGroupedSpecs($categorySlug, $specsData)
                         <h4 style="font-size: 14px; font-weight: 700; color: var(--primary, #0A5BFF); margin: 12px 0 10px 0; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 8px; border-left: 3.5px solid var(--primary, #0A5BFF); padding-left: 10px;">
                             <?= e($groupTitle) ?>
                         </h4>
-                        <table class="specs-table" style="width: 100%; border-collapse: collapse; background-color: var(--bg-white, #FFFFFF); border: 1px solid var(--border, #E2E8F0); border-radius: 8px; overflow: hidden;">
+                        <table class="specs-table" style="width: 100%; border-collapse: collapse; background-color: var(--surface-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
                             <tbody>
                                 <?php $rIdx = 0; foreach ($groupItems as $sLabel => $sValue): $rIdx++; ?>
                                     <?php if ($sLabel !== '' && $sValue !== '' && $sValue !== 'Đang cập nhật'): ?>
-                                        <tr style="border-bottom: 1px solid var(--border, #E2E8F0); background-color: <?= $rIdx % 2 === 0 ? 'var(--bg-card, #F8FAFC)' : 'var(--bg-white, #FFFFFF)' ?>;">
-                                            <th style="width: 30%; padding: 11px 16px; text-align: left; font-weight: 600; color: var(--text-secondary, #475569); font-size: 13.5px; border-right: 1px solid var(--border, #E2E8F0); vertical-align: top;"><?= e($sLabel) ?></th>
-                                            <td style="padding: 11px 16px; color: var(--text-primary, #0F172A); font-size: 13.5px; font-weight: 500; line-height: 1.5; vertical-align: top;"><?= nl2br(e($sValue)) ?></td>
+                                        <tr class="spec-row-<?= $rIdx % 2 === 0 ? 'even' : 'odd' ?>" style="border-bottom: 1px solid var(--border);">
+                                            <th style="width: 30%; padding: 11px 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 13.5px; border-right: 1px solid var(--border); vertical-align: top;"><?= e($sLabel) ?></th>
+                                            <td style="padding: 11px 16px; color: var(--text-primary); font-size: 13.5px; font-weight: 500; line-height: 1.5; vertical-align: top;"><?= nl2br(e($sValue)) ?></td>
                                         </tr>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
