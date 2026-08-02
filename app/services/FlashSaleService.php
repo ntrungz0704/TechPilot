@@ -289,7 +289,7 @@ class FlashSaleService
 
         foreach ($reservations as $reservation) {
             $status = (string)$reservation['status'];
-            if ($status === 'released' || $status === 'committed') {
+            if ($status === 'released') {
                 continue;
             }
 
@@ -320,7 +320,7 @@ class FlashSaleService
             $update = $db->prepare(
                 "UPDATE flash_sale_reservations
                  SET status = 'released', released_at = NOW(), release_reason = :reason
-                 WHERE id = :id AND status = 'reserved'"
+                 WHERE id = :id AND status IN ('reserved', 'committed')"
             );
             $update->execute([
                 ':reason' => substr(trim($reason), 0, 100),
