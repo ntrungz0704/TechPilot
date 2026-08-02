@@ -411,16 +411,22 @@ class InventoryService
      */
     public static function commitOrderInventory(PDO $db, int $orderId): bool
     {
-        if ($orderId <= 0) return false;
+        if ($orderId <= 0) {
+            throw new InvalidArgumentException('Order ID không hợp lệ khi commit tồn kho.');
+        }
         self::requireTransaction($db, 'Commit tồn kho');
 
         $stmt = $db->prepare('SELECT id, inventory_status FROM orders WHERE id = :id FOR UPDATE');
         $stmt->execute([':id' => $orderId]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$order) return false;
+        if (!$order) {
+            throw new RuntimeException("Không tìm thấy đơn hàng #{$orderId} để commit tồn kho.");
+        }
 
         $items = self::getOrderInventoryItems($db, $orderId);
-        if (empty($items)) return false;
+        if (empty($items)) {
+            throw new RuntimeException("Đơn hàng #{$orderId} không có sản phẩm để commit tồn kho.");
+        }
 
         $inventoryStatus = (string)($order['inventory_status'] ?? '');
         if ($inventoryStatus === 'committed') {
@@ -440,7 +446,11 @@ class InventoryService
              WHERE id = :id AND inventory_status = 'reserved'"
         );
         $up->execute([':id' => $orderId]);
-        return $up->rowCount() === 1;
+        if ($up->rowCount() !== 1) {
+            throw new RuntimeException("Không thể commit tồn kho cho đơn hàng #{$orderId}.");
+        }
+
+        return true;
     }
 
     /**

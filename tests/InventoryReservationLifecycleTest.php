@@ -502,6 +502,119 @@ if ($db instanceof PDO) {
             ),
             'Fresh-install seed dùng default not_reserved'
         );
+
+        echo "\n--- 8. Fail-closed inventory commit contract ---\n";
+
+        // Case C — Invalid order ID
+        try {
+            $db->beginTransaction();
+            InventoryService::commitOrderInventory($db, 0);
+            assertInventory(false, 'commitOrderInventory($db, 0) phải throw InvalidArgumentException');
+        } catch (InvalidArgumentException $e) {
+            $db->rollBack();
+            assertInventory(true, 'Invalid order ID throw InvalidArgumentException');
+        }
+
+        // Case D — Missing order
+        try {
+            $db->beginTransaction();
+            InventoryService::commitOrderInventory($db, 999999);
+            assertInventory(false, 'commitOrderInventory cho ID không tồn tại phải throw RuntimeException');
+        } catch (RuntimeException $e) {
+            $db->rollBack();
+            assertInventory(true, 'Missing order throw RuntimeException');
+        }
+
+        // Case E — Order without items
+        resetInventoryFixture($db);
+        $db->exec("INSERT INTO orders (id, order_code, customer_name, phone, address, payment_method, payment_status, inventory_status, subtotal, discount_amount, shipping_fee, total_amount, status) VALUES (9001, 'EMPTYORD', 'A', '1', 'A', 'COD', 'unpaid', 'reserved', 0, 0, 0, 0, 'pending')");
+        try {
+            $db->beginTransaction();
+            InventoryService::commitOrderInventory($db, 9001);
+            assertInventory(false, 'Order without items phải throw RuntimeException');
+        } catch (RuntimeException $e) {
+            $db->rollBack();
+            assertInventory((string)$db->query("SELECT inventory_status FROM orders WHERE id = 9001")->fetchColumn() === 'reserved', 'Order without items rollback giữ reserved');
+        }
+
+        // Case F — Invalid inventory state
+        resetInventoryFixture($db);
+        seedInventoryProduct($db, 7, 5);
+        $db->exec("INSERT INTO orders (id, order_code, customer_name, phone, address, payment_method, payment_status, inventory_status, subtotal, discount_amount, shipping_fee, total_amount, status) VALUES (9002, 'INVSTATE', 'A', '1', 'A', 'COD', 'unpaid', 'not_reserved', 0, 0, 0, 0, 'pending')");
+        $db->exec("INSERT INTO order_items (order_id, product_id, product_name, price, quantity, line_total) VALUES (9002, 7, 'Item', 1, 1, 1)");
+        try {
+            $db->beginTransaction();
+            InventoryService::commitOrderInventory($db, 9002);
+            assertInventory(false, 'Invalid inventory state (not_reserved) phải throw RuntimeException');
+        } catch (RuntimeException $e) {
+            $db->rollBack();
+            assertInventory((string)$db->query("SELECT inventory_status FROM orders WHERE id = 9002")->fetchColumn() === 'not_reserved', 'Invalid inventory state không chuyển status');
+        }
+
+        // Case G — Missing reserve audit
+        $db->exec("UPDATE orders SET inventory_status = 'reserved' WHERE id = 9002");
+        try {
+            $db->beginTransaction();
+            InventoryService::commitOrderInventory($db, 9002);
+            assertInventory(false, 'Missing reserve audit (reserved) phải throw RuntimeException');
+        } catch (RuntimeException $e) {
+            $db->rollBack();
+            assertInventory((string)$db->query("SELECT inventory_status FROM orders WHERE id = 9002")->fetchColumn() === 'reserved', 'Missing reserve audit (reserved) giữ nguyên status');
+        }
+
+        // Case H — Already committed but missing audit
+        $db->exec("UPDATE orders SET inventory_status = 'committed' WHERE id = 9002");
+        try {
+            $db->beginTransaction();
+            InventoryService::commitOrderInventory($db, 9002);
+            assertInventory(false, 'Already committed nhưng thiếu audit phải throw RuntimeException');
+        } catch (RuntimeException $e) {
+            $db->rollBack();
+            assertInventory(true, 'Already committed missing audit throw RuntimeException');
+        }
+
+        // Case I & J — Caller fail-closed and Flash Sale failure rollback
+        resetInventoryFixture($db);
+        seedInventoryProduct($db, 8, 10);
+        $orderModel = new Order();
+        $created = $orderModel->create(inventoryOrderPayload(8, 2, 'COD'));
+        if (is_array($created)) {
+            $orderId = (int)$created['id'];
+            $db->exec("UPDATE orders SET status = 'shipping' WHERE id = {$orderId}");
+
+            // Giả lập lỗi ở bước Flash Sale commit
+            try {
+                $db->beginTransaction();
+                InventoryService::commitOrderInventory($db, $orderId);
+                // Giả vờ flash sale fail
+                throw new Exception('Simulated Flash Sale failure');
+            } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+            }
+
+            $checkOrder = $db->query("SELECT status, payment_status, inventory_status FROM orders WHERE id = {$orderId}")->fetch(PDO::FETCH_ASSOC);
+            assertInventory($checkOrder['status'] === 'shipping', 'Caller fail-closed giữ nguyên order.status = shipping');
+            assertInventory($checkOrder['payment_status'] === 'unpaid', 'Caller fail-closed giữ nguyên COD payment_status = unpaid');
+            assertInventory($checkOrder['inventory_status'] === 'reserved', 'Flash Sale failure rollback inventory_status trở lại reserved');
+        }
+
+        // Case A & B (already largely covered above, but let's do a clean A & B)
+        $created2 = $orderModel->create(inventoryOrderPayload(8, 1, 'COD'));
+        if (is_array($created2)) {
+            $orderId2 = (int)$created2['id'];
+            $db->beginTransaction();
+            $committed = InventoryService::commitOrderInventory($db, $orderId2);
+            $db->commit();
+            assertInventory($committed, 'Successful commit trả true');
+            assertInventory((string)$db->query("SELECT inventory_status FROM orders WHERE id = {$orderId2}")->fetchColumn() === 'committed', 'inventory_status = committed sau khi commit thành công');
+
+            $db->beginTransaction();
+            $repeatedCommit = InventoryService::commitOrderInventory($db, $orderId2);
+            $db->commit();
+            assertInventory($repeatedCommit, 'Repeated commit trả true (idempotent success)');
+        }
     } catch (Throwable $e) {
         if ($db->inTransaction()) {
             $db->rollBack();

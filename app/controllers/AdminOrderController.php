@@ -194,14 +194,20 @@ class AdminOrderController extends Controller
 
                 // Nếu đơn hàng hoàn thành (Completed) -> Chuyển inventory_status sang committed
                 if ($newStatus === 'completed') {
-                    InventoryService::commitOrderInventory($db, $id);
-                    FlashSaleService::commitOrderReservations($db, $id);
+                    if (!InventoryService::commitOrderInventory($db, $id)) {
+                        throw new RuntimeException('Không thể hoàn tất đơn hàng vì commit tồn kho thất bại.');
+                    }
+                    if (!FlashSaleService::commitOrderReservations($db, $id)) {
+                        throw new RuntimeException('Không thể hoàn tất đơn hàng vì commit Flash Sale thất bại.');
+                    }
                 }
 
                 // Confirmed là thời điểm đơn COD được cửa hàng chấp nhận. Đơn
                 // VNPay chỉ đi tới đây sau khi callback đã đánh dấu paid.
                 if ($newStatus === 'confirmed') {
-                    FlashSaleService::commitOrderReservations($db, $id);
+                    if (!FlashSaleService::commitOrderReservations($db, $id)) {
+                        throw new RuntimeException('Không thể hoàn tất xác nhận vì commit Flash Sale thất bại.');
+                    }
                 }
 
                 // Thực hiện cập nhật đơn hàng
@@ -210,6 +216,10 @@ class AdminOrderController extends Controller
                     ':status' => $newStatus,
                     ':id'     => $id
                 ]);
+
+                if ($stmt->rowCount() !== 1) {
+                    throw new RuntimeException('Không thể cập nhật trạng thái đơn hàng.');
+                }
 
                 // Tạo thông báo cho khách hàng
                 if (!empty($currentOrder['user_id'])) {
