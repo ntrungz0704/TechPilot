@@ -377,6 +377,7 @@ final class TechPilotWebQaSuite
         // TP-WEB-014 và TP-WEB-016: vẫn phải chặn guest như trước.
         $blockedCases = [
             ['TP-WEB-014', '/admin', 'Trang quản trị'],
+            ['TP-WEB-015', '/checkout', 'Trang thanh toán'],
             ['TP-WEB-016', '/profile/orders', 'Danh sách đơn hàng cá nhân'],
         ];
 
@@ -394,60 +395,6 @@ final class TechPilotWebQaSuite
             );
         }
 
-        // TP-WEB-015: /checkout cho phép guest (Guest Checkout).
-        // Khi giỏ rỗng, chấp nhận duy nhất HTTP 302 với Location chính xác là /cart.
-        // Khi có giỏ, chấp nhận HTTP 200.
-        // Từ chối hoàn toàn: HTTP >= 400, redirect tới /auth/login, cURL error, PHP fatal/warning.
-        $checkoutRes = $this->client->request('GET', '/checkout');
-        $checkoutStatus = $checkoutRes['status'];
-        $rawLocation = $this->lastHeader($checkoutRes, 'location');
-        $checkoutLocation = strtolower($rawLocation);
-        $checkoutBody = $checkoutRes['body'];
-
-        $redirectsToLogin  = str_contains($checkoutLocation, '/auth/login');
-        $isHttpError       = $checkoutStatus >= 400;
-        
-        $redirectPath = parse_url($rawLocation, PHP_URL_PATH);
-        $normalizedRedirectPath = '/' . trim((string)$redirectPath, '/');
-        
-        // Host validation if it's an absolute URL
-        $redirectHost = parse_url($rawLocation, PHP_URL_HOST);
-        $baseHost = parse_url($this->baseUrl, PHP_URL_HOST);
-        $isValidHost = ($redirectHost === null || strcasecmp($redirectHost, (string)$baseHost) === 0);
-
-        $isValidEmptyCart  = (
-            $checkoutStatus === 302 
-            && $normalizedRedirectPath === '/cart'
-            && $isValidHost
-        );
-        
-        $isValidWithCart   = ($checkoutStatus === 200);
-
-        $hasPhpDiagnostic = preg_match(
-            '/(?:Fatal error|Parse error|Warning:|Notice:|Deprecated:|Uncaught (?:Error|Exception)|Trying to access array offset)/i',
-            $checkoutBody
-        ) === 1;
-
-        $guestCheckoutPassed = ($isValidEmptyCart || $isValidWithCart)
-            && !$redirectsToLogin
-            && !$isHttpError
-            && !$hasPhpDiagnostic
-            && $checkoutRes['error'] === '';
-
-        $this->record(
-            'TP-WEB-015',
-            'Authorization',
-            'P0',
-            'Trang thanh toán cho phép guest (HTTP 302 -> /cart khi rỗng hoặc HTTP 200)',
-            $guestCheckoutPassed,
-            'HTTP 302 Location: /cart hoặc HTTP 200; Không HTTP >= 400; Không redirect login; Không PHP fatal/warning',
-            $this->httpSummary($checkoutRes)
-                . ($redirectsToLogin  ? '; FAIL: redirect tới login' : '')
-                . ($isHttpError       ? '; FAIL: HTTP >= 400' : '')
-                . ($checkoutStatus === 302 && !$isValidEmptyCart ? '; FAIL: location không phải /cart' : '')
-                . ($hasPhpDiagnostic  ? '; FAIL: PHP diagnostic detected' : ''),
-            'GET /checkout (guest, giỏ rỗng mặc định)'
-        );
 
         $response = $this->client->request('GET', '/api/admin/notifications');
         $this->record(
