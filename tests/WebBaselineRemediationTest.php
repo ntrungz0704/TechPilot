@@ -31,7 +31,7 @@ class WebBaselineRemediationTest
     {
         try {
             $this->setupData();
-            
+
             $this->testProfileReturnRoute();
             $this->testAiFavoriteGuest();
             $this->testAiFavoriteAuthenticated();
@@ -155,7 +155,7 @@ class WebBaselineRemediationTest
         if (!$data || $data['success'] !== true || $data['inWishlist'] !== true) {
             throw new RuntimeException("Auth AI favorite invalid JSON response on success");
         }
-        
+
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM wishlists WHERE user_id = ? AND product_id = ?");
         $stmt->execute([$this->testUserId, $this->testProductId]);
         if ((int)$stmt->fetchColumn() !== 1) {
@@ -197,7 +197,7 @@ class WebBaselineRemediationTest
     private function testForgotPasswordEnumeration(): void
     {
         $expectedMessage = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
-        
+
         // 1. Existing email
         $res = $this->request('POST', '/auth/forgot', [
             'csrf_token' => $this->guestCsrf,
