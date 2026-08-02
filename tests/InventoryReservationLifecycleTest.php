@@ -743,18 +743,20 @@ if ($db instanceof PDO) {
 
         // Verification of release ordering
         $cancelBranchPos = strpos($adminOrderSource, "if (\$newStatus === 'cancelled' && \$currentStatus !== 'cancelled')");
-        if ($cancelBranchPos !== false) {
-            $couponReleasePos = strpos($adminOrderSource, 'CouponService::releaseOrderCoupon', $cancelBranchPos);
-            $inventoryReleasePos = strpos($adminOrderSource, 'InventoryService::releaseOrderInventory', $cancelBranchPos);
-            $flashSaleReleasePos = strpos($adminOrderSource, 'FlashSaleService::releaseOrderReservations', $cancelBranchPos);
+        $couponReleasePos = strpos($adminOrderSource, 'CouponService::releaseOrderCoupon', $cancelBranchPos);
+        $inventoryReleasePos = strpos($adminOrderSource, 'InventoryService::releaseOrderInventory', $cancelBranchPos);
+        $flashSaleReleasePos = strpos($adminOrderSource, 'FlashSaleService::releaseOrderReservations', $cancelBranchPos);
+        $cancelUpdatePos = strpos($adminOrderSource, 'UPDATE orders SET status = :status', $cancelBranchPos);
 
-            // Assume AdminOrderController updates order status outside this branch but we just check relative to it
+        assertInventory($cancelBranchPos !== false, 'Tìm thấy cancellation branch');
+        assertInventory($couponReleasePos !== false, 'Tìm thấy Coupon release');
+        assertInventory($inventoryReleasePos !== false, 'Tìm thấy Inventory release');
+        assertInventory($flashSaleReleasePos !== false, 'Tìm thấy Flash Sale release');
+        assertInventory($cancelUpdatePos !== false, 'Tìm thấy cancel UPDATE position');
 
-            assertInventory($couponReleasePos < $inventoryReleasePos, 'Coupon release < Inventory release');
-            assertInventory($inventoryReleasePos < $flashSaleReleasePos, 'Inventory release < Flash Sale release');
-        } else {
-            assertInventory(false, 'Không tìm thấy block if ($newStatus === \'cancelled\')');
-        }
+        assertInventory($couponReleasePos < $inventoryReleasePos, 'Coupon release < Inventory release');
+        assertInventory($inventoryReleasePos < $flashSaleReleasePos, 'Inventory release < Flash Sale release');
+        assertInventory($flashSaleReleasePos < $cancelUpdatePos, 'Flash Sale release < UPDATE order status');
 
         assertInventory(
             strpos($adminOrderSource, 'if (!InventoryService::commitOrderInventory($db, $id))') !== false,
@@ -768,11 +770,15 @@ if ($db instanceof PDO) {
         $completedBranchPos = strpos($adminOrderSource, "if (\$newStatus === 'completed')");
         $inventoryCommitPos = strpos($adminOrderSource, 'InventoryService::commitOrderInventory', $completedBranchPos);
         $flashSaleCommitPos = strpos($adminOrderSource, 'FlashSaleService::commitOrderReservations', $completedBranchPos);
-        // Tạm skip UPDATE order order validation from regex because $adminOrderSource might update order differently
-        // Wait, the prompt says "UPDATE orders", we can search it
         $updateOrderPos = strpos($adminOrderSource, 'UPDATE orders SET status = :status', $completedBranchPos);
 
+        assertInventory($completedBranchPos !== false, 'Tìm thấy completed branch');
+        assertInventory($inventoryCommitPos !== false, 'Tìm thấy Inventory commit trong completed flow');
+        assertInventory($flashSaleCommitPos !== false, 'Tìm thấy Flash Sale commit trong completed flow');
+        assertInventory($updateOrderPos !== false, 'Tìm thấy UPDATE order sau lifecycle commit');
+
         assertInventory($inventoryCommitPos < $flashSaleCommitPos, 'Inventory commit position < Flash Sale commit position');
+        assertInventory($flashSaleCommitPos < $updateOrderPos, 'Flash Sale commit position < UPDATE orders position');
 
         $confirmedBranchPos = strpos($adminOrderSource, "if (\$newStatus === 'confirmed')");
         $nextBranchPos = strpos($adminOrderSource, 'UPDATE orders', $confirmedBranchPos);
