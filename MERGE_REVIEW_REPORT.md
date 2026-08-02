@@ -1,77 +1,66 @@
-# Báo cáo sửa lỗi và đề nghị review merge
+# Báo cáo sửa lỗi và đề nghị review merge (PM-1 Pre-Merge QA)
 
 Ngày cập nhật: 02/08/2026
 
-Nhánh đích: `hieu`
+PR #35
+Source: hieu
+Target: main
+Implementation HEAD tested: 8b3f6bf1f331674c8811e92775a84dc576897098
+Base SHA: a146eee8f478895928bdf9290d6e54e6e9b9e263
+Ahead/behind trước docs commit: 21/0
 
-Base dùng để đối chiếu: `origin/main`
+## 1. Purchase policy (Authenticated Purchase Flow)
 
-> Local branch `hieu` đã được tạo trực tiếp từ `origin/main`; toàn bộ sửa lỗi
-> local được giữ nguyên khi chuyển nhánh. Trước khi tạo các commit mới, `hieu`
-> ở đúng cùng commit với `origin/main` (`0 ahead / 0 behind`). `origin/hieu`
-> cũ đang chậm 78 commit và không có commit riêng, nên lần push này có thể
-> fast-forward an toàn, không cần force push.
+- Khách chưa đăng nhập không được xem cart/checkout hoặc đặt hàng.
+- Guest được redirect tới trang login với redirect target an toàn.
+- Order yêu cầu user active.
 
-## 1. Tóm tắt thay đổi
+## 2. Checkpoint summary
 
-| Hạng mục | Trạng thái | Đã thực hiện | Tác động dễ hiểu |
-|---|---|---|---|
-| 1. Khóa VNPay simulator trên production | ✅ Hoàn tất | Simulator chỉ được đăng ký ở `development`; production thiếu credential sẽ tắt VNPay theo kiểu fail-closed | Không thể vô tình dùng cổng thanh toán giả trên server thật; COD vẫn hoạt động |
-| 2. Thống nhất cách tính giá | ✅ Hoàn tất | Cart, Checkout, Order, Product Detail, Search, PC Builder và Flash Sale dùng chung giá hiệu lực; backend tính lại giá/coupon/tổng tiền | Không còn mỗi màn hình tính một giá hoặc tin tổng tiền do trình duyệt gửi lên |
-| 3. Product status và migration runner | ✅ Hoàn tất | Đồng bộ 7 trạng thái sản phẩm; runner có ledger, lock, fail-fast, `--status` và baseline có kiểm soát | Trạng thái không bị cắt sai; migration không bị chạy lặp toàn cục |
-| 4. Đồng bộ schema | ✅ Hoàn tất | Seed và migration được đồng bộ cho 26 bảng, return tables, chatbot tables, inventory và Flash Sale reservation | Database mới và database nâng cấp có cùng cấu trúc mong đợi |
-| 5. Login hay guest checkout | ✅ Chốt Guest Checkout | Khách không đăng nhập được đặt hàng; `user_id` có thể rỗng; địa chỉ chỉ lưu cho tài khoản đăng nhập | Giảm bước mua hàng nhưng guest không có đầy đủ lịch sử/sổ địa chỉ |
-| 6. Bảo vệ scraper | ⏸ Hoãn theo quyết định dự án | Không mở rộng phạm vi trong đợt này | Phù hợp quy mô trường học; cần làm trước khi public rộng hoặc chạy tải lớn |
-| 7. Bộ lọc và query khi dữ liệu tăng | ✅ Logic hoàn tất / ⏳ Index theo dõi | Chuẩn hóa nhiều dạng JSON specs; thêm facet theo danh mục; sửa URL, khoảng giá và alias Gaming/Văn phòng; thêm benchmark đọc-only | Bộ lọc trả đúng sản phẩm, không còn option rỗng hoặc hai alias trả cùng tập |
-| Flash Sale và tồn kho | ✅ Hoàn tất trong phạm vi hiện tại | Dọn item sai, giữ hạn mức Flash Sale theo order item; reserve/release/commit tồn kho nguyên tử | Giảm oversell, double-submit và sai hạn mức Flash Sale |
+- P0-1/P0-1B — authenticated purchase: CLOSED
+- P0-2 — Flash Sale migration ID types: CLOSED
+- P1-1 — Flash Sale quota release: CLOSED
+- P1-2 — Coupon usage lifecycle: CLOSED
+- P1-3 — Inventory fail-closed commit: CLOSED
+- P2-1 — Migration signature validation: CLOSED
+- P2-2 — Cancelled order terminal policy: CLOSED
+- P2-3 — Zero-stock cart total: CLOSED
 
-## 2. Bằng chứng kiểm thử
+## 3. Test evidence (Antigravity local runtime evidence)
 
-| Kiểm tra | Kết quả |
-|---|---:|
-| VNPay environment security | 27/27 pass |
-| Pricing consistency | 74/74 pass |
-| Product status | 25/25 pass |
-| Migration runner safety | 47/47 pass |
-| Database schema parity | 58/58 pass |
-| Inventory lifecycle | 65/65 pass |
-| Flash Sale cleanup + reservation | 66/66 pass |
-| Filter contract + normalizer + integration + UI | 603/603 pass |
-| HTTP alias Laptop Gaming/Văn phòng | HTTP 200; 30 Gaming + 31 Văn phòng, không trùng |
-| Benchmark 50 vòng, 650 sản phẩm | p95 cao nhất 24,060 ms/query; chưa cần thêm index JSON |
-| `git diff --check` | Pass |
+| Kiểm tra (Antigravity local runtime) | Kết quả |
+|---|---|
+| PHP lint | 72 passed, 0 failed |
+| AuthenticatedPurchaseFlowTest | 23 passed, 0 failed |
+| ProductPricingConsistencyTest | 105 passed, 0 failed |
+| CouponUsageLifecycleTest | 18 passed, 0 failed |
+| InventoryReservationLifecycleTest | 115 passed, 0 failed |
+| FlashSaleReservationLifecycleTest | 65 passed, 0 failed |
+| MigrationRunnerSafetyTest | 68 passed, 0 failed |
+| DatabaseSchemaParityTest | 58 passed, 0 failed |
+| VnpayEnvironmentSecurityTest | 27 passed, 0 failed |
+| Product status | 25 passed, 0 failed |
+| Facet/filter suites | 180 passed, 0 failed |
+| WebQaTest | 19 passed, 8 failed |
+| Search QA audit | 20 passed, 0 failed |
+| PC Builder audit | 24 passed, 0 failed |
+| Benchmark | p95 cao nhất <25ms/query |
+| News regression | 58 passed, 1 failed |
+| git diff --check | Pass (0 errors) |
+| Secret scan | 0 exposed secrets |
 
-Kết quả regression toàn dự án: **19/21 test file pass**. Hai suite chưa xanh
-được ghi riêng bên dưới, không được che giấu khi mở PR.
+GitHub Actions: không có.
 
-## 3. Việc còn lại / cần nhóm trưởng xác nhận
+## 4. Known issues
 
-| Mức ưu tiên | Việc cần xử lý hoặc xác nhận | Đề xuất |
-|---|---|---|
-| Trước merge | Phạm vi thay đổi lớn: hơn 70 file code, migration, test và tài liệu | Chia thành các commit theo nhóm chức năng trong cùng PR để review dễ hơn |
-| Phạm vi commit | Không đưa các báo cáo QA lịch sử trong `tests/web/reports/*` lên PR | Vẫn giữ local; chỉ stage code, migration, test/fixtures cần thiết và báo cáo merge này |
-| Đồng bộ branch | Local `hieu` đã được tạo từ `origin/main`; thay đổi local vẫn nguyên vẹn | Sau khi test và commit, push fast-forward lên `origin/hieu`; không dùng force push |
-| Trước deploy DB cũ | Có migration mới và seed đã baseline migration | Backup DB, chạy `php scripts/database/migrate.php --status`, chỉ chạy pending; không dùng `--baseline-existing` nếu chưa đối chiếu schema |
-| Regression độc lập | `NewsModuleRegressionTest`: 58/59, lỗi desktop TOC kiểm tra `hasArticleContent` | Tạo task riêng hoặc nhóm trưởng chấp nhận là known issue trước merge |
-| QA cần cập nhật | `WebQaTest`: 18/27; case Checkout vẫn kỳ vọng bắt đăng nhập, trái với quyết định Guest Checkout | Sửa expectation TP-WEB-015; audit riêng các route return/AI favorite, admin POST auth và forgot-password |
-| Production VNPay | QR thật cần TMN Code, Hash Secret, return URL/IPN hợp lệ | Cấu hình secret ngoài Git và test trên VNPay Sandbox trước production |
-| Khi catalog tăng | Facet JSON đang quét các sản phẩm trong category | Chạy lại `php tests/ProductFacetBenchmark.php 50`; chỉ thêm generated column/index khi p95 thực tế vượt ngưỡng thống nhất |
-| Trước public rộng | Scraper chưa được harden trong đợt này | Bổ sung rate limit, timeout, allowlist domain và giới hạn tài nguyên ở task riêng |
+- News regression được đánh giá là NON-BLOCKING BASELINE ISSUE vì base và head có cùng một lỗi giống hệt nhau ở `desktop TOC in detail.php checks hasArticleContent`.
+- Bảo vệ scraper: Hoãn theo quyết định dự án. Không mở rộng phạm vi trong đợt này.
+- WebQaTest: Lỗi phân quyền POST khu vực admin. Cần sửa route/admin post authorization ở tương lai (hiện tại fail các test: TP-WEB-021 đến TP-WEB-025).
 
-## 4. Đề xuất cấu trúc commit
+## 5. Deployment migration warning
 
-1. `fix(payment-pricing): harden vnpay and centralize effective price`
-2. `fix(database-orders): add safe migrations, inventory and flash-sale lifecycle`
-3. `fix(checkout): finalize guest checkout with server-side totals`
-4. `fix(catalog): normalize specs and implement category facets`
-5. `test: add regression contracts, QA evidence and query benchmark`
+- Backup DB, chạy `php scripts/database/migrate.php --status`, chỉ chạy pending; không dùng `--baseline-existing` nếu chưa đối chiếu schema.
 
-## 5. Kết luận bàn giao
+## 6. Kết luận bàn giao
 
-- Sẵn sàng **commit và mở PR để review**: Có.
-- Sẵn sàng **merge thẳng vào main mà không review**: Không.
-- Nhánh đích của PR: `hieu`; branch đã được cập nhật từ `origin/main` trước khi tạo commit.
-- Không đưa `tests/web/reports/*` vào commit/PR theo xác nhận của chủ nhánh.
-- Không có migration/index mới dành riêng cho facet và benchmark không ghi dữ liệu.
-- Nhóm trưởng cần xác nhận migration rollout, Guest Checkout và cách xử lý hai
-  suite regression chưa xanh trước khi merge.
+BLOCKED — WebQaTest failed on mandatory tests TP-WEB-021 to TP-WEB-025, and STALE AUTH POLICY DOCUMENTATION OUTSIDE ALLOWED SCOPE was detected in WebQaTest.php.
