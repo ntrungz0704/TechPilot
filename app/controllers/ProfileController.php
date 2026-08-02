@@ -383,16 +383,21 @@ class ProfileController extends Controller
 
         $db->beginTransaction();
         try {
+            require_once ROOT_PATH . '/app/services/CouponService.php';
             require_once ROOT_PATH . '/app/services/InventoryService.php';
             require_once ROOT_PATH . '/app/services/FlashSaleService.php';
 
-            // Cập nhật trạng thái đơn hàng sang cancelled
-            $stmt = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = :id AND user_id = :user_id");
-            $stmt->execute([':id' => $orderId, ':user_id' => (int)$user['id']]);
-
-            // Hoàn kho Idempotent bằng InventoryService
+            CouponService::releaseOrderCoupon($db, $orderId);
             InventoryService::releaseOrderInventory($db, $orderId, 'customer_cancelled');
             FlashSaleService::releaseOrderReservations($db, $orderId, 'customer_cancelled');
+
+            // Cập nhật trạng thái đơn hàng sang cancelled
+            $stmt = $db->prepare("UPDATE orders SET status = 'cancelled' WHERE id = :id AND user_id = :user_id AND status = 'pending'");
+            $stmt->execute([':id' => $orderId, ':user_id' => (int)$user['id']]);
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Đơn hàng không thể hủy hoặc đã thay đổi trạng thái.');
+            }
 
             // Ghi nhận thông báo
             $stmt = $db->prepare('INSERT INTO notifications (user_id, title, content) VALUES (:user_id, :title, :content)');

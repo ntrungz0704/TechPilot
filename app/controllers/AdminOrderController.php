@@ -178,9 +178,11 @@ class AdminOrderController extends Controller
 
                 require_once ROOT_PATH . '/app/services/InventoryService.php';
                 require_once ROOT_PATH . '/app/services/FlashSaleService.php';
+                require_once ROOT_PATH . '/app/services/CouponService.php';
 
                 // Nếu đơn hàng bị Huỷ (Cancelled) -> Hoàn kho Idempotent bằng InventoryService
                 if ($newStatus === 'cancelled' && $currentStatus !== 'cancelled') {
+                    CouponService::releaseOrderCoupon($db, $id);
                     InventoryService::releaseOrderInventory($db, $id, 'admin_cancelled');
                     FlashSaleService::releaseOrderReservations($db, $id, 'admin_cancelled');
                 }
