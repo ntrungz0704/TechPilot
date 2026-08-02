@@ -23,15 +23,22 @@ if (!function_exists('mb_substr')) {
 
 
 if (!function_exists('formatPhone')) {
-    function formatPhone(string $phone): string
+    function formatPhone(?string $phone): string
     {
-        $phone = trim($phone);
-        if (strpos($phone, '0') === 0) {
+        $phone = trim($phone ?? '');
+
+        if ($phone === '') {
+            return '';
+        }
+
+        if (str_starts_with($phone, '0')) {
             return '+84' . substr($phone, 1);
         }
-        if (strpos($phone, '+84') !== 0 && $phone !== '') {
+
+        if (!str_starts_with($phone, '+84')) {
             return '+84' . $phone;
         }
+
         return $phone;
     }
 }

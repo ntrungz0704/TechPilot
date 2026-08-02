@@ -40,7 +40,12 @@
                             <td><?= (int)$u['id'] ?></td>
                             <td><strong><?= e($u['full_name']) ?></strong></td>
                             <td><?= e($u['email']) ?></td>
-                            <td><?= e(formatPhone($u['phone'])) ?></td>
+                            <?php $formattedPhone = formatPhone($u['phone'] ?? null); ?>
+                            <td>
+                                <?= $formattedPhone !== ''
+                                    ? e($formattedPhone)
+                                    : '<span style="color: var(--text-secondary);">Chưa cập nhật</span>' ?>
+                            </td>
                             <td><span style="font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;"><?= e($u['address'] ?? '') ?></span></td>
                             <td>
                                 <span class="badge" style="background-color: <?= $u['role'] === 'admin' ? '#FEE2E2; color: #991B1B;' : '#E0F2FE; color: #0369A1;' ?>">
