@@ -127,16 +127,29 @@ $testSessionId    = 'gcreg' . bin2hex(random_bytes(13));
 $sessionFile      = $sessionSavePath . DIRECTORY_SEPARATOR . 'sess_' . $testSessionId;
 
 // Register cleanup shutdown function
-register_shutdown_function(function () use ($testSessionId, $sessionFile) {
-    $success = cleanupGuestTestSession($testSessionId, $sessionFile);
-    if ($success) {
-        pass('Test session cleaned up');
-    } else {
-        fail('Test session cleaned up', 'Test session cleanup failed');
-        global $results;
-        if ($results['failed'] === 0) { // Make sure we exit with non-zero if only this failed
-            exit(1);
-        }
+$cleanupCompleted = false;
+register_shutdown_function(function () use (
+    &$cleanupCompleted,
+    $testSessionId,
+    $sessionFile
+): void {
+    if ($cleanupCompleted) {
+        return;
+    }
+
+    $cleanupCompleted = true;
+    $success = cleanupGuestTestSession(
+        $testSessionId,
+        $sessionFile
+    );
+
+    if (!$success) {
+        fwrite(
+            STDERR,
+            "[FAIL] Emergency test-session cleanup failed\n"
+        );
+
+        exit(1);
     }
 });
 
@@ -319,6 +332,26 @@ if ($stockAfter === $stockBefore) {
     pass('Stock unchanged');
 } else {
     fail('Stock unchanged', "stock changed: {$stockBefore} → {$stockAfter} (id={$productId})");
+}
+
+// ─── Cleanup bình thường trước Summary ───────────────────────────────────────
+
+if (isset($testSessionId) && isset($sessionFile)) {
+    $cleanupSucceeded = cleanupGuestTestSession(
+        $testSessionId,
+        $sessionFile
+    );
+
+    $cleanupCompleted = true;
+
+    if ($cleanupSucceeded) {
+        pass('Test session cleaned up');
+    } else {
+        fail(
+            'Test session cleaned up',
+            'Test session cleanup failed'
+        );
+    }
 }
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
