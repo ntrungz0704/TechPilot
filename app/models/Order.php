@@ -318,7 +318,7 @@ class Order
     public function updatePayment(string $orderCode, string $status): bool
     {
         if ($this->useFallback || !in_array($status, ['pending', 'paid', 'failed'], true)) return false;
-        
+
         require_once ROOT_PATH . '/app/services/InventoryService.php';
         require_once ROOT_PATH . '/app/services/FlashSaleService.php';
 
@@ -347,6 +347,9 @@ class Order
                 $this->db->commit();
                 return true;
             } elseif ($status === 'failed') {
+                require_once ROOT_PATH . '/app/services/CouponService.php';
+                CouponService::releaseOrderCoupon($this->db, (int)$order['id']);
+
                 if (($order['inventory_status'] ?? '') === 'reserved') {
                     InventoryService::releaseOrderInventory($this->db, (int)$order['id'], 'vnpay_failed');
                 }
