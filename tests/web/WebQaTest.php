@@ -394,7 +394,7 @@ final class TechPilotWebQaSuite
             );
         }
 
-        // TP-WEB-015: Exact redirect login for guest checkout
+        // TP-WEB-015: Exact login redirect for unauthenticated checkout
         $checkoutRes = $this->client->request('GET', '/checkout');
         $rawLocation = $this->lastHeader($checkoutRes, 'location');
         $path = parse_url($rawLocation, PHP_URL_PATH);

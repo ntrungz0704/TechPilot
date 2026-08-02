@@ -57,6 +57,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$isAdminUiPath = $path === '/admin' || str_starts_with($path, '/admin/');
+$isAdminApiPath = $path === '/api/admin' || str_starts_with($path, '/api/admin/');
+
+if ($isAdminUiPath || $isAdminApiPath) {
+    $user = $_SESSION['user'] ?? null;
+    $isAuthenticated = is_array($user) && !empty($user['id']);
+    $isAdmin = $isAuthenticated && ($user['role'] ?? '') === 'admin';
+
+    if ($isAdminUiPath) {
+        if (!$isAuthenticated) {
+            header('Location: /auth/login?redirect=' . urlencode($path));
+            exit;
+        } elseif (!$isAdmin) {
+            http_response_code(403);
+            ErrorHandler::renderErrorView(403);
+            exit;
+        }
+    } else {
+        if (!$isAuthenticated) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Unauthenticated',
+                'message' => 'Bạn cần đăng nhập để truy cập tài nguyên này.',
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        } elseif (!$isAdmin) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Forbidden',
+                'message' => 'Bạn không có quyền truy cập.',
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+}
+
 $router = new Router();
 
 // Storefront & Home Routes
