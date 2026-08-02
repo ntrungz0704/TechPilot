@@ -48,13 +48,14 @@ class CartService
 
             $product = $catalog[$productId];
             $stock = max(0, (int)($product['stock'] ?? 0));
-            $quantity = max(1, (int)($stored['quantity'] ?? 1));
-            if ($stock > 0) {
-                $quantity = min($quantity, $stock);
-            }
+            $requestedQuantity = max(1, (int)($stored['quantity'] ?? 1));
+
+            $available = $stock > 0;
+            $quantity = $available ? min($requestedQuantity, $stock) : 0;
 
             $priceData = getEffectiveProductData($product);
             $price = (float)$priceData['final_price'];
+            $lineTotal = $available ? $price * $quantity : 0.0;
             $items[] = [
                 'product_id' => $productId,
                 'slug' => (string)($product['slug'] ?? ''),
@@ -69,8 +70,8 @@ class CartService
                 'price_source' => (string)$priceData['price_source'],
                 'stock' => $stock,
                 'quantity' => $quantity,
-                'line_total' => $price * $quantity,
-                'available' => $stock > 0,
+                'line_total' => $lineTotal,
+                'available' => $available,
             ];
         }
 
@@ -80,18 +81,27 @@ class CartService
     public function getSummary(): array
     {
         $items = $this->getItems();
-        $subtotal = array_reduce(
-            $items,
-            fn (float $sum, array $item): float => $sum + (float)$item['line_total'],
-            0.0
-        );
+        $subtotal = 0.0;
+        $hasUnavailableItems = false;
+
+        foreach ($items as $item) {
+            if (!($item['available'] ?? false)) {
+                $hasUnavailableItems = true;
+            } else {
+                $subtotal += (float)$item['line_total'];
+            }
+        }
+
         $shipping = shippingFee($subtotal);
+        $canCheckout = $items !== [] && !$hasUnavailableItems && $subtotal > 0;
 
         return [
             'items' => $items,
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $subtotal + $shipping,
+            'has_unavailable_items' => $hasUnavailableItems,
+            'can_checkout' => $canCheckout,
         ];
     }
 
