@@ -158,15 +158,20 @@ $savedAddresses = $savedAddresses ?? [];
                     </span>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <?php foreach ($availableCoupons as $ac): ?>
-                            <div style="background: rgba(37, 99, 235, 0.04); border: 1px dashed var(--primary); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="background: rgba(37, 99, 235, 0.04); border: 1px dashed var(--primary); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; <?= $ac['is_disabled'] ? 'opacity: 0.5;' : '' ?>">
                                 <div>
-                                    <strong style="font-size: 12.5px; color: var(--primary); display: block;"><?= e($ac['code']) ?></strong>
+                                    <strong style="font-size: 12.5px; color: var(--primary); display: block;">
+                                        <?= e($ac['code']) ?> 
+                                        <?php if ($ac['is_disabled']): ?>
+                                            <span style="color: #EF4444; font-size: 10px; font-weight: normal; margin-left: 4px;">(<?= $ac['disable_reason'] ?>)</span>
+                                        <?php endif; ?>
+                                    </strong>
                                     <small style="font-size: 11px; color: var(--text-secondary);">
                                         <?= $ac['type'] === 'percent' ? 'Giảm ' . (int)$ac['discount_value'] . '%' : 'Giảm ' . formatPrice($ac['discount_value']) ?>
                                         (Đơn từ <?= formatPrice($ac['min_order_value']) ?>)
                                     </small>
                                 </div>
-                                <button type="button" class="btn btn--outline btn--sm" style="font-size: 11px; padding: 4px 10px; font-weight: 700;" onclick="applyVoucherCode('<?= e($ac['code']) ?>')">Dùng ngay</button>
+                                <button type="button" class="btn btn--outline btn--sm" style="font-size: 11px; padding: 4px 10px; font-weight: 700;" onclick="applyVoucherCode('<?= e($ac['code']) ?>')" <?= $ac['is_disabled'] ? 'disabled' : '' ?>>Dùng ngay</button>
                             </div>
                         <?php endforeach; ?>
                     </div>

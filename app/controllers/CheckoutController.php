@@ -117,7 +117,32 @@ class CheckoutController extends Controller
         if ($db) {
             $cStmt = $db->prepare("SELECT * FROM coupons WHERE status = 'active' AND start_date <= NOW() AND end_date >= NOW() ORDER BY min_order_value ASC");
             $cStmt->execute();
-            $availableCoupons = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+            $availableCouponsRaw = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($availableCouponsRaw as $ac) {
+                $isDisabled = false;
+                $disableReason = '';
+                
+                if ($ac['usage_limit'] !== null && (int)$ac['used_count'] >= (int)$ac['usage_limit']) {
+                    $isDisabled = true;
+                    $disableReason = 'Hết lượt dùng';
+                }
+                
+                if (!$isDisabled && $user !== null && isset($user['id'])) {
+                    $userUsageStmt = $db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = :user_id AND coupon_id = :coupon_id AND status != 'cancelled'");
+                    $userUsageStmt->execute([':user_id' => (int)$user['id'], ':coupon_id' => (int)$ac['id']]);
+                    $usedByUser = (int)$userUsageStmt->fetchColumn();
+                    $maxPerUser = $ac['usage_limit_per_user'] !== null ? (int)$ac['usage_limit_per_user'] : 1;
+                    if ($usedByUser >= $maxPerUser) {
+                        $isDisabled = true;
+                        $disableReason = 'Bạn đã dùng';
+                    }
+                }
+                
+                $ac['is_disabled'] = $isDisabled;
+                $ac['disable_reason'] = $disableReason;
+                $availableCoupons[] = $ac;
+            }
 
             // Chỉ truy vấn địa chỉ đã lưu khi người dùng đã đăng nhập.
             // Guest sẽ nhận $savedAddresses = [] và tự nhập địa chỉ tại form.

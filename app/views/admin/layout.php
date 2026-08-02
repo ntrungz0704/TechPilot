@@ -756,7 +756,7 @@
 
                             if (data.items && data.items.length > 0) {
                                 list.innerHTML = data.items.map(item => `
-                                    <div style="padding: 8px 10px; border-radius: 6px; background: ${item.is_read == 0 ? 'rgba(10,91,255,0.06)' : '#F9FAFB'}; border-left: 3px solid ${item.is_read == 0 ? '#0A5BFF' : '#CBD5E1'};">
+                                    <div style="padding: 8px 10px; border-radius: 6px; background: ${item.is_read == 0 ? 'rgba(10,91,255,0.06)' : '#F9FAFB'}; border-left: 3px solid ${item.is_read == 0 ? '#0A5BFF' : '#CBD5E1'}; cursor: pointer;" onclick="handleNotificationClick(${item.id}, '${item.link}')">
                                         <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">${item.title}</div>
                                         <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">${item.content}</div>
                                         <small style="font-size: 10px; color: #94A3B8; display: block; margin-top: 4px;">${item.created_at}</small>
@@ -781,22 +781,30 @@
                     }
                 });
 
-                function markReadNotifications() {
-                    fetch('<?= url("api/admin/notifications/mark_read") ?>', { method: 'POST' })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                badge.style.display = 'none';
+                window.handleNotificationClick = function(id, link) {
+                    const formData = new FormData();
+                    formData.append('id', id);
+                    fetch('<?= url("api/admin/notifications/mark_read") ?>', { method: 'POST', body: formData })
+                        .then(() => {
+                            if (link && link !== 'javascript:void(0);') {
+                                window.location.href = link;
+                            } else {
+                                fetchNotifications();
                             }
-                        })
-                        .catch(() => {});
-                }
+                        });
+                };
 
                 if (markReadBtn) {
                     markReadBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        markReadNotifications();
-                        fetchNotifications();
+                        fetch('<?= url("api/admin/notifications/mark_read") ?>', { method: 'POST' })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    badge.style.display = 'none';
+                                    fetchNotifications();
+                                }
+                            });
                     });
                 }
 

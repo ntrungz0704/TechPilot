@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (countdownEl) {
         const endTimeStr = countdownEl.dataset.endTime;
         const endingTextEl = document.getElementById('flashEndingText');
+        const dEl = countdownEl.querySelector('[data-countdown-days]') || document.getElementById('cd-d');
         const hEl = countdownEl.querySelector('[data-countdown-hours]') || document.getElementById('cd-h');
         const mEl = countdownEl.querySelector('[data-countdown-minutes]') || document.getElementById('cd-m');
         const sEl = countdownEl.querySelector('[data-countdown-seconds]') || document.getElementById('cd-s');
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function pad(n) { return Math.max(0, n).toString().padStart(2, '0'); }
 
         function renderZero() {
+            if (dEl) dEl.textContent = '00';
             if (hEl) hEl.textContent = '00';
             if (mEl) mEl.textContent = '00';
             if (sEl) sEl.textContent = '00';
@@ -94,9 +96,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
-                const h = Math.floor(totalSeconds / 3600);
+                
+                const d = Math.floor(totalSeconds / 86400);
+                const h = Math.floor((totalSeconds % 86400) / 3600);
                 const m = Math.floor((totalSeconds % 3600) / 60);
                 const s = totalSeconds % 60;
+
+                const daysWrapper = countdownEl.querySelector('.cd-days');
+                const daysSep = countdownEl.querySelector('.cd-days-sep');
+
+                if (d > 0) {
+                    if (daysWrapper) daysWrapper.style.display = '';
+                    if (daysSep) daysSep.style.display = '';
+                    if (dEl) dEl.textContent = pad(d);
+                } else {
+                    if (daysWrapper) daysWrapper.style.display = 'none';
+                    if (daysSep) daysSep.style.display = 'none';
+                }
 
                 if (hEl) hEl.textContent = pad(h);
                 if (mEl) mEl.textContent = pad(m);

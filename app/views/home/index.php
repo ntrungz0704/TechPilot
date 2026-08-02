@@ -223,6 +223,13 @@ $reviews = $reviews ?? [];
                 aria-label="Thời gian Flash Sale còn lại"
                 aria-live="polite"
             >
+                <div class="countdown-unit cd-days" style="display: none;">
+                    <strong id="cd-d" data-countdown-days>00</strong>
+                    <span>NGÀY</span>
+                </div>
+                
+                <span class="countdown-separator cd-days-sep" style="display: none;">:</span>
+
                 <div class="countdown-unit">
                     <strong id="cd-h" data-countdown-hours>00</strong>
                     <span>GIỜ</span>

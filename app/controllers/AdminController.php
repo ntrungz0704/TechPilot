@@ -135,6 +135,19 @@ class AdminController extends Controller
             $stmt = $db->prepare('SELECT id, title, content, is_read, created_at FROM notifications WHERE user_id = :uid OR user_id = 1 ORDER BY id DESC LIMIT 10');
             $stmt->execute([':uid' => $adminUserId]);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($items as &$item) {
+                $item['link'] = 'javascript:void(0);';
+                if (preg_match('/#TP-([A-Z0-9\-]+)/i', $item['title'] . ' ' . $item['content'], $matches)) {
+                    $orderCode = 'TP-' . $matches[1];
+                    $stmtOrder = $db->prepare('SELECT id FROM orders WHERE order_code = ? LIMIT 1');
+                    $stmtOrder->execute([$orderCode]);
+                    $orderId = $stmtOrder->fetchColumn();
+                    if ($orderId) {
+                        $item['link'] = url('admin/orders/detail/' . $orderId);
+                    }
+                }
+            }
 
             $stmt2 = $db->prepare('SELECT COUNT(*) FROM notifications WHERE (user_id = :uid OR user_id = 1) AND is_read = 0');
             $stmt2->execute([':uid' => $adminUserId]);
@@ -162,8 +175,14 @@ class AdminController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = :uid OR user_id = 1');
-            $stmt->execute([':uid' => $adminUserId]);
+            $id = (int)($_POST['id'] ?? 0);
+            if ($id > 0) {
+                $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE id = :id AND (user_id = :uid OR user_id = 1)');
+                $stmt->execute([':id' => $id, ':uid' => $adminUserId]);
+            } else {
+                $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = :uid OR user_id = 1');
+                $stmt->execute([':uid' => $adminUserId]);
+            }
         }
 
         echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);

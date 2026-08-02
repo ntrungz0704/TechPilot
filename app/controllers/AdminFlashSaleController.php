@@ -200,7 +200,10 @@ class AdminFlashSaleController extends Controller
                     foreach ($itemProducts as $prodId => $data) {
                         if (!isset($data['active'])) continue;
 
-                        $discountPrice = (float)($data['discount_price'] ?? 0);
+                        // Lấy giá và lọc bỏ dấu phẩy/chấm/chữ (chỉ giữ lại số)
+                        $rawDiscountPrice = $data['discount_price'] ?? '';
+                        $discountPrice = (float)preg_replace('/[^0-9]/', '', $rawDiscountPrice);
+                        
                         $allocationQty = (int)($data['allocation_quantity'] ?? 10);
                         $limitUser = (int)($data['limit_per_user'] ?? 2);
                         $this->assertValidDiscountPrice($db, (int)$prodId, $discountPrice);
@@ -349,7 +352,10 @@ class AdminFlashSaleController extends Controller
                         if (!isset($data['active'])) continue;
 
                         $productId = (int)$prodId;
-                        $discountPrice = (float)($data['discount_price'] ?? 0);
+                        // Lấy giá và lọc bỏ dấu phẩy/chấm/chữ (chỉ giữ lại số)
+                        $rawDiscountPrice = $data['discount_price'] ?? '';
+                        $discountPrice = (float)preg_replace('/[^0-9]/', '', $rawDiscountPrice);
+                        
                         $allocationQty = (int)($data['allocation_quantity'] ?? 10);
                         $existingItem = $existingItemsByProduct[$productId] ?? null;
                         $soldQty = $existingItem !== null ? (int)$existingItem['sold_quantity'] : 0;

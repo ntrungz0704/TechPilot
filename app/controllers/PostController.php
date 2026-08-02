@@ -134,6 +134,7 @@ class PostController extends Controller
         }
 
         $this->postModel->incrementViews($post['id']);
+        $post['views'] = ($post['views'] ?? 0) + 1;
 
         $related = $this->postModel->getRelatedPosts(
             $post['id'],

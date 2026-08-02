@@ -240,6 +240,13 @@ class PcBuilderController extends Controller
             $p['specs'] = json_encode($parsed);
 
             $compat = PcCompatibilityService::checkCompatibility($build, $p, $partKey);
+            
+            $placeholderPath = 'assets/images/placeholders/' . $partKey . '.png';
+            $fallbackImage = file_exists(ROOT_PATH . '/public/' . $placeholderPath) ? url($placeholderPath) : url('assets/images/logo.png');
+            
+            $imageUrl = empty($p['image']) 
+                ? $fallbackImage 
+                : (str_starts_with($p['image'], 'http') ? $p['image'] : (str_starts_with($p['image'], 'assets/') ? url($p['image']) : url('assets/images/products/' . $p['image'])));
 
             $formattedProducts[] = [
                 'id'              => (int)$p['id'],
@@ -248,7 +255,7 @@ class PcBuilderController extends Controller
                 'original_price'  => $eff['original_price'],
                 'price_formatted' => formatPrice($eff['final_price']),
                 'stock'           => (int)$p['stock'],
-                'image_url'       => empty($p['image']) ? '/assets/images/placeholder.jpg' : (str_starts_with($p['image'], 'http') ? $p['image'] : (str_starts_with($p['image'], 'assets/') ? '/' . $p['image'] : '/assets/images/products/' . $p['image'])),
+                'image_url'       => $imageUrl,
                 'specs'           => $p['specs'],
                 'compatible'      => empty($compat['blockers']),
                 'blockers'        => $compat['blockers'],

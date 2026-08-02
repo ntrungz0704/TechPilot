@@ -82,8 +82,9 @@ class GeminiService
         ]);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        $sslVerify = !empty(ini_get('curl.cainfo')) && file_exists((string)ini_get('curl.cainfo'));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $sslVerify);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $sslVerify ? 2 : 0);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

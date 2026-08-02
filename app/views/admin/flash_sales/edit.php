@@ -33,9 +33,15 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px 0; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
             <h4 style="font-weight: 700; font-size: 15px; margin: 0;">Chọn sản phẩm tham gia và thiết lập giảm giá</h4>
-            <div style="position: relative; min-width: 320px;">
-                <input type="text" id="fsProductSearchInput" class="form-control" placeholder="🔍 Gõ từ khóa tìm sản phẩm nhanh..." onkeyup="filterFlashSaleProducts(this.value)" style="padding-left: 36px; height: 38px; border-radius: 8px;">
-                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8;"></i>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13.5px; font-weight: 600;">
+                    <input type="checkbox" id="fsFilterSelected" onchange="filterFlashSaleProducts()">
+                    Chỉ hiện SP đã chọn
+                </label>
+                <div style="position: relative; min-width: 320px;">
+                    <input type="text" id="fsProductSearchInput" class="form-control" placeholder="🔍 Gõ từ khóa tìm sản phẩm nhanh..." onkeyup="filterFlashSaleProducts()" style="padding-left: 36px; height: 38px; border-radius: 8px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8;"></i>
+                </div>
             </div>
         </div>
         <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
@@ -95,12 +101,19 @@
 </div>
 
 <script>
-function filterFlashSaleProducts(query) {
-    const q = query.toLowerCase().trim();
+function filterFlashSaleProducts() {
+    const q = (document.getElementById('fsProductSearchInput')?.value || '').toLowerCase().trim();
+    const filterSelected = document.getElementById('fsFilterSelected')?.checked || false;
     const rows = document.querySelectorAll('#fsProductTable tbody tr');
+    
     rows.forEach(tr => {
         const text = tr.innerText.toLowerCase();
-        tr.style.display = (q === '' || text.includes(q)) ? '' : 'none';
+        const isChecked = tr.querySelector('input[type="checkbox"]')?.checked;
+        
+        const matchSearch = (q === '' || text.includes(q));
+        const matchSelected = (!filterSelected || isChecked);
+        
+        tr.style.display = (matchSearch && matchSelected) ? '' : 'none';
     });
 }
 </script>
