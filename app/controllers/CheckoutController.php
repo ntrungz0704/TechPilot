@@ -5,6 +5,40 @@ require_once ROOT_PATH . '/app/services/CartService.php';
 
 class CheckoutController extends Controller
 {
+    private function requireAuthenticatedPage(string $redirect = '/checkout'): ?array
+    {
+        $user = currentUser();
+
+        if (!$user || empty($user['id'])) {
+            flash('error', 'Vui lòng đăng nhập để tiếp tục thanh toán.');
+            $this->redirect(
+                'auth/login?redirect=' . urlencode($redirect)
+            );
+            return null;
+        }
+
+        return $user;
+    }
+
+    private function requireAuthenticatedJson(): ?array
+    {
+        $user = currentUser();
+
+        if (!$user || empty($user['id'])) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
+
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vui lòng đăng nhập để sử dụng chức năng này.',
+            ], JSON_UNESCAPED_UNICODE);
+
+            return null;
+        }
+
+        return $user;
+    }
+
     private function getCartSummary(): array
     {
         return (new CartService())->getSummary();
@@ -26,7 +60,11 @@ class CheckoutController extends Controller
 
     public function index(): void
     {
-        $user = currentUser();
+        $user = $this->requireAuthenticatedPage('/checkout');
+
+        if ($user === null) {
+            return;
+        }
         $summary = $this->getCartSummary();
         if (empty($summary['items'])) {
             $this->redirect('cart');
@@ -101,6 +139,10 @@ class CheckoutController extends Controller
     public function apply_coupon(): void
     {
         header('Content-Type: application/json');
+
+        if ($this->requireAuthenticatedJson() === null) {
+            return;
+        }
 
         if (!$this->isPost()) {
             echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ.']);
@@ -204,6 +246,10 @@ class CheckoutController extends Controller
     {
         header('Content-Type: application/json');
 
+        if ($this->requireAuthenticatedJson() === null) {
+            return;
+        }
+
         if (!$this->isPost()) {
             echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ.']);
             exit;
@@ -227,7 +273,11 @@ class CheckoutController extends Controller
 
     public function submit(): void
     {
-        $user = currentUser();
+        $user = $this->requireAuthenticatedPage('/checkout');
+
+        if ($user === null) {
+            return;
+        }
 
         if (!$this->isPost()) {
             $this->redirect('checkout');
@@ -392,6 +442,10 @@ class CheckoutController extends Controller
 
     public function success(): void
     {
+        if ($this->requireAuthenticatedPage('/checkout') === null) {
+            return;
+        }
+
         $order = $_SESSION['last_order'] ?? null;
         if (!$order) {
             $this->redirect('cart');
