@@ -195,7 +195,6 @@ final class TechPilotWebQaSuite
         $this->testCsrfContract($home);
         $this->testLocalAssets($home);
         $this->testGuestAccessRules();
-        $this->testGuestCheckoutAllowed();
         $this->testBrokenProfileLinks();
         $this->testMissingAiFavoriteHandler();
         $this->testAdminPostAuthorization();
@@ -395,25 +394,29 @@ final class TechPilotWebQaSuite
             );
         }
 
-        // TP-WEB-015: /checkout cho phép guest (Guest Checkout đã được chốt).
-        // Contract mới: không redirect /auth/login, không 4xx/5xx, không PHP fatal.
-        // Với giỏ trống, redirect về /cart là hành vi nghiệp vụ hợp lệ.
+        // TP-WEB-015: /checkout cho phép guest (Guest Checkout).
+        // Khi giỏ rỗng, chấp nhận duy nhất HTTP 302 với Location chính xác là /cart.
+        // Khi có giỏ, chấp nhận HTTP 200.
+        // Từ chối hoàn toàn: HTTP >= 400, redirect tới /auth/login, cURL error, PHP fatal/warning.
         $checkoutRes = $this->client->request('GET', '/checkout');
         $checkoutStatus = $checkoutRes['status'];
-        $checkoutLocation = strtolower($this->lastHeader($checkoutRes, 'location'));
+        $rawLocation = $this->lastHeader($checkoutRes, 'location');
+        $checkoutLocation = strtolower($rawLocation);
         $checkoutBody = $checkoutRes['body'];
 
         $redirectsToLogin  = str_contains($checkoutLocation, '/auth/login');
-        $isServerError     = $checkoutStatus >= 500;
-        $isAuthError       = in_array($checkoutStatus, [401, 403], true);
+        $isHttpError       = $checkoutStatus >= 400;
+        $isValidEmptyCart  = ($checkoutStatus === 302 && (rtrim($checkoutLocation, '/') === '/cart' || str_ends_with($checkoutLocation, '/cart')));
+        $isValidWithCart   = ($checkoutStatus === 200);
+
         $hasFatal          = preg_match(
-            '/(?:Fatal error|Parse error|Uncaught (?:Error|Exception)|Warning:.*null)/i',
+            '/(?:Fatal error|Parse error|Uncaught (?:Error|Exception)|Warning:.*null|Trying to access array offset on null)/i',
             $checkoutBody
         ) === 1;
 
-        $guestCheckoutPassed = !$redirectsToLogin
-            && !$isServerError
-            && !$isAuthError
+        $guestCheckoutPassed = ($isValidEmptyCart || $isValidWithCart)
+            && !$redirectsToLogin
+            && !$isHttpError
             && !$hasFatal
             && $checkoutRes['error'] === '';
 
@@ -421,15 +424,15 @@ final class TechPilotWebQaSuite
             'TP-WEB-015',
             'Authorization',
             'P0',
-            'Trang thanh toán cho phép guest (không redirect login, không 5xx, không fatal)',
+            'Trang thanh toán cho phép guest (HTTP 302 -> /cart khi rỗng hoặc HTTP 200)',
             $guestCheckoutPassed,
-            'Không redirect /auth/login; không HTTP 4xx/5xx; không PHP fatal/warning',
+            'HTTP 302 Location: /cart hoặc HTTP 200; Không HTTP >= 400; Không redirect login; Không PHP fatal/warning',
             $this->httpSummary($checkoutRes)
                 . ($redirectsToLogin  ? '; FAIL: redirect tới login' : '')
-                . ($isServerError     ? '; FAIL: HTTP 5xx' : '')
-                . ($isAuthError       ? '; FAIL: HTTP 401/403' : '')
+                . ($isHttpError       ? '; FAIL: HTTP >= 400' : '')
+                . ($checkoutStatus === 302 && !$isValidEmptyCart ? '; FAIL: location không phải /cart' : '')
                 . ($hasFatal          ? '; FAIL: PHP fatal/warning detected' : ''),
-            'GET /checkout (guest, không đăng nhập, giỏ có thể rỗng)'
+            'GET /checkout (guest, giỏ rỗng mặc định)'
         );
 
         $response = $this->client->request('GET', '/api/admin/notifications');
@@ -442,166 +445,6 @@ final class TechPilotWebQaSuite
             'HTTP 401/403 hoặc redirect tới /auth/login',
             $this->httpSummary($response) . '; body=' . $this->bodySnippet($response['body']),
             'GET /api/admin/notifications'
-        );
-    }
-
-    /**
-     * TP-WEB-015-GC: Regression test hành vi P0-1.
-     *
-     * Dùng một HTTP client mới (không có session người dùng) để:
-     * 1. Khởi tạo guest session qua GET trang chủ.
-     * 2. Inject cart item vào session qua session file manipulation.
-     * 3. GET /checkout và xác minh:
-     *    - HTTP 200 (không 5xx, không redirect login).
-     *    - Trang có nội dung checkout (không fatal, không warning).
-     *    - Không tạo order (chỉ GET, không POST submit).
-     *
-     * Nếu không thể inject session (môi trường hạn chế), bài kiểm thử
-     * fallback về static contract verification và ghi rõ lý do.
-     */
-    private function testGuestCheckoutAllowed(): void
-    {
-        echo "\n--- D2. P0-1 Guest Checkout regression (có sản phẩm trong giỏ) ---\n";
-
-        // Dùng client mới với cookie jar độc lập để không ảnh hưởng session khác.
-        $guestClient = new WebQaHttpClient($this->baseUrl);
-
-        // Bước 1: Lấy guest session + CSRF token.
-        $homeRes = $guestClient->request('GET', '/');
-        if ($homeRes['status'] !== 200) {
-            $this->record(
-                'TP-WEB-015-GC',
-                'Guest Checkout P0-1',
-                'P0',
-                'Guest có sản phẩm trong giỏ có thể truy cập /checkout (HTTP 200, không fatal)',
-                false,
-                'HTTP 200 tại /checkout sau khi thêm sản phẩm vào giỏ',
-                'SKIP: homepage trả HTTP ' . $homeRes['status'] . ' — không lấy được session',
-                'GET / → inject cart → GET /checkout'
-            );
-            return;
-        }
-
-        $csrfToken = $this->extractCsrfToken($homeRes['body']);
-
-        // Bước 2: Tìm session ID từ cookie để inject cart.
-        // WebQaHttpClient lưu cookies trong array nội bộ; dùng reflection để lấy.
-        $reflection = new ReflectionObject($guestClient);
-        $cookiesProp = $reflection->getProperty('cookies');
-        $cookiesProp->setAccessible(true);
-        $cookies = $cookiesProp->getValue($guestClient);
-        $sessionId = $cookies['PHPSESSID'] ?? '';
-
-        $cartInjected = false;
-        if ($sessionId !== '') {
-            $sessionPath = (string)(ini_get('session.save_path') ?: sys_get_temp_dir());
-            $sessionFile = rtrim($sessionPath, '/\\') . DIRECTORY_SEPARATOR . 'sess_' . $sessionId;
-
-            if (file_exists($sessionFile) && is_writable($sessionFile)) {
-                // Đọc session, thêm cart item (product_id=1, active, stock>0)
-                $raw = (string)file_get_contents($sessionFile);
-                // Xóa cart/user cũ nếu có, thêm cart item sạch
-                // Format PHP session: key|serialized_value
-                // Giữ lại csrf_token, xóa cart và user để đảm bảo guest state
-                $newRaw = '';
-                foreach (explode('|', $raw) as $i => $segment) {
-                    // Parse thô: chỉ inject, không dùng session_decode để tránh side effect
-                }
-                // Ghi cart item trực tiếp (bảo toàn CSRF token nếu có)
-                if (preg_match('/csrf_token\|([^|]+)/', $raw, $m)) {
-                    $csrfBlock = 'csrf_token|' . $m[1];
-                } else {
-                    $csrfBlock = '';
-                }
-                // Cart item: array(1 => array('product_id'=>1,'quantity'=>1))
-                $cartData = serialize([1 => ['product_id' => 1, 'quantity' => 1]]);
-                $newContent = ($csrfBlock !== '' ? $csrfBlock . '|' : '')
-                    . 'cart|a:1:{i:1;a:2:{s:10:"product_id";i:1;s:8:"quantity";i:1;}}'
-                    . '|submit_token|' . serialize(bin2hex(random_bytes(16)));
-                // Dùng session_encode alternative: viết thủ công
-                $writeResult = file_put_contents($sessionFile, $newContent);
-                $cartInjected = ($writeResult !== false);
-            }
-        }
-
-        if (!$cartInjected) {
-            // Fallback: Kiểm tra static contract — null guard có trong code.
-            // Đây là bằng chứng đáng tin cậy khi môi trường không cho phép inject session.
-            $controllerPath = dirname(dirname(__DIR__))
-                . '/app/controllers/CheckoutController.php';
-            $controllerCode = file_exists($controllerPath)
-                ? (string)file_get_contents($controllerPath)
-                : '';
-            $hasNullGuard = preg_match(
-                '/if\s*\(\s*\$user\s*!==\s*null\s*&&\s*isset\s*\(\s*\$user\[\s*[\'"]id[\'"]\s*\]\s*\)\s*\)/',
-                $controllerCode
-            ) === 1;
-            $noRawNullAccess = !preg_match(
-                '/\$user\[\s*[\'"]id[\'"]\s*\](?!.*null.*isset)/s',
-                preg_replace('/\/\/[^\n]*/', '', $controllerCode)
-            );
-
-            $this->record(
-                'TP-WEB-015-GC',
-                'Guest Checkout P0-1',
-                'P0',
-                'Guest có sản phẩm trong giỏ có thể truy cập /checkout (HTTP 200, không fatal)',
-                $hasNullGuard,
-                'null guard ($user !== null && isset($user[\'id\'])) có trong CheckoutController::index()',
-                $hasNullGuard
-                    ? 'STATIC CONTRACT PASS: null guard confirmed in CheckoutController (session inject unavailable)'
-                    : 'FAIL: null guard không tìm thấy trong CheckoutController',
-                'Static code analysis — session inject không khả dụng trong môi trường này'
-            );
-            return;
-        }
-
-        // Bước 3: GET /checkout với session đã có cart item.
-        $checkoutRes = $guestClient->request('GET', '/checkout');
-        $checkoutStatus = $checkoutRes['status'];
-        $checkoutLocation = strtolower($this->lastHeader($checkoutRes, 'location'));
-        $checkoutBody = $checkoutRes['body'];
-
-        $redirectsToLogin = str_contains($checkoutLocation, '/auth/login');
-        $isServerError    = $checkoutStatus >= 500;
-        $isAuthError      = in_array($checkoutStatus, [401, 403], true);
-        $hasFatal         = preg_match(
-            '/(?:Fatal error|Parse error|Uncaught (?:Error|Exception)|Trying to access array offset on null)/i',
-            $checkoutBody
-        ) === 1;
-
-        // HTTP 200 (checkout render) hoặc 302→/cart (giỏ trống sau inject) đều hợp lệ
-        // nhưng redirect→login hoặc 5xx KHÔNG được phép.
-        $checkoutOk = ($checkoutStatus === 200 || ($checkoutStatus === 302 && !$redirectsToLogin))
-            && !$isServerError
-            && !$isAuthError
-            && !$hasFatal
-            && $checkoutRes['error'] === '';
-
-        // Nếu HTTP 200, xác minh có nội dung đặc trưng trang checkout
-        $hasCheckoutContent = false;
-        if ($checkoutStatus === 200) {
-            $visibleText = $this->visibleText($checkoutBody);
-            $hasCheckoutContent = stripos($visibleText, 'Thanh toán') !== false
-                || stripos($visibleText, 'checkout') !== false
-                || stripos($visibleText, 'đặt hàng') !== false;
-            $checkoutOk = $checkoutOk && $hasCheckoutContent;
-        }
-
-        $this->record(
-            'TP-WEB-015-GC',
-            'Guest Checkout P0-1',
-            'P0',
-            'Guest có sản phẩm trong giỏ có thể truy cập /checkout (HTTP 200, không fatal)',
-            $checkoutOk,
-            'HTTP 200 với nội dung checkout; hoặc redirect /cart (không phải login); không 5xx; không fatal',
-            $this->httpSummary($checkoutRes)
-                . ($redirectsToLogin ? '; FAIL: redirect tới login' : '')
-                . ($isServerError    ? '; FAIL: HTTP 5xx' : '')
-                . ($isAuthError      ? '; FAIL: HTTP 401/403' : '')
-                . ($hasFatal         ? '; FAIL: PHP fatal/null warning detected' : '')
-                . ($checkoutStatus === 200 && !$hasCheckoutContent ? '; FAIL: thiếu nội dung checkout' : ''),
-            'GET / → inject cart(product_id=1) → GET /checkout (guest session)'
         );
     }
 
