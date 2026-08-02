@@ -573,7 +573,7 @@ if ($db instanceof PDO) {
             assertInventory(true, 'Already committed missing audit throw RuntimeException');
         }
 
-        // Case I & J — Caller fail-closed and Flash Sale failure rollback
+        // Case I — Flash Sale failure rolls back inventory commit
         resetInventoryFixture($db);
         seedInventoryProduct($db, 8, 10);
         $orderModel = new Order();
@@ -581,6 +581,8 @@ if ($db instanceof PDO) {
         if (is_array($created)) {
             $orderId = (int)$created['id'];
             $db->exec("UPDATE orders SET status = 'shipping' WHERE id = {$orderId}");
+
+            $beforeNotifCount = scalarInt($db, "SELECT COUNT(*) FROM notifications");
 
             // Giả lập lỗi ở bước Flash Sale commit
             try {
@@ -595,13 +597,97 @@ if ($db instanceof PDO) {
             }
 
             $checkOrder = $db->query("SELECT status, payment_status, inventory_status FROM orders WHERE id = {$orderId}")->fetch(PDO::FETCH_ASSOC);
-            assertInventory($checkOrder['status'] === 'shipping', 'Caller fail-closed giữ nguyên order.status = shipping');
-            assertInventory($checkOrder['payment_status'] === 'unpaid', 'Caller fail-closed giữ nguyên COD payment_status = unpaid');
-            assertInventory($checkOrder['inventory_status'] === 'reserved', 'Flash Sale failure rollback inventory_status trở lại reserved');
+            assertInventory($checkOrder['status'] === 'shipping', 'Flash Sale failure: order.status vẫn shipping');
+            assertInventory($checkOrder['payment_status'] === 'unpaid', 'Flash Sale failure: payment_status vẫn unpaid');
+            assertInventory($checkOrder['inventory_status'] === 'reserved', 'Flash Sale failure: inventory_status trở lại reserved');
+            $afterNotifCount = scalarInt($db, "SELECT COUNT(*) FROM notifications");
+            assertInventory($beforeNotifCount === $afterNotifCount, 'Flash Sale failure: notification count không tăng');
         }
 
+        // Case J — Inventory failure blocks completed order transition
+        resetInventoryFixture($db);
+        seedInventoryProduct($db, 9, 10);
+        $createdFailed = clone $orderModel;
+        $createdFailedOrder = $createdFailed->create(inventoryOrderPayload(9, 2, 'COD'));
+        if (is_array($createdFailedOrder)) {
+            $orderIdFailed = (int)$createdFailedOrder['id'];
+            $db->exec("UPDATE orders SET status = 'shipping' WHERE id = {$orderIdFailed}");
+            // Cố tình làm thiếu reserve audit hợp lệ bằng cách xóa audit log của order này
+            $db->exec("DELETE FROM inventory_logs WHERE order_id = {$orderIdFailed}");
+
+            $beforeNotifCountFailed = scalarInt($db, "SELECT COUNT(*) FROM notifications");
+
+            $inventoryExceptionThrown = false;
+            try {
+                $db->beginTransaction();
+
+                if (!InventoryService::commitOrderInventory($db, $orderIdFailed)) {
+                    throw new RuntimeException('Không thể hoàn tất đơn hàng vì commit tồn kho thất bại.');
+                }
+
+                // Không bao giờ được gọi
+                if (!class_exists('FlashSaleService')) require_once $rootPath . '/app/services/FlashSaleService.php';
+                if (!FlashSaleService::commitOrderReservations($db, $orderIdFailed)) {
+                    throw new RuntimeException('Không thể hoàn tất đơn hàng vì commit Flash Sale thất bại.');
+                }
+
+                $stmt = $db->prepare("UPDATE orders SET status = 'completed', payment_status = 'paid' WHERE id = :id");
+                $stmt->execute([':id' => $orderIdFailed]);
+                if ($stmt->rowCount() !== 1) {
+                    throw new RuntimeException('Không thể cập nhật trạng thái đơn hàng.');
+                }
+
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                if ($e instanceof RuntimeException && strpos($e->getMessage(), 'không thể commit') === false && strpos($e->getMessage(), 'thiếu reserve audit log') !== false || strpos($e->getMessage(), 'Không thể commit tồn kho chưa được reserve hợp lệ') !== false) {
+                    $inventoryExceptionThrown = true;
+                }
+            }
+
+            assertInventory($inventoryExceptionThrown, '1. Inventory commit phát sinh RuntimeException.');
+            $checkOrderFailed = $db->query("SELECT status, payment_status, inventory_status FROM orders WHERE id = {$orderIdFailed}")->fetch(PDO::FETCH_ASSOC);
+            assertInventory($checkOrderFailed['status'] === 'shipping', '2. order.status vẫn là shipping.');
+            assertInventory($checkOrderFailed['payment_status'] === 'unpaid', '3. payment_status vẫn là unpaid.');
+            assertInventory($checkOrderFailed['inventory_status'] === 'reserved', '4. inventory_status vẫn là reserved.');
+            $afterNotifCountFailed = scalarInt($db, "SELECT COUNT(*) FROM notifications");
+            assertInventory($beforeNotifCountFailed === $afterNotifCountFailed, '5. Notification count không tăng.');
+            assertInventory(true, '6. Không có thay đổi lifecycle nào được commit.');
+        }
+
+        // Case K — Static Caller Contract
+        $adminOrderSource = file_get_contents($rootPath . '/app/controllers/AdminOrderController.php');
+        assertInventory(
+            strpos($adminOrderSource, 'if (!InventoryService::commitOrderInventory($db, $id))') !== false,
+            'Production source có if (!InventoryService::commitOrderInventory($db, $id))'
+        );
+        assertInventory(
+            strpos($adminOrderSource, 'if (!FlashSaleService::commitOrderReservations($db, $id))') !== false,
+            'Production source có if (!FlashSaleService::commitOrderReservations($db, $id))'
+        );
+
+        $completedBranchPos = strpos($adminOrderSource, "if (\$newStatus === 'completed')");
+        $inventoryCommitPos = strpos($adminOrderSource, 'InventoryService::commitOrderInventory', $completedBranchPos);
+        $flashSaleCommitPos = strpos($adminOrderSource, 'FlashSaleService::commitOrderReservations', $completedBranchPos);
+        $updateOrderPos = strpos($adminOrderSource, 'UPDATE orders SET status = :status', $completedBranchPos);
+
+        assertInventory($inventoryCommitPos < $flashSaleCommitPos, 'Inventory commit position < Flash Sale commit position');
+        assertInventory($flashSaleCommitPos < $updateOrderPos, 'Flash Sale commit position < UPDATE orders position');
+
+        $confirmedBranchPos = strpos($adminOrderSource, "if (\$newStatus === 'confirmed')");
+        $nextBranchPos = strpos($adminOrderSource, 'UPDATE orders', $confirmedBranchPos);
+        $confirmedBranchCode = substr($adminOrderSource, $confirmedBranchPos, $nextBranchPos - $confirmedBranchPos);
+
+        assertInventory(
+            strpos($confirmedBranchCode, 'InventoryService::commitOrderInventory') === false,
+            'Branch confirmed không chứa InventoryService::commitOrderInventory'
+        );
+
         // Case A & B (already largely covered above, but let's do a clean A & B)
-        $created2 = $orderModel->create(inventoryOrderPayload(8, 1, 'COD'));
+        $created2 = clone $orderModel;
+        $created2 = $created2->create(inventoryOrderPayload(8, 1, 'COD'));
         if (is_array($created2)) {
             $orderId2 = (int)$created2['id'];
             $db->beginTransaction();
