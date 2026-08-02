@@ -334,6 +334,22 @@ if ($db instanceof PDO && file_exists($servicePath)) {
         assertFlashReservation($checkCommittedReservation['committed_at'] !== null, 'Vẫn giữ lại committed_at để audit');
         assertFlashReservation($checkCommittedReservation['released_at'] !== null, 'Cập nhật released_at');
 
+        $db->beginTransaction();
+        $releasedCommittedAgain = FlashSaleService::releaseOrderReservations(
+            $db,
+            101,
+            'must_not_overwrite'
+        );
+        $db->commit();
+        assertFlashReservation($releasedCommittedAgain, 'Hàm trả về true (repeated release after committed → released)');
+        assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 1')->fetchColumn() === 0, 'sold_quantity vẫn bằng 0');
+        $checkCommittedAgain = $db->query('SELECT status, release_reason, committed_at, released_at FROM flash_sale_reservations WHERE order_id = 101')->fetch(PDO::FETCH_ASSOC);
+        assertFlashReservation($checkCommittedAgain['status'] === 'released', 'Reservation vẫn có status = released');
+        assertFlashReservation($checkCommittedAgain['release_reason'] === 'cancel_after_commit', 'release_reason vẫn là cancel_after_commit, không đổi thành must_not_overwrite');
+        assertFlashReservation($checkCommittedAgain['released_at'] === $checkCommittedReservation['released_at'], 'released_at không thay đổi so với snapshot');
+        assertFlashReservation($checkCommittedAgain['committed_at'] === $checkCommittedReservation['committed_at'] && $checkCommittedAgain['committed_at'] !== null, 'committed_at không thay đổi và vẫn khác NULL');
+        assertFlashReservation(flashReservationCount($db, 101) === 1, 'Không tạo thêm reservation');
+
         $db->exec("INSERT INTO products VALUES (3, 'Product 3', 900000, NULL, 'active')");
         $db->exec("INSERT INTO flash_sale_items VALUES (3, 1, 3, 650000, 5, 0, 2)");
         $db->exec("INSERT INTO orders (id, user_id, phone) VALUES (104, 14, '0900 888 777')");
