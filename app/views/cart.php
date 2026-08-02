@@ -2,6 +2,8 @@
 $cartItems = $cartItems ?? [];
 $subtotal = $subtotal ?? 0;
 $total = $total ?? 0;
+$hasUnavailableItems = $hasUnavailableItems ?? false;
+$canCheckout = $canCheckout ?? false;
 ?>
 
 <section class="container breadcrumb">
@@ -24,7 +26,8 @@ $total = $total ?? 0;
         <?php else: ?>
             <div class="cart-list">
                 <?php foreach ($cartItems as $item): ?>
-                    <div class="cart-item">
+                    <?php $itemAvailable = (bool)($item['available'] ?? false); ?>
+                    <div class="cart-item <?= !$itemAvailable ? 'cart-item--unavailable' : '' ?>">
                         <div class="cart-item__info">
                             <div class="cart-item__thumb">
                                 <?php $imgUrl = productImageUrl($item['image'] ?? '', $item['category_slug'] ?? $item['slug'] ?? '', (int)($item['product_id'] ?? $item['id'] ?? 0)); ?>
@@ -40,6 +43,7 @@ $total = $total ?? 0;
                             </div>
                         </div>
                         <div class="cart-item__controls">
+                            <?php if ($itemAvailable): ?>
                             <form method="post" action="<?= url('cart/update') ?>" class="qty-form">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
@@ -47,13 +51,20 @@ $total = $total ?? 0;
                                 <span><?= (int)$item['quantity'] ?></span>
                                 <button type="submit" name="quantity" value="<?= (int)$item['quantity'] + 1 ?>" class="qty-btn">+</button>
                             </form>
+                            <?php else: ?>
+                            <span class="badge badge--danger" style="color: #ef4444; font-weight: bold; background: #fee2e2; padding: 4px 8px; border-radius: 4px;">Hết hàng</span>
+                            <?php endif; ?>
                             <form method="post" action="<?= url('cart/remove') ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
                                 <button type="submit" class="btn btn--outline btn--sm" style="box-shadow: none;">Xóa</button>
                             </form>
                         </div>
+                        <?php if ($itemAvailable): ?>
                         <strong style="font-size: 16px; color: var(--primary);"><?= formatPrice($item['line_total']) ?></strong>
+                        <?php else: ?>
+                        <strong class="cart-item__unavailable-total" style="font-size: 14px; color: var(--text-secondary);">Không tính vào tổng</strong>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -66,7 +77,14 @@ $total = $total ?? 0;
             <div class="summary-row"><span>Tạm tính</span><strong><?= formatPrice($subtotal) ?></strong></div>
             <div class="summary-row"><span>Phí vận chuyển</span><strong style="color: var(--success);"><?= $shipping > 0 ? formatPrice($shipping) : 'Miễn phí' ?></strong></div>
             <div class="summary-row total"><span>Tổng tiền thanh toán</span><strong><?= formatPrice($total) ?></strong></div>
+            <?php if ($canCheckout === true): ?>
             <a href="<?= url('checkout') ?>" class="btn btn--block" style="margin-top: 20px;">Tiến hành thanh toán <i class="fa-solid fa-credit-card"></i></a>
+            <?php else: ?>
+            <button type="button" class="btn btn--block" disabled aria-disabled="true" style="margin-top: 20px; background: #cbd5e1; border-color: #cbd5e1; cursor: not-allowed; color: #64748b;">Chưa thể thanh toán</button>
+            <?php if ($hasUnavailableItems): ?>
+            <p style="color: #ef4444; font-size: 13px; margin-top: 10px; text-align: center;">Vui lòng xóa sản phẩm hết hàng trước khi thanh toán.</p>
+            <?php endif; ?>
+            <?php endif; ?>
         </aside>
     <?php endif; ?>
 </section>

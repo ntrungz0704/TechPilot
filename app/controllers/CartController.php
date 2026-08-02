@@ -90,6 +90,8 @@ class CartController extends Controller
             'subtotal' => $summary['subtotal'],
             'shipping' => $summary['shipping'],
             'total' => $summary['total'],
+            'hasUnavailableItems' => (bool)$summary['has_unavailable_items'],
+            'canCheckout' => (bool)$summary['can_checkout'],
             'flashes' => pullFlashes(),
         ]);
     }

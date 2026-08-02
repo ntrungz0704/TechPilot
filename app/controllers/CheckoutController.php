@@ -71,6 +71,13 @@ class CheckoutController extends Controller
             return;
         }
 
+        if (!($summary['can_checkout'] ?? false)) {
+            unset($_SESSION['applied_coupon']);
+            flash('error', 'Vui lòng xóa sản phẩm hết hàng trước khi thanh toán.');
+            $this->redirect('cart');
+            return;
+        }
+
         $items = $summary['items'];
         $subtotal = (float)$summary['subtotal'];
         $shipping = (float)$summary['shipping'];
@@ -155,6 +162,15 @@ class CheckoutController extends Controller
 
         if (empty($summary['items'])) {
             echo json_encode(['success' => false, 'message' => 'Giỏ hàng không còn sản phẩm hợp lệ.']);
+            exit;
+        }
+
+        if (!($summary['can_checkout'] ?? false)) {
+            unset($_SESSION['applied_coupon']);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Vui lòng xóa sản phẩm hết hàng trước khi áp dụng mã giảm giá.',
+            ]);
             exit;
         }
 
@@ -287,6 +303,13 @@ class CheckoutController extends Controller
         $summary = $this->getCartSummary();
         $cart = $summary['items'];
         if (empty($cart)) {
+            $this->redirect('cart');
+            return;
+        }
+
+        if (!($summary['can_checkout'] ?? false)) {
+            unset($_SESSION['applied_coupon']);
+            flash('error', 'Vui lòng xóa sản phẩm hết hàng trước khi thanh toán.');
             $this->redirect('cart');
             return;
         }

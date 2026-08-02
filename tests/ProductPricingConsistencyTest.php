@@ -112,8 +112,20 @@ assertPricing(
     'CartService hydrate lại giá hiệu lực từ database'
 );
 assertPricing(
+    str_contains($cartSource, '$available = $stock > 0') &&
+    str_contains($cartSource, '$quantity = $available') &&
+    str_contains($cartSource, '$lineTotal = $available') &&
+    str_contains($cartSource, 'has_unavailable_items') &&
+    str_contains($cartSource, 'can_checkout'),
+    'CartService có xử lý quantity/line_total theo available và expose checkout flags'
+);
+assertPricing(
     str_contains($checkoutSource, 'CartService') && str_contains($checkoutSource, 'getSummary()'),
     'Checkout dùng lại summary server-side của CartService'
+);
+assertPricing(
+    substr_count($checkoutSource, "\$summary['can_checkout']") >= 3,
+    'CheckoutController dùng \$summary[\'can_checkout\'] trong index, apply_coupon, submit'
 );
 assertPricing(
     !str_contains($checkoutSource, "(float)(\$_POST['subtotal'] ?? 0)"),
@@ -159,6 +171,12 @@ assertPricing(
 assertPricing(
     str_contains($cartViewSource, '$shipping > 0 ? formatPrice($shipping) : \'Miễn phí\''),
     'Trang giỏ hàng hiển thị phí vận chuyển từ cùng summary server-side'
+);
+assertPricing(
+    str_contains($cartViewSource, "\$item['available']") &&
+    str_contains($cartViewSource, "disabled aria-disabled=\"true\"") &&
+    str_contains($cartViewSource, "if (\$canCheckout === true)"),
+    'Trang giỏ hàng thay đổi UI checkout theo flag'
 );
 
 echo "\n--- 3. Isolated MySQL Product/Cart integration ---\n";
@@ -292,6 +310,69 @@ if ($db instanceof PDO) {
             )->fetchColumn();
             assertPricing((int)$selectedItemId === 2, 'Hai mức giá Flash bằng nhau chỉ chọn item có ID nhỏ nhất');
         }
+
+        // Zero-stock runtime tests
+        $db->exec(
+            "INSERT INTO `products`
+                (`id`, `name`, `slug`, `price`, `sale_price`, `stock`, `status`, `category_id`, `brand_id`, `image`, `is_flash_sale`)
+             VALUES
+                (101, 'Product A', 'product-a', 200000, NULL, 0, 'active', 1, 1, 'a.jpg', 0),
+                (102, 'Product B', 'product-b', 100000, NULL, 2, 'active', 1, 1, 'b.jpg', 0)"
+        );
+
+        // Case A - Only zero-stock item
+        $_SESSION['cart'] = [
+            101 => ['product_id' => 101, 'quantity' => 3],
+        ];
+        $summary = (new CartService())->getSummary();
+        assertPricing(count($summary['items']) === 1, 'items count = 1');
+        assertPricing($summary['items'][0]['available'] === false, 'available = false');
+        assertPricing($summary['items'][0]['stock'] === 0, 'stock = 0');
+        assertPricing($summary['items'][0]['quantity'] === 0, 'quantity = 0');
+        assertPricing((float)$summary['items'][0]['line_total'] === 0.0, 'line_total = 0');
+        assertPricing((float)$summary['subtotal'] === 0.0, 'subtotal = 0');
+        assertPricing((float)$summary['shipping'] === 0.0, 'shipping = 0');
+        assertPricing((float)$summary['total'] === 0.0, 'total = 0');
+        assertPricing($summary['has_unavailable_items'] === true, 'has_unavailable_items = true');
+        assertPricing($summary['can_checkout'] === false, 'can_checkout = false');
+        assertPricing((float)cartSubtotal() === 0.0, 'cartSubtotal() = 0');
+
+        // Case B - Mixed available and zero stock
+        $_SESSION['cart'] = [
+            102 => ['product_id' => 102, 'quantity' => 2],
+            101 => ['product_id' => 101, 'quantity' => 4],
+        ];
+        $summary = (new CartService())->getSummary();
+        $cartById = indexedByProductId($summary['items']);
+        assertPricing(count($summary['items']) === 2, 'items count = 2');
+        assertPricing($cartById[102]['quantity'] === 2, 'available item quantity = 2');
+        assertPricing((float)$cartById[102]['line_total'] === 200000.0, 'available line_total = 200000');
+        assertPricing((float)$cartById[101]['line_total'] === 0.0, 'zero-stock line_total = 0');
+        assertPricing((float)$summary['subtotal'] === 200000.0, 'subtotal = 200000');
+        assertPricing((float)$summary['shipping'] === 30000.0, 'shipping = 30000');
+        assertPricing((float)$summary['total'] === 230000.0, 'total = 230000');
+        assertPricing($summary['has_unavailable_items'] === true, 'has_unavailable_items = true');
+        assertPricing($summary['can_checkout'] === false, 'can_checkout = false');
+
+        // Case C - Available-only cart
+        $_SESSION['cart'] = [
+            102 => ['product_id' => 102, 'quantity' => 2],
+        ];
+        $summary = (new CartService())->getSummary();
+        assertPricing((float)$summary['subtotal'] === 200000.0, 'subtotal = 200000');
+        assertPricing((float)$summary['shipping'] === 30000.0, 'shipping = 30000');
+        assertPricing((float)$summary['total'] === 230000.0, 'total = 230000');
+        assertPricing($summary['has_unavailable_items'] === false, 'has_unavailable_items = false');
+        assertPricing($summary['can_checkout'] === true, 'can_checkout = true');
+
+        // Case D - Clamp low stock
+        $_SESSION['cart'] = [
+            102 => ['product_id' => 102, 'quantity' => 5],
+        ];
+        $summary = (new CartService())->getSummary();
+        assertPricing($summary['items'][0]['quantity'] === 2, 'quantity được clamp về 2');
+        assertPricing((float)$summary['items'][0]['line_total'] === 200000.0, 'line_total chỉ tính 2 sản phẩm');
+        assertPricing($summary['can_checkout'] === true, 'can_checkout = true');
 
         $_SESSION['cart'] = [
             1 => ['product_id' => 1, 'quantity' => 2, 'price' => 1],
