@@ -74,9 +74,13 @@ class CheckoutController extends Controller
             $cStmt->execute();
             $availableCoupons = $cStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $addrStmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
-            $addrStmt->execute([':uid' => $user['id']]);
-            $savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
+            // Chỉ truy vấn địa chỉ đã lưu khi người dùng đã đăng nhập.
+            // Guest sẽ nhận $savedAddresses = [] và tự nhập địa chỉ tại form.
+            if ($user !== null && isset($user['id'])) {
+                $addrStmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
+                $addrStmt->execute([':uid' => $user['id']]);
+                $savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
         }
 
         $this->render('checkout', [
