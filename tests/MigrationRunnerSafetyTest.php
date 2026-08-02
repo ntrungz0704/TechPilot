@@ -32,6 +32,8 @@ final class MigrationRunnerSafetyTest
             $this->testFailureStopsQueue($db);
             $this->testBaselineDoesNotExecuteMigrations($db);
             $this->testPromoMigrationIsIdempotent($db);
+            $this->testInvalidZeroParameters($db);
+            $this->testInvalidTwoParameters($db);
         }
 
         echo "\n════════════════════════════════════════════════════════\n";
@@ -69,6 +71,13 @@ final class MigrationRunnerSafetyTest
             $this->assert($reflection->hasMethod('run'), 'Runner có run() cho migration pending');
             $this->assert($reflection->hasMethod('status'), 'Runner có status() để kiểm tra an toàn');
             $this->assert($reflection->hasMethod('baseline'), 'Runner có baseline() cho database legacy đã đồng bộ');
+
+            $runnerSource = file_get_contents($runnerClassPath);
+            $countPos = strpos($runnerSource, 'count($parameters) !== 1');
+            $typePos = strpos($runnerSource, '$parameters[0]->getType()');
+            $this->assert($countPos !== false, 'MigrationRunner source contains count($parameters) !== 1 check');
+            $this->assert($typePos !== false, 'MigrationRunner source contains $parameters[0]->getType() check');
+            $this->assert($countPos < $typePos, 'count check appears before getType check in source code');
         }
 
         $cliSource = file_get_contents(ROOT_PATH . '/scripts/database/migrate.php');
@@ -273,6 +282,83 @@ final class MigrationRunnerSafetyTest
         $failure = "[FAIL] {$message}";
         $this->errors[] = $failure;
         echo "{$failure}\n";
+    }
+    private function testInvalidZeroParameters(PDO $db): void
+    {
+        echo "\n--- 6. Zero parameters signature invalidation ---\n";
+        $this->resetTemporaryTables($db);
+
+        $runner = new MigrationRunner(
+            $db,
+            ROOT_PATH . '/tests/fixtures/migrations/invalid_zero_parameters'
+        );
+
+        $previousHandler = set_error_handler(
+            static function (
+                int $severity,
+                string $message,
+                string $file,
+                int $line
+            ): never {
+                throw new ErrorException($message, 0, $severity, $file, $line);
+            }
+        );
+
+        try {
+            $runResult = $runner->run();
+            $this->assert($runResult['failed'] === 1, 'Zero parameters via run: failed = 1');
+            $this->assert($runResult['applied'] === 0, 'Zero parameters via run: applied = 0');
+            $this->assert($this->ledgerCount($db) === 0, 'Zero parameters via run: ledger count = 0');
+            $this->assert($runResult['entries'][0]['state'] === 'failed', 'Zero parameters via run: entry state = failed');
+            $this->assert(str_contains($runResult['entries'][0]['message'], '::up() phải nhận đúng một tham số PDO.'), 'Zero parameters via run: message chứa ::up() phải nhận đúng một tham số PDO.');
+            $this->assert(!str_contains($runResult['entries'][0]['message'], 'Undefined array key'), 'Zero parameters via run: message không chứa Undefined array key');
+            $this->assert(!str_contains($runResult['entries'][0]['message'], 'getType() on null'), 'Zero parameters via run: message không chứa getType() on null');
+
+            $baselineResult = $runner->baseline();
+            $this->assert($baselineResult['failed'] === 1, 'Zero parameters via baseline: failed = 1');
+            $this->assert($baselineResult['baselined'] === 0, 'Zero parameters via baseline: baselined = 0');
+            $this->assert($this->ledgerCount($db) === 0, 'Zero parameters via baseline: ledger count = 0');
+            $this->assert(str_contains($baselineResult['entries'][0]['message'], '::up() phải nhận đúng một tham số PDO.'), 'Zero parameters via baseline: message đúng RuntimeException contract');
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    private function testInvalidTwoParameters(PDO $db): void
+    {
+        echo "\n--- 7. Two parameters signature invalidation ---\n";
+        $this->resetTemporaryTables($db);
+
+        $runner = new MigrationRunner(
+            $db,
+            ROOT_PATH . '/tests/fixtures/migrations/invalid_two_parameters'
+        );
+
+        $previousHandler = set_error_handler(
+            static function (
+                int $severity,
+                string $message,
+                string $file,
+                int $line
+            ): never {
+                throw new ErrorException($message, 0, $severity, $file, $line);
+            }
+        );
+
+        try {
+            $runResult = $runner->run();
+            $this->assert($runResult['failed'] === 1, 'Two parameters via run: failed = 1');
+            $this->assert($runResult['applied'] === 0, 'Two parameters via run: applied = 0');
+            $this->assert($this->ledgerCount($db) === 0, 'Two parameters via run: ledger count = 0');
+            $this->assert(str_contains($runResult['entries'][0]['message'], '::up() phải nhận đúng một tham số PDO.'), 'Two parameters via run: message chứa ::up() phải nhận đúng một tham số PDO.');
+
+            $baselineResult = $runner->baseline();
+            $this->assert($baselineResult['failed'] === 1, 'Two parameters via baseline: failed = 1');
+            $this->assert($baselineResult['baselined'] === 0, 'Two parameters via baseline: baselined = 0');
+            $this->assert($this->ledgerCount($db) === 0, 'Two parameters via baseline: ledger count = 0');
+        } finally {
+            restore_error_handler();
+        }
     }
 }
 

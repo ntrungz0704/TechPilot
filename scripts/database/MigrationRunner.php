@@ -318,10 +318,15 @@ final class MigrationRunner
         }
 
         $parameters = $method->getParameters();
-        $parameterType = $parameters[0]->getType() ?? null;
+
+        if (count($parameters) !== 1) {
+            throw new RuntimeException("{$className}::up() phải nhận đúng một tham số PDO.");
+        }
+
+        $parameterType = $parameters[0]->getType();
+
         if (
-            count($parameters) !== 1
-            || !$parameterType instanceof ReflectionNamedType
+            !$parameterType instanceof ReflectionNamedType
             || $parameterType->getName() !== PDO::class
         ) {
             throw new RuntimeException("{$className}::up() phải nhận đúng một tham số PDO.");
