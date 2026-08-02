@@ -75,6 +75,7 @@ class AdminRouteAuthorizationTest
             $this->testGuestApi();
             $this->testCustomerApi();
             $this->testAdminApi();
+            $this->testStaticBaseUrlContract();
 
             echo "AdminRouteAuthorizationTest: 0 failed, 0 skipped\n";
             exit(0);
@@ -142,9 +143,7 @@ class AdminRouteAuthorizationTest
                 echo "DEBUG BODY: " . substr($res['body'], 0, 500) . "\n";
                 throw new RuntimeException("Guest GET {$endpoint} expected 302, got {$res['code']}");
             }
-            if (!str_contains($res['headers'], 'Location: /auth/login')) {
-                throw new RuntimeException("Guest GET {$endpoint} expected Location /auth/login, got header: " . $res['headers']);
-            }
+            $this->assertAdminLoginRedirect($res, $endpoint);
             if (str_contains(strtolower($res['body']), 'admin content') || str_contains(strtolower($res['body']), 'dashboard')) {
                 throw new RuntimeException("Guest GET {$endpoint} rendered admin content");
             }
@@ -171,9 +170,7 @@ class AdminRouteAuthorizationTest
             if ($res['code'] !== 302) {
                 throw new RuntimeException("Guest POST {$endpoint} expected 302, got {$res['code']}");
             }
-            if (!str_contains($res['headers'], 'Location: /auth/login')) {
-                throw new RuntimeException("Guest POST {$endpoint} expected Location /auth/login, got: " . $res['headers']);
-            }
+            $this->assertAdminLoginRedirect($res, $endpoint);
         }
     }
 
@@ -274,6 +271,54 @@ class AdminRouteAuthorizationTest
             return $matches[1];
         }
         return '';
+    }
+
+    private function testStaticBaseUrlContract(): void
+    {
+        $indexPhp = file_get_contents(__DIR__ . '/../public/index.php');
+        if (!str_contains($indexPhp, 'BASE_URL . \'/auth/login?redirect=\'')) {
+            throw new RuntimeException('Admin authorization guard MUST use BASE_URL . \'/auth/login?redirect=\' to construct login URL.');
+        }
+        if (preg_match('/header\(\'Location:\s*\/auth\/login/', $indexPhp)) {
+            throw new RuntimeException('Admin authorization guard must not hard-code Location: /auth/login without BASE_URL');
+        }
+    }
+
+    private function extractLocationHeader(string $headers): string
+    {
+        foreach (explode("\n", $headers) as $line) {
+            if (stripos(trim($line), 'Location:') === 0) {
+                return trim(substr(trim($line), 9));
+            }
+        }
+        return '';
+    }
+
+    private function assertAdminLoginRedirect(array $response, string $endpoint): void
+    {
+        $location = $this->extractLocationHeader($response['headers']);
+
+        if ($location === '') {
+            throw new RuntimeException("Missing Location for {$endpoint}");
+        }
+
+        $redirectPath = parse_url($location, PHP_URL_PATH);
+        $query = parse_url($location, PHP_URL_QUERY);
+        $host = parse_url($location, PHP_URL_HOST);
+
+        parse_str((string)$query, $params);
+
+        if (!str_ends_with((string)$redirectPath, '/auth/login')) {
+            throw new RuntimeException("Invalid login redirect path: {$location}");
+        }
+
+        if (($params['redirect'] ?? null) !== $endpoint) {
+            throw new RuntimeException("Invalid redirect target: {$location}");
+        }
+
+        if ($host !== null) {
+            throw new RuntimeException("Admin redirect must remain local: {$location}");
+        }
     }
 }
 
