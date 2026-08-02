@@ -67,7 +67,8 @@ if ($isAdminUiPath || $isAdminApiPath) {
 
     if ($isAdminUiPath) {
         if (!$isAuthenticated) {
-            header('Location: /auth/login?redirect=' . urlencode($path));
+            $loginUrl = BASE_URL . '/auth/login?redirect=' . rawurlencode($path);
+            header('Location: ' . $loginUrl);
             exit;
         } elseif (!$isAdmin) {
             http_response_code(403);
