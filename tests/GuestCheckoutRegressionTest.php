@@ -18,6 +18,7 @@ declare(strict_types=1);
  */
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
+ob_start();
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -28,57 +29,6 @@ define('APP_ENV', 'testing');
 define('APP_URL', $baseUrl);
 
 require_once ROOT_PATH . '/config/database.php';
-
-// ─── Tìm product hợp lệ từ DB trước mọi session/output ──────────────────────
-// Phải xong trước khi session_start() để tránh "headers already sent"
-
-$db = Database::getConnection();
-
-$productId    = 0;
-$dbConnected  = ($db !== null);
-$noValidProduct = false;
-
-if ($dbConnected) {
-    $stmt = $db->query(
-        "SELECT id FROM products WHERE status = 'active' AND stock > 0 ORDER BY id LIMIT 1"
-    );
-    $row = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : false;
-    if ($row !== false && !empty($row['id'])) {
-        $productId = (int)$row['id'];
-    } else {
-        $noValidProduct = true;
-    }
-}
-
-// ─── Tạo và ghi test session TRƯỚC mọi output ────────────────────────────────
-// session_id() phải được gọi trước khi bất kỳ output nào được gửi.
-
-$sessionName      = (string)(ini_get('session.name') ?: 'PHPSESSID');
-$sessionSavePath  = rtrim((string)(ini_get('session.save_path') ?: sys_get_temp_dir()), '/\\');
-$testSessionId    = 'gcreg' . bin2hex(random_bytes(13));
-$sessionFile      = $sessionSavePath . DIRECTORY_SEPARATOR . 'sess_' . $testSessionId;
-
-$sessionReady  = false;
-$sessionError  = '';
-
-$handlerOk   = ((string)ini_get('session.save_handler') === 'files');
-$pathWritable = is_writable($sessionSavePath);
-
-if ($dbConnected && !$noValidProduct && $handlerOk && $pathWritable && $productId > 0) {
-    session_id($testSessionId);
-    session_start();
-    $_SESSION['cart'] = [
-        $productId => ['product_id' => $productId, 'quantity' => 1],
-    ];
-    unset($_SESSION['user']); // guest — không có user
-    session_write_close();
-    $sessionReady = file_exists($sessionFile);
-    if (!$sessionReady) {
-        $sessionError = "Session file không tồn tại sau session_write_close()";
-    }
-}
-
-// ─── Helpers (sau session setup) ─────────────────────────────────────────────
 
 $results = ['passed' => 0, 'failed' => 0];
 
@@ -102,6 +52,140 @@ function blocked(string $label, string $reason): void
     $results['failed']++;
     echo "[BLOCKED] $label\n          $reason\n";
 }
+
+echo "============================================================\n";
+echo "GUEST CHECKOUT REGRESSION TEST — P0-1\n";
+echo "Base URL: $baseUrl\n";
+echo "============================================================\n\n";
+
+// ─── Precondition checks ─────────────────────────────────────────────────────
+
+// 1. Server
+$pingCh = curl_init($baseUrl . '/');
+curl_setopt_array($pingCh, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false]);
+curl_exec($pingCh);
+$pingCode = (int)curl_getinfo($pingCh, CURLINFO_HTTP_CODE);
+curl_close($pingCh);
+
+if ($pingCode === 0) {
+    blocked('Server reachable', "Không kết nối được $baseUrl — khởi động server trước");
+    goto summary;
+}
+pass('Server reachable');
+
+// 2. DB connection
+$db = Database::getConnection();
+if ($db === null) {
+    blocked('Database connection', 'Không thể kết nối database');
+    goto summary;
+}
+pass('Database connection');
+
+// 3. Valid product
+$productId    = 0;
+$noValidProduct = false;
+$stmt = $db->query(
+    "SELECT id FROM products WHERE status = 'active' AND stock > 0 ORDER BY id LIMIT 1"
+);
+$row = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : false;
+if ($row !== false && !empty($row['id'])) {
+    $productId = (int)$row['id'];
+} else {
+    $noValidProduct = true;
+}
+
+if ($noValidProduct) {
+    blocked(
+        'Valid product fixture',
+        'BLOCKED — NO VALID PRODUCT FIXTURE: Không có sản phẩm nào status=active AND stock>0'
+    );
+    goto summary;
+}
+pass("Valid product found (id={$productId})");
+
+// 4. Session handler
+$sessionName      = (string)(ini_get('session.name') ?: 'PHPSESSID');
+$sessionSavePath  = rtrim((string)(ini_get('session.save_path') ?: sys_get_temp_dir()), '/\\');
+
+$handlerOk   = ((string)ini_get('session.save_handler') === 'files');
+$pathWritable = is_writable($sessionSavePath);
+
+if (!$handlerOk) {
+    blocked('Session handler = files', 'session.save_handler không phải "files"');
+    goto summary;
+}
+if (!$pathWritable) {
+    blocked('Session save_path writable', "Không ghi được: $sessionSavePath");
+    goto summary;
+}
+pass('Session handler and save_path OK');
+
+
+// ─── Tạo và ghi test session ─────────────────────────────────────────────────
+
+$testSessionId    = 'gcreg' . bin2hex(random_bytes(13));
+$sessionFile      = $sessionSavePath . DIRECTORY_SEPARATOR . 'sess_' . $testSessionId;
+
+// Register cleanup shutdown function
+register_shutdown_function(function () use ($testSessionId, $sessionFile) {
+    $success = cleanupGuestTestSession($testSessionId, $sessionFile);
+    if ($success) {
+        pass('Test session cleaned up');
+    } else {
+        fail('Test session cleaned up', 'Test session cleanup failed');
+        global $results;
+        if ($results['failed'] === 0) { // Make sure we exit with non-zero if only this failed
+            exit(1);
+        }
+    }
+});
+
+function cleanupGuestTestSession(string $sessionId, string $sessionFile): bool {
+    if ($sessionId === '') {
+        return true;
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+
+    session_id($sessionId);
+
+    if (!session_start()) {
+        return false;
+    }
+
+    $_SESSION = [];
+    $destroyed = session_destroy();
+    session_write_close();
+
+    return $destroyed && !file_exists($sessionFile);
+}
+
+session_id($testSessionId);
+session_start();
+$_SESSION['cart'] = [
+    $productId => ['product_id' => $productId, 'quantity' => 1],
+];
+unset($_SESSION['user']); // guest — không có user
+session_write_close();
+
+if (!file_exists($sessionFile)) {
+    blocked('Guest session written', "Session file không tồn tại sau session_write_close()");
+    goto summary;
+}
+pass('Guest session written via native PHP session API (no raw serialization)');
+
+
+// ─── Baseline ────────────────────────────────────────────────────────────────
+
+$ordersBefore = (int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+$orderItemsBefore = (int)$db->query('SELECT COUNT(*) FROM order_items')->fetchColumn();
+$stockBefore  = (int)$db->query(
+    "SELECT stock FROM products WHERE id = {$productId}"
+)->fetchColumn();
+
+// ─── Helpers (sau session setup) ─────────────────────────────────────────────
 
 /** GET request trả về ['status', 'body', 'location', 'error']. */
 function httpGet(string $url, string $sessionId, string $sessionName): array
@@ -137,83 +221,16 @@ function httpGet(string $url, string $sessionId, string $sessionName): array
     ];
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
-echo "============================================================\n";
-echo "GUEST CHECKOUT REGRESSION TEST — P0-1\n";
-echo "Base URL: $baseUrl\n";
-echo "============================================================\n\n";
-
-// ─── Precondition checks ─────────────────────────────────────────────────────
-
-// Server
-$pingCh = curl_init($baseUrl . '/');
-curl_setopt_array($pingCh, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false]);
-curl_exec($pingCh);
-$pingCode = (int)curl_getinfo($pingCh, CURLINFO_HTTP_CODE);
-curl_close($pingCh);
-
-if ($pingCode === 0) {
-    blocked('Server reachable', "Không kết nối được $baseUrl — khởi động server trước");
-    goto summary;
-}
-pass('Server reachable');
-
-// DB
-if (!$dbConnected) {
-    blocked('Database connection', 'Không thể kết nối database');
-    goto summary;
-}
-pass('Database connection');
-
-// Valid product
-if ($noValidProduct) {
-    blocked(
-        'Valid product fixture',
-        'BLOCKED — NO VALID PRODUCT FIXTURE: Không có sản phẩm nào status=active AND stock>0'
-    );
-    goto summary;
-}
-pass("Valid product found (id={$productId})");
-
-// Session handler
-if (!$handlerOk) {
-    blocked('Session handler = files', 'session.save_handler không phải "files"');
-    goto summary;
-}
-if (!$pathWritable) {
-    blocked('Session save_path writable', "Không ghi được: $sessionSavePath");
-    goto summary;
-}
-pass('Session handler and save_path OK');
-
-// Session written
-if (!$sessionReady) {
-    blocked('Guest session written', $sessionError ?: 'Session không được ghi');
-    goto summary;
-}
-pass('Guest session written via native PHP session API (no raw serialization)');
-
-// ─── Baseline ────────────────────────────────────────────────────────────────
-
-$ordersBefore = (int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
-$stockBefore  = (int)$db->query(
-    "SELECT stock FROM products WHERE id = {$productId}"
-)->fetchColumn();
-
 // ─── Test chính: GET /checkout với guest session có cart ─────────────────────
 
 $res = httpGet($baseUrl . '/checkout', $testSessionId, $sessionName);
 
-// Cleanup session ngay sau request
-@unlink($sessionFile);
-pass('Test session cleaned up');
 
 // ─── Assertions ──────────────────────────────────────────────────────────────
 
 $locationLower      = strtolower($res['location']);
-$hasFatal           = preg_match(
-    '/Fatal error|Parse error|Uncaught (?:Error|Exception)|Trying to access array offset on null/i',
+$hasPhpDiagnostic   = preg_match(
+    '/(?:Fatal error|Parse error|Warning:|Notice:|Deprecated:|Uncaught (?:Error|Exception)|Trying to access array offset)/i',
     $res['body']
 ) === 1;
 $visibleText        = trim((string)preg_replace('/\s+/u', ' ', strip_tags($res['body'])));
@@ -256,11 +273,11 @@ if ($res['status'] >= 400) {
 }
 
 // Không fatal/warning
-if ($hasFatal) {
-    fail('No PHP fatal/warning in response body',
-        'Fatal/Parse error / Uncaught / null offset detected');
+if ($hasPhpDiagnostic) {
+    fail('No PHP diagnostic in response body',
+        'Fatal/Parse error/Warning/Notice/Deprecated/Uncaught/null offset detected');
 } else {
-    pass('No PHP fatal/warning in response body');
+    pass('No PHP diagnostic in response body');
 }
 
 // Có nội dung checkout
@@ -277,6 +294,7 @@ if ($res['status'] === 200) {
 // ─── Side-effect checks ───────────────────────────────────────────────────────
 
 $ordersAfter = (int)$db->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+$orderItemsAfter = (int)$db->query('SELECT COUNT(*) FROM order_items')->fetchColumn();
 $stockAfter  = (int)$db->query(
     "SELECT stock FROM products WHERE id = {$productId}"
 )->fetchColumn();
@@ -286,6 +304,14 @@ if ($ordersAfter === $ordersBefore) {
 } else {
     fail('No new order created',
         "ORDER COUNT changed: {$ordersBefore} → {$ordersAfter}"
+    );
+}
+
+if ($orderItemsAfter === $orderItemsBefore) {
+    pass('No new order_item created');
+} else {
+    fail('No new order_item created',
+        "ORDER_ITEMS COUNT changed: {$orderItemsBefore} → {$orderItemsAfter}"
     );
 }
 
