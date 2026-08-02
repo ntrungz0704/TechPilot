@@ -347,6 +347,29 @@ if ($resE['status'] === 200) {
 } else {
     fail('Authenticated GET /checkout returns HTTP 200', "HTTP {$resE['status']}");
 }
+
+$visibleText = trim(
+    (string)preg_replace(
+        '/\s+/u',
+        ' ',
+        strip_tags($resE['body'])
+    )
+);
+
+$hasCheckoutContent =
+    stripos($visibleText, 'Thanh toán') !== false
+    || stripos($visibleText, 'Đặt hàng') !== false
+    || stripos($visibleText, 'checkout') !== false;
+
+if ($hasCheckoutContent) {
+    pass('Authenticated checkout marker present');
+} else {
+    fail(
+        'Authenticated checkout marker present',
+        'Không tìm thấy marker Thanh toán, Đặt hàng hoặc checkout'
+    );
+}
+
 if (!hasPhpDiagnostic($resE['body'])) pass('No PHP diagnostic in Scenario E'); else fail('No PHP diagnostic in Scenario E', 'Diagnostic found');
 
 // ─── Side effects check ──────────────────────────────────────────────────────
