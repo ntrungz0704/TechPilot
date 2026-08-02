@@ -326,8 +326,70 @@ if ($db instanceof PDO && file_exists($servicePath)) {
         $db->beginTransaction();
         $releaseCommitted = FlashSaleService::releaseOrderReservations($db, 101, 'cancel_after_commit');
         $db->commit();
-        assertFlashReservation($releaseCommitted, 'Release sau commit là idempotent no-op theo policy');
-        assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 1')->fetchColumn() === 1, 'Đơn đã commit không mở lại quota');
+        assertFlashReservation($releaseCommitted, 'Release reservation đã committed thành công');
+        assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 1')->fetchColumn() === 0, 'Release sau commit hoàn lại quota đúng một lần');
+        $checkCommittedReservation = $db->query('SELECT status, release_reason, committed_at, released_at FROM flash_sale_reservations WHERE order_id = 101')->fetch(PDO::FETCH_ASSOC);
+        assertFlashReservation($checkCommittedReservation['status'] === 'released', 'Status cuối của committed là released');
+        assertFlashReservation($checkCommittedReservation['release_reason'] === 'cancel_after_commit', 'Lưu release_reason đúng cho committed');
+        assertFlashReservation($checkCommittedReservation['committed_at'] !== null, 'Vẫn giữ lại committed_at để audit');
+        assertFlashReservation($checkCommittedReservation['released_at'] !== null, 'Cập nhật released_at');
+
+        $db->exec("INSERT INTO products VALUES (3, 'Product 3', 900000, NULL, 'active')");
+        $db->exec("INSERT INTO flash_sale_items VALUES (3, 1, 3, 650000, 5, 0, 2)");
+        $db->exec("INSERT INTO orders (id, user_id, phone) VALUES (104, 14, '0900 888 777')");
+        $db->exec("INSERT INTO order_items (id, order_id, product_id, quantity, price) VALUES (1004, 104, 1, 1, 700000), (1005, 104, 3, 1, 650000)");
+
+        $buyer14 = FlashSaleService::buyerKey(14, '0900 888 777');
+        $db->beginTransaction();
+        FlashSaleService::reserveOrderItem($db, 1, 104, 1004, 14, $buyer14, 1, 700000.0);
+        FlashSaleService::reserveOrderItem($db, 3, 104, 1005, 14, $buyer14, 1, 650000.0);
+        $db->commit();
+
+        $db->beginTransaction();
+        FlashSaleService::releaseOrderReservations($db, 104, 'cancel_multiple');
+        $db->commit();
+
+        assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 1')->fetchColumn() === 0, 'Release hoàn quota item 1');
+        assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 3')->fetchColumn() === 0, 'Release hoàn quota item 3');
+        assertFlashReservation((int)$db->query("SELECT COUNT(*) FROM flash_sale_reservations WHERE order_id = 104 AND status = 'released'")->fetchColumn() === 2, 'Tất cả reservation trong đơn đều được release');
+
+        $db->exec("INSERT INTO orders (id, user_id, phone) VALUES (105, 15, '0900 999 999')");
+        $db->exec("INSERT INTO order_items (id, order_id, product_id, quantity, price) VALUES (1006, 105, 1, 1, 700000)");
+        $buyer15 = FlashSaleService::buyerKey(15, '0900 999 999');
+        $db->beginTransaction();
+        FlashSaleService::reserveOrderItem($db, 1, 105, 1006, 15, $buyer15, 1, 700000.0);
+        $db->commit();
+
+        $db->exec("UPDATE flash_sale_items SET sold_quantity = 0 WHERE id = 1");
+
+        $driftRollback = false;
+        try {
+            $db->beginTransaction();
+            FlashSaleService::releaseOrderReservations($db, 105, 'cancel_drift');
+            $db->commit();
+        } catch (RuntimeException $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            $driftRollback = true;
+        }
+        assertFlashReservation($driftRollback, 'Release từ chối khi counter drift (sold_quantity < quantity)');
+        assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 1')->fetchColumn() === 0, 'Counter không bị âm');
+        $res105 = $db->query("SELECT status FROM flash_sale_reservations WHERE order_id = 105")->fetchColumn();
+        assertFlashReservation($res105 === 'reserved', 'Reservation giữ nguyên trạng thái cũ khi rollback');
+
+        $db->exec("UPDATE flash_sale_items SET sold_quantity = 1 WHERE id = 1");
+        $db->beginTransaction();
+        FlashSaleService::releaseOrderReservations($db, 105, 'cancel_fixed');
+        $db->commit();
+
+        // Restore state for subsequent tests (requires 1 active reservation)
+        $db->exec("INSERT INTO orders (id, user_id, phone) VALUES (106, 16, '0900 123 123')");
+        $db->exec("INSERT INTO order_items (id, order_id, product_id, quantity, price) VALUES (1007, 106, 1, 1, 700000)");
+        $buyer16 = FlashSaleService::buyerKey(16, '0900 123 123');
+        $db->beginTransaction();
+        FlashSaleService::reserveOrderItem($db, 1, 106, 1007, 16, $buyer16, 1, 700000.0);
+        $db->commit();
 
         $beforeRollbackCount = flashReservationCount($db, 103);
         $db->beginTransaction();
@@ -339,18 +401,33 @@ if ($db instanceof PDO && file_exists($servicePath)) {
         assertFlashReservation((int)$db->query('SELECT sold_quantity FROM flash_sale_items WHERE id = 1')->fetchColumn() === 1, 'Rollback không làm đổi sold_quantity');
 
         $audit = FlashSaleService::auditQuotaCounters($db, 1);
+        $item1Audit = false;
+        foreach ($audit as $a) {
+            if ($a['flash_sale_item_id'] === 1) {
+                $item1Audit = $a;
+                break;
+            }
+        }
         assertFlashReservation(
-            count($audit) === 1
-                && ($audit[0]['is_consistent'] ?? false) === true
-                && (int)($audit[0]['ledger_quantity'] ?? -1) === 1,
+            $item1Audit !== false
+                && ($item1Audit['is_consistent'] ?? false) === true
+                && (int)($item1Audit['ledger_quantity'] ?? -1) === 1,
             'Audit xác nhận bộ đếm khớp tổng reservation đang hiệu lực'
         );
 
         $db->exec('UPDATE flash_sale_items SET sold_quantity = 2 WHERE id = 1');
         $driftAudit = FlashSaleService::auditQuotaCounters($db, 1);
+        $item1Drift = false;
+        foreach ($driftAudit as $a) {
+            if ($a['flash_sale_item_id'] === 1) {
+                $item1Drift = $a;
+                break;
+            }
+        }
         assertFlashReservation(
-            ($driftAudit[0]['is_consistent'] ?? true) === false
-                && (int)($driftAudit[0]['difference'] ?? 0) === 1,
+            $item1Drift !== false
+                && ($item1Drift['is_consistent'] ?? true) === false
+                && (int)($item1Drift['difference'] ?? 0) === 1,
             'Audit phát hiện drift nhưng không tự ý sửa dữ liệu'
         );
         $db->exec('UPDATE flash_sale_items SET sold_quantity = 1 WHERE id = 1');
@@ -421,6 +498,12 @@ if ($db instanceof PDO && file_exists($servicePath)) {
                     'allocation_quantity' => '4',
                     'limit_per_user' => '2',
                 ],
+                3 => [
+                    'active' => '1',
+                    'discount_price' => '650000',
+                    'allocation_quantity' => '5',
+                    'limit_per_user' => '2',
+                ],
             ],
         ];
 
@@ -443,7 +526,7 @@ if ($db instanceof PDO && file_exists($servicePath)) {
             'Admin update xóa được item bỏ chọn khi chưa có lịch sử quota'
         );
         assertFlashReservation(
-            (int)$db->query('SELECT COUNT(*) FROM flash_sale_reservations WHERE flash_sale_item_id = 1')->fetchColumn() === 2,
+            (int)$db->query('SELECT COUNT(*) FROM flash_sale_reservations WHERE flash_sale_item_id = 1')->fetchColumn() === 5,
             'Admin update không làm mất lịch sử reservation'
         );
         assertFlashReservation(
