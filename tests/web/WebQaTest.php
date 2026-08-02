@@ -406,18 +406,32 @@ final class TechPilotWebQaSuite
 
         $redirectsToLogin  = str_contains($checkoutLocation, '/auth/login');
         $isHttpError       = $checkoutStatus >= 400;
-        $isValidEmptyCart  = ($checkoutStatus === 302 && (rtrim($checkoutLocation, '/') === '/cart' || str_ends_with($checkoutLocation, '/cart')));
+        
+        $redirectPath = parse_url($rawLocation, PHP_URL_PATH);
+        $normalizedRedirectPath = '/' . trim((string)$redirectPath, '/');
+        
+        // Host validation if it's an absolute URL
+        $redirectHost = parse_url($rawLocation, PHP_URL_HOST);
+        $baseHost = parse_url($this->baseUrl, PHP_URL_HOST);
+        $isValidHost = ($redirectHost === null || strcasecmp($redirectHost, (string)$baseHost) === 0);
+
+        $isValidEmptyCart  = (
+            $checkoutStatus === 302 
+            && $normalizedRedirectPath === '/cart'
+            && $isValidHost
+        );
+        
         $isValidWithCart   = ($checkoutStatus === 200);
 
-        $hasFatal          = preg_match(
-            '/(?:Fatal error|Parse error|Uncaught (?:Error|Exception)|Warning:.*null|Trying to access array offset on null)/i',
+        $hasPhpDiagnostic = preg_match(
+            '/(?:Fatal error|Parse error|Warning:|Notice:|Deprecated:|Uncaught (?:Error|Exception)|Trying to access array offset)/i',
             $checkoutBody
         ) === 1;
 
         $guestCheckoutPassed = ($isValidEmptyCart || $isValidWithCart)
             && !$redirectsToLogin
             && !$isHttpError
-            && !$hasFatal
+            && !$hasPhpDiagnostic
             && $checkoutRes['error'] === '';
 
         $this->record(
@@ -431,7 +445,7 @@ final class TechPilotWebQaSuite
                 . ($redirectsToLogin  ? '; FAIL: redirect tới login' : '')
                 . ($isHttpError       ? '; FAIL: HTTP >= 400' : '')
                 . ($checkoutStatus === 302 && !$isValidEmptyCart ? '; FAIL: location không phải /cart' : '')
-                . ($hasFatal          ? '; FAIL: PHP fatal/warning detected' : ''),
+                . ($hasPhpDiagnostic  ? '; FAIL: PHP diagnostic detected' : ''),
             'GET /checkout (guest, giỏ rỗng mặc định)'
         );
 
