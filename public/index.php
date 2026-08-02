@@ -151,6 +151,7 @@ $router->get('/profile/order-detail', 'ProfileController@order_detail');
 $router->get('/profile/order-detail/{id}', 'ProfileController@order_detail');
 $router->get('/profile/notifications', 'ProfileController@notifications');
 $router->get('/profile/wishlist', 'ProfileController@wishlist');
+$router->get('/profile/return', 'ProfileController@return');
 $router->get('/profile/return/{id}', 'ProfileController@return');
 $router->post('/profile/submit_return', 'ProfileController@submit_return');
 $router->post('/profile/change_password', 'ProfileController@change_password');

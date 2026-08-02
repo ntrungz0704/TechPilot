@@ -158,17 +158,18 @@ class AuthController extends Controller
             if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'Vui lòng nhập một địa chỉ email hợp lệ.';
             } else {
-                $userModel = $this->model('User');
-                $user = $userModel->findByEmail($email);
-                if ($user) {
-                    $token = bin2hex(random_bytes(32));
-                    $expiry = date('Y-m-d H:i:s', time() + 3600); // 1 hour
-                    $userModel->setResetToken($email, $token, $expiry);
-                    $resetLink = BASE_URL . '/auth/reset?token=' . $token;
-                    // Trong thực tế sẽ gửi email. Ở đây ta flash link trực tiếp để test.
-                    $message = 'Một email khôi phục đã được gửi (Giả lập). Vui lòng click vào link này để đặt lại mật khẩu: <br><a href="'.$resetLink.'" style="word-break:break-all;color:var(--primary);">'.$resetLink.'</a>';
-                } else {
-                    $errors[] = 'Không tìm thấy tài khoản với email này.';
+                try {
+                    $userModel = $this->model('User');
+                    $user = $userModel->findByEmail($email);
+                    if ($user) {
+                        $token = bin2hex(random_bytes(32));
+                        $expiry = date('Y-m-d H:i:s', time() + 3600);
+                        $userModel->setResetToken($email, $token, $expiry);
+                    }
+                    $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
+                } catch (Throwable $e) {
+                    error_log('Forgot password error: ' . $e->getMessage());
+                    $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
                 }
             }
         }

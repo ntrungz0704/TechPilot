@@ -4,6 +4,7 @@ require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/app/services/GeminiService.php';
 require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
 require_once ROOT_PATH . '/app/services/AiRecommendationService.php';
+require_once ROOT_PATH . '/app/models/Wishlist.php';
 
 class AiAssistantController extends Controller
 {
@@ -88,6 +89,52 @@ class AiAssistantController extends Controller
                     'message' => 'Có lỗi xảy ra trong quá trình phân tích dữ liệu AI: ' . $e->getMessage()
                 ]
             ]);
+        }
+        exit;
+    }
+
+    public function saveFavorite(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (empty($_SESSION['user']['id'])) {
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'requireLogin' => true,
+                'message' => 'Vui lòng đăng nhập để lưu sản phẩm yêu thích.'
+            ]);
+            exit;
+        }
+
+        $productId = (int)($_POST['product_id'] ?? 0);
+        if ($productId <= 0) {
+            http_response_code(422);
+            echo json_encode(['success' => false]);
+            exit;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SELECT id FROM products WHERE id = :id AND status = 'active' LIMIT 1");
+            $stmt->execute(['id' => $productId]);
+            if (!$stmt->fetch()) {
+                http_response_code(404);
+                echo json_encode(['success' => false]);
+                exit;
+            }
+
+            $wishlist = new Wishlist();
+            $wishlist->add($_SESSION['user']['id'], $productId);
+
+            echo json_encode([
+                'success' => true,
+                'inWishlist' => true,
+                'count' => $wishlist->count($_SESSION['user']['id']),
+                'message' => 'Đã lưu sản phẩm vào danh sách yêu thích.'
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(503);
+            echo json_encode(['success' => false]);
         }
         exit;
     }

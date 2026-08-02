@@ -120,10 +120,10 @@ class ProfileController extends Controller
     }
 
     /** Form đăng ký đổi trả sản phẩm */
-    public function return(): void
+    public function return(mixed $id = null): void
     {
         $user = $this->requireLogin();
-        $orderId = (int)($_GET['order_id'] ?? 0);
+        $orderId = (int)($id ?: ($_GET['order_id'] ?? 0));
         $order = $this->orderModel->getById($orderId, (int)$user['id']);
 
         if (!$order) {
