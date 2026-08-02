@@ -145,7 +145,8 @@ class AdminOrderController extends Controller
                 return;
             }
 
-            // Cho phép chuyển đổi linh hoạt 100% giữa tất cả các trạng thái để Admin dễ dàng kiểm thử và sửa lỗi vận chuyển
+            // Order chỉ được tiến tới trạng thái kế tiếp hoặc bị hủy.
+            // completed và cancelled là terminal states, không được phục hồi trực tiếp.
             $validTransitions = [
                 'pending'   => ['confirmed', 'cancelled'],
                 'confirmed' => ['processing', 'cancelled'],
@@ -185,11 +186,6 @@ class AdminOrderController extends Controller
                     CouponService::releaseOrderCoupon($db, $id);
                     InventoryService::releaseOrderInventory($db, $id, 'admin_cancelled');
                     FlashSaleService::releaseOrderReservations($db, $id, 'admin_cancelled');
-                }
-
-                // Nếu đơn hàng từ Trạng thái Cancelled phục hồi lại -> Phải reserve lại kho nếu đủ
-                if ($currentStatus === 'cancelled' && $newStatus !== 'cancelled') {
-                    InventoryService::reserveOrderInventory($db, $id);
                 }
 
                 // Nếu đơn hàng hoàn thành (Completed) -> Chuyển inventory_status sang committed
