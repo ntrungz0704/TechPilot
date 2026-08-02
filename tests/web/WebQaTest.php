@@ -377,7 +377,6 @@ final class TechPilotWebQaSuite
         // TP-WEB-014 và TP-WEB-016: vẫn phải chặn guest như trước.
         $blockedCases = [
             ['TP-WEB-014', '/admin', 'Trang quản trị'],
-            ['TP-WEB-015', '/checkout', 'Trang thanh toán'],
             ['TP-WEB-016', '/profile/orders', 'Danh sách đơn hàng cá nhân'],
         ];
 
@@ -395,6 +394,32 @@ final class TechPilotWebQaSuite
             );
         }
 
+        // TP-WEB-015: Exact redirect login for guest checkout
+        $checkoutRes = $this->client->request('GET', '/checkout');
+        $rawLocation = $this->lastHeader($checkoutRes, 'location');
+        $path = parse_url($rawLocation, PHP_URL_PATH);
+        $query = parse_url($rawLocation, PHP_URL_QUERY);
+        $host = parse_url($rawLocation, PHP_URL_HOST);
+        $baseHost = parse_url($this->baseUrl, PHP_URL_HOST);
+        parse_str((string)$query, $params);
+        $normalizedPath = '/' . trim((string)$path, '/');
+        $sameHost = $host === null || strcasecmp((string)$host, (string)$baseHost) === 0;
+
+        $isValidRedirect = $checkoutRes['status'] === 302
+            && $normalizedPath === '/auth/login'
+            && $sameHost
+            && ($params['redirect'] ?? null) === '/checkout';
+
+        $this->record(
+            'TP-WEB-015',
+            'Authorization',
+            'P0',
+            'Trang thanh toán chặn khách chưa đăng nhập (Exact Redirect)',
+            $isValidRedirect,
+            'HTTP 302 tới chính xác /auth/login?redirect=/checkout cùng host',
+            $this->httpSummary($checkoutRes),
+            'GET /checkout'
+        );
 
         $response = $this->client->request('GET', '/api/admin/notifications');
         $this->record(

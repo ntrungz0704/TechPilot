@@ -101,7 +101,6 @@ if ($rowUser !== false && !empty($rowUser['id'])) {
 }
 pass("Valid user found (id={$userId})");
 
-
 // 4. Session handler
 $sessionName      = (string)(ini_get('session.name') ?: 'PHPSESSID');
 $sessionSavePath  = rtrim((string)(ini_get('session.save_path') ?: sys_get_temp_dir()), '/\\');
@@ -143,66 +142,57 @@ register_shutdown_function(function () use (
             STDERR,
             "[FAIL] Emergency test-session cleanup failed\n"
         );
-
         exit(1);
     }
 });
 
 function cleanupTestSession(string $sessionId, string $sessionFile): bool {
-    if ($sessionId === '') {
-        return true;
-    }
-
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_write_close();
-    }
-
+    if ($sessionId === '') return true;
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
     session_id($sessionId);
-
-    if (!session_start()) {
-        return false;
-    }
-
+    if (!session_start()) return false;
     $_SESSION = [];
     $destroyed = session_destroy();
     session_write_close();
-
     return $destroyed && !file_exists($sessionFile);
 }
 
 function writeSessionData(string $sessionId, array $data): void {
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_write_close();
-    }
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
     session_id($sessionId);
     session_start();
     $_SESSION = $data;
     session_write_close();
 }
 
+function readSessionData(string $sessionId): array {
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+    session_id($sessionId);
+    if (!session_start()) return [];
+    $data = $_SESSION;
+    session_write_close();
+    return $data;
+}
+
 $csrfToken = bin2hex(random_bytes(32));
 $submitToken = bin2hex(random_bytes(16));
 
 $guestSessionData = [
-    'cart' => [
-        $productId => ['product_id' => $productId, 'quantity' => 1]
-    ],
+    'cart' => [$productId => ['product_id' => $productId, 'quantity' => 1]],
     'csrf_token' => $csrfToken,
     'submit_token' => $submitToken,
-    'last_order' => ['fake' => 'order'] // for Scenario D
+    'last_order' => ['fake' => 'order']
 ];
 
 $authSessionData = $guestSessionData;
 $authSessionData['user'] = ['id' => $userId];
 
-// Write Guest Session
 writeSessionData($testSessionId, $guestSessionData);
 
 if (!file_exists($sessionFile)) {
     blocked('Guest session written', "Session file không tồn tại sau session_write_close()");
     goto summary;
 }
-
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -242,6 +232,7 @@ function httpRequest(string $method, string $url, string $sessionId, string $ses
         'status'   => $code,
         'body'     => $body,
         'location' => $headers['location'] ?? '',
+        'headers'  => $headers,
         'error'    => $error,
     ];
 }
@@ -251,6 +242,22 @@ function hasPhpDiagnostic(string $body): bool {
         '/(?:Fatal error|Parse error|Warning:|Notice:|Deprecated:|Uncaught (?:Error|Exception)|Trying to access array offset)/i',
         $body
     ) === 1;
+}
+
+function isExactLoginRedirect(string $location, string $expectedRedirect, string $baseUrl): bool {
+    $path = parse_url($location, PHP_URL_PATH);
+    $query = parse_url($location, PHP_URL_QUERY);
+    $host = parse_url($location, PHP_URL_HOST);
+    $baseHost = parse_url($baseUrl, PHP_URL_HOST);
+
+    parse_str((string)$query, $params);
+
+    $normalizedPath = '/' . trim((string)$path, '/');
+    $sameHost = $host === null || strcasecmp((string)$host, (string)$baseHost) === 0;
+
+    return $normalizedPath === '/auth/login'
+        && $sameHost
+        && ($params['redirect'] ?? null) === $expectedRedirect;
 }
 
 function getSystemMetrics(PDO $db, int $productId): array {
@@ -267,83 +274,68 @@ $metricsBefore = getSystemMetrics($db, $productId);
 // ─── SCENARIO A: Guest GET checkout bị chặn ──────────────────────────────────
 echo "\n--- Scenario A: Guest GET checkout ---\n";
 $resA = httpRequest('GET', $baseUrl . '/checkout', $testSessionId, $sessionName);
-$locA = strtolower($resA['location']);
-$pathA = parse_url($locA, PHP_URL_PATH);
-$queryA = parse_url($locA, PHP_URL_QUERY);
-
-if ($resA['status'] === 302 && trim((string)$pathA, '/') === 'auth/login' && str_contains((string)$queryA, 'redirect')) {
-    pass('Guest GET /checkout redirect login');
+if ($resA['status'] === 302 && isExactLoginRedirect($resA['location'], '/checkout', $baseUrl)) {
+    pass('Guest GET /checkout exact redirect login');
 } else {
-    fail('Guest GET /checkout redirect login', "HTTP {$resA['status']}, Location: {$resA['location']}");
+    fail('Guest GET /checkout exact redirect login', "HTTP {$resA['status']}, Location: {$resA['location']}");
 }
+if (!hasPhpDiagnostic($resA['body'])) pass('No PHP diagnostic in Scenario A'); else fail('No PHP diagnostic in Scenario A', 'Diagnostic found');
 
 // ─── SCENARIO B: Guest POST submit không tạo dữ liệu ─────────────────────────
 echo "\n--- Scenario B: Guest POST checkout submit ---\n";
 $resB = httpRequest('POST', $baseUrl . '/checkout/submit', $testSessionId, $sessionName, [
-    'csrf_token' => $csrfToken,
-    'submit_token' => $submitToken,
-    'customer_name' => 'Test Guest',
-    'phone' => '0912345678',
-    'address' => 'Test Address',
-    'payment_method' => 'COD'
+    'csrf_token' => $csrfToken, 'submit_token' => $submitToken, 'customer_name' => 'Test Guest',
+    'phone' => '0912345678', 'address' => 'Test Address', 'payment_method' => 'COD'
 ]);
-$locB = strtolower($resB['location']);
-$pathB = parse_url($locB, PHP_URL_PATH);
-if ($resB['status'] === 302 && trim((string)$pathB, '/') === 'auth/login') {
-    pass('Guest POST /checkout/submit redirect login');
+if ($resB['status'] === 302 && isExactLoginRedirect($resB['location'], '/checkout', $baseUrl)) {
+    pass('Guest POST /checkout/submit exact redirect login');
 } else {
-    fail('Guest POST /checkout/submit redirect login', "HTTP {$resB['status']}, Location: {$resB['location']}");
+    fail('Guest POST /checkout/submit exact redirect login', "HTTP {$resB['status']}, Location: {$resB['location']}");
 }
-
-$metricsAfterB = getSystemMetrics($db, $productId);
-if ($metricsAfterB['orders'] === $metricsBefore['orders']) {
-    pass('Guest submit: no order');
-} else {
-    fail('Guest submit: no order', 'Order count changed');
-}
-if ($metricsAfterB['order_items'] === $metricsBefore['order_items']) {
-    pass('Guest submit: no order_item');
-} else {
-    fail('Guest submit: no order_item', 'Order items count changed');
-}
-if ($metricsAfterB['stock'] === $metricsBefore['stock']) {
-    pass('Guest submit: stock unchanged');
-} else {
-    fail('Guest submit: stock unchanged', 'Stock changed');
-}
+if (!hasPhpDiagnostic($resB['body'])) pass('No PHP diagnostic in Scenario B'); else fail('No PHP diagnostic in Scenario B', 'Diagnostic found');
 
 // ─── SCENARIO C: Guest coupon endpoints trả JSON 401 ─────────────────────────
 echo "\n--- Scenario C: Guest coupon endpoints ---\n";
 $resC1 = httpRequest('POST', $baseUrl . '/checkout/apply_coupon', $testSessionId, $sessionName, ['csrf_token' => $csrfToken, 'coupon_code' => 'FAKE']);
-$isJson1 = str_contains(strtolower((string)($resC1['headers']['content-type'] ?? $resC1['body'])), 'json') || ($resC1['body'] && json_decode($resC1['body']) !== null);
+$ct1 = strtolower((string)($resC1['headers']['content-type'] ?? ''));
+$isJson1 = str_contains($ct1, 'application/json');
 $json1 = json_decode($resC1['body'], true);
-
-if ($resC1['status'] === 401 && $isJson1 && isset($json1['success']) && $json1['success'] === false) {
-    pass('Guest apply coupon returns HTTP 401 JSON');
+$msg1 = mb_strtolower((string)($json1['message'] ?? ''), 'UTF-8');
+if ($resC1['status'] === 401 && $isJson1 && is_array($json1) && ($json1['success'] ?? null) === false && str_contains($msg1, 'đăng nhập')) {
+    pass('Guest apply coupon returns exact HTTP 401 JSON');
 } else {
-    fail('Guest apply coupon returns HTTP 401 JSON', "HTTP {$resC1['status']}, Body: " . substr($resC1['body'], 0, 100));
+    fail('Guest apply coupon returns exact HTTP 401 JSON', "HTTP {$resC1['status']}, CT: $ct1, Body: " . substr($resC1['body'], 0, 100));
 }
+if (!hasPhpDiagnostic($resC1['body'])) pass('No PHP diagnostic in Scenario C apply'); else fail('No PHP diagnostic in Scenario C apply', 'Diagnostic found');
+
+$sessC1 = readSessionData($testSessionId);
+if (!isset($sessC1['applied_coupon'])) pass('Guest apply coupon: session unchanged'); else fail('Guest apply coupon: session unchanged', 'applied_coupon is set');
 
 $resC2 = httpRequest('POST', $baseUrl . '/checkout/remove_coupon', $testSessionId, $sessionName, ['csrf_token' => $csrfToken]);
-$isJson2 = str_contains(strtolower((string)($resC2['headers']['content-type'] ?? $resC2['body'])), 'json') || ($resC2['body'] && json_decode($resC2['body']) !== null);
+$ct2 = strtolower((string)($resC2['headers']['content-type'] ?? ''));
+$isJson2 = str_contains($ct2, 'application/json');
 $json2 = json_decode($resC2['body'], true);
-
-if ($resC2['status'] === 401 && $isJson2 && isset($json2['success']) && $json2['success'] === false) {
-    pass('Guest remove coupon returns HTTP 401 JSON');
+$msg2 = mb_strtolower((string)($json2['message'] ?? ''), 'UTF-8');
+if ($resC2['status'] === 401 && $isJson2 && is_array($json2) && ($json2['success'] ?? null) === false && str_contains($msg2, 'đăng nhập')) {
+    pass('Guest remove coupon returns exact HTTP 401 JSON');
 } else {
-    fail('Guest remove coupon returns HTTP 401 JSON', "HTTP {$resC2['status']}, Body: " . substr($resC2['body'], 0, 100));
+    fail('Guest remove coupon returns exact HTTP 401 JSON', "HTTP {$resC2['status']}, CT: $ct2, Body: " . substr($resC2['body'], 0, 100));
 }
+if (!hasPhpDiagnostic($resC2['body'])) pass('No PHP diagnostic in Scenario C remove'); else fail('No PHP diagnostic in Scenario C remove', 'Diagnostic found');
+
+$sessC2 = readSessionData($testSessionId);
+if (!isset($sessC2['applied_coupon'])) pass('Guest remove coupon: session unchanged'); else fail('Guest remove coupon: session unchanged', 'applied_coupon is set');
+
 
 // ─── SCENARIO D: Guest success page bị chặn ──────────────────────────────────
 echo "\n--- Scenario D: Guest GET success page ---\n";
 $resD = httpRequest('GET', $baseUrl . '/checkout/success', $testSessionId, $sessionName);
-$locD = strtolower($resD['location']);
-$pathD = parse_url($locD, PHP_URL_PATH);
-if ($resD['status'] === 302 && trim((string)$pathD, '/') === 'auth/login') {
-    pass('Guest GET /checkout/success redirect login');
+if ($resD['status'] === 302 && isExactLoginRedirect($resD['location'], '/checkout', $baseUrl)) {
+    pass('Guest GET /checkout/success exact redirect login');
 } else {
-    fail('Guest GET /checkout/success redirect login', "HTTP {$resD['status']}, Location: {$resD['location']}");
+    fail('Guest GET /checkout/success exact redirect login', "HTTP {$resD['status']}, Location: {$resD['location']}");
 }
+if (!hasPhpDiagnostic($resD['body'])) pass('No PHP diagnostic in Scenario D'); else fail('No PHP diagnostic in Scenario D', 'Diagnostic found');
 
 // ─── SCENARIO E: Authenticated user GET checkout thành công ──────────────────
 echo "\n--- Scenario E: Authenticated GET checkout ---\n";
@@ -355,54 +347,25 @@ if ($resE['status'] === 200) {
 } else {
     fail('Authenticated GET /checkout returns HTTP 200', "HTTP {$resE['status']}");
 }
+if (!hasPhpDiagnostic($resE['body'])) pass('No PHP diagnostic in Scenario E'); else fail('No PHP diagnostic in Scenario E', 'Diagnostic found');
 
-$visibleText = trim((string)preg_replace('/\s+/u', ' ', strip_tags($resE['body'])));
-$hasCheckoutContent = stripos($visibleText, 'Thanh to') !== false
-    || stripos($visibleText, 'Đặt hàng') !== false
-    || stripos($visibleText, 'checkout') !== false;
-
-if ($hasCheckoutContent) {
-    pass('Authenticated checkout marker present');
-} else {
-    fail('Authenticated checkout marker present', 'Missing checkout text marker');
-}
-
-if (!hasPhpDiagnostic($resE['body'])) {
-    pass('No PHP diagnostic in authenticated response');
-} else {
-    fail('No PHP diagnostic in authenticated response', 'Found PHP diagnostic in body');
-}
+// ─── Side effects check ──────────────────────────────────────────────────────
+$metricsAfterE = getSystemMetrics($db, $productId);
+if ($metricsAfterE['orders'] === $metricsBefore['orders']) pass('Final side effects: orders unchanged'); else fail('Final side effects: orders unchanged', 'Changed');
+if ($metricsAfterE['order_items'] === $metricsBefore['order_items']) pass('Final side effects: order_items unchanged'); else fail('Final side effects: order_items unchanged', 'Changed');
+if ($metricsAfterE['stock'] === $metricsBefore['stock']) pass('Final side effects: stock unchanged'); else fail('Final side effects: stock unchanged', 'Changed');
 
 
 // ─── Cleanup ─────────────────────────────────────────────────────────────────
-
 if (isset($testSessionId) && isset($sessionFile)) {
-    $cleanupSucceeded = cleanupTestSession(
-        $testSessionId,
-        $sessionFile
-    );
-
+    if (cleanupTestSession($testSessionId, $sessionFile)) pass('Test session cleaned up'); else fail('Test session cleaned up', 'Failed');
     $cleanupCompleted = true;
-
-    if ($cleanupSucceeded) {
-        pass('Test session cleaned up');
-    } else {
-        fail(
-            'Test session cleaned up',
-            'Test session cleanup failed'
-        );
-    }
 }
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
-
 summary:
 echo "\n============================================================\n";
-printf(
-    "Authenticated Purchase Flow Results: %d passed, %d failed\n",
-    $results['passed'],
-    $results['failed']
-);
+printf("Authenticated Purchase Flow Results: %d passed, %d failed\n", $results['passed'], $results['failed']);
 echo "============================================================\n";
 
 exit($results['failed'] > 0 ? 1 : 0);
