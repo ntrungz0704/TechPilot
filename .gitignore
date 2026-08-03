@@ -27,5 +27,5 @@ scratch_*.php
 homepage*.html
 
 # === QA & Reports ===
-/tests/manual/
+
 /tests/web/reports/

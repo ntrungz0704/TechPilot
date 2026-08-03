@@ -11,6 +11,20 @@ require_once ROOT_PATH . '/app/controllers/CheckoutController.php';
 require_once ROOT_PATH . '/app/models/User.php';
 require_once ROOT_PATH . '/app/models/Order.php';
 
+// Mock VnpayService
+class FakeVnpayService {
+    public int $createPaymentUrlCallCount = 0;
+    
+    public function isConfigured(): bool {
+        return true;
+    }
+    
+    public function createPaymentUrl(array $params): string {
+        $this->createPaymentUrlCallCount++;
+        return 'http://sandbox.vnpayment.vn/payment';
+    }
+}
+
 // Test doubles
 class TestAuthController extends AuthController {
     public int $lastResponseCode = 200;
@@ -32,14 +46,26 @@ class TestAuthController extends AuthController {
 class TestCheckoutController extends CheckoutController {
     public ?string $lastRedirect = null;
     public int $lastResponseCode = 200;
+    public ?FakeVnpayService $fakeVnpay = null;
+    public ?TestOrder $testOrder = null;
 
     protected function redirect(string $url): void {
         $this->lastRedirect = $url;
     }
 
+    protected function getVnpayService() {
+        if ($this->fakeVnpay === null) {
+            $this->fakeVnpay = new FakeVnpayService();
+        }
+        return $this->fakeVnpay;
+    }
+
     public function model(string $name) {
         if ($name === 'Order') {
-            return new TestOrder();
+            if ($this->testOrder === null) {
+                $this->testOrder = new TestOrder();
+            }
+            return $this->testOrder;
         }
         return parent::model($name);
     }
@@ -49,7 +75,8 @@ class TestOrder extends Order {
     public int $createCallCount = 0;
     public function create(array $data): array|false {
         $this->createCallCount++;
-        return false;
+        // Test production Order::create fail-closed behavior
+        return parent::create($data);
     }
 }
 
@@ -57,7 +84,6 @@ class FailClosedRegressionTest
 {
     private int $passed = 0;
     private int $failed = 0;
-    private array $errors = [];
     
     private function assert(bool $condition, string $testName, string $failureMsg = ''): void
     {
@@ -68,17 +94,21 @@ class FailClosedRegressionTest
             $this->failed++;
             $msg = "[FAIL] {$testName}" . ($failureMsg ? ": {$failureMsg}" : '');
             echo "{$msg}\n";
-            $this->errors[] = $msg;
         }
     }
 
     private function runIsolated(callable $fn)
     {
-        // Backup superglobals
+        // Backup environment and globals
         $oldPost = $_POST;
         $oldGet = $_GET;
         $oldSession = $_SESSION;
         $oldCookie = $_COOKIE;
+        $oldServer = $_SERVER;
+        $oldEnvApp = getenv('APP_ENV');
+        $oldEnvFail = getenv('FORCE_DB_FAILURE');
+        $oldVnpTmn = getenv('VNPAY_TMN_CODE');
+        $oldVnpHash = getenv('VNPAY_HASH_SECRET');
         
         try {
             $fn();
@@ -88,6 +118,18 @@ class FailClosedRegressionTest
             $_GET = $oldGet;
             $_SESSION = $oldSession;
             $_COOKIE = $oldCookie;
+            $_SERVER = $oldServer;
+            
+            if ($oldEnvApp !== false) putenv("APP_ENV=$oldEnvApp"); else putenv("APP_ENV");
+            if ($oldEnvFail !== false) putenv("FORCE_DB_FAILURE=$oldEnvFail"); else putenv("FORCE_DB_FAILURE");
+            if ($oldVnpTmn !== false) putenv("VNPAY_TMN_CODE=$oldVnpTmn"); else putenv("VNPAY_TMN_CODE");
+            if ($oldVnpHash !== false) putenv("VNPAY_HASH_SECRET=$oldVnpHash"); else putenv("VNPAY_HASH_SECRET");
+            
+            require_once ROOT_PATH . '/config/database.php';
+            $ref = new ReflectionClass('Database');
+            $prop = $ref->getProperty('instance');
+            $prop->setAccessible(true);
+            $prop->setValue(null, null);
         }
     }
 
@@ -104,21 +146,9 @@ class FailClosedRegressionTest
         $prop->setValue(null, null);
     }
 
-    private function restoreDb()
-    {
-        putenv('APP_ENV');
-        putenv('FORCE_DB_FAILURE');
-        
-        require_once ROOT_PATH . '/config/database.php';
-        $ref = new ReflectionClass('Database');
-        $prop = $ref->getProperty('instance');
-        $prop->setAccessible(true);
-        $prop->setValue(null, null);
-    }
-
     public function run(): void
     {
-        ob_start(); // Prevent headers from being sent
+        ob_start();
         echo "========================================================\n";
         echo "=== TECHPILOT FAIL-CLOSED REGRESSION TEST SUITE      ===\n";
         echo "========================================================\n\n";
@@ -130,7 +160,7 @@ class FailClosedRegressionTest
         echo "Fail-Closed Test Results: {$this->passed} passed, {$this->failed} failed\n";
         echo "════════════════════════════════════════════════════════\n";
 
-        ob_end_flush(); // Output everything
+        ob_end_flush();
 
         if ($this->failed > 0) {
             exit(1);
@@ -140,10 +170,24 @@ class FailClosedRegressionTest
 
     private function testAuthFailClosed()
     {
-        $this->forceDbFailure();
+        $this->runIsolated(function() {
+            $this->forceDbFailure();
+            echo "\n--- A. Login đúng email sai password khi DB unavailable ---\n";
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_POST['email'] = 'admin@techpilot.vn';
+            $_POST['password'] = 'wrong_password';
+            
+            $controller = new TestAuthController();
+            $controller->login();
+            
+            $this->assert(!isset($_SESSION['user']), "Không tạo session user");
+            $this->assert($controller->lastRedirect === null, "Không redirect như login thành công");
+            $this->assert(http_response_code() === 503, "HTTP status là 503");
+        });
 
         $this->runIsolated(function() {
-            echo "\n--- A. Login khi DB unavailable ---\n";
+            $this->forceDbFailure();
+            echo "\n--- A2. Login đúng email đúng password khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_POST['email'] = 'admin@techpilot.vn';
             $_POST['password'] = 'admin123';
@@ -157,6 +201,7 @@ class FailClosedRegressionTest
         });
 
         $this->runIsolated(function() {
+            $this->forceDbFailure();
             echo "\n--- B. Register khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_POST['full_name'] = 'Test';
@@ -173,16 +218,16 @@ class FailClosedRegressionTest
         });
 
         $this->runIsolated(function() {
+            $this->forceDbFailure();
             echo "\n--- C. Remember-me khi DB unavailable ---\n";
             $_COOKIE['remember_techpilot'] = 'fake_token';
             $controller = new TestAuthController();
-            // Trigger check auth
-            $userModel = $controller->model('User');
-            $userByToken = $userModel->findByRememberToken('fake_token');
-            $this->assert($userByToken === false, "Base Controller không tạo session user");
+            // Constructor of Controller checks remember me
+            $this->assert(!isset($_SESSION['user']), "Controller constructor không tạo session user khi DB hỏng");
         });
 
         $this->runIsolated(function() {
+            $this->forceDbFailure();
             echo "\n--- D. Reset password khi DB unavailable ---\n";
             $_GET['token'] = 'token_abc';
             $controller = new TestAuthController();
@@ -191,21 +236,18 @@ class FailClosedRegressionTest
             $this->assert($controller->lastRedirect === null, "Không redirect như login giả dạng lỗi");
             $this->assert(http_response_code() === 503, "Status cuối cùng là 503");
         });
-
-        $this->restoreDb();
     }
     
     private function testCheckoutFailClosed()
     {
-        $this->forceDbFailure();
-
         $this->runIsolated(function() {
+            $this->forceDbFailure();
             echo "\n--- Checkout COD khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_POST['submit_token'] = 'valid_token';
             $_SESSION['submit_token'] = 'valid_token';
             $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
-            $_SESSION['cart'] = [1 => 1]; // non empty cart
+            $_SESSION['cart'] = [1 => 1];
             $_SESSION['applied_coupon'] = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
             
             $_POST['customer_name'] = 'John';
@@ -216,15 +258,21 @@ class FailClosedRegressionTest
             $controller = new TestCheckoutController();
             $controller->submit();
 
+            // Lấy TestOrder instance từ Controller test
+            $testOrder = $controller->model('Order');
+
             $this->assert($controller->lastRedirect === 'checkout', "Redirect destination là checkout");
             $this->assert(isset($_SESSION['cart']), "Cart vẫn còn nguyên");
             $this->assert(isset($_SESSION['applied_coupon']), "applied_coupon vẫn còn nguyên");
             $this->assert(!isset($_SESSION['last_order']), "last_order không được tạo");
             $this->assert(isset($_SESSION['submit_token']), "submit_token mới tồn tại");
             $this->assert(isset($_SESSION['checkout_error']), "checkout_error tồn tại");
+            
+            $this->assert($testOrder->createCallCount === 1, "Order::create() được gọi chính xác 1 lần cho COD");
         });
 
         $this->runIsolated(function() {
+            $this->forceDbFailure();
             echo "\n--- Checkout VNPay khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_POST['submit_token'] = 'valid_token';
@@ -238,22 +286,22 @@ class FailClosedRegressionTest
             $_POST['address'] = '123 Test St';
             $_POST['payment_method'] = 'VNPAY';
 
-            // Simulate VNPay Configured for test
-            putenv('VNP_TMN_CODE=TESTCODE');
-            putenv('VNP_HASH_SECRET=TESTSECRET');
+            putenv('VNPAY_TMN_CODE=TESTCODE');
+            putenv('VNPAY_HASH_SECRET=TESTSECRET');
 
             $controller = new TestCheckoutController();
             $controller->submit();
+            
+            $testOrder = $controller->model('Order');
 
             $this->assert($controller->lastRedirect === 'checkout', "Redirect destination là checkout");
             $this->assert(isset($_SESSION['cart']), "Cart vẫn còn nguyên");
             $this->assert(!isset($_SESSION['last_order']), "last_order không được tạo");
+            $this->assert($testOrder->createCallCount === 1, "Order::create() được gọi chính xác 1 lần cho VNPay");
             
-            putenv('VNP_TMN_CODE');
-            putenv('VNP_HASH_SECRET');
+            $this->assert($controller->fakeVnpay !== null, "VNPay Service được khởi tạo");
+            $this->assert($controller->fakeVnpay->createPaymentUrlCallCount === 0, "createPaymentUrl KHÔNG được gọi khi Order::create fail");
         });
-
-        $this->restoreDb();
     }
 }
 
