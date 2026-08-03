@@ -73,10 +73,15 @@ class TestCheckoutController extends CheckoutController {
 
 class TestOrder extends Order {
     public int $createCallCount = 0;
+    public array $lastPayload = [];
+    public array|false|null $lastResult = null;
+    
     public function create(array $data): array|false {
         $this->createCallCount++;
-        // Test production Order::create fail-closed behavior
-        return parent::create($data);
+        $this->lastPayload = $data;
+        $result = parent::create($data);
+        $this->lastResult = $result;
+        return $result;
     }
 }
 
@@ -99,7 +104,6 @@ class FailClosedRegressionTest
 
     private function runIsolated(callable $fn)
     {
-        // Backup environment and globals
         $oldPost = $_POST;
         $oldGet = $_GET;
         $oldSession = $_SESSION;
@@ -109,11 +113,12 @@ class FailClosedRegressionTest
         $oldEnvFail = getenv('FORCE_DB_FAILURE');
         $oldVnpTmn = getenv('VNPAY_TMN_CODE');
         $oldVnpHash = getenv('VNPAY_HASH_SECRET');
+        $oldResponseCode = http_response_code();
+        http_response_code(200);
         
         try {
             $fn();
         } finally {
-            // Restore
             $_POST = $oldPost;
             $_GET = $oldGet;
             $_SESSION = $oldSession;
@@ -130,6 +135,12 @@ class FailClosedRegressionTest
             $prop = $ref->getProperty('instance');
             $prop->setAccessible(true);
             $prop->setValue(null, null);
+
+            http_response_code(
+                is_int($oldResponseCode) && $oldResponseCode >= 100
+                    ? $oldResponseCode
+                    : 200
+            );
         }
     }
 
@@ -138,7 +149,6 @@ class FailClosedRegressionTest
         putenv('APP_ENV=test');
         putenv('FORCE_DB_FAILURE=1');
         
-        // Use reflection to clear Database::$instance so the next getConnection() fails
         require_once ROOT_PATH . '/config/database.php';
         $ref = new ReflectionClass('Database');
         $prop = $ref->getProperty('instance');
@@ -171,6 +181,7 @@ class FailClosedRegressionTest
     private function testAuthFailClosed()
     {
         $this->runIsolated(function() {
+            $this->assert(http_response_code() === 200, "Trước Auth case status là 200");
             $this->forceDbFailure();
             echo "\n--- A. Login đúng email sai password khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -182,10 +193,11 @@ class FailClosedRegressionTest
             
             $this->assert(!isset($_SESSION['user']), "Không tạo session user");
             $this->assert($controller->lastRedirect === null, "Không redirect như login thành công");
-            $this->assert(http_response_code() === 503, "HTTP status là 503");
+            $this->assert(http_response_code() === 503, "Login DB outage tự chuyển thành 503");
         });
 
         $this->runIsolated(function() {
+            $this->assert(http_response_code() === 200, "Không để case trước truyền 503 sang case sau (status 200)");
             $this->forceDbFailure();
             echo "\n--- A2. Login đúng email đúng password khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -197,10 +209,11 @@ class FailClosedRegressionTest
             
             $this->assert(!isset($_SESSION['user']), "Không tạo session user");
             $this->assert($controller->lastRedirect === null, "Không redirect như login thành công");
-            $this->assert(http_response_code() === 503, "HTTP status là 503");
+            $this->assert(http_response_code() === 503, "Login DB outage tự chuyển thành 503");
         });
 
         $this->runIsolated(function() {
+            $this->assert(http_response_code() === 200, "Trước Auth case status là 200");
             $this->forceDbFailure();
             echo "\n--- B. Register khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -214,7 +227,7 @@ class FailClosedRegressionTest
             
             $this->assert(!isset($_SESSION['user']), "Không tạo session user");
             $this->assert($controller->lastRedirect === null, "Không redirect như đăng ký thành công");
-            $this->assert(http_response_code() === 503, "HTTP status là 503");
+            $this->assert(http_response_code() === 503, "Register DB outage tự chuyển thành 503");
         });
 
         $this->runIsolated(function() {
@@ -222,11 +235,11 @@ class FailClosedRegressionTest
             echo "\n--- C. Remember-me khi DB unavailable ---\n";
             $_COOKIE['remember_techpilot'] = 'fake_token';
             $controller = new TestAuthController();
-            // Constructor of Controller checks remember me
             $this->assert(!isset($_SESSION['user']), "Controller constructor không tạo session user khi DB hỏng");
         });
 
         $this->runIsolated(function() {
+            $this->assert(http_response_code() === 200, "Trước Auth case status là 200");
             $this->forceDbFailure();
             echo "\n--- D. Reset password khi DB unavailable ---\n";
             $_GET['token'] = 'token_abc';
@@ -234,7 +247,7 @@ class FailClosedRegressionTest
             $controller->reset();
             
             $this->assert($controller->lastRedirect === null, "Không redirect như login giả dạng lỗi");
-            $this->assert(http_response_code() === 503, "Status cuối cùng là 503");
+            $this->assert(http_response_code() === 503, "Reset DB outage tự chuyển thành 503");
         });
     }
     
@@ -247,8 +260,12 @@ class FailClosedRegressionTest
             $_POST['submit_token'] = 'valid_token';
             $_SESSION['submit_token'] = 'valid_token';
             $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
-            $_SESSION['cart'] = [1 => 1];
-            $_SESSION['applied_coupon'] = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
+            
+            $cartBefore = [1 => 1];
+            $_SESSION['cart'] = $cartBefore;
+            $couponBefore = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
+            $_SESSION['applied_coupon'] = $couponBefore;
+            $submitTokenBefore = $_SESSION['submit_token'];
             
             $_POST['customer_name'] = 'John';
             $_POST['phone'] = '1234567890';
@@ -258,17 +275,23 @@ class FailClosedRegressionTest
             $controller = new TestCheckoutController();
             $controller->submit();
 
-            // Lấy TestOrder instance từ Controller test
             $testOrder = $controller->model('Order');
 
-            $this->assert($controller->lastRedirect === 'checkout', "Redirect destination là checkout");
-            $this->assert(isset($_SESSION['cart']), "Cart vẫn còn nguyên");
-            $this->assert(isset($_SESSION['applied_coupon']), "applied_coupon vẫn còn nguyên");
-            $this->assert(!isset($_SESSION['last_order']), "last_order không được tạo");
-            $this->assert(isset($_SESSION['submit_token']), "submit_token mới tồn tại");
-            $this->assert(isset($_SESSION['checkout_error']), "checkout_error tồn tại");
+            $this->assert($controller->lastRedirect === 'checkout', "Redirect chính xác là checkout");
+            $this->assert($controller->lastRedirect !== 'checkout/success', "Redirect không phải checkout/success");
             
-            $this->assert($testOrder->createCallCount === 1, "Order::create() được gọi chính xác 1 lần cho COD");
+            $this->assert($_SESSION['cart'] === $cartBefore, "exact cart comparison");
+            $this->assert($_SESSION['applied_coupon'] === $couponBefore, "exact coupon comparison");
+            $this->assert(!isset($_SESSION['last_order']), "Không có \$_SESSION['last_order']");
+            $this->assert(isset($_SESSION['submit_token']), "Có \$_SESSION['submit_token']");
+            $this->assert($_SESSION['submit_token'] !== $submitTokenBefore, "\$_SESSION['submit_token'] !== \$submitTokenBefore (token rotated)");
+            $this->assert(isset($_SESSION['checkout_error']), "Có \$_SESSION['checkout_error']");
+            
+            $this->assert($testOrder->createCallCount === 1, "createCallCount === 1");
+            $this->assert($testOrder->lastResult === false, "lastResult === false");
+            $this->assert(!is_array($testOrder->lastResult), "lastResult không phải array");
+            $this->assert(isset($testOrder->lastPayload['payment_method']) && $testOrder->lastPayload['payment_method'] === 'COD', "lastPayload['payment_method'] === 'COD'");
+            $this->assert(isset($testOrder->lastPayload['items']) && !empty($testOrder->lastPayload['items']), "lastPayload['items'] không rỗng");
         });
 
         $this->runIsolated(function() {
@@ -278,8 +301,12 @@ class FailClosedRegressionTest
             $_POST['submit_token'] = 'valid_token';
             $_SESSION['submit_token'] = 'valid_token';
             $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
-            $_SESSION['cart'] = [1 => 1];
-            $_SESSION['applied_coupon'] = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
+            
+            $cartBefore = [1 => 1];
+            $_SESSION['cart'] = $cartBefore;
+            $couponBefore = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
+            $_SESSION['applied_coupon'] = $couponBefore;
+            $submitTokenBefore = $_SESSION['submit_token'];
             
             $_POST['customer_name'] = 'John';
             $_POST['phone'] = '1234567890';
@@ -294,13 +321,24 @@ class FailClosedRegressionTest
             
             $testOrder = $controller->model('Order');
 
-            $this->assert($controller->lastRedirect === 'checkout', "Redirect destination là checkout");
-            $this->assert(isset($_SESSION['cart']), "Cart vẫn còn nguyên");
-            $this->assert(!isset($_SESSION['last_order']), "last_order không được tạo");
-            $this->assert($testOrder->createCallCount === 1, "Order::create() được gọi chính xác 1 lần cho VNPay");
+            $this->assert($controller->lastRedirect === 'checkout', "Redirect chính xác là checkout");
+            $this->assert($controller->lastRedirect !== 'checkout/success', "Redirect không phải checkout/success");
+            
+            $this->assert($_SESSION['cart'] === $cartBefore, "exact cart comparison");
+            $this->assert($_SESSION['applied_coupon'] === $couponBefore, "exact coupon comparison");
+            $this->assert(!isset($_SESSION['last_order']), "Không có \$_SESSION['last_order']");
+            $this->assert(isset($_SESSION['submit_token']), "Có \$_SESSION['submit_token']");
+            $this->assert($_SESSION['submit_token'] !== $submitTokenBefore, "\$_SESSION['submit_token'] !== \$submitTokenBefore (token rotated)");
+            $this->assert(isset($_SESSION['checkout_error']), "Có \$_SESSION['checkout_error']");
+            
+            $this->assert($testOrder->createCallCount === 1, "createCallCount === 1");
+            $this->assert($testOrder->lastResult === false, "lastResult === false");
+            $this->assert(!is_array($testOrder->lastResult), "lastResult không phải array");
+            $this->assert(isset($testOrder->lastPayload['payment_method']) && $testOrder->lastPayload['payment_method'] === 'VNPAY', "lastPayload['payment_method'] === 'VNPAY'");
+            $this->assert(isset($testOrder->lastPayload['items']) && !empty($testOrder->lastPayload['items']), "lastPayload['items'] không rỗng");
             
             $this->assert($controller->fakeVnpay !== null, "VNPay Service được khởi tạo");
-            $this->assert($controller->fakeVnpay->createPaymentUrlCallCount === 0, "createPaymentUrl KHÔNG được gọi khi Order::create fail");
+            $this->assert($controller->fakeVnpay->createPaymentUrlCallCount === 0, "FakeVnpayService::createPaymentUrlCallCount === 0");
         });
     }
 }
