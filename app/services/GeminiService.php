@@ -82,19 +82,32 @@ class GeminiService
         ]);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        $sslVerify = !empty(ini_get('curl.cainfo')) && file_exists((string)ini_get('curl.cainfo'));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $sslVerify);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $sslVerify ? 2 : 0);
+        try {
+            curl_setopt_array($ch, SecureCurl::buildTlsOptions());
+        } catch (RuntimeException $e) {
+            return [
+                'success'    => false,
+                'error_code' => $e->getMessage(),
+                'message'    => 'TLS configuration error: Invalid CA bundle path.',
+                'models'     => []
+            ];
+        }
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErrNo = curl_errno($ch);
         $curlErr = curl_error($ch);
 
         if ($response === false) {
+            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || $curlErrNo === CURLE_PEER_FAILED_VERIFICATION || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
+            
+            $errorCode = $isTlsError ? 'TLS_VERIFICATION_FAILED' : 'GEMINI_NETWORK_ERROR';
+            $errorMessage = $isTlsError ? 'TLS Certificate Verification Failed.' : 'Lỗi kết nối cURL: ' . $curlErr;
+
             return [
                 'success'    => false,
-                'error_code' => 'GEMINI_NETWORK_ERROR',
-                'message'    => 'Lỗi kết nối cURL: ' . $curlErr,
+                'error_code' => $errorCode,
+                'message'    => $errorMessage,
                 'models'     => []
             ];
         }

@@ -171,9 +171,17 @@ class AiService
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        $sslVerify = !empty(ini_get('curl.cainfo')) && file_exists((string)ini_get('curl.cainfo'));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $sslVerify);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $sslVerify ? 2 : 0);
+        try {
+            curl_setopt_array($ch, SecureCurl::buildTlsOptions());
+        } catch (RuntimeException $e) {
+            return [
+                'success'     => false,
+                'text'        => '',
+                'error_code'  => $e->getMessage(),
+                'message'     => 'TLS configuration error: Invalid CA bundle path.',
+                'http_status' => 0
+            ];
+        }
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -181,12 +189,24 @@ class AiService
         $curlErr = curl_error($ch);
 
         if ($response === false) {
-            $errorCode = ($curlErrNo === CURLE_OPERATION_TIMEDOUT) ? 'AI_TIMEOUT' : 'AI_NETWORK_ERROR';
+            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || $curlErrNo === CURLE_PEER_FAILED_VERIFICATION || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
+            
+            if ($isTlsError) {
+                $errorCode = 'TLS_VERIFICATION_FAILED';
+                $errorMessage = 'TLS Certificate Verification Failed.';
+            } elseif ($curlErrNo === CURLE_OPERATION_TIMEDOUT) {
+                $errorCode = 'AI_TIMEOUT';
+                $errorMessage = 'Connection timeout.';
+            } else {
+                $errorCode = 'AI_NETWORK_ERROR';
+                $errorMessage = 'Lỗi kết nối mạng: ' . $curlErr;
+            }
+
             return [
                 'success'     => false,
                 'text'        => '',
                 'error_code'  => $errorCode,
-                'message'     => 'Lỗi kết nối Gemini: ' . $curlErr,
+                'message'     => $errorMessage,
                 'http_status' => 0
             ];
         }
@@ -280,9 +300,17 @@ class AiService
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        $sslVerify = !empty(ini_get('curl.cainfo')) && file_exists((string)ini_get('curl.cainfo'));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $sslVerify);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $sslVerify ? 2 : 0);
+        try {
+            curl_setopt_array($ch, SecureCurl::buildTlsOptions());
+        } catch (RuntimeException $e) {
+            return [
+                'success'     => false,
+                'text'        => '',
+                'error_code'  => $e->getMessage(),
+                'message'     => 'TLS configuration error: Invalid CA bundle path.',
+                'http_status' => 0
+            ];
+        }
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -290,12 +318,24 @@ class AiService
         $curlErr = curl_error($ch);
 
         if ($response === false) {
-            $errorCode = ($curlErrNo === CURLE_OPERATION_TIMEDOUT) ? 'AI_TIMEOUT' : 'AI_NETWORK_ERROR';
+            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || $curlErrNo === CURLE_PEER_FAILED_VERIFICATION || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
+            
+            if ($isTlsError) {
+                $errorCode = 'TLS_VERIFICATION_FAILED';
+                $errorMessage = 'TLS Certificate Verification Failed.';
+            } elseif ($curlErrNo === CURLE_OPERATION_TIMEDOUT) {
+                $errorCode = 'AI_TIMEOUT';
+                $errorMessage = 'Connection timeout.';
+            } else {
+                $errorCode = 'AI_NETWORK_ERROR';
+                $errorMessage = "Lỗi kết nối {$providerName}: {$curlErr}";
+            }
+
             return [
                 'success'     => false,
                 'text'        => '',
                 'error_code'  => $errorCode,
-                'message'     => "Lỗi kết nối {$providerName}: {$curlErr}",
+                'message'     => $errorMessage,
                 'http_status' => 0
             ];
         }
@@ -378,7 +418,7 @@ class AiService
             return true;
         }
 
-        if (in_array($errorCode, ['AI_QUOTA_EXCEEDED', 'AI_TIMEOUT', 'AI_NETWORK_ERROR', 'AI_PROVIDER_UNAVAILABLE'], true)) {
+        if (in_array($errorCode, ['AI_QUOTA_EXCEEDED', 'AI_TIMEOUT', 'AI_NETWORK_ERROR', 'AI_PROVIDER_UNAVAILABLE', 'TLS_VERIFICATION_FAILED', 'TLS_CA_BUNDLE_INVALID'], true)) {
             return true;
         }
 
