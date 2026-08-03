@@ -14,31 +14,12 @@ class User
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-
-        if (!isset($_SESSION['_fallback_users'])) {
-            $_SESSION['_fallback_users'] = [
-                [
-                    'id' => 1,
-                    'full_name' => 'TechPilot Admin',
-                    'email' => 'admin@techpilot.vn',
-                    'phone' => '0901234567',
-                    'role' => 'admin',
-                    'status' => 'active',
-                    'password' => password_hash('admin123', PASSWORD_DEFAULT),
-                ]
-            ];
-        }
     }
 
     /** Kiểm tra email đã tồn tại chưa */
     public function findByEmail(string $email): array|false
     {
         if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as $user) {
-                if (strcasecmp($user['email'] ?? '', $email) === 0) {
-                    return $user;
-                }
-            }
             return false;
         }
 
@@ -54,11 +35,6 @@ class User
         $phone = trim($phone);
         if ($phone === '') return false;
         if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as $user) {
-                if (($user['phone'] ?? '') === $phone) {
-                    return $user;
-                }
-            }
             return false;
         }
 
@@ -74,16 +50,7 @@ class User
         $hashed = password_hash($password, PASSWORD_DEFAULT);
 
         if ($this->useFallback) {
-            $_SESSION['_fallback_users'][] = [
-                'id' => count($_SESSION['_fallback_users']) + 1,
-                'full_name' => $fullName,
-                'email' => $email,
-                'phone' => $phone,
-                'role' => $role,
-                'status' => 'active',
-                'password' => $hashed,
-            ];
-            return true;
+            return false;
         }
 
         $stmt = $this->db->prepare(
@@ -122,12 +89,6 @@ class User
     public function getById(int $id): array|false
     {
         if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as $user) {
-                if ($user['id'] == $id) {
-                    unset($user['password']);
-                    return $user;
-                }
-            }
             return false;
         }
 
@@ -141,13 +102,6 @@ class User
     public function updateProfile(int $id, string $fullName, string $phone): bool
     {
         if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as &$user) {
-                if ($user['id'] == $id) {
-                    $user['full_name'] = $fullName;
-                    $user['phone'] = $phone;
-                    return true;
-                }
-            }
             return false;
         }
 
@@ -171,12 +125,6 @@ class User
         $hashed = ($info['algo'] !== null && (int)$info['algo'] > 0) ? $newPassword : password_hash($newPassword, PASSWORD_DEFAULT);
 
         if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as &$user) {
-                if ($user['id'] == $id) {
-                    $user['password'] = $hashed;
-                    return true;
-                }
-            }
             return false;
         }
 
@@ -190,7 +138,7 @@ class User
     /** Cập nhật remember_token */
     public function updateRememberToken(int $id, ?string $token): bool
     {
-        if ($this->useFallback) return true;
+        if ($this->useFallback) return false;
         try {
             $stmt = $this->db->prepare('UPDATE users SET remember_token = :token WHERE id = :id');
             return $stmt->execute([':token' => $token, ':id' => $id]);
@@ -218,7 +166,7 @@ class User
     /** Lưu reset_token cho email */
     public function setResetToken(string $email, string $token, string $expiry): bool
     {
-        if ($this->useFallback) return true;
+        if ($this->useFallback) return false;
         $stmt = $this->db->prepare('UPDATE users SET reset_token = :token, reset_token_expiry = :expiry WHERE email = :email');
         return $stmt->execute([':token' => $token, ':expiry' => $expiry, ':email' => $email]);
     }

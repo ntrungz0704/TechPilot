@@ -16,23 +16,8 @@ class Order
     public function create(array $payload): array|false
     {
         $orderCode = 'TP-' . date('YmdHis') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
-
         if ($this->useFallback) {
-            return [
-                'id' => 0,
-                'order_code' => $orderCode,
-                'customer_name' => $payload['customer_name'] ?? '',
-                'phone' => $payload['phone'] ?? '',
-                'address' => $payload['address'] ?? '',
-                'note' => $payload['note'] ?? '',
-                'payment_method' => $payload['payment_method'] ?? 'COD',
-                'status' => 'pending',
-                'subtotal' => (float)($payload['subtotal'] ?? 0),
-                'discount_amount' => (float)($payload['discount_amount'] ?? 0),
-                'shipping_fee' => (float)($payload['shipping_fee'] ?? 0),
-                'total_amount' => (float)($payload['total_amount'] ?? 0),
-                'items' => $payload['items'] ?? [],
-            ];
+            return false;
         }
 
         $this->db->beginTransaction();

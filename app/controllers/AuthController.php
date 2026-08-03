@@ -20,7 +20,12 @@ class AuthController extends Controller
             }
 
             if (empty($errors)) {
-                $userModel = $this->model('User');
+                require_once ROOT_PATH . '/config/database.php';
+                if (Database::getConnection() === null) {
+                    http_response_code(503);
+                    $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
+                } else {
+                    $userModel = $this->model('User');
                 $user = $userModel->verify($email, $password);
 
                 if ($user) {
@@ -104,19 +109,25 @@ class AuthController extends Controller
             }
 
             if (empty($errors)) {
-                $userModel = $this->model('User');
-
-                if ($userModel->findByEmail($email)) {
-                    $errors[] = 'Email này đã được sử dụng. Vui lòng sử dụng Email khác hoặc Đăng nhập.';
-                } elseif ($phone !== '' && $userModel->findByPhone($phone)) {
-                    $errors[] = 'Số điện thoại này đã được đăng ký bởi một tài khoản khác.';
+                require_once ROOT_PATH . '/config/database.php';
+                if (Database::getConnection() === null) {
+                    http_response_code(503);
+                    $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
                 } else {
-                    if ($userModel->create($fullName, $email, $phone, $password)) {
-                        flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
-                        $this->redirect('auth/login');
-                        return;
+                    $userModel = $this->model('User');
+
+                    if ($userModel->findByEmail($email)) {
+                        $errors[] = 'Email này đã được sử dụng. Vui lòng sử dụng Email khác hoặc Đăng nhập.';
+                    } elseif ($phone !== '' && $userModel->findByPhone($phone)) {
+                        $errors[] = 'Số điện thoại này đã được đăng ký bởi một tài khoản khác.';
                     } else {
-                        $errors[] = 'Đăng ký thất bại. Vui lòng liên hệ quản trị viên.';
+                        if ($userModel->create($fullName, $email, $phone, $password)) {
+                            flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+                            $this->redirect('auth/login');
+                            return;
+                        } else {
+                            $errors[] = 'Đăng ký thất bại. Vui lòng liên hệ quản trị viên.';
+                        }
                     }
                 }
             }
@@ -159,7 +170,12 @@ class AuthController extends Controller
                 $errors[] = 'Vui lòng nhập một địa chỉ email hợp lệ.';
             } else {
                 try {
-                    $userModel = $this->model('User');
+                    require_once ROOT_PATH . '/config/database.php';
+                    if (Database::getConnection() === null) {
+                        http_response_code(503);
+                        $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
+                    } else {
+                        $userModel = $this->model('User');
                     $user = $userModel->findByEmail($email);
                     if ($user) {
                         $token = bin2hex(random_bytes(32));
@@ -167,6 +183,7 @@ class AuthController extends Controller
                         $userModel->setResetToken($email, $token, $expiry);
                     }
                     $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
+                    }
                 } catch (Throwable $e) {
                     error_log('Forgot password error: ' . $e->getMessage());
                     $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
@@ -187,6 +204,14 @@ class AuthController extends Controller
         $token = $_GET['token'] ?? '';
         if (empty($token)) {
             $this->redirect('auth/login');
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        if (Database::getConnection() === null) {
+            http_response_code(503);
+            flash('error', 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.');
+            $this->redirect('auth/login');
+            return;
         }
 
         $userModel = $this->model('User');
