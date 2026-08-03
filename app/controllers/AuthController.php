@@ -26,39 +26,40 @@ class AuthController extends Controller
                     $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
                 } else {
                     $userModel = $this->model('User');
-                $user = $userModel->verify($email, $password);
+                    $user = $userModel->verify($email, $password);
 
-                if ($user) {
-                    session_regenerate_id(true);
-                    
-                    // Lưu session thông tin tối giản an toàn
-                    $_SESSION['user'] = [
-                        'id' => $user['id'],
-                        'full_name' => $user['full_name'],
-                        'email' => $user['email'],
-                        'role' => $user['role']
-                    ];
+                    if ($user) {
+                        session_regenerate_id(true);
+                        
+                        // Lưu session thông tin tối giản an toàn
+                        $_SESSION['user'] = [
+                            'id' => $user['id'],
+                            'full_name' => $user['full_name'],
+                            'email' => $user['email'],
+                            'role' => $user['role']
+                        ];
 
-                    // Xử lý ghi nhớ đăng nhập
-                    if (!empty($_POST['remember'])) {
-                        $token = bin2hex(random_bytes(32));
-                        $userModel->updateRememberToken($user['id'], $token);
-                        setcookie('remember_techpilot', $token, time() + (30 * 24 * 60 * 60), '/', '', false, true); // 30 days
+                        // Xử lý ghi nhớ đăng nhập
+                        if (!empty($_POST['remember'])) {
+                            $token = bin2hex(random_bytes(32));
+                            $userModel->updateRememberToken($user['id'], $token);
+                            setcookie('remember_techpilot', $token, time() + (30 * 24 * 60 * 60), '/', '', false, true); // 30 days
+                        }
+
+                        // Xử lý redirect an toàn sau đăng nhập
+                        $redirect = trim($_GET['redirect'] ?? '');
+                        if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
+                            $this->redirect($redirect);
+                        } elseif (($user['role'] ?? '') === 'admin') {
+                            $this->redirect('/admin');
+                        } else {
+                            $this->redirect('/');
+                        }
+                        return;
                     }
 
-                    // Xử lý redirect an toàn sau đăng nhập
-                    $redirect = trim($_GET['redirect'] ?? '');
-                    if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
-                        $this->redirect($redirect);
-                    } elseif (($user['role'] ?? '') === 'admin') {
-                        $this->redirect('/admin');
-                    } else {
-                        $this->redirect('/');
-                    }
-                    return;
+                    $errors[] = 'Email hoặc mật khẩu không chính xác.';
                 }
-
-                $errors[] = 'Email hoặc mật khẩu không chính xác.';
             }
         }
 
@@ -176,13 +177,13 @@ class AuthController extends Controller
                         $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
                     } else {
                         $userModel = $this->model('User');
-                    $user = $userModel->findByEmail($email);
-                    if ($user) {
-                        $token = bin2hex(random_bytes(32));
-                        $expiry = date('Y-m-d H:i:s', time() + 3600);
-                        $userModel->setResetToken($email, $token, $expiry);
-                    }
-                    $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
+                        $user = $userModel->findByEmail($email);
+                        if ($user) {
+                            $token = bin2hex(random_bytes(32));
+                            $expiry = date('Y-m-d H:i:s', time() + 3600);
+                            $userModel->setResetToken($email, $token, $expiry);
+                        }
+                        $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
                     }
                 } catch (Throwable $e) {
                     error_log('Forgot password error: ' . $e->getMessage());
@@ -209,8 +210,11 @@ class AuthController extends Controller
         require_once ROOT_PATH . '/config/database.php';
         if (Database::getConnection() === null) {
             http_response_code(503);
-            flash('error', 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.');
-            $this->redirect('auth/login');
+            $this->render('auth/reset', [
+                'pageTitle' => 'Đặt lại mật khẩu',
+                'errors' => ['Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.'],
+                'token' => $token
+            ]);
             return;
         }
 

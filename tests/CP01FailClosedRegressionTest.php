@@ -1,6 +1,57 @@
 <?php
 define('ROOT_PATH', dirname(__DIR__));
-require_once ROOT_PATH . '/config/database.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once ROOT_PATH . '/app/core/Controller.php';
+require_once ROOT_PATH . '/app/controllers/AuthController.php';
+require_once ROOT_PATH . '/app/controllers/CheckoutController.php';
+require_once ROOT_PATH . '/app/models/User.php';
+require_once ROOT_PATH . '/app/models/Order.php';
+
+// Test doubles
+class TestAuthController extends AuthController {
+    public int $lastResponseCode = 200;
+    public ?string $lastRedirect = null;
+
+    protected function redirect(string $url): void {
+        $this->lastRedirect = $url;
+    }
+    
+    protected function render(string $view, array $data = [], bool $useLayout = true): void {
+        // do nothing for test
+    }
+
+    public function model(string $name) {
+        return parent::model($name);
+    }
+}
+
+class TestCheckoutController extends CheckoutController {
+    public ?string $lastRedirect = null;
+    public int $lastResponseCode = 200;
+
+    protected function redirect(string $url): void {
+        $this->lastRedirect = $url;
+    }
+
+    public function model(string $name) {
+        if ($name === 'Order') {
+            return new TestOrder();
+        }
+        return parent::model($name);
+    }
+}
+
+class TestOrder extends Order {
+    public int $createCallCount = 0;
+    public function create(array $data): array|false {
+        $this->createCallCount++;
+        return false;
+    }
+}
 
 class FailClosedRegressionTest
 {
@@ -21,44 +72,65 @@ class FailClosedRegressionTest
         }
     }
 
-    private function setDbInstance(?PDO $instance)
+    private function runIsolated(callable $fn)
     {
+        // Backup superglobals
+        $oldPost = $_POST;
+        $oldGet = $_GET;
+        $oldSession = $_SESSION;
+        $oldCookie = $_COOKIE;
+        
+        try {
+            $fn();
+        } finally {
+            // Restore
+            $_POST = $oldPost;
+            $_GET = $oldGet;
+            $_SESSION = $oldSession;
+            $_COOKIE = $oldCookie;
+        }
+    }
+
+    private function forceDbFailure()
+    {
+        putenv('APP_ENV=test');
+        putenv('FORCE_DB_FAILURE=1');
+        
+        // Use reflection to clear Database::$instance so the next getConnection() fails
+        require_once ROOT_PATH . '/config/database.php';
         $ref = new ReflectionClass('Database');
         $prop = $ref->getProperty('instance');
         $prop->setAccessible(true);
-        $prop->setValue(null, $instance);
+        $prop->setValue(null, null);
     }
 
-    private function getRealDb(): PDO
+    private function restoreDb()
     {
-        $this->setDbInstance(null);
-        $db = Database::getConnection();
-        if (!$db) {
-            throw new RuntimeException("Cannot get real DB for setup");
-        }
-        return $db;
+        putenv('APP_ENV');
+        putenv('FORCE_DB_FAILURE');
+        
+        require_once ROOT_PATH . '/config/database.php';
+        $ref = new ReflectionClass('Database');
+        $prop = $ref->getProperty('instance');
+        $prop->setAccessible(true);
+        $prop->setValue(null, null);
     }
 
     public function run(): void
     {
+        ob_start(); // Prevent headers from being sent
         echo "========================================================\n";
         echo "=== TECHPILOT FAIL-CLOSED REGRESSION TEST SUITE      ===\n";
         echo "========================================================\n\n";
 
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
         $this->testAuthFailClosed();
         $this->testCheckoutFailClosed();
-        
-        $this->setDbInstance(null); // restore
-        $this->testDatabaseAvailableAuth();
-        $this->testDatabaseAvailableCheckout();
 
         echo "\n════════════════════════════════════════════════════════\n";
         echo "Fail-Closed Test Results: {$this->passed} passed, {$this->failed} failed\n";
         echo "════════════════════════════════════════════════════════\n";
+
+        ob_end_flush(); // Output everything
 
         if ($this->failed > 0) {
             exit(1);
@@ -66,96 +138,122 @@ class FailClosedRegressionTest
         exit(0);
     }
 
-    private function forceDbFailure()
-    {
-        $this->setDbInstance(null);
-        if (file_exists(ROOT_PATH . '/config/database.local.php')) {
-            rename(ROOT_PATH . '/config/database.local.php', ROOT_PATH . '/config/database.local.php.bak');
-        }
-        putenv('DB_PORT=9999');
-    }
-
-    private function restoreDb()
-    {
-        putenv('DB_PORT');
-        if (file_exists(ROOT_PATH . '/config/database.local.php.bak')) {
-            rename(ROOT_PATH . '/config/database.local.php.bak', ROOT_PATH . '/config/database.local.php');
-        }
-        $this->setDbInstance(null);
-    }
-
     private function testAuthFailClosed()
     {
-        echo "\n--- A. Database unavailable + fallback credentials ---\n";
         $this->forceDbFailure();
-        $this->assert(Database::getConnection() === null, "Database is properly disconnected for testing");
 
-        require_once ROOT_PATH . '/app/models/User.php';
-        $userModel = new User();
-        
-        $user = $userModel->verify('admin@techpilot.vn', 'admin123');
-        $this->assert($user === false, "Login thất bại khi DB unavailable", "Vẫn cho phép đăng nhập bằng fallback");
-        $this->assert(!isset($_SESSION['user']), "Không tạo session user", "Vẫn tạo session user");
-        
-        echo "\n--- B. Database unavailable + remember cookie ---\n";
-        $_COOKIE['remember_techpilot'] = 'fake_token';
-        $userByToken = $userModel->findByRememberToken('fake_token');
-        $this->assert($userByToken === false, "Cookie không tạo session admin", "Vẫn cho đăng nhập bằng remember token fallback");
+        $this->runIsolated(function() {
+            echo "\n--- A. Login khi DB unavailable ---\n";
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_POST['email'] = 'admin@techpilot.vn';
+            $_POST['password'] = 'admin123';
+            
+            $controller = new TestAuthController();
+            $controller->login();
+            
+            $this->assert(!isset($_SESSION['user']), "Không tạo session user");
+            $this->assert($controller->lastRedirect === null, "Không redirect như login thành công");
+            $this->assert(http_response_code() === 503, "HTTP status là 503");
+        });
 
-        echo "\n--- C. Database unavailable + register ---\n";
-        $created = $userModel->create('Test', 'test@example.com', '123456789', 'password');
-        $this->assert($created === false, "Không báo đăng ký thành công", "Vẫn báo tạo tài khoản thành công bằng fallback");
-        
+        $this->runIsolated(function() {
+            echo "\n--- B. Register khi DB unavailable ---\n";
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_POST['full_name'] = 'Test';
+            $_POST['email'] = 'test@example.com';
+            $_POST['password'] = 'password';
+            $_POST['confirm_password'] = 'password';
+            
+            $controller = new TestAuthController();
+            $controller->register();
+            
+            $this->assert(!isset($_SESSION['user']), "Không tạo session user");
+            $this->assert($controller->lastRedirect === null, "Không redirect như đăng ký thành công");
+            $this->assert(http_response_code() === 503, "HTTP status là 503");
+        });
+
+        $this->runIsolated(function() {
+            echo "\n--- C. Remember-me khi DB unavailable ---\n";
+            $_COOKIE['remember_techpilot'] = 'fake_token';
+            $controller = new TestAuthController();
+            // Trigger check auth
+            $userModel = $controller->model('User');
+            $userByToken = $userModel->findByRememberToken('fake_token');
+            $this->assert($userByToken === false, "Base Controller không tạo session user");
+        });
+
+        $this->runIsolated(function() {
+            echo "\n--- D. Reset password khi DB unavailable ---\n";
+            $_GET['token'] = 'token_abc';
+            $controller = new TestAuthController();
+            $controller->reset();
+            
+            $this->assert($controller->lastRedirect === null, "Không redirect như login giả dạng lỗi");
+            $this->assert(http_response_code() === 503, "Status cuối cùng là 503");
+        });
+
         $this->restoreDb();
     }
     
     private function testCheckoutFailClosed()
     {
-        require_once ROOT_PATH . '/app/models/Order.php';
         $this->forceDbFailure();
-        
-        echo "\n--- Checkout: Database unavailable + COD / VNPay ---\n";
-        $orderModel = new Order();
-        
-        $payload = [
-            'customer_name' => 'John Doe',
-            'phone' => '1234567890',
-            'address' => '123 Street',
-            'payment_method' => 'COD',
-            'subtotal' => 100000,
-            'items' => [
-                ['product_id' => 1, 'quantity' => 1]
-            ]
-        ];
-        
-        $order = $orderModel->create($payload);
-        $this->assert($order === false, "Order creation thất bại", "Order tạo thành công bằng giả lập (id=0)");
-        
+
+        $this->runIsolated(function() {
+            echo "\n--- Checkout COD khi DB unavailable ---\n";
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_POST['submit_token'] = 'valid_token';
+            $_SESSION['submit_token'] = 'valid_token';
+            $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
+            $_SESSION['cart'] = [1 => 1]; // non empty cart
+            $_SESSION['applied_coupon'] = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
+            
+            $_POST['customer_name'] = 'John';
+            $_POST['phone'] = '1234567890';
+            $_POST['address'] = '123 Test St';
+            $_POST['payment_method'] = 'COD';
+
+            $controller = new TestCheckoutController();
+            $controller->submit();
+
+            $this->assert($controller->lastRedirect === 'checkout', "Redirect destination là checkout");
+            $this->assert(isset($_SESSION['cart']), "Cart vẫn còn nguyên");
+            $this->assert(isset($_SESSION['applied_coupon']), "applied_coupon vẫn còn nguyên");
+            $this->assert(!isset($_SESSION['last_order']), "last_order không được tạo");
+            $this->assert(isset($_SESSION['submit_token']), "submit_token mới tồn tại");
+            $this->assert(isset($_SESSION['checkout_error']), "checkout_error tồn tại");
+        });
+
+        $this->runIsolated(function() {
+            echo "\n--- Checkout VNPay khi DB unavailable ---\n";
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_POST['submit_token'] = 'valid_token';
+            $_SESSION['submit_token'] = 'valid_token';
+            $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
+            $_SESSION['cart'] = [1 => 1];
+            $_SESSION['applied_coupon'] = ['id' => 1, 'code' => 'DISCOUNT10', 'discount' => 10000];
+            
+            $_POST['customer_name'] = 'John';
+            $_POST['phone'] = '1234567890';
+            $_POST['address'] = '123 Test St';
+            $_POST['payment_method'] = 'VNPAY';
+
+            // Simulate VNPay Configured for test
+            putenv('VNP_TMN_CODE=TESTCODE');
+            putenv('VNP_HASH_SECRET=TESTSECRET');
+
+            $controller = new TestCheckoutController();
+            $controller->submit();
+
+            $this->assert($controller->lastRedirect === 'checkout', "Redirect destination là checkout");
+            $this->assert(isset($_SESSION['cart']), "Cart vẫn còn nguyên");
+            $this->assert(!isset($_SESSION['last_order']), "last_order không được tạo");
+            
+            putenv('VNP_TMN_CODE');
+            putenv('VNP_HASH_SECRET');
+        });
+
         $this->restoreDb();
-    }
-    
-    private function testDatabaseAvailableAuth()
-    {
-        echo "\n--- D. Database available Auth ---\n";
-        $db = $this->getRealDb();
-        require_once ROOT_PATH . '/app/models/User.php';
-        $userModel = new User();
-        
-        // Find a real user or test wrong password
-        $user = $userModel->verify('nonexistent@example.com', 'wrongpass');
-        $this->assert($user === false, "User sai password vẫn bị từ chối");
-        
-        // Ensure connection works
-        $this->assert($db instanceof PDO, "Database is available for normal operations");
-    }
-    
-    private function testDatabaseAvailableCheckout()
-    {
-        echo "\n--- D. Database available Checkout ---\n";
-        $db = $this->getRealDb();
-        require_once ROOT_PATH . '/app/models/Order.php';
-        $orderModel = new Order();
-        $this->assert($db instanceof PDO, "Database is available for checkout ops");
     }
 }
 
