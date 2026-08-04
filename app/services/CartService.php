@@ -200,14 +200,21 @@ class CartService
     {
         $guestCart = $_SESSION['guest_cart'] ?? [];
         if (empty($guestCart)) {
-            return ['merged' => 0, 'skipped' => 0];
+            return ['merged' => 0, 'skipped' => 0, 'cart_count' => 0, 'cart_id' => null];
         }
 
         $merged = 0;
         $skipped = 0;
+        $sessionCart = [];
+        $cartCount = 0;
+        $cartId = null;
 
         try {
             $db->beginTransaction();
+
+            // Lock user row first to prevent race condition when creating cart
+            $stmt = $db->prepare("SELECT id FROM users WHERE id = :user_id FOR UPDATE");
+            $stmt->execute([':user_id' => $userId]);
 
             // Get or Create active cart for user
             $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1 FOR UPDATE");
@@ -253,7 +260,22 @@ class CartService
                 $merged++;
             }
 
+            // Query toàn bộ cart_items của cart vừa merge và dựng $sessionCart
+            $stmt = $db->prepare("SELECT product_id, quantity FROM cart_items WHERE cart_id = :cart_id");
+            $stmt->execute([':cart_id' => $cartId]);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($items as $item) {
+                $sessionCart[(int)$item['product_id']] = [
+                    'product_id' => (int)$item['product_id'],
+                    'quantity' => (int)$item['quantity']
+                ];
+                $cartCount += (int)$item['quantity'];
+            }
+
             $db->commit();
+            
+            $_SESSION['cart'] = $sessionCart;
             unset($_SESSION['guest_cart']);
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
@@ -262,6 +284,11 @@ class CartService
             throw $e;
         }
 
-        return ['merged' => $merged, 'skipped' => $skipped];
+        return [
+            'merged' => $merged,
+            'skipped' => $skipped,
+            'cart_count' => $cartCount,
+            'cart_id' => $cartId
+        ];
     }
 }

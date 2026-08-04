@@ -145,12 +145,7 @@ class CartController extends Controller
             $product = $productModel->getActiveByIdStrict($productId);
         }
         if (!$product && $slug !== '') {
-            $product = $productModel->getBySlug($slug);
-            if ($product && $product['status'] === 'active') {
-                $product = $productModel->getActiveByIdStrict((int)$product['id']);
-            } else {
-                $product = false;
-            }
+            $product = $productModel->getActiveBySlugStrict($slug);
         }
 
         if (!$product) {

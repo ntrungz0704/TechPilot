@@ -95,13 +95,13 @@
     ?>
         <div class="mobile-fixed-buy-bar">
             <div class="fixed-buy-bar__info">
-                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="thumb">
+                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>" alt="thumb">
                 <div class="fixed-buy-bar__txt">
                     <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
                     <span class="fixed-buy-bar__price"><?= formatPrice($product['final_price'] ?? $product['effective_price'] ?? $product['price']) ?></span>
                 </div>
             </div>
-            <button type="button" class="fixed-buy-bar__btn" onclick="buyNowSubmit()"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
+            <button type="button" class="fixed-buy-bar__btn" onclick="mobileAddToCart()"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
         </div>
     <?php else: ?>
         <div class="mobile-bottom-nav">
@@ -121,10 +121,11 @@
                 <i class="fa-solid fa-heart"></i>
                 <span>Yêu thích</span>
             </a>
-            <a href="<?= url('cart') ?>" class="mobile-bottom-nav__item">
+            <?php $bottomCartCount = (int)cartCount(); ?>
+            <a href="<?= url('cart') ?>" class="mobile-bottom-nav__item" aria-label="Giỏ hàng<?= $bottomCartCount > 0 ? ', có ' . $bottomCartCount . ' sản phẩm' : '' ?>">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span>Giỏ hàng</span>
-                <span class="cart-badge"><?= (int)cartCount() ?></span>
+                <span class="cart-badge" style="display: <?= $bottomCartCount > 0 ? 'flex' : 'none' ?>"><?= $bottomCartCount ?></span>
             </a>
         </div>
     <?php endif; ?>
@@ -279,9 +280,10 @@
 
             toast.innerHTML = `
                 <div style="font-size: 20px;">${iconHtml}</div>
-                <div style="flex: 1; font-size: 13.5px; line-height: 1.5; font-weight: 500;">${message}</div>
+                <div class="toast-message-body" style="flex: 1; font-size: 13.5px; line-height: 1.5; font-weight: 500;"></div>
                 <button type="button" class="toast-item__close" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:14px; margin-left:8px;"><i class="fa-solid fa-xmark"></i></button>
             `;
+            toast.querySelector('.toast-message-body').textContent = String(message);
 
             toast.querySelector('.toast-item__close').addEventListener('click', () => {
                 toast.classList.add('fade-out');
@@ -357,15 +359,25 @@
                             setTimeout(() => toastFallback.remove(), 3000);
                         }
 
-                        const cartBadge = document.getElementById('cartBadge');
-                        if (cartBadge && data.cart_count !== undefined) {
-                            cartBadge.textContent = data.cart_count;
-                            cartBadge.style.display = data.cart_count > 0 ? 'flex' : 'none';
+                        if (data.cart_count !== undefined) {
+                            const badges = document.querySelectorAll('.cart-badge, #cartBadge');
+                            badges.forEach(badge => {
+                                badge.textContent = data.cart_count;
+                                badge.style.display = data.cart_count > 0 ? 'flex' : 'none';
+                                const parentLink = badge.closest('a');
+                                if (parentLink) {
+                                    parentLink.setAttribute('aria-label', 'Giỏ hàng có ' + data.cart_count + ' sản phẩm');
+                                }
+                            });
                         }
                     })
                     .catch(err => {
                         if (btn) btn.disabled = false;
-                        console.error('Add to cart error:', err);
+                        if (typeof window.showStorefrontToast === 'function') {
+                            window.showStorefrontToast('error', 'Lỗi kết nối mạng.');
+                        } else {
+                            alert('Lỗi kết nối mạng.');
+                        }
                     });
                 });
             });
@@ -375,46 +387,6 @@
     <?php if (currentUser()): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Tạo container chứa các thông báo Toast ở góc dưới bên phải
-        const toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container';
-        toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 360px; pointer-events: none;';
-        document.body.appendChild(toastContainer);
-
-        // Định nghĩa CSS bổ sung cho Toast
-        const styleEl = document.createElement('style');
-        styleEl.innerHTML = `
-            .toast-item {
-                background-color: var(--bg-card, #FFFFFF);
-                color: var(--text-primary, #0F172A);
-                border: 1px solid var(--border, #E2E8F0);
-                border-left: 4px solid var(--primary, #0A5BFF);
-                border-radius: 12px;
-                padding: 16px;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-                display: flex;
-                gap: 12px;
-                align-items: flex-start;
-                animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-                pointer-events: auto;
-                transition: all 0.3s ease;
-            }
-            @keyframes toastSlideIn {
-                from { transform: translateX(120%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            .toast-item.fade-out {
-                transform: translateX(120%);
-                opacity: 0;
-            }
-            .dark-mode .toast-item {
-                background-color: #1E293B;
-                border-color: #334155;
-                color: #F8FAFC;
-            }
-        `;
-        document.head.appendChild(styleEl);
-
         // Danh sách thông báo đã hiển thị Toast trong session này để tránh trùng lặp khi F5
         let toastedIds = [];
         try {
@@ -430,31 +402,10 @@
                 sessionStorage.setItem('techpilot-toasted-ids', JSON.stringify(toastedIds));
             } catch(e) {}
 
-            const toast = document.createElement('div');
-            toast.className = 'toast-item';
-            toast.innerHTML = `
-                <div style="font-size: 20px; color: var(--primary);"><i class="fa-solid fa-circle-info"></i></div>
-                <div style="flex: 1; font-size: 13.5px;">
-                    <strong style="display: block; margin-bottom: 4px; font-weight: 700;">${notif.title}</strong>
-                    <span>${notif.content}</span>
-                </div>
-                <button type="button" class="toast-item__close" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:14px; margin-left:8px;"><i class="fa-solid fa-xmark"></i></button>
-            `;
-
-            toast.querySelector('.toast-item__close').addEventListener('click', () => {
-                toast.classList.add('fade-out');
-                setTimeout(() => toast.remove(), 300);
-            });
-
-            toastContainer.appendChild(toast);
-
-            // Tự động ẩn sau 7 giây
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.classList.add('fade-out');
-                    setTimeout(() => toast.remove(), 300);
-                }
-            }, 7000);
+            let msg = notif.title + ': ' + notif.content;
+            if (typeof window.showStorefrontToast === 'function') {
+                window.showStorefrontToast('info', msg);
+            }
         }
 
         function checkNotifications() {

@@ -394,6 +394,21 @@ $galleryImages = getGalleryImages($product['image'] ?? '', $productImages);
         form.submit();
     }
 
+    function mobileAddToCart() {
+        const form = document.getElementById('purchaseForm');
+        const intentInput = document.getElementById('purchaseIntent');
+        if (intentInput) {
+            intentInput.value = 'add';
+        }
+        
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            // Fallback for older browsers
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+    }
+
     function switchProdTab(tabId, btn) {
         const panels = document.querySelectorAll('.product-tabs__panel');
         panels.forEach(p => p.classList.remove('is-active'));

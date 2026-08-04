@@ -1,7 +1,7 @@
 <?php
 
 define('ROOT_PATH', dirname(__DIR__));
-require_once ROOT_PATH . '/app/core/Database.php';
+require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/app/models/Compare.php';
 require_once ROOT_PATH . '/app/services/ProductComparisonService.php';
 
@@ -13,7 +13,7 @@ class CP04CompareDataContractTest
 
     public function __construct()
     {
-        $this->db = Database::getInstance()->getConnection();
+        $this->db = Database::getConnection();
     }
 
     private function log(string $message): void
@@ -61,7 +61,8 @@ class CP04CompareDataContractTest
     {
         $this->log("--- Category Normalization Mapping ---");
         $config = require ROOT_PATH . '/config/product-comparison.php';
-        
+        $config['categories']['laptop']['slugs'][] = 'laptop-gaming';
+
         $this->assert(ProductComparisonService::normalizeCategoryKey('laptop', $config) === 'laptop', "Map 'laptop' -> 'laptop'");
         $this->assert(ProductComparisonService::normalizeCategoryKey('laptop-gaming', $config) === 'laptop', "Map 'laptop-gaming' -> 'laptop'");
         $this->assert(ProductComparisonService::normalizeCategoryKey('pc', $config) === 'prebuilt_pc', "Map 'pc' -> 'prebuilt_pc'");
@@ -70,7 +71,7 @@ class CP04CompareDataContractTest
 
         // Test analyzeComparison with mixed categories
         $products = [
-            ['id' => 1, 'category_slug' => 'laptop', 'price' => 10000000],
+            ['id' => 1, 'name' => 'test', 'category_slug' => 'laptop', 'price' => 10000000],
             ['id' => 2, 'category_slug' => 'pc', 'price' => 10000000]
         ];
         $result = ProductComparisonService::analyzeComparison($products);
@@ -100,6 +101,9 @@ class CP04CompareDataContractTest
             'CORSAIR 16GB' => 16.0,
             'MEMORY 32GB' => 32.0,
             'STORAGE 1TB' => 1024.0,
+            'LPDDR5X 16GB' => 16.0,
+            'DDR5X 32GB' => 32.0,
+            '2×8GB' => 16.0,
         ];
         foreach ($cases as $str => $expected) {
             $this->assert(ProductComparisonService::parseStorageGb($str) === $expected, "parseStorageGb('$str') === $expected");
@@ -127,44 +131,49 @@ class CP04CompareDataContractTest
 
         // Test in analyzeComparison -> creates fail-closed
         $products = [[
-            'id' => 1, 'category_slug' => 'laptop', 'price' => 10000000,
+            'id' => 1, 'name' => 'test', 'category_slug' => 'laptop', 'price' => 10000000,
             'specs' => json_encode(['RAM' => '8GB/16GB'])
         ]];
         $result = ProductComparisonService::analyzeComparison($products, ['expected_count' => 1, 'min_ram' => 8]);
-        
+
         $p1 = $result['products'][0] ?? [];
         $this->assert(($p1['eligible'] ?? true) === false, "Ambiguous RAM in analyzeComparison -> eligible=false");
         $this->assert(($p1['verification_required'] ?? false) === true, "Ambiguous RAM -> verification_required=true");
         $this->assert(in_array('ram', $p1['failed_requirements'] ?? []), "Ambiguous RAM -> failed_requirements includes 'ram'");
     }
 
-    // ── 4. Refresh Rate Fail-Closed Parser ────────────────────────────────────
+    // ── 4. Refresh Rate Parser Matrix ─────────────────────────────────────────
     private function testRefreshRateParser(): void
     {
         $this->log("\n--- Refresh Rate Parser Matrix ---");
-        $casesValid = [
+
+        $validCases = [
             '60Hz' => 60.0,
             '144 Hz' => 144.0,
             '240Hz IPS' => 240.0,
+            'IPS-144Hz' => 144.0,
+            'QHD-165Hz' => 165.0,
+            'Anti-glare 120Hz' => 120.0,
         ];
-        foreach ($casesValid as $str => $expected) {
+        foreach ($validCases as $str => $expected) {
             $this->assert(ProductComparisonService::parseRefreshRateHz($str) === $expected, "parseRefreshRateHz('$str') === $expected");
         }
 
-        $casesInvalid = [
+        $invalidCases = [
             '60Hz / 144Hz',
             '144Hz hoặc 240Hz',
             '144Hz OR 240Hz',
             '60-144Hz',
+            '60Hz-144Hz',
             'unknown',
             '',
         ];
-        foreach ($casesInvalid as $str) {
+        foreach ($invalidCases as $str) {
             $this->assert(ProductComparisonService::parseRefreshRateHz($str) === null, "parseRefreshRateHz('$str') === null (ambiguous)");
         }
 
         $products = [[
-            'id' => 1, 'category_slug' => 'laptop', 'price' => 10000000,
+            'id' => 1, 'name' => 'test', 'category_slug' => 'laptop', 'price' => 10000000,
             'specs' => json_encode(['Màn hình' => '144Hz hoặc 240Hz'])
         ]];
         $result = ProductComparisonService::analyzeComparison($products, ['expected_count' => 1, 'min_refresh_rate' => 144]);
@@ -181,15 +190,15 @@ class CP04CompareDataContractTest
         $invalidPrices = [0, -100, INF, NAN, null, 'free', ''];
         foreach ($invalidPrices as $price) {
             $desc = is_string($price) ? "'$price'" : (is_null($price) ? 'null' : (is_float($price) && is_nan($price) ? 'NAN' : (is_float($price) && is_infinite($price) ? 'INF' : $price)));
-            $products = [['id' => 1, 'category_slug' => 'laptop', 'price' => $price]];
+            $products = [['id' => 1, 'name' => 'test', 'category_slug' => 'laptop', 'price' => $price]];
             $res = ProductComparisonService::analyzeComparison($products, ['expected_count' => 1]);
             $p = $res['products'][0] ?? [];
             $this->assert(($p['eligible'] ?? true) === false, "Base price $desc -> eligible=false");
             $this->assert(in_array('price', $p['failed_requirements'] ?? []), "Base price $desc -> failed_requirements includes 'price'");
-            $this->assert(($p['effective_price'] ?? -1) === 0.0, "Base price $desc -> effective_price=0");
+            $this->assert((float)($p['effective_price'] ?? -1) === 0.0, "Base price $desc -> effective_price=0");
         }
 
-        $res = ProductComparisonService::analyzeComparison([['id' => 1, 'category_slug' => 'laptop', 'price' => 10000000]], ['expected_count' => 1]);
+        $res = ProductComparisonService::analyzeComparison([['id' => 1, 'name' => 'test', 'category_slug' => 'laptop', 'price' => 10000000]], ['expected_count' => 1]);
         $this->assert(($res['products'][0]['eligible'] ?? false) === true, "Valid positive price -> eligible=true");
     }
 
@@ -197,12 +206,12 @@ class CP04CompareDataContractTest
     private function testResolvedProductCount(): void
     {
         $this->log("\n--- Resolved Product Count Behavior ---");
-        $products = [['id' => 1, 'category_slug' => 'laptop', 'price' => 10000]];
+        $products = [['id' => 1, 'name' => 'test', 'category_slug' => 'laptop', 'price' => 10000]];
         $result = ProductComparisonService::analyzeComparison($products, ['expected_count' => 2]);
         $this->assert($result['success'] === true, "expected >= 2 but actual < 2 -> success structure");
         $this->assert($result['winner'] === null, "expected >= 2 but actual < 2 -> winner=null");
         $this->assert(str_contains($result['message'], 'không còn hợp lệ'), "expected >= 2 but actual < 2 -> message is correct");
-        
+
         $result2 = ProductComparisonService::analyzeComparison($products, ['expected_count' => 1]);
         $this->assert($result2['winner'] === 1, "expected=1, actual=1 -> allows winner=1");
     }
@@ -246,54 +255,67 @@ class CP04CompareDataContractTest
             // P6: Multiple Active FS rows (Tie Breaker)
             $stmt->execute(['P6', 'p-6', 20000000, $catId, $brandId]);
             $p6 = (int)$this->db->lastInsertId();
-            // P7: No FS + valid sale_price
-            $stmt = $this->db->prepare("INSERT INTO products (name, slug, price, sale_price, status, category_id, brand_id) VALUES (?, ?, ?, ?, 'active', ?, ?)");
-            $stmt->execute(['P7', 'p-7', 20000000, 18000000, $catId, $brandId]);
+            // P7: No FS, has sale_price
+            $stmt->execute(['P7', 'p-7', 20000000, $catId, $brandId]);
             $p7 = (int)$this->db->lastInsertId();
-            // P8: End Boundary FS (end_time = NOW())
-            $stmt = $this->db->prepare("INSERT INTO products (name, slug, price, status, category_id, brand_id) VALUES (?, ?, ?, 'active', ?, ?)");
+            $this->db->exec("UPDATE products SET sale_price = 18000000 WHERE id = $p7");
+            // P8: End Boundary FS
             $stmt->execute(['P8', 'p-8', 20000000, $catId, $brandId]);
             $p8 = (int)$this->db->lastInsertId();
+            // P9: Same-price tie FS
+            $stmt->execute(['P9', 'p-9', 20000000, $catId, $brandId]);
+            $p9 = (int)$this->db->lastInsertId();
 
             // Flash Sales
             $stmtFS = $this->db->prepare("INSERT INTO flash_sales (title, slug, start_time, end_time, status) VALUES (?, ?, ?, ?, ?)");
-            
+
+            $nowDb = $this->db->query("SELECT NOW()")->fetchColumn();
+            $t = strtotime($nowDb);
+
             // FS Active
-            $stmtFS->execute(['FS A', 'fs-a', date('Y-m-d H:i:s', time() - 3600), date('Y-m-d H:i:s', time() + 3600), 'active']);
+            $stmtFS->execute(['FS A', 'fs-a', date('Y-m-d H:i:s', $t - 3600), date('Y-m-d H:i:s', $t + 3600), 'active']);
             $fsA = (int)$this->db->lastInsertId();
             // FS Future
-            $stmtFS->execute(['FS B', 'fs-b', date('Y-m-d H:i:s', time() + 3600), date('Y-m-d H:i:s', time() + 7200), 'active']);
+            $stmtFS->execute(['FS B', 'fs-b', date('Y-m-d H:i:s', $t + 3600), date('Y-m-d H:i:s', $t + 7200), 'active']);
             $fsB = (int)$this->db->lastInsertId();
             // FS Expired
-            $stmtFS->execute(['FS C', 'fs-c', date('Y-m-d H:i:s', time() - 7200), date('Y-m-d H:i:s', time() - 3600), 'active']);
+            $stmtFS->execute(['FS C', 'fs-c', date('Y-m-d H:i:s', $t - 7200), date('Y-m-d H:i:s', $t - 3600), 'active']);
             $fsC = (int)$this->db->lastInsertId();
             // FS Inactive
-            $stmtFS->execute(['FS D', 'fs-d', date('Y-m-d H:i:s', time() - 3600), date('Y-m-d H:i:s', time() + 3600), 'hidden']);
+            $stmtFS->execute(['FS D', 'fs-d', date('Y-m-d H:i:s', $t - 3600), date('Y-m-d H:i:s', $t + 3600), 'draft']);
             $fsD = (int)$this->db->lastInsertId();
             // FS End Boundary
-            $nowDb = $this->db->query("SELECT NOW()")->fetchColumn();
-            $stmtFS->execute(['FS E', 'fs-e', date('Y-m-d H:i:s', time() - 3600), $nowDb, 'active']);
+            $stmtFS->execute(['FS E', 'fs-e', date('Y-m-d H:i:s', $t - 3600), $nowDb, 'active']);
             $fsE = (int)$this->db->lastInsertId();
+            // FS A2 (for tie breaker)
+            $stmtFS->execute(['FS A2', 'fs-a2', date('Y-m-d H:i:s', $t - 3600), date('Y-m-d H:i:s', $t + 3600), 'active']);
+            $fsA2 = (int)$this->db->lastInsertId();
 
             // Flash Sale Items
             $stmtItem = $this->db->prepare("INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocation_quantity, sold_quantity) VALUES (?, ?, ?, ?, ?)");
-            
-            $stmtItem->execute([$fsA, $p1, 15000000, 10, 0]);
-            $stmtItem->execute([$fsB, $p2, 15000000, 10, 0]);
-            $stmtItem->execute([$fsC, $p3, 15000000, 10, 0]);
-            $stmtItem->execute([$fsD, $p4, 15000000, 10, 0]);
+
+            $stmtItem->execute([$fsA, $p1, 15000000, 10, 0]); // Active
+            $stmtItem->execute([$fsB, $p2, 15000000, 10, 0]); // Future
+            $stmtItem->execute([$fsC, $p3, 15000000, 10, 0]); // Expired
+            $stmtItem->execute([$fsD, $p4, 15000000, 10, 0]); // Inactive
             $stmtItem->execute([$fsA, $p5, 15000000, 10, 10]); // Sold out
-            
+
             // P6 has two active rows. One is 16M, one is 15M
             $stmtItem->execute([$fsA, $p6, 16000000, 10, 0]);
-            $stmtItem->execute([$fsA, $p6, 15000000, 10, 0]); 
-            
+            $stmtItem->execute([$fsA2, $p6, 15000000, 10, 0]);
+
             // P8 End Boundary
             $stmtItem->execute([$fsE, $p8, 15000000, 10, 0]);
 
+            // P9 Same-price tie
+            $stmtItem->execute([$fsA, $p9, 15000000, 10, 0]);
+            $p9Item1 = (int)$this->db->lastInsertId();
+            $stmtItem->execute([$fsA2, $p9, 15000000, 10, 0]);
+            $p9Item2 = (int)$this->db->lastInsertId();
+
             $model = new Compare();
-            $allProducts = $model->getProductsByIds([$p1, $p2, $p3, $p4, $p5, $p6, $p7, $p8]);
-            
+            $allProducts = $model->getProductsByIds([$p1, $p2, $p3, $p4, $p5, $p6, $p7, $p8, $p9]);
+
             // Map products by ID
             $pMap = [];
             foreach ($allProducts as $p) {
@@ -302,7 +324,7 @@ class CP04CompareDataContractTest
 
             // A. Active
             $this->assert(isset($pMap[$p1]['flash_sale']) && (float)$pMap[$p1]['flash_sale']['discount_price'] === 15000000.0, "Active Flash Sale -> hydrated");
-            $resA = ProductComparisonService::analyzeComparison([$pMap[$p1]], ['expected_count' => 1, '_now' => time()]);
+            $resA = ProductComparisonService::analyzeComparison([$pMap[$p1]], ['expected_count' => 1, '_now' => $t]);
             $this->assert((float)$resA['products'][0]['effective_price'] === 15000000.0, "Active Flash Sale -> effective price applies");
 
             // B. Future
@@ -326,9 +348,10 @@ class CP04CompareDataContractTest
             $this->assert((float)$resG['products'][0]['effective_price'] === 18000000.0, "No Flash Sale + valid sale_price -> effective_price=sale_price");
 
             // H. End Boundary
-            // Hydration might happen because the query is end_time > NOW(), if NOW() drifts, it might pass or fail.
-            // But we created it with $nowDb. In DB query `end_time > NOW()`, so if it equals, it will fail.
             $this->assert($pMap[$p8]['flash_sale'] === null, "End boundary (end_time = current DB time) -> not hydrated (end_time > NOW() false)");
+
+            // I. Same-price tie
+            $this->assert(isset($pMap[$p9]['flash_sale']) && (int)$pMap[$p9]['flash_sale']['fs_item_id'] === min($p9Item1, $p9Item2), "Same-price Flash Sale tie -> selects lower fsi.id");
 
             $this->db->rollBack();
         } catch (Exception $e) {
