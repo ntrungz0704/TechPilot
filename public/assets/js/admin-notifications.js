@@ -39,29 +39,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let isFetching = false;
 
+    function parseApiResponse(res) {
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw { status: 500, message: 'Invalid content type' };
+        }
+        return res.json().then(data => {
+            if (!res.ok || data.success !== true) {
+                throw { status: res.status, data: data };
+            }
+            return data;
+        }).catch(e => {
+            if (e.status) throw e;
+            throw { status: 500, message: 'Malformed JSON' };
+        });
+    }
+
+    function handleApiError(err) {
+        console.error("API Error:", err);
+        let msg = 'Không thể cập nhật thông báo.';
+        if (err && err.status === 403) {
+            msg = 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang.';
+        }
+        renderEmptyState(msg);
+    }
+
     function fetchNotifications() {
         if (!apiUrl) return;
         if (isFetching) return;
         isFetching = true;
         
         fetch(apiUrl)
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const contentType = res.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Invalid content type');
-                }
-                return res.json();
-            })
+            .then(parseApiResponse)
             .then(data => {
-                if (!data.success) {
-                    // Trạng thái lỗi nhẹ trong dropdown
-                    renderEmptyState('Lỗi tải thông báo');
-                    return;
-                }
-                
                 if (data.unread > 0) {
                     badge.style.display = 'flex';
                     badge.textContent = data.unread;
@@ -115,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(err => {
-                // Không nuốt toàn bộ lỗi, hiển thị UI lỗi nhẹ
                 console.error("Fetch error:", err);
                 renderEmptyState('Lỗi tải thông báo');
             })
@@ -137,7 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function validateLink(link) {
-        if (!link || /\s/.test(link)) return null;
+        if (!link || typeof link !== 'string' || /\s/.test(link)) return null;
+        if (/[\u0000-\u001F\u007F]/.test(link)) return null;
         try {
             const urlObj = new URL(link, window.location.origin);
             if (urlObj.username || urlObj.password) return null;
@@ -167,32 +177,16 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             credentials: 'same-origin'
         })
-        .then(res => {
-            if (!res.ok) {
-                throw res;
-            }
-            return res.json();
-        })
+        .then(parseApiResponse)
         .then(data => {
-            if (data.success) {
-                const validUrl = validateLink(link);
-                if (validUrl) {
-                    window.location.href = validUrl;
-                } else {
-                    fetchNotifications();
-                }
+            const validUrl = validateLink(link);
+            if (validUrl) {
+                window.location.href = validUrl;
             } else {
-                // If success = false but 200 OK (e.g. invalid ID)
-                console.error("Mark read failed:", data);
+                fetchNotifications();
             }
         })
-        .catch(err => {
-            if (err.status === 403) {
-                alert('Phiên làm việc đã hết hạn. Vui lòng tải lại trang.');
-            } else {
-                console.error('Mark read API error:', err);
-            }
-        });
+        .catch(handleApiError);
     }
 
     if (markReadBtn) {
@@ -209,23 +203,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 credentials: 'same-origin'
             })
-            .then(res => {
-                if (!res.ok) {
-                    throw res;
-                }
-                return res.json();
-            })
+            .then(parseApiResponse)
             .then(data => {
-                if (data.success) {
-                    badge.style.display = 'none';
-                    fetchNotifications();
-                }
+                badge.style.display = 'none';
+                fetchNotifications();
             })
-            .catch(err => {
-                if (err.status === 403) {
-                    alert('Phiên làm việc đã hết hạn. Vui lòng tải lại trang.');
-                }
-            });
+            .catch(handleApiError);
         });
     }
 

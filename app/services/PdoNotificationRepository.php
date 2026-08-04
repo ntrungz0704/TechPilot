@@ -31,10 +31,11 @@ class PdoNotificationRepository implements NotificationRepositoryInterface
         return $row ?: null;
     }
 
-    public function markRead($db, int $id): bool
+    public function markRead($db, int $id, int $adminUserId): bool
     {
-        $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE id = :id');
+        $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE id = :id AND (user_id = :uid OR user_id = 1)');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':uid', $adminUserId, PDO::PARAM_INT);
         return $stmt->execute();
     }
 

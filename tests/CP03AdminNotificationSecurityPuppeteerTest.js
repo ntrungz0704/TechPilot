@@ -155,7 +155,10 @@ async function runTest() {
         "http://[::1]/admin": false,
         "null": false,
         "": false,
-        "http://localhost/admin/ ": false
+        "http://localhost/admin/ ": false,
+        "http://localhost/admin/\u0000": false,
+        "http://localhost/admin/\n": false,
+        "http://localhost/admin/\t": false
     };
 
     for (const [url, expected] of Object.entries(safeLinksTests)) {

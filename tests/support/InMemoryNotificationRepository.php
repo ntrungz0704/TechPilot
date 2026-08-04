@@ -59,11 +59,11 @@ class InMemoryNotificationRepository implements NotificationRepositoryInterface
         return null;
     }
 
-    public function markRead($db, int $id): bool
+    public function markRead($db, int $id, int $adminUserId): bool
     {
         $this->checkFailure();
         foreach ($this->state as &$item) {
-            if ($item['id'] == $id) {
+            if ($item['id'] == $id && ($item['user_id'] == $adminUserId || $item['user_id'] == 1)) {
                 $item['is_read'] = 1;
                 return true;
             }

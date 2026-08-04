@@ -261,7 +261,7 @@ class AdminController extends Controller
                 }
                 
                 if ($row['is_read'] == 0) {
-                    if (!$repo->markRead($db, $id)) {
+                    if (!$repo->markRead($db, $id, $adminUserId)) {
                         throw new PDOException("Failed to update");
                     }
                 }

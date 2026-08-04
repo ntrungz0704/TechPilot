@@ -1037,6 +1037,8 @@ html.dark-mode .news-badge {
     color: var(--news-text-main);
     text-align: left;
     max-width: 760px;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 .news-detail-content h2 {
     font-size: 24px;
