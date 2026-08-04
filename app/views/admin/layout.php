@@ -690,6 +690,11 @@
     </div>
 
     <!-- Script Toggles -->
+    <meta name="csrf-token" content="<?= e($_SESSION['csrf_token'] ?? '') ?>">
+    <meta name="admin-notif-api" content="<?= url('api/admin/notifications') ?>">
+    <meta name="admin-notif-mark-api" content="<?= url('api/admin/notifications/mark_read') ?>">
+    <meta name="app-base-url" content="<?= url('') ?>">
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const toggleBtn = document.getElementById('toggleSidebarBtn');
@@ -731,87 +736,8 @@
                     updateThemeIcon(isDark);
                 });
             }
-
-            // Admin Real-time Notifications Script
-            (function() {
-                const bell = document.getElementById('adminNotifBell');
-                const badge = document.getElementById('adminNotifBadge');
-                const dropdown = document.getElementById('adminNotifDropdown');
-                const list = document.getElementById('adminNotifList');
-                const markReadBtn = document.getElementById('markReadNotifBtn');
-
-                if (!bell || !badge || !dropdown || !list) return;
-
-                function fetchNotifications() {
-                    fetch('<?= url("api/admin/notifications") ?>')
-                        .then(res => res.json())
-                        .then(data => {
-                            if (!data.success) return;
-                            if (data.unread > 0) {
-                                badge.style.display = 'flex';
-                                badge.innerText = data.unread;
-                            } else {
-                                badge.style.display = 'none';
-                            }
-
-                            if (data.items && data.items.length > 0) {
-                                list.innerHTML = data.items.map(item => `
-                                    <div style="padding: 8px 10px; border-radius: 6px; background: ${item.is_read == 0 ? 'rgba(10,91,255,0.06)' : '#F9FAFB'}; border-left: 3px solid ${item.is_read == 0 ? '#0A5BFF' : '#CBD5E1'}; cursor: pointer;" onclick="handleNotificationClick(${item.id}, '${item.link}')">
-                                        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">${item.title}</div>
-                                        <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">${item.content}</div>
-                                        <small style="font-size: 10px; color: #94A3B8; display: block; margin-top: 4px;">${item.created_at}</small>
-                                    </div>
-                                `).join('');
-                            } else {
-                                list.innerHTML = '<div style="font-size: 12px; color: var(--text-secondary); text-align: center; padding: 15px 0;">Không có thông báo mới</div>';
-                            }
-                        })
-                        .catch(() => {});
-                }
-
-                bell.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const isOpen = dropdown.style.display === 'block';
-                    dropdown.style.display = isOpen ? 'none' : 'block';
-                });
-
-                document.addEventListener('click', function(e) {
-                    if (!bell.contains(e.target)) {
-                        dropdown.style.display = 'none';
-                    }
-                });
-
-                window.handleNotificationClick = function(id, link) {
-                    const formData = new FormData();
-                    formData.append('id', id);
-                    fetch('<?= url("api/admin/notifications/mark_read") ?>', { method: 'POST', body: formData })
-                        .then(() => {
-                            if (link && link !== 'javascript:void(0);') {
-                                window.location.href = link;
-                            } else {
-                                fetchNotifications();
-                            }
-                        });
-                };
-
-                if (markReadBtn) {
-                    markReadBtn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        fetch('<?= url("api/admin/notifications/mark_read") ?>', { method: 'POST' })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    badge.style.display = 'none';
-                                    fetchNotifications();
-                                }
-                            });
-                    });
-                }
-
-                fetchNotifications();
-                setInterval(fetchNotifications, 10000);
-            })();
         });
     </script>
+    <script src="<?= url('assets/js/admin-notifications.js') ?>"></script>
 </body>
 </html>
