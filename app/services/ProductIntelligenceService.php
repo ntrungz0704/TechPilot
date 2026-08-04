@@ -115,6 +115,59 @@ class ProductIntelligenceService
     }
 
     /**
+     * Chat AI về sản phẩm cụ thể — trả lời câu hỏi khách hàng trên trang chi tiết sản phẩm
+     */
+    public static function chatProduct(array $product, string $question): string
+    {
+        require_once ROOT_PATH . '/app/services/GeminiService.php';
+
+        $specs = json_decode($product['specs'] ?? '{}', true) ?: [];
+
+        // Unwrap nested specs (PC build format)
+        if (isset($specs['specs']) && is_array($specs['specs'])) {
+            $innerSpecs = $specs['specs'];
+            unset($specs['specs']);
+            $specs = array_merge($specs, $innerSpecs);
+        }
+
+        // Remove meta keys
+        $skipKeys = ['schema_version', 'attributes', 'raw_specs', 'vfm_score', 'category_slug', 'model', 'compatibility', 'use_cases'];
+        foreach ($skipKeys as $sk) {
+            unset($specs[$sk]);
+        }
+
+        $specsParts = [];
+        foreach ($specs as $k => $v) {
+            $valStr = self::stringifySpecValue($v);
+            if ($valStr !== '') {
+                $specsParts[] = "$k: $valStr";
+            }
+        }
+        $specsStr = implode(', ', $specsParts);
+
+        $productName = $product['name'] ?? 'Sản phẩm';
+        $price = isset($product['price']) ? number_format((float)$product['price'], 0, ',', '.') . 'đ' : 'Chưa cập nhật';
+        $stock = (int)($product['stock'] ?? 0);
+        $brandName = $product['brand_name'] ?? '';
+        $categoryName = $product['category_name'] ?? '';
+
+        $prompt  = "Bạn là Trợ lý ảo TechPilot AI, chuyên tư vấn công nghệ.\n";
+        $prompt .= "Khách hàng đang xem sản phẩm: **{$productName}**\n";
+        $prompt .= "- Thương hiệu: {$brandName}\n";
+        $prompt .= "- Danh mục: {$categoryName}\n";
+        $prompt .= "- Giá bán: {$price}\n";
+        $prompt .= "- Tình trạng kho: " . ($stock > 0 ? "Còn hàng ({$stock} sản phẩm)" : "Hết hàng") . "\n";
+        $prompt .= "- Thông số kỹ thuật: {$specsStr}\n\n";
+        $prompt .= "Câu hỏi của khách: \"{$question}\"\n\n";
+        $prompt .= "Hãy trả lời tự nhiên, thân thiện, chính xác dựa trên cấu hình thật của sản phẩm. Trả lời ngắn gọn 2-4 câu bằng tiếng Việt.";
+
+        return GeminiService::callGemini($prompt, [
+            'type' => 'product_chat',
+            'product_id' => $product['id'] ?? 0
+        ]);
+    }
+
+    /**
      * So sánh 2 hoặc nhiều sản phẩm bằng AI Gemini
      */
     public static function analyzeComparison(array $products): array

@@ -315,6 +315,19 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
                     <button type="submit" class="btn" style="align-self: flex-start; padding: 10px 25px; font-weight: 600;">Gửi đánh giá</button>
                 </form>
             </div>
+        <?php elseif (empty($_SESSION['user']['id'])): ?>
+            <div style="background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%); border: 1px solid #BFDBFE; border-radius: 12px; padding: 24px; margin-bottom: 30px; text-align: center;">
+                <i class="fa-solid fa-user-lock" style="font-size: 28px; color: #3B82F6; margin-bottom: 10px; display: block;"></i>
+                <p style="font-weight: 700; font-size: 15px; color: #1E40AF; margin: 0 0 6px 0;">Đăng nhập để đánh giá sản phẩm</p>
+                <p style="font-size: 13px; color: #64748B; margin: 0 0 14px 0;">Bạn cần đăng nhập và đã mua sản phẩm này thành công để có thể viết đánh giá.</p>
+                <a href="<?= url('auth/login') ?>" class="btn" style="padding: 8px 24px; font-weight: 700; font-size: 13px; text-decoration: none;"><i class="fa-solid fa-right-to-bracket" style="margin-right: 6px;"></i>Đăng nhập ngay</a>
+            </div>
+        <?php else: ?>
+            <div style="background: linear-gradient(135deg, #FFF7ED 0%, #FFFBEB 100%); border: 1px solid #FED7AA; border-radius: 12px; padding: 24px; margin-bottom: 30px; text-align: center;">
+                <i class="fa-solid fa-bag-shopping" style="font-size: 28px; color: #F59E0B; margin-bottom: 10px; display: block;"></i>
+                <p style="font-weight: 700; font-size: 15px; color: #92400E; margin: 0 0 6px 0;">Chỉ khách hàng đã mua mới được đánh giá</p>
+                <p style="font-size: 13px; color: #64748B; margin: 0;">Bạn cần mua và nhận sản phẩm này thành công trước khi có thể để lại đánh giá. Điều này giúp đảm bảo tính xác thực của các nhận xét trên TechPilot.</p>
+            </div>
         <?php endif; ?>
 
         <div class="review-grid">
