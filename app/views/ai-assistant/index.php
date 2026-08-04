@@ -246,51 +246,259 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
     /* Cards kết quả đề xuất */
     .recs-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+        gap: 24px;
         margin-top: 25px;
     }
     .rec-card {
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: 20px;
         background: var(--surface-card, #FFFFFF);
         overflow: hidden;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
         display: flex;
         flex-direction: column;
         position: relative;
-        transition: transform 0.2s ease;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .dark-mode .rec-card {
+        background: #1E293B;
+        border-color: #334155;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
     }
     .rec-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-6px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
     }
+
+    .rec-card__header {
+        position: relative;
+        padding: 48px 20px 20px;
+        text-align: center;
+        background: linear-gradient(180deg, #F1F5F9 0%, #FFFFFF 100%);
+        border-bottom: 1px solid var(--border, #E2E8F0);
+    }
+    .dark-mode .rec-card__header {
+        background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+        border-bottom-color: #334155;
+    }
+    .rec-card__header img {
+        height: 120px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+        transition: transform 0.3s ease;
+    }
+    .rec-card:hover .rec-card__header img {
+        transform: scale(1.05);
+    }
+
     .rec-badge {
         position: absolute;
         top: 12px;
         left: 12px;
-        padding: 4px 12px;
+        padding: 5px 14px;
         border-radius: 20px;
         font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
         color: #FFFFFF;
         z-index: 3;
+        letter-spacing: 0.3px;
     }
     .badge-best_fit { background: linear-gradient(135deg, #10B981, #059669); }
     .badge-best_value { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
     .badge-max_performance { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
 
-    .suitability-badge {
+    .rec-score-ring {
         position: absolute;
-        top: 12px;
+        top: 10px;
         right: 12px;
-        background: rgba(16, 185, 129, 0.1);
-        color: #059669;
+        width: 52px;
+        height: 52px;
+    }
+    .rec-score-ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+    .rec-score-ring .ring-bg {
+        fill: none;
+        stroke: var(--border, #E2E8F0);
+        stroke-width: 4;
+    }
+    .rec-score-ring .ring-fg {
+        fill: none;
+        stroke-width: 4;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 1s ease;
+    }
+    .rec-score-ring .ring-label {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         font-weight: 800;
+        font-size: 14px;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+    .rec-score-ring .ring-label small {
+        font-size: 8px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-top: 1px;
+    }
+
+    .rec-card__body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rec-card__name {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        line-height: 1.45;
+        color: var(--text-primary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .rec-card__price-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .rec-card__price {
+        color: var(--primary);
+        font-weight: 800;
+        font-size: 20px;
+    }
+    .rec-card__stock {
+        font-size: 12px;
+        color: #10B981;
+        font-weight: 600;
+    }
+
+    /* Specs Grid */
+    .rec-specs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 14px;
+        background: #F8FAFC;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+    .dark-mode .rec-specs-grid {
+        background: #0F172A;
+        border-color: #334155;
+    }
+    .rec-spec-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 12.5px;
+        line-height: 1.35;
+    }
+    .rec-spec-item i {
+        color: var(--primary);
+        font-size: 11px;
+        margin-top: 2px;
+        width: 14px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .rec-spec-item .spec-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    .rec-spec-item .spec-value {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    /* Reasons & Tradeoffs */
+    .rec-insights {
+        margin-bottom: 16px;
+    }
+    .rec-insights-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+    .rec-insights-title.positive { color: #047857; }
+    .rec-insights-title.caution { color: #B45309; }
+
+    .rec-insights ul {
+        margin: 0;
+        padding-left: 16px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.55;
+    }
+    .rec-insights ul li {
+        margin-bottom: 3px;
+    }
+
+    .rec-card__actions {
+        margin-top: auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+    .rec-card__actions a,
+    .rec-card__actions button {
+        padding: 10px 12px;
+        border-radius: 10px;
         font-size: 13px;
-        padding: 4px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+    .rec-btn-detail {
+        background: var(--surface-card, #F1F5F9);
+        color: var(--text-primary);
+        border: 1px solid var(--border) !important;
+    }
+    .rec-btn-detail:hover {
+        background: var(--primary);
+        color: #FFFFFF;
+        border-color: var(--primary) !important;
+    }
+    .rec-btn-compare {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: #FFFFFF;
+    }
+    .rec-btn-compare:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .recs-container {
+            grid-template-columns: 1fr;
+        }
+        .rec-specs-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -437,6 +645,157 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
     window.TP_AI_CONFIG = <?= json_encode($aiConfig, JSON_UNESCAPED_UNICODE) ?>;
     let currentStep = 1;
     const totalSteps = 5;
+
+    /* ===== SPEC DISPLAY MAPPING ===== */
+    const SPEC_MAP = {
+        // Laptop / PC CPU
+        'cpu_model':      { label: 'CPU',          icon: 'fa-microchip' },
+        'CPU':            { label: 'CPU',          icon: 'fa-microchip' },
+        'Bộ vi xử lý':   { label: 'CPU',          icon: 'fa-microchip' },
+        // GPU
+        'gpu_model':      { label: 'Card đồ họa',  icon: 'fa-display' },
+        'VGA':            { label: 'Card đồ họa',  icon: 'fa-display' },
+        'Card đồ họa':   { label: 'Card đồ họa',  icon: 'fa-display' },
+        // RAM
+        'ram_gb':         { label: 'RAM',           icon: 'fa-memory', suffix: 'GB' },
+        'ram_type':       { label: 'Loại RAM',      icon: 'fa-memory' },
+        'ram_speed_mhz':  { label: 'Bus RAM',       icon: 'fa-gauge-high', suffix: 'MHz' },
+        'RAM':            { label: 'RAM',           icon: 'fa-memory' },
+        'Bộ nhớ RAM':    { label: 'RAM',           icon: 'fa-memory' },
+        // Storage
+        'storage':        { label: 'Ổ cứng',        icon: 'fa-hard-drive' },
+        'SSD':            { label: 'Ổ cứng',        icon: 'fa-hard-drive' },
+        'Ổ cứng':        { label: 'Ổ cứng',        icon: 'fa-hard-drive' },
+        'Lưu trữ':       { label: 'Ổ cứng',        icon: 'fa-hard-drive' },
+        // Display
+        'Màn hình':       { label: 'Màn hình',      icon: 'fa-tv' },
+        'screen_size':    { label: 'Màn hình',      icon: 'fa-tv' },
+        'display':        { label: 'Màn hình',      icon: 'fa-tv' },
+        'panel_type':     { label: 'Tấm nền',       icon: 'fa-tv' },
+        'resolution':     { label: 'Độ phân giải',  icon: 'fa-expand' },
+        'refresh_rate':   { label: 'Tần số quét',   icon: 'fa-bolt' },
+        // Mainboard
+        'mainboard_model':{ label: 'Bo mạch chủ',   icon: 'fa-server' },
+        'Mainboard':      { label: 'Bo mạch chủ',   icon: 'fa-server' },
+        // PSU
+        'psu_wattage':    { label: 'Nguồn (PSU)',    icon: 'fa-plug', suffix: 'W' },
+        'psu_certification':{ label: 'Chứng nhận PSU', icon: 'fa-certificate' },
+        // Case
+        'case_model':     { label: 'Thùng máy',     icon: 'fa-box' },
+        // Cooler
+        'cooler_model':   { label: 'Tản nhiệt',     icon: 'fa-fan' },
+        // OS
+        'os':             { label: 'Hệ điều hành',  icon: 'fa-windows', isBrand: true },
+        'Hệ điều hành':  { label: 'Hệ điều hành',  icon: 'fa-windows', isBrand: true },
+        // Battery (laptop)
+        'Pin':            { label: 'Pin',            icon: 'fa-battery-full' },
+        'battery':        { label: 'Pin',            icon: 'fa-battery-full' },
+        // Weight
+        'Trọng lượng':   { label: 'Trọng lượng',    icon: 'fa-weight-hanging' },
+        'weight':         { label: 'Trọng lượng',    icon: 'fa-weight-hanging' },
+        // Upgrade
+        'upgrade_support':{ label: 'Nâng cấp được', icon: 'fa-wrench' },
+        // Power draw
+        'estimated_power_w':{ label: 'Công suất TDP', icon: 'fa-bolt', suffix: 'W' },
+    };
+
+    /* Keys to skip entirely (not useful for end users) */
+    const SKIP_KEYS = [
+        'schema_version', 'attributes', 'raw_specs', 'vfm_score', 'category_slug',
+        'model', 'compatibility', 'required_psu_w', 'Thông số kỹ thuật'
+    ];
+
+    /* Priority order for specs display */
+    const SPEC_PRIORITY = [
+        'cpu_model', 'CPU', 'Bộ vi xử lý',
+        'gpu_model', 'VGA', 'Card đồ họa',
+        'ram_gb', 'RAM', 'Bộ nhớ RAM',
+        'storage', 'SSD', 'Ổ cứng', 'Lưu trữ',
+        'Màn hình', 'screen_size', 'display',
+        'mainboard_model', 'Mainboard',
+        'psu_wattage',
+        'case_model',
+        'cooler_model',
+        'os', 'Hệ điều hành',
+        'upgrade_support'
+    ];
+
+    function buildSpecsHtml(specs) {
+        if (!specs || Object.keys(specs).length === 0) {
+            return '<div class="rec-spec-item" style="grid-column: 1/-1; text-align:center; color:var(--text-secondary);">Chưa có dữ liệu chi tiết</div>';
+        }
+
+        const usedLabels = new Set();
+        const sortedKeys = [];
+
+        // Add priority keys first
+        SPEC_PRIORITY.forEach(pk => {
+            if (specs[pk] !== undefined && specs[pk] !== '' && !SKIP_KEYS.includes(pk)) {
+                sortedKeys.push(pk);
+            }
+        });
+        // Add remaining keys
+        Object.keys(specs).forEach(k => {
+            if (!sortedKeys.includes(k) && !SKIP_KEYS.includes(k) && specs[k] !== '') {
+                sortedKeys.push(k);
+            }
+        });
+
+        let html = '';
+        let count = 0;
+
+        sortedKeys.forEach(key => {
+            if (count >= 8) return; // Max 8 specs
+            const mapping = SPEC_MAP[key];
+            const label = mapping ? mapping.label : key;
+
+            // Deduplicate by label
+            if (usedLabels.has(label)) return;
+            usedLabels.add(label);
+
+            let value = specs[key];
+            if (typeof value === 'object') value = JSON.stringify(value);
+            value = String(value);
+
+            // Add suffix if needed
+            if (mapping && mapping.suffix && !value.includes(mapping.suffix)) {
+                value += ' ' + mapping.suffix;
+            }
+
+            const icon = mapping ? mapping.icon : 'fa-circle-info';
+            const iconPrefix = (mapping && mapping.isBrand) ? 'fa-brands' : 'fa-solid';
+
+            html += `<div class="rec-spec-item">
+                <i class="${iconPrefix} ${icon}"></i>
+                <div><span class="spec-label">${label}</span><br><span class="spec-value">${value}</span></div>
+            </div>`;
+            count++;
+        });
+
+        return html;
+    }
+
+    function buildScoreRing(score, roleKey) {
+        const circumference = 2 * Math.PI * 20; // r=20
+        const offset = circumference - (score / 100) * circumference;
+        const colorMap = {
+            'best_fit': '#10B981',
+            'best_value': '#3B82F6',
+            'max_performance': '#8B5CF6'
+        };
+        const color = colorMap[roleKey] || '#10B981';
+
+        return `<div class="rec-score-ring">
+            <svg viewBox="0 0 48 48">
+                <circle class="ring-bg" cx="24" cy="24" r="20"/>
+                <circle class="ring-fg" cx="24" cy="24" r="20"
+                    stroke="${color}"
+                    stroke-dasharray="${circumference}"
+                    stroke-dashoffset="${offset}"/>
+            </svg>
+            <div class="ring-label">${score}<small>điểm</small></div>
+        </div>`;
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         renderPanelOptions('laptop');
@@ -626,57 +985,48 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
                     const specs = p.specs || {};
                     const score = item.score || 90;
 
-                    let specsHtml = '';
-                    Object.keys(specs).slice(0, 4).forEach(k => {
-                        specsHtml += `<div><i class="fa-solid fa-angle-right" style="color:var(--primary); font-size:11px;"></i> <strong>${k}:</strong> ${specs[k]}</div>`;
-                    });
+                    const specsHtml = buildSpecsHtml(specs);
+                    const scoreRing = buildScoreRing(score, roleKey);
 
-                    const reasonsHtml = (item.reasons || []).map(r => `<li style="margin-bottom:4px;">${r}</li>`).join('');
-                    const tradeoffsHtml = (item.tradeoffs || []).map(t => `<li style="margin-bottom:4px;">${t}</li>`).join('');
+                    const reasonsHtml = (item.reasons || []).map(r => `<li>${r}</li>`).join('');
+                    const tradeoffsHtml = (item.tradeoffs || []).map(t => `<li>${t}</li>`).join('');
 
                     const cardHtml = `
                         <div class="rec-card">
-                            <span class="rec-badge badge-${roleKey}">${roleLabel}</span>
-                            <span class="suitability-badge">🎯 ${score}/100 ĐIỂM</span>
-
-                            <div style="padding: 45px 20px 20px 20px; text-align: center; background-color: #F8FAFC; border-bottom: 1px solid var(--border);">
-                                <img src="${p.image_url}" alt="${p.name}" style="height: 110px; object-fit: contain;">
+                            <div class="rec-card__header">
+                                <span class="rec-badge badge-${roleKey}">${roleLabel}</span>
+                                ${scoreRing}
+                                <img src="${p.image_url}" alt="${p.name}" loading="lazy">
                             </div>
 
-                            <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
-                                <strong style="font-size: 14.5px; font-weight: 700; margin: 0 0 6px 0; height: 42px; overflow: hidden; line-height: 1.4; color: var(--text-primary);">${p.name}</strong>
-                                
-                                <div style="margin-bottom: 12px;">
-                                    <span style="color: var(--primary); font-weight: 800; font-size: 18px;">${p.price_formatted}</span>
-                                    <span style="font-size: 12px; color: #10B981; margin-left: 8px;">(Còn ${p.stock} máy)</span>
+                            <div class="rec-card__body">
+                                <h4 class="rec-card__name">${p.name}</h4>
+
+                                <div class="rec-card__price-row">
+                                    <span class="rec-card__price">${p.price_formatted}</span>
+                                    <span class="rec-card__stock">Còn ${p.stock} máy</span>
                                 </div>
 
-                                <div style="font-size: 12.5px; color: var(--text-secondary); display:flex; flex-direction:column; gap:4px; margin-bottom: 15px; background: #F8FAFC; padding: 10px; border-radius: 8px;">
+                                <div class="rec-specs-grid">
                                     ${specsHtml}
                                 </div>
 
-                                <div style="margin-bottom: 15px;">
-                                    <strong style="font-size: 12.5px; color: #047857; display:block; margin-bottom:4px;"><i class="fa-solid fa-circle-check"></i> Điểm nổi bật:</strong>
-                                    <ul style="margin:0; padding-left:18px; font-size:12px; color:var(--text-secondary);">
-                                        ${reasonsHtml}
-                                    </ul>
-                                </div>
+                                ${reasonsHtml ? `<div class="rec-insights">
+                                    <div class="rec-insights-title positive"><i class="fa-solid fa-circle-check"></i> Điểm nổi bật</div>
+                                    <ul>${reasonsHtml}</ul>
+                                </div>` : ''}
 
-                                <div style="margin-bottom: 20px;">
-                                    <strong style="font-size: 12.5px; color: #B91C1C; display:block; margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation"></i> Cân nhắc:</strong>
-                                    <ul style="margin:0; padding-left:18px; font-size:12px; color:var(--text-secondary);">
-                                        ${tradeoffsHtml}
-                                    </ul>
-                                </div>
+                                ${tradeoffsHtml ? `<div class="rec-insights">
+                                    <div class="rec-insights-title caution"><i class="fa-solid fa-triangle-exclamation"></i> Cần lưu ý</div>
+                                    <ul>${tradeoffsHtml}</ul>
+                                </div>` : ''}
 
-                                <div style="margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <a href="<?= url('product/detail/') ?>${p.slug || p.id}" class="btn btn--secondary btn--sm" style="text-align: center; font-weight: 700; text-decoration: none;" target="_blank">Xem chi tiết</a>
+                                <div class="rec-card__actions">
+                                    <a href="<?= url('product/detail/') ?>${p.slug || p.id}" class="rec-btn-detail" target="_blank"><i class="fa-solid fa-eye"></i> Xem chi tiết</a>
                                     <form method="post" action="<?= url('compare/add') ?>" target="_blank" style="margin:0;">
                                         <input type="hidden" name="_csrf" value="${csrfToken}">
                                         <input type="hidden" name="product_id" value="${p.id}">
-                                        <button type="submit" class="btn btn--sm" style="width: 100%; font-weight: 700; background-color: #10B981; color: #FFFFFF; border: none; cursor: pointer;">
-                                            <i class="fa-solid fa-scale-balanced"></i> So sánh
-                                        </button>
+                                        <button type="submit" class="rec-btn-compare" style="width:100%;"><i class="fa-solid fa-scale-balanced"></i> So sánh</button>
                                     </form>
                                 </div>
                             </div>

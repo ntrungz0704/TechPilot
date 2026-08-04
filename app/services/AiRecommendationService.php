@@ -369,8 +369,28 @@ class AiRecommendationService
             ];
         }
 
+        // Keys to skip entirely (meta/internal, not useful for end users)
+        $skipKeys = [
+            'schema_version', 'attributes', 'raw_specs', 'vfm_score',
+            'category_slug', 'model', 'compatibility', 'use_cases'
+        ];
+
+        // If the JSON has a nested 'specs' sub-object (PC build format), unwrap it
+        // so individual spec entries (cpu_model, gpu_model, etc.) become top-level keys
+        $flatSpecs = [];
         foreach ($specs as $k => $v) {
-            if ($k === 'schema_version' || $k === 'attributes' || $k === 'raw_specs' || $k === 'vfm_score') continue;
+            if (in_array($k, $skipKeys, true)) continue;
+            if ($k === 'specs' && is_array($v)) {
+                // Unwrap nested specs into top-level
+                foreach ($v as $innerK => $innerV) {
+                    $flatSpecs[$innerK] = $innerV;
+                }
+            } else {
+                $flatSpecs[$k] = $v;
+            }
+        }
+
+        foreach ($flatSpecs as $k => $v) {
             $valStr = self::stringifySpecValue($v);
             if ($valStr !== '') {
                 $result[$k] = $valStr;
