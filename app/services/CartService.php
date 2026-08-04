@@ -206,28 +206,28 @@ class CartService
         $merged = 0;
         $skipped = 0;
 
-        // Get or Create active cart for user
-        $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1");
-        $stmt->execute([':user_id' => $userId]);
-        $cart = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($cart) {
-            $cartId = (int)$cart['id'];
-        } else {
-            $stmt = $db->prepare("INSERT INTO carts (user_id, status) VALUES (:user_id, 'active')");
-            $stmt->execute([':user_id' => $userId]);
-            $cartId = (int)$db->lastInsertId();
-        }
-
         try {
             $db->beginTransaction();
+
+            // Get or Create active cart for user
+            $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+            $stmt->execute([':user_id' => $userId]);
+            $cart = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($cart) {
+                $cartId = (int)$cart['id'];
+            } else {
+                $stmt = $db->prepare("INSERT INTO carts (user_id, status) VALUES (:user_id, 'active')");
+                $stmt->execute([':user_id' => $userId]);
+                $cartId = (int)$db->lastInsertId();
+            }
 
             foreach ($guestCart as $productId => $item) {
                 $qty = max(1, (int)$item['quantity']);
                 $pid = (int)$productId;
 
                 // Validate product
-                $stmt = $db->prepare("SELECT stock, status FROM products WHERE id = :id");
+                $stmt = $db->prepare("SELECT stock, status FROM products WHERE id = :id FOR UPDATE");
                 $stmt->execute([':id' => $pid]);
                 $product = $stmt->fetch(PDO::FETCH_ASSOC);
 

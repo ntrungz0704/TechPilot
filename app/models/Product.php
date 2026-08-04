@@ -11,6 +11,24 @@ class Product
         $this->db = Database::getConnection();
     }
 
+    public function getActiveByIdStrict(int $id): array|false
+    {
+        if (!$this->db) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            WHERE p.id = :id AND p.status = 'active'
+            LIMIT 1
+        ");
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: false;
+    }
+
     /** Bộ sản phẩm đầy đủ phủ khắp các danh mục storefront khi CSDL chưa có dữ liệu */
     public static function getSampleProducts(): array
     {

@@ -341,11 +341,13 @@ if (!function_exists('productImageUrl')) {
         }
         
         if ($productId) {
-            $colors = ['10B981', '3B82F6', '6366F1', '8B5CF6', 'EC4899', 'F43F5E', 'F97316', 'F59E0B'];
-            $bg = $colors[$productId % count($colors)];
-            return "https://ui-avatars.com/api/?name=Prod+{$productId}&size=512&background={$bg}&color=fff";
+            $placeholders = ['laptop.png', 'màn-hình.png', 'vga.png', 'cpu.png', 'ssd.png', 'case.png', 'fan.png', 'psu.png'];
+            $ph = $placeholders[$productId % count($placeholders)];
+            return url("assets/images/placeholders/{$ph}?id={$productId}");
         }
+
         
+
         // 2. Select category slug based on productType/image
         $str = strtolower(trim((string)$productType . ' ' . (string)$image));
         $catSlug = 'laptop';
@@ -448,7 +450,10 @@ if (!function_exists('currentUser')) {
 if (!function_exists('cartItems')) {
     function cartItems(): array
     {
-        return $_SESSION['cart'] ?? [];
+        if (currentUser()) {
+            return $_SESSION['cart'] ?? [];
+        }
+        return $_SESSION['guest_cart'] ?? [];
     }
 }
 

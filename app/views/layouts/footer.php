@@ -245,6 +245,57 @@
         }
     </script>
     <script>
+        window.showStorefrontToast = function(type, message) {
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                container.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 360px; pointer-events: none;';
+                document.body.appendChild(container);
+
+                if (!document.getElementById('toast-styles')) {
+                    const styleEl = document.createElement('style');
+                    styleEl.id = 'toast-styles';
+                    styleEl.innerHTML = `
+                        .toast-item { background-color: var(--bg-card, #FFFFFF); color: var(--text-primary, #0F172A); border: 1px solid var(--border, #E2E8F0); border-radius: 12px; padding: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); display: flex; gap: 12px; align-items: flex-start; animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; pointer-events: auto; transition: all 0.3s ease; border-left: 4px solid var(--primary, #0A5BFF); }
+                        .toast-item.success { border-left-color: #10B981; }
+                        .toast-item.error { border-left-color: #EF4444; }
+                        .toast-item.info { border-left-color: #0A5BFF; }
+                        @keyframes toastSlideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+                        .toast-item.fade-out { transform: translateX(120%); opacity: 0; }
+                        .dark-mode .toast-item { background-color: #1E293B; border-color: #334155; color: #F8FAFC; }
+                    `;
+                    document.head.appendChild(styleEl);
+                }
+            }
+
+            const toast = document.createElement('div');
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+            toast.className = 'toast-item ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'info'));
+            let iconHtml = '<i class="fa-solid fa-circle-info" style="color:#0A5BFF;"></i>';
+            if (type === 'success') iconHtml = '<i class="fa-solid fa-circle-check" style="color:#10B981;"></i>';
+            else if (type === 'error') iconHtml = '<i class="fa-solid fa-circle-exclamation" style="color:#EF4444;"></i>';
+
+            toast.innerHTML = `
+                <div style="font-size: 20px;">${iconHtml}</div>
+                <div style="flex: 1; font-size: 13.5px; line-height: 1.5; font-weight: 500;">${message}</div>
+                <button type="button" class="toast-item__close" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:14px; margin-left:8px;"><i class="fa-solid fa-xmark"></i></button>
+            `;
+
+            toast.querySelector('.toast-item__close').addEventListener('click', () => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            });
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.classList.add('fade-out');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 3500);
+        };
         document.addEventListener('DOMContentLoaded', function() {
             const addForms = document.querySelectorAll('.product-card__add-form');
             addForms.forEach(form => {
@@ -285,8 +336,8 @@
                                 window.location.href = data.login_url;
                             } else {
                                 // Show error toast if available, otherwise alert
-                                if (typeof showToast === 'function') {
-                                    showToast('error', data.message || 'Có lỗi xảy ra.');
+                                if (typeof window.showStorefrontToast === 'function') {
+                                    window.showStorefrontToast('error', data.message || 'Có lỗi xảy ra.');
                                 } else {
                                     alert(data.message || 'Có lỗi xảy ra.');
                                 }
@@ -295,8 +346,8 @@
                         }
 
                         // Success Add
-                        if (typeof showToast === 'function') {
-                            showToast('success', data.message || 'Thêm thành công.');
+                        if (typeof window.showStorefrontToast === 'function') {
+                            window.showStorefrontToast('success', data.message || 'Thêm thành công.');
                         } else {
                             // minimal toast fallback
                             const toastFallback = document.createElement('div');

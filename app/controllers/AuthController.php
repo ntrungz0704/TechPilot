@@ -62,7 +62,8 @@ class AuthController extends Controller
                                         flash('warning', 'Đã bỏ qua ' . $mergeResult['skipped'] . ' sản phẩm không còn hợp lệ hoặc hết hàng.');
                                     }
                                 } catch (Throwable $e) {
-                                    flash('error', 'Có lỗi khi hợp nhất giỏ hàng tạm: ' . $e->getMessage());
+                                    error_log('[Cart Merge Error] ' . $e->getMessage());
+                                    flash('error', 'Có lỗi xảy ra khi đồng bộ giỏ hàng, vui lòng thử lại sau.');
                                 }
                             }
                         }

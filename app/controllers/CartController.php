@@ -142,13 +142,18 @@ class CartController extends Controller
         $productModel = $this->model('Product');
         $product = null;
         if ($productId > 0) {
-            $product = $productModel->getById($productId);
+            $product = $productModel->getActiveByIdStrict($productId);
         }
         if (!$product && $slug !== '') {
             $product = $productModel->getBySlug($slug);
+            if ($product && $product['status'] === 'active') {
+                $product = $productModel->getActiveByIdStrict((int)$product['id']);
+            } else {
+                $product = false;
+            }
         }
 
-        if (!$product || ($product['status'] ?? 'active') !== 'active') {
+        if (!$product) {
             if ($isAjax) {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Sản phẩm không hợp lệ hoặc đã dừng bán.']);
@@ -176,27 +181,45 @@ class CartController extends Controller
                 }
             }
 
-            if ($intent === 'buy_now') {
-                $loginUrl = '/auth/login?redirect=' . urlencode('/checkout');
-            } else {
-                $loginUrl = '/auth/login?redirect=' . urlencode($redirectUrl);
-            }
-
-            if ($isAjax) {
-                http_response_code(401);
-                echo json_encode([
-                    'success' => false,
-                    'auth_required' => true,
-                    'login_url' => $loginUrl,
-                    'message' => 'Vui lòng đăng nhập để tiếp tục.'
-                ]);
+            if (!$res['ok']) {
+                if ($isAjax) {
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'auth_required' => false, 'message' => $res['message']]);
+                    return;
+                }
+                flash('error', $res['message']);
+                $this->redirect(ltrim($redirectUrl, '/'));
                 return;
             }
 
-            if (!$res['ok']) {
-                flash('error', $res['message']);
+            if ($intent === 'buy_now') {
+                $loginUrl = '/auth/login?redirect=' . urlencode('/checkout');
+                if ($isAjax) {
+                    http_response_code(401);
+                    echo json_encode([
+                        'success' => false,
+                        'auth_required' => true,
+                        'login_url' => $loginUrl,
+                        'message' => 'Vui lòng đăng nhập để tiếp tục.'
+                    ]);
+                    return;
+                }
+                $this->redirect(ltrim($loginUrl, '/'));
+                return;
             }
-            $this->redirect(ltrim($loginUrl, '/'));
+
+            // Normal add to cart for guest
+            $successMsg = 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.';
+            if ($isAjax) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => $successMsg,
+                    'cart_count' => cartCount()
+                ]);
+                return;
+            }
+            flash('success', $successMsg);
+            $this->redirect(ltrim($redirectUrl, '/'));
             return;
         }
 
@@ -306,7 +329,7 @@ class CartController extends Controller
 
         // Kiểm tra tồn kho
         $productModel = $this->model('Product');
-        $product = $productModel->getById($productId);
+        $product = $productModel->getActiveByIdStrict($productId);
         if (!$product) {
             $this->redirect('cart');
             return;
