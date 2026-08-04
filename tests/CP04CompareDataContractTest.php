@@ -101,6 +101,9 @@ class CP04CompareDataContractTest
             'CORSAIR 16GB' => 16.0,
             'MEMORY 32GB' => 32.0,
             'STORAGE 1TB' => 1024.0,
+            'LPDDR5X 16GB' => 16.0,
+            'DDR5X 32GB' => 32.0,
+            '2×8GB' => 16.0,
         ];
         foreach ($cases as $str => $expected) {
             $this->assert(ProductComparisonService::parseStorageGb($str) === $expected, "parseStorageGb('$str') === $expected");
@@ -139,28 +142,33 @@ class CP04CompareDataContractTest
         $this->assert(in_array('ram', $p1['failed_requirements'] ?? []), "Ambiguous RAM -> failed_requirements includes 'ram'");
     }
 
-    // ── 4. Refresh Rate Fail-Closed Parser ────────────────────────────────────
+    // ── 4. Refresh Rate Parser Matrix ─────────────────────────────────────────
     private function testRefreshRateParser(): void
     {
         $this->log("\n--- Refresh Rate Parser Matrix ---");
-        $casesValid = [
+
+        $validCases = [
             '60Hz' => 60.0,
             '144 Hz' => 144.0,
             '240Hz IPS' => 240.0,
+            'IPS-144Hz' => 144.0,
+            'QHD-165Hz' => 165.0,
+            'Anti-glare 120Hz' => 120.0,
         ];
-        foreach ($casesValid as $str => $expected) {
+        foreach ($validCases as $str => $expected) {
             $this->assert(ProductComparisonService::parseRefreshRateHz($str) === $expected, "parseRefreshRateHz('$str') === $expected");
         }
 
-        $casesInvalid = [
+        $invalidCases = [
             '60Hz / 144Hz',
             '144Hz hoặc 240Hz',
             '144Hz OR 240Hz',
             '60-144Hz',
+            '60Hz-144Hz',
             'unknown',
             '',
         ];
-        foreach ($casesInvalid as $str) {
+        foreach ($invalidCases as $str) {
             $this->assert(ProductComparisonService::parseRefreshRateHz($str) === null, "parseRefreshRateHz('$str') === null (ambiguous)");
         }
 
@@ -247,14 +255,16 @@ class CP04CompareDataContractTest
             // P6: Multiple Active FS rows (Tie Breaker)
             $stmt->execute(['P6', 'p-6', 20000000, $catId, $brandId]);
             $p6 = (int)$this->db->lastInsertId();
-            // P7: No FS + valid sale_price
-            $stmt = $this->db->prepare("INSERT INTO products (name, slug, price, sale_price, status, category_id, brand_id) VALUES (?, ?, ?, ?, 'active', ?, ?)");
-            $stmt->execute(['P7', 'p-7', 20000000, 18000000, $catId, $brandId]);
+            // P7: No FS, has sale_price
+            $stmt->execute(['P7', 'p-7', 20000000, $catId, $brandId]);
             $p7 = (int)$this->db->lastInsertId();
-            // P8: End Boundary FS (end_time = NOW())
-            $stmt = $this->db->prepare("INSERT INTO products (name, slug, price, status, category_id, brand_id) VALUES (?, ?, ?, 'active', ?, ?)");
+            $this->db->exec("UPDATE products SET sale_price = 18000000 WHERE id = $p7");
+            // P8: End Boundary FS
             $stmt->execute(['P8', 'p-8', 20000000, $catId, $brandId]);
             $p8 = (int)$this->db->lastInsertId();
+            // P9: Same-price tie FS
+            $stmt->execute(['P9', 'p-9', 20000000, $catId, $brandId]);
+            $p9 = (int)$this->db->lastInsertId();
 
             // Flash Sales
             $stmtFS = $this->db->prepare("INSERT INTO flash_sales (title, slug, start_time, end_time, status) VALUES (?, ?, ?, ?, ?)");
@@ -297,8 +307,14 @@ class CP04CompareDataContractTest
             // P8 End Boundary
             $stmtItem->execute([$fsE, $p8, 15000000, 10, 0]);
 
+            // P9 Same-price tie
+            $stmtItem->execute([$fsA, $p9, 15000000, 10, 0]);
+            $p9Item1 = (int)$this->db->lastInsertId();
+            $stmtItem->execute([$fsA2, $p9, 15000000, 10, 0]);
+            $p9Item2 = (int)$this->db->lastInsertId();
+
             $model = new Compare();
-            $allProducts = $model->getProductsByIds([$p1, $p2, $p3, $p4, $p5, $p6, $p7, $p8]);
+            $allProducts = $model->getProductsByIds([$p1, $p2, $p3, $p4, $p5, $p6, $p7, $p8, $p9]);
 
             // Map products by ID
             $pMap = [];
@@ -332,9 +348,10 @@ class CP04CompareDataContractTest
             $this->assert((float)$resG['products'][0]['effective_price'] === 18000000.0, "No Flash Sale + valid sale_price -> effective_price=sale_price");
 
             // H. End Boundary
-            // Hydration might happen because the query is end_time > NOW(), if NOW() drifts, it might pass or fail.
-            // But we created it with $nowDb. In DB query `end_time > NOW()`, so if it equals, it will fail.
             $this->assert($pMap[$p8]['flash_sale'] === null, "End boundary (end_time = current DB time) -> not hydrated (end_time > NOW() false)");
+
+            // I. Same-price tie
+            $this->assert(isset($pMap[$p9]['flash_sale']) && (int)$pMap[$p9]['flash_sale']['fs_item_id'] === min($p9Item1, $p9Item2), "Same-price Flash Sale tie -> selects lower fsi.id");
 
             $this->db->rollBack();
         } catch (Exception $e) {

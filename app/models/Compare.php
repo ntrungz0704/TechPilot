@@ -98,6 +98,7 @@ class Compare
             SELECT
                 fsi.product_id                AS fs_product_id,
                 fsi.discount_price            AS discount_price,
+                fsi.id                        AS fs_item_id,
                 fs.status                     AS fs_status,
                 fs.start_time                 AS fs_start,
                 fs.end_time                   AS fs_end

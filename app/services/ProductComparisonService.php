@@ -38,15 +38,15 @@ class ProductComparisonService
 
         $capacities = [];
 
-        // e.g., 2x8GB, 2 X 16 GB -> extract as a single entity
-        $val = preg_replace_callback('/(\d+)\s*X\s*(\d+(?:\.\d+)?)\s*(GB|MB|TB)/', function($m) use (&$capacities) {
+        // e.g., 2x8GB, 2 X 16 GB, 2×8GB -> extract as a single entity
+        $val = preg_replace_callback('/\b(\d+)\s*[X×]\s*(\d+(?:\.\d+)?)\s*(GB|MB|TB)\b/u', function($m) use (&$capacities) {
             $num = (float)$m[1] * (float)$m[2];
             $capacities[] = ['num' => $num, 'unit' => $m[3]];
             return ''; // consume to avoid double matching
         }, $val);
 
         // Standard capacities
-        preg_replace_callback('/(\d+(?:\.\d+)?)\s*(GB|TB|MB)/', function($m) use (&$capacities) {
+        preg_replace_callback('/\b(\d+(?:\.\d+)?)\s*(GB|TB|MB)\b/u', function($m) use (&$capacities) {
             $capacities[] = ['num' => (float)$m[1], 'unit' => $m[2]];
             return '';
         }, $val);
@@ -71,12 +71,13 @@ class ProductComparisonService
         $val = mb_strtoupper(trim($val));
         if ($val === '') return null;
 
-        if (preg_match('/\b(?:OR|HOẶC)\b/iu', $val) || str_contains($val, '/') || str_contains($val, '-')) {
+        // Reject numeric ranges like 60-144Hz
+        if (preg_match('/\b(?:OR|HOẶC)\b/iu', $val) || str_contains($val, '/') || preg_match('/\d+\s*(?:HZ)?\s*-\s*\d+\s*(?:HZ)?/iu', $val)) {
             return null;
         }
 
         $rates = [];
-        preg_replace_callback('/(\d+(?:\.\d+)?)\s*HZ/', function($m) use (&$rates) {
+        preg_replace_callback('/\b(\d+(?:\.\d+)?)\s*HZ\b/iu', function($m) use (&$rates) {
             $rates[] = (float)$m[1];
             return '';
         }, $val);

@@ -388,15 +388,14 @@ class CP04TestSuite
         // extractNumericVal('8GB/16GB') returns 8 (first number) → fails 16GB requirement
         $this->assert($found['eligible'] === false, "Ambiguous RAM '8GB/16GB' extracts first=8 < 16 → ineligible");
 
-        // Spec with text before number: '2x8GB DDR5' → extracts 2 → 2GB < 16 → ineligible
+        // Spec with text before number: '2x8GB DDR5' → now correctly parses as 16GB
         $p = $this->makeProduct(['id' => 1, 'specs' => json_encode(['ram' => '2x8GB'])]);
         $result = ProductComparisonService::analyzeComparison([$p, $this->makeProduct(['id' => 2])],
             ['min_ram' => 16, '_now' => $now]);
         $found = $this->findProduct($result['products'], 1);
-        // Note: '2x8GB' → first number = 2 → ineligible; documents that ambiguous parse is flagged
         $this->assert(
-            $found['eligible'] === false || $found['verification_required'] === true,
-            "Ambiguous RAM '2x8GB' → ineligible or verification_required"
+            $found['eligible'] === true,
+            "RAM '2x8GB' parseable and >= 16 → eligible"
         );
 
         // All hard requirements met
@@ -584,11 +583,11 @@ class CP04TestSuite
 
         // Office persona + 'i3' in name + prebuilt_pc → should get +8 bonus
         $pOffice = $this->makeProduct([
-            'id' => 1, 'name' => 'PC i3 Business', 'category_slug' => 'prebuilt_pc',
+            'id' => 1, 'name' => 'PC i3 Business', 'category_slug' => 'pc',
             'specs' => json_encode(['ram' => '8GB', 'ssd' => '256GB']),
         ]);
         $pGaming = $this->makeProduct([
-            'id' => 2, 'name' => 'PC RTX 4090 Gaming', 'category_slug' => 'prebuilt_pc',
+            'id' => 2, 'name' => 'PC RTX 4090 Gaming', 'category_slug' => 'pc',
             'specs' => json_encode(['ram' => '32GB', 'ssd' => '1000GB']),
         ]);
         $resultOffice = ProductComparisonService::analyzeComparison([$pOffice, $pGaming],
@@ -599,7 +598,7 @@ class CP04TestSuite
 
         // Gaming persona + name has 'văn phòng' → should NOT get office bonus (bug was here)
         $pVanPhong = $this->makeProduct([
-            'id' => 3, 'name' => 'PC Gaming văn phòng RTX 4060', 'category_slug' => 'prebuilt_pc',
+            'id' => 3, 'name' => 'PC Gaming văn phòng RTX 4060', 'category_slug' => 'pc',
             'specs' => json_encode(['ram' => '16GB', 'ssd' => '512GB']),
         ]);
         $resultGaming = ProductComparisonService::analyzeComparison([$pVanPhong, $pGaming],
@@ -614,7 +613,7 @@ class CP04TestSuite
             'id' => 4, 'name' => 'Laptop văn phòng i7', 'category_slug' => 'laptop',
             'specs' => json_encode(['ram' => '16GB', 'ssd' => '512GB']),
         ]);
-        $resultDev = ProductComparisonService::analyzeComparison([$pDev, $pGaming],
+        $resultDev = ProductComparisonService::analyzeComparison([$pDev, $this->makeProduct(['id' => 99, 'category_slug' => 'laptop'])],
             ['persona' => 'developer', '_now' => $now]);
         $devScore = $this->findProduct($resultDev['products'], 4)['score_breakdown']['persona_fit'];
         // Developer + i7 → +8; 'văn phòng' keyword should NOT add another +8 without office persona
@@ -625,7 +624,7 @@ class CP04TestSuite
         $pOfficeLaptop = $this->makeProduct([
             'id' => 5, 'name' => 'Laptop văn phòng i3', 'category_slug' => 'laptop',
         ]);
-        $resultOfficeLaptop = ProductComparisonService::analyzeComparison([$pOfficeLaptop, $pGaming],
+        $resultOfficeLaptop = ProductComparisonService::analyzeComparison([$pOfficeLaptop, $this->makeProduct(['id' => 99, 'category_slug' => 'laptop'])],
             ['persona' => 'office', '_now' => $now]);
         $oScore = $this->findProduct($resultOfficeLaptop['products'], 5)['score_breakdown']['persona_fit'];
         $this->assert($oScore === 33, "Office persona + 'văn phòng' in laptop name → +8 bonus (25+8)",
@@ -635,7 +634,7 @@ class CP04TestSuite
         $pOfficeMonitor = $this->makeProduct([
             'id' => 6, 'name' => 'Monitor văn phòng i3 rtx', 'category_slug' => 'monitor',
         ]);
-        $resultMonitor = ProductComparisonService::analyzeComparison([$pOfficeMonitor, $pGaming],
+        $resultMonitor = ProductComparisonService::analyzeComparison([$pOfficeMonitor, $this->makeProduct(['id' => 99, 'category_slug' => 'monitor'])],
             ['persona' => 'office', '_now' => $now]);
         $mScore = $this->findProduct($resultMonitor['products'], 6)['score_breakdown']['persona_fit'];
         $this->assert($mScore === 25, "Office persona + monitor category → no office bonus (only prebuilt_pc/laptop branches)",
@@ -650,8 +649,8 @@ class CP04TestSuite
             "actual={$eScore}");
 
         // Mixed-case persona ('Office' vs 'office')
-        $pMixed = $this->makeProduct(['id' => 9, 'name' => 'PC i3 Pro', 'category_slug' => 'prebuilt_pc']);
-        $resultMixed = ProductComparisonService::analyzeComparison([$pMixed, $this->makeProduct(['id' => 10])],
+        $pMixed = $this->makeProduct(['id' => 9, 'name' => 'PC i3 Pro', 'category_slug' => 'pc']);
+        $resultMixed = ProductComparisonService::analyzeComparison([$pMixed, $this->makeProduct(['id' => 10, 'category_slug' => 'pc'])],
             ['persona' => 'Office', '_now' => $now]);
         // 'Office' !== 'office' → no match → no bonus
         $mixScore = $this->findProduct($resultMixed['products'], 9)['score_breakdown']['persona_fit'];
