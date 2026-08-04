@@ -18,8 +18,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const markApiUrl = markApiMeta ? markApiMeta.getAttribute('content') : '';
     const baseUrl = baseUrlMeta ? baseUrlMeta.getAttribute('content') : window.location.origin;
 
+    let adminRoot = '/admin';
+    try {
+        if (baseUrl) {
+            const baseObj = new URL(baseUrl, window.location.origin);
+            adminRoot = baseObj.pathname.replace(/\/$/, '') + '/admin';
+        }
+    } catch(e) {}
+
     function renderEmptyState(message) {
-        list.innerHTML = '';
+        list.replaceChildren();
         const div = document.createElement('div');
         div.style.fontSize = '12px';
         div.style.color = 'var(--text-secondary)';
@@ -29,8 +37,12 @@ document.addEventListener('DOMContentLoaded', function() {
         list.appendChild(div);
     }
 
+    let isFetching = false;
+
     function fetchNotifications() {
         if (!apiUrl) return;
+        if (isFetching) return;
+        isFetching = true;
         
         fetch(apiUrl)
             .then(res => {
@@ -58,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if (data.items && data.items.length > 0) {
-                    list.innerHTML = ''; // Xóa content cũ
+                    list.replaceChildren(); // Xóa content cũ
                     data.items.forEach(item => {
                         const itemDiv = document.createElement('div');
                         itemDiv.style.padding = '8px 10px';
@@ -106,6 +118,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Không nuốt toàn bộ lỗi, hiển thị UI lỗi nhẹ
                 console.error("Fetch error:", err);
                 renderEmptyState('Lỗi tải thông báo');
+            })
+            .finally(() => {
+                isFetching = false;
             });
     }
 
@@ -122,20 +137,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function validateLink(link) {
-        if (!link || link === 'javascript:void(0);') return null;
+        if (!link || /\s/.test(link)) return null;
         try {
             const urlObj = new URL(link, window.location.origin);
-            if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-                return null;
-            }
-            if (urlObj.origin !== window.location.origin) {
-                return null;
-            }
-            // Path nằm trong khu vực admin hợp lệ của ứng dụng
+            if (urlObj.username || urlObj.password) return null;
+            if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return null;
+            if (urlObj.origin !== window.location.origin) return null;
             const path = urlObj.pathname;
-            if (!path.includes('/admin/')) { // Basic check
-                return null;
-            }
+            if (path !== adminRoot && !path.startsWith(adminRoot + '/')) return null;
             return urlObj.href;
         } catch (e) {
             return null;

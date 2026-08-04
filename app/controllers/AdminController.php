@@ -2,6 +2,13 @@
 
 class AdminController extends Controller
 {
+    protected function getNotificationRepository(): NotificationRepositoryInterface
+    {
+        require_once ROOT_PATH . '/app/services/NotificationRepositoryInterface.php';
+        require_once ROOT_PATH . '/app/services/PdoNotificationRepository.php';
+        return new PdoNotificationRepository();
+    }
+
     public function index(): void
     {
         $this->requireAdmin();
@@ -144,10 +151,10 @@ class AdminController extends Controller
         $items = [];
         $unreadCount = 0;
 
+        $repo = $this->getNotificationRepository();
+
         try {
-            $stmt = $db->prepare('SELECT id, title, content, is_read, created_at FROM notifications WHERE user_id = :uid OR user_id = 1 ORDER BY id DESC LIMIT 10');
-            $stmt->execute([':uid' => $adminUserId]);
-            $rawItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rawItems = $repo->getLatest($db, $adminUserId, 10);
             
             foreach ($rawItems as $row) {
                 $item = [
@@ -172,9 +179,7 @@ class AdminController extends Controller
                 $items[] = $item;
             }
 
-            $stmt2 = $db->prepare('SELECT COUNT(*) FROM notifications WHERE (user_id = :uid OR user_id = 1) AND is_read = 0');
-            $stmt2->execute([':uid' => $adminUserId]);
-            $unreadCount = (int)$stmt2->fetchColumn();
+            $unreadCount = $repo->countUnread($db, $adminUserId);
         } catch (PDOException $e) {
             http_response_code(503);
             echo json_encode([
@@ -224,10 +229,12 @@ class AdminController extends Controller
             exit;
         }
 
+        $repo = $this->getNotificationRepository();
+
         try {
             if (isset($_POST['id'])) {
-                $id = (int)$_POST['id'];
-                if ($id <= 0) {
+                $id = $_POST['id']; // We will validate if it's numeric/integer
+                if (!is_numeric($id) || (int)$id <= 0 || (string)(int)$id !== (string)$id) {
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
@@ -239,11 +246,29 @@ class AdminController extends Controller
                     exit;
                 }
                 
-                $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE id = :id AND (user_id = :uid OR user_id = 1)');
-                $stmt->execute([':id' => $id, ':uid' => $adminUserId]);
+                $id = (int)$id;
+                $row = $repo->getById($db, $id, $adminUserId);
+                if (!$row) {
+                    http_response_code(404);
+                    echo json_encode([
+                        'success' => false,
+                        'error' => [
+                            'code' => 'NOTIFICATION_NOT_FOUND',
+                            'message' => 'Không tìm thấy thông báo hoặc bạn không có quyền.'
+                        ]
+                    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                    exit;
+                }
+                
+                if ($row['is_read'] == 0) {
+                    if (!$repo->markRead($db, $id)) {
+                        throw new PDOException("Failed to update");
+                    }
+                }
             } else {
-                $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = :uid OR user_id = 1');
-                $stmt->execute([':uid' => $adminUserId]);
+                if (!$repo->markAllRead($db, $adminUserId)) {
+                    throw new PDOException("Failed to update all");
+                }
             }
         } catch (PDOException $e) {
             http_response_code(503);

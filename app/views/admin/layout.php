@@ -11,6 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <meta name="csrf-token" content="<?= e($_SESSION['csrf_token'] ?? '') ?>">
+    <meta name="admin-notif-api" content="<?= e(url('api/admin/notifications')) ?>">
+    <meta name="admin-notif-mark-api" content="<?= e(url('api/admin/notifications/mark_read')) ?>">
+    <meta name="app-base-url" content="<?= e(url('')) ?>">
+
     <script>
         (() => {
             const stored = localStorage.getItem('techpilot-theme');
@@ -690,10 +695,6 @@
     </div>
 
     <!-- Script Toggles -->
-    <meta name="csrf-token" content="<?= e($_SESSION['csrf_token'] ?? '') ?>">
-    <meta name="admin-notif-api" content="<?= url('api/admin/notifications') ?>">
-    <meta name="admin-notif-mark-api" content="<?= url('api/admin/notifications/mark_read') ?>">
-    <meta name="app-base-url" content="<?= url('') ?>">
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
