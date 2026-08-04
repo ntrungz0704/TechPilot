@@ -186,10 +186,80 @@ class ProductController extends Controller
 
         try {
             $answer = ProductIntelligenceService::chatProduct($product, $question);
+
+            // Nếu user đã đăng nhập, tự động lưu câu hỏi và câu trả lời vào DB
+            $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+            if ($userId) {
+                $historyModel = $this->model('ProductAiChatHistory');
+                $historyModel->saveMessage($userId, $productId, 'user', $question);
+                $historyModel->saveMessage($userId, $productId, 'assistant', $answer);
+            }
+
             echo json_encode(['success' => true, 'answer' => $answer]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
+        exit;
+    }
+
+    /**
+     * API: Lấy lịch sử chat AI sản phẩm cho user đã đăng nhập
+     * GET /product/ai-chat-history?product_id=X
+     */
+    public function chatHistory(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+        $productId = (int)($_GET['product_id'] ?? 0);
+
+        if (!$userId || $productId <= 0) {
+            echo json_encode(['success' => true, 'history' => []]);
+            exit;
+        }
+
+        $historyModel = $this->model('ProductAiChatHistory');
+        $history = $historyModel->getHistory($userId, $productId);
+        echo json_encode(['success' => true, 'history' => $history]);
+        exit;
+    }
+
+    /**
+     * API: Đồng bộ lịch sử guest từ sessionStorage lên DB sau khi đăng nhập
+     * POST /product/ai-chat-sync-guest
+     */
+    public function syncGuestChat(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+
+        if (!$userId) {
+            echo json_encode(['success' => false, 'message' => 'Bạn chưa đăng nhập.']);
+            exit;
+        }
+
+        $rawInput = file_get_contents('php://input');
+        $data = json_decode($rawInput, true);
+        $messages = [];
+
+        if (is_array($data) && isset($data['messages']) && is_array($data['messages'])) {
+            $messages = $data['messages'];
+        } elseif (is_array($data) && array_is_list($data)) {
+            $messages = $data;
+        }
+
+        if (empty($messages) && !empty($_POST['messages'])) {
+            $messages = json_decode($_POST['messages'], true) ?: [];
+        }
+
+        if (empty($messages)) {
+            echo json_encode(['success' => true, 'synced' => 0]);
+            exit;
+        }
+
+        $historyModel = $this->model('ProductAiChatHistory');
+        $syncedCount = $historyModel->syncGuestMessages($userId, $messages);
+
+        echo json_encode(['success' => true, 'synced' => $syncedCount]);
         exit;
     }
 }

@@ -301,6 +301,9 @@ $router->get('/ai-assistant', 'AiAssistantController@index');
 $router->post('/ai/recommend', 'AiAssistantController@recommend');
 $router->post('/ai/favorite', 'AiAssistantController@saveFavorite');
 
+$router->get('/product/ai-chat-history', 'ProductController@chatHistory');
 $router->post('/product/ai-chat', 'ProductController@chat');
+$router->post('/product/ai-chat-sync-guest', 'ProductController@syncGuestChat');
+$router->get('/profile/ai-chat-history', 'ProfileController@aiChatHistory');
 
 $router->dispatch($url);

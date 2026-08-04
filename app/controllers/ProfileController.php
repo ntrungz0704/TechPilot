@@ -565,4 +565,41 @@ class ProfileController extends Controller
         ]);
         exit;
     }
+
+    /** Trang lịch sử tư vấn AI sản phẩm trong Profile */
+    public function aiChatHistory(): void
+    {
+        $user = $this->requireLogin();
+        $historyModel = $this->model('ProductAiChatHistory');
+        
+        $sessions = $historyModel->getUserChatSessions((int)$user['id']);
+
+        $selectedProductId = (int)($_GET['product_id'] ?? 0);
+        $selectedHistory = [];
+        $selectedProduct = null;
+
+        if ($selectedProductId > 0) {
+            $productModel = $this->model('Product');
+            $selectedProduct = $productModel->getById($selectedProductId);
+            if ($selectedProduct) {
+                $selectedHistory = $historyModel->getHistory((int)$user['id'], $selectedProductId);
+            }
+        } elseif (!empty($sessions)) {
+            $selectedProductId = (int)$sessions[0]['product_id'];
+            $productModel = $this->model('Product');
+            $selectedProduct = $productModel->getById($selectedProductId);
+            if ($selectedProduct) {
+                $selectedHistory = $historyModel->getHistory((int)$user['id'], $selectedProductId);
+            }
+        }
+
+        $this->render('profile/ai_chat_history', [
+            'pageTitle'       => 'Lịch sử trò chuyện AI',
+            'user'            => $user,
+            'sessions'        => $sessions,
+            'selectedProduct' => $selectedProduct,
+            'selectedHistory' => $selectedHistory,
+            'flashes'         => pullFlashes()
+        ], false);
+    }
 }

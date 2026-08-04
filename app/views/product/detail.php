@@ -252,6 +252,9 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
             </h3>
             <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Trợ lý AI sẽ phân tích cấu hình phần cứng thực tế và trả lời ngay thắc mắc của bạn (Ví dụ: chạy mượt Photoshop không, chơi Liên Minh bao nhiêu FPS, nâng cấp ổ cứng thế nào...).</p>
 
+            <!-- Notice Banner Container (Guest Reminder) -->
+            <div id="aiGuestNoticeContainer"></div>
+
             <!-- Khung Chat -->
             <div id="aiProductChatMessages" style="border: 1px solid var(--border); border-radius: 12px; padding: 18px; min-height: 350px; max-height: 500px; overflow-y: auto; background-color: #F8FAFC; display: flex; flex-direction: column; gap: 14px; margin-bottom: 15px; box-sizing: border-box;">
                 <!-- Tin nhắn chào mừng -->
@@ -425,6 +428,139 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
         }
     }
 
+    const CURRENT_PRODUCT_ID = <?= (int)$product['id'] ?>;
+    const IS_USER_LOGGED_IN = <?= isset($_SESSION['user']['id']) ? 'true' : 'false' ?>;
+    const CSRF_TOKEN = '<?= $_SESSION["csrf_token"] ?? "" ?>';
+    const GUEST_STORAGE_KEY = 'techpilot_chat_product_' + CURRENT_PRODUCT_ID;
+
+    // Lấy mảng tin nhắn guest từ sessionStorage (tự xóa nếu quá 24h)
+    function getGuestStorageMessages() {
+        try {
+            const raw = sessionStorage.getItem(GUEST_STORAGE_KEY);
+            if (!raw) return [];
+            const data = JSON.parse(raw);
+            if (data.saved_at && (Date.now() - data.saved_at > 86400000)) { // >24h
+                sessionStorage.removeItem(GUEST_STORAGE_KEY);
+                return [];
+            }
+            return Array.isArray(data.messages) ? data.messages : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // Lưu mảng tin nhắn guest vào sessionStorage
+    function saveGuestStorageMessages(messages) {
+        try {
+            sessionStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify({
+                saved_at: Date.now(),
+                messages: messages
+            }));
+        } catch (e) {}
+    }
+
+    // Kiểm tra & hiển thị banner nhắc đăng nhập cho Guest khi chat >= 4 tin nhắn
+    function checkGuestNoticeBanner(messageCount) {
+        if (IS_USER_LOGGED_IN) return;
+        const container = document.getElementById('aiGuestNoticeContainer');
+        if (!container) return;
+
+        if (messageCount >= 4) {
+            const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%); border: 1px solid #BFDBFE; color: #1E40AF; border-radius: 10px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <span>💡 <strong>Mẹo:</strong> Bạn đang dùng chế độ Khách. Đăng nhập để tự động lưu lại toàn bộ tư vấn này và xem lại trong tài khoản nhé!</span>
+                    <a href="<?= url('auth/login') ?>?redirect=${redirectUrl}" class="btn btn--outline" style="padding: 4px 12px; font-size: 12px; white-space: nowrap; text-decoration: none; border-color: #3B82F6; color: #2563EB; font-weight: 700;">Đăng nhập ngay</a>
+                </div>
+            `;
+        }
+    }
+
+    // Append tin nhắn vào khung chat UI
+    function appendChatMessage(role, messageText) {
+        const msgBox = document.getElementById('aiProductChatMessages');
+        if (!msgBox) return;
+
+        if (role === 'user') {
+            const userMsgHtml = `
+                <div style="display: flex; gap: 10px; align-self: flex-end; flex-direction: row-reverse;">
+                    <div style="background-color: var(--primary); color: #FFFFFF; border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5;">
+                        ${escapeHtml(messageText)}
+                    </div>
+                </div>
+            `;
+            msgBox.insertAdjacentHTML('beforeend', userMsgHtml);
+        } else {
+            const answerHtml = `
+                <div style="display: flex; gap: 10px; align-self: flex-start;">
+                    <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
+                        <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: var(--text-primary);">
+                        ${formatMarkdownText(messageText)}
+                    </div>
+                </div>
+            `;
+            msgBox.insertAdjacentHTML('beforeend', answerHtml);
+        }
+        msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    // Khởi tạo Lịch sử Chat trên Page Load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (IS_USER_LOGGED_IN) {
+            // Luồng User đã đăng nhập:
+            // 1. Kiểm tra nếu có tin nhắn guest cũ trong sessionStorage -> sync lên DB trước
+            const guestMsgs = getGuestStorageMessages();
+            if (guestMsgs.length > 0) {
+                const payload = guestMsgs.map(m => ({
+                    product_id: CURRENT_PRODUCT_ID,
+                    role: m.role,
+                    message: m.text || m.message,
+                    timestamp: m.timestamp || Date.now()
+                }));
+
+                fetch('<?= url("product/ai-chat-sync-guest") ?>', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: payload, _csrf: CSRF_TOKEN })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    sessionStorage.removeItem(GUEST_STORAGE_KEY);
+                    loadDbChatHistory();
+                })
+                .catch(err => {
+                    loadDbChatHistory();
+                });
+            } else {
+                loadDbChatHistory();
+            }
+        } else {
+            // Luồng Guest: Load từ sessionStorage và render
+            const guestMsgs = getGuestStorageMessages();
+            if (guestMsgs.length > 0) {
+                guestMsgs.forEach(m => {
+                    appendChatMessage(m.role, m.text || m.message);
+                });
+            }
+            checkGuestNoticeBanner(guestMsgs.length);
+        }
+    });
+
+    function loadDbChatHistory() {
+        fetch('<?= url("product/ai-chat-history") ?>?product_id=' + CURRENT_PRODUCT_ID)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && Array.isArray(res.history) && res.history.length > 0) {
+                    res.history.forEach(h => {
+                        appendChatMessage(h.role, h.message);
+                    });
+                }
+            })
+            .catch(err => console.error('Error loading DB chat history:', err));
+    }
+
     function handleProductChatKey(e) {
         if (e.key === 'Enter') sendProductChatMessage();
     }
@@ -436,18 +572,19 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
 
         input.value = '';
 
-        const msgBox = document.getElementById('aiProductChatMessages');
+        // Append User Message to UI
+        appendChatMessage('user', text);
 
-        // Render user message
-        const userMsgHtml = `
-            <div style="display: flex; gap: 10px; align-self: flex-end; flex-direction: row-reverse;">
-                <div style="background-color: var(--primary); color: #FFFFFF; border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5;">
-                    ${escapeHtml(text)}
-                </div>
-            </div>
-        `;
-        msgBox.insertAdjacentHTML('beforeend', userMsgHtml);
-        msgBox.scrollTop = msgBox.scrollHeight;
+        // Lưu vào sessionStorage nếu là Guest
+        let guestMsgs = [];
+        if (!IS_USER_LOGGED_IN) {
+            guestMsgs = getGuestStorageMessages();
+            guestMsgs.push({ role: 'user', text: text, timestamp: Date.now() });
+            saveGuestStorageMessages(guestMsgs);
+            checkGuestNoticeBanner(guestMsgs.length);
+        }
+
+        const msgBox = document.getElementById('aiProductChatMessages');
 
         // Render typing indicator
         const typingId = 'typing-' + Date.now();
@@ -466,9 +603,9 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
 
         // AJAX request
         const data = new URLSearchParams();
-        data.append('product_id', '<?= (int)$product['id'] ?>');
+        data.append('product_id', CURRENT_PRODUCT_ID);
         data.append('q', text);
-        data.append('_csrf', '<?= $_SESSION["csrf_token"] ?? "" ?>');
+        data.append('_csrf', CSRF_TOKEN);
 
         fetch('<?= url("product/ai-chat") ?>', {
             method: 'POST',
@@ -476,21 +613,17 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
         })
         .then(res => res.json())
         .then(res => {
-            // Remove typing indicator
-            document.getElementById(typingId).remove();
+            document.getElementById(typingId)?.remove();
 
             if (res.success) {
-                const answerHtml = `
-                    <div style="display: flex; gap: 10px; align-self: flex-start;">
-                        <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
-                            <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
-                        </div>
-                        <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: var(--text-primary);">
-                            ${formatMarkdownText(res.answer)}
-                        </div>
-                    </div>
-                `;
-                msgBox.insertAdjacentHTML('beforeend', answerHtml);
+                appendChatMessage('assistant', res.answer);
+
+                if (!IS_USER_LOGGED_IN) {
+                    guestMsgs = getGuestStorageMessages();
+                    guestMsgs.push({ role: 'assistant', text: res.answer, timestamp: Date.now() });
+                    saveGuestStorageMessages(guestMsgs);
+                    checkGuestNoticeBanner(guestMsgs.length);
+                }
             } else {
                 const errHtml = `
                     <div style="display: flex; gap: 10px; align-self: flex-start;">
@@ -498,16 +631,16 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
                             <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                         <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: #EF4444;">
-                            Lỗi: ${res.message}
+                            Lỗi: ${escapeHtml(res.message)}
                         </div>
                     </div>
                 `;
                 msgBox.insertAdjacentHTML('beforeend', errHtml);
+                msgBox.scrollTop = msgBox.scrollHeight;
             }
-            msgBox.scrollTop = msgBox.scrollHeight;
         })
         .catch(err => {
-            document.getElementById(typingId).remove();
+            document.getElementById(typingId)?.remove();
             const errHtml = `
                 <div style="display: flex; gap: 10px; align-self: flex-start;">
                     <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
