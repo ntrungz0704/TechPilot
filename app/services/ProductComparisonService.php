@@ -7,18 +7,57 @@ if (!class_exists('GeminiService')) {
 class ProductComparisonService
 {
     /**
+     * Determine normalized category key from server slug.
+     */
+    public static function normalizeCategoryKey(string $serverSlug, array $config): ?string
+    {
+        $serverSlug = trim($serverSlug);
+        if ($serverSlug === '') return null;
+        
+        $categories = $config['categories'] ?? [];
+        foreach ($categories as $key => $catData) {
+            if (isset($catData['slugs']) && in_array($serverSlug, $catData['slugs'], true)) {
+                return (string)$key;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Parse RAM/Storage capacity into integer GB, strictly handling units and rejecting ambiguity.
+     */
+    public static function parseStorageGb(string $val): ?int
+    {
+        $val = mb_strtoupper(trim($val));
+        if ($val === '') return null;
+        
+        // Reject ambiguous or conflicting strings
+        if (str_contains($val, 'HOẶC') || str_contains($val, '/') || str_contains($val, 'OR')) {
+            return null;
+        }
+
+        // e.g., 2x8GB, 2 X 16 GB
+        if (preg_match('/(\d+)\s*X\s*(\d+(?:\.\d+)?)\s*(GB|MB|TB)/', $val, $m)) {
+            $num = (float)$m[1] * (float)$m[2];
+            $unit = $m[3];
+        } 
+        // e.g., 512GB, 1TB, 1024MB, 0.5TB
+        elseif (preg_match('/(\d+(?:\.\d+)?)\s*(GB|TB|MB)/', $val, $m)) {
+            $num = (float)$m[1];
+            $unit = $m[2];
+        } else {
+            return null;
+        }
+
+        if ($unit === 'TB') return (int)($num * 1024);
+        if ($unit === 'MB') return max(1, (int)($num / 1024));
+        return (int)$num;
+    }
+
+    /**
      * Compute the single canonical effective price for a product.
      * Considers: base price, sale_price, active flash-sale price.
      * Returns the lowest valid price at time of comparison.
-     * All branches (budget, value-fit, prompt, response) MUST use this.
-     *
-     * @param array      $product   Row from DB with 'price', 'sale_price'
-     * @param array|null $flashSale Row from flash_sale_items JOIN flash_sales,
-     *                             must have 'discount_price', 'fs_status',
-     *                             'fs_start', 'fs_end', 'fs_product_id'.
-     *                             Pass null if no flash sale was found.
-     * @param int|null   $nowTs     Unix timestamp for "now" (default: time()).
-     * @return float
      */
     public static function effectivePrice(array $product, ?array $flashSale, ?int $nowTs = null): float
     {
@@ -46,7 +85,7 @@ class ProductComparisonService
             $productId     = (int)($product['id'] ?? 0);
 
             $validStatus   = ($fsStatus === 'active');
-            $validTime     = ($fsStart > 0 && $fsEnd > 0 && $now >= $fsStart && $now <= $fsEnd);
+            $validTime     = ($fsStart > 0 && $fsEnd > 0 && $now >= $fsStart && $now < $fsEnd);
             $validOwner    = ($fsProductId === $productId);
             $validPrice    = (is_finite($dp) && $dp > 0 && $dp < $basePrice);
 
@@ -55,7 +94,6 @@ class ProductComparisonService
             }
         }
 
-        // Return the minimum valid price
         $candidates = [$basePrice];
         if ($salePrice !== null) $candidates[] = $salePrice;
         if ($flashPrice !== null) $candidates[] = $flashPrice;
@@ -65,30 +103,65 @@ class ProductComparisonService
 
     /**
      * Phân tích và chấm điểm so sánh theo Persona & Danh mục (Deterministic Persona Engine)
-     *
-     * @param array $products Each element must include server-sourced fields:
-     *                        id, name, price, sale_price, specs, brand_name,
-     *                        category_slug (from server JOIN), flash_sale (optional row).
-     * @param array $options  User preferences: persona, priorities, budget_max,
-     *                        min_ram, min_storage, min_refresh_rate.
-     *                        'category' is IGNORED — taken from server data.
      */
     public static function analyzeComparison(array $products, array $options = []): array
     {
-        if (empty($products)) {
+        $expectedCount = $options['expected_count'] ?? count($products);
+
+        if (empty($products) || ($expectedCount >= 2 && count($products) < 2)) {
             return [
-                'success' => false,
+                'success' => true, // API success structure, just no winner
                 'winner'  => null,
-                'message' => 'Danh sách sản phẩm so sánh rỗng.',
+                'message' => 'Các sản phẩm so sánh không còn hợp lệ hoặc không tồn tại.',
+                'suggestion' => 'Vui lòng kiểm tra lại danh sách sản phẩm.',
+                'products' => [],
+                'winners'  => ['best_fit' => null, 'best_value' => null, 'best_performance' => null],
                 'reasons_by_product' => [],
+                'verification_required' => [],
+                'analysis' => self::fallbackAnalysis('unknown', 'unknown'),
             ];
         }
 
         $config = require ROOT_PATH . '/config/product-comparison.php';
 
-        // TRUSTED CATEGORY: derived from server data (first product's server-side slug)
-        // Client-supplied 'category' in $options is intentionally NOT used for logic.
-        $catKey   = trim($products[0]['category_slug'] ?? 'laptop');
+        // Evaluate categories to ensure all belong to the same normalized category
+        $validCatKeys = [];
+        foreach ($products as $p) {
+            $cKey = self::normalizeCategoryKey($p['category_slug'] ?? '', $config);
+            if ($cKey !== null) {
+                $validCatKeys[$cKey] = true;
+            }
+        }
+
+        if (count($validCatKeys) > 1) {
+            return [
+                'success' => true,
+                'winner'  => null,
+                'message' => 'Không thể so sánh các sản phẩm thuộc nhiều danh mục khác nhau.',
+                'suggestion' => 'Vui lòng chọn các sản phẩm cùng loại.',
+                'products' => [],
+                'winners'  => ['best_fit' => null, 'best_value' => null, 'best_performance' => null],
+                'reasons_by_product' => [],
+                'verification_required' => [],
+                'analysis' => self::fallbackAnalysis('mixed', 'mixed'),
+            ];
+        }
+
+        $catKey = !empty($validCatKeys) ? array_key_first($validCatKeys) : null;
+
+        if ($catKey === null) {
+            return [
+                'success' => true,
+                'winner'  => null,
+                'message' => 'Sản phẩm không thuộc danh mục hợp lệ nào để so sánh.',
+                'suggestion' => 'Vui lòng kiểm tra lại dữ liệu sản phẩm.',
+                'products' => [],
+                'winners'  => ['best_fit' => null, 'best_value' => null, 'best_performance' => null],
+                'reasons_by_product' => [],
+                'verification_required' => [],
+                'analysis' => self::fallbackAnalysis('unknown', 'unknown'),
+            ];
+        }
 
         $persona    = trim($options['persona'] ?? 'developer');
         $priorities = (array)($options['priorities'] ?? ['performance']);
@@ -98,7 +171,7 @@ class ProductComparisonService
         $minStorage = !empty($options['min_storage'])      ? (int)$options['min_storage']      : 0;
         $minRefresh = !empty($options['min_refresh_rate']) ? (int)$options['min_refresh_rate'] : 0;
 
-        $now = $options['_now'] ?? null; // Testable time injection
+        $now = $options['_now'] ?? null; 
 
         // ── 1. EVALUATE EACH PRODUCT ────────────────────────────────────────
         $analyzedProducts = [];
@@ -106,42 +179,40 @@ class ProductComparisonService
 
         foreach ($products as $p) {
             $pid = (int)$p['id'];
+            $eligible            = true;
+            $verificationRequired = false;
+            $ineligibleReasons   = [];
+            $failedRequirements  = [];
+            $verificationReasons = [];
+            $effectivePrice      = 0;
 
-            // Server-side category (trusted)
-            $serverCatSlug = trim($p['category_slug'] ?? '');
-            if ($serverCatSlug === '') {
-                // Product has no category — ineligible
-                $reasonsByProduct[$pid] = ['UNKNOWN_CATEGORY'];
-                $p['eligible']            = false;
-                $p['verification_required'] = false;
-                $p['ineligible_reasons']  = ['Sản phẩm không có danh mục hợp lệ trên server'];
-                $p['failed_requirements'] = ['category'];
-                $p['verification_reasons'] = [];
-                $p['normalized_specs']    = [];
-                $p['total_score']         = 0;
-                $p['confidence']          = 'none';
-                $p['effective_price']     = (float)($p['price'] ?? 0);
-                $analyzedProducts[]       = $p;
-                continue;
+            $pCatKey = self::normalizeCategoryKey($p['category_slug'] ?? '', $config);
+            if ($pCatKey !== $catKey) {
+                // Technically shouldn't hit here since we already verified above,
+                // but good for safety if a product had no category.
+                $eligible = false;
+                $failedRequirements[] = 'category';
+                $ineligibleReasons[]  = 'Danh mục sản phẩm không phù hợp';
             }
 
-            // Effective price — single canonical computation
-            $effectivePrice = self::effectivePrice($p, $p['flash_sale'] ?? null, $now);
+            // Base price validation
+            $rawPrice = $p['price'] ?? null;
+            if (!is_numeric($rawPrice) || !is_finite((float)$rawPrice) || (float)$rawPrice <= 0) {
+                $eligible = false;
+                $failedRequirements[] = 'price';
+                $ineligibleReasons[]  = 'Giá sản phẩm không hợp lệ (base price = ' . var_export($rawPrice, true) . ')';
+            } else {
+                $effectivePrice = self::effectivePrice($p, $p['flash_sale'] ?? null, $now);
+            }
+            
             $p['effective_price'] = $effectivePrice;
 
             $rawSpecs    = json_decode($p['specs'] ?? '{}', true) ?: [];
             $parsedSpecs = self::cleanAndParseSpecs($rawSpecs, $p);
             $p['normalized_specs'] = $parsedSpecs;
 
-            // Hard Requirement Verification
-            $eligible            = true;
-            $verificationRequired = false;
-            $ineligibleReasons   = [];
-            $failedRequirements  = [];
-            $verificationReasons = [];
-
-            // Budget check — uses effectivePrice
-            if ($maxBudget !== null && $effectivePrice > $maxBudget) {
+            // Budget check 
+            if ($eligible && $maxBudget !== null && $effectivePrice > $maxBudget) {
                 $eligible = false;
                 $failedRequirements[] = 'budget';
                 $ineligibleReasons[]  = 'Giá ' . formatPrice($effectivePrice) .
@@ -150,13 +221,12 @@ class ProductComparisonService
 
             // RAM hard requirement
             if ($minRam > 0) {
-                $ramVal = self::extractNumericVal($parsedSpecs['RAM'] ?? '');
-                if ($ramVal <= 0) {
-                    // Missing RAM spec — cannot verify → ineligible
+                $ramVal = self::parseStorageGb($parsedSpecs['RAM'] ?? '');
+                if ($ramVal === null || $ramVal <= 0) {
                     $eligible = false;
                     $verificationRequired = true;
                     $failedRequirements[]  = 'ram';
-                    $ineligibleReasons[]   = "Thiếu thông số RAM — không thể xác minh yêu cầu tối thiểu {$minRam}GB";
+                    $ineligibleReasons[]   = "Thiếu thông số RAM hoặc chuỗi mơ hồ — không thể xác minh yêu cầu tối thiểu {$minRam}GB";
                     $verificationReasons[] = "RAM chưa được xác minh";
                 } elseif ($ramVal < $minRam) {
                     $eligible = false;
@@ -167,12 +237,12 @@ class ProductComparisonService
 
             // SSD hard requirement
             if ($minStorage > 0) {
-                $ssdVal = self::extractNumericVal($parsedSpecs['SSD'] ?? $parsedSpecs['Storage'] ?? '');
-                if ($ssdVal <= 0) {
+                $ssdVal = self::parseStorageGb($parsedSpecs['SSD'] ?? $parsedSpecs['Storage'] ?? '');
+                if ($ssdVal === null || $ssdVal <= 0) {
                     $eligible = false;
                     $verificationRequired = true;
                     $failedRequirements[]  = 'ssd';
-                    $ineligibleReasons[]   = "Thiếu thông số SSD — không thể xác minh yêu cầu tối thiểu {$minStorage}GB";
+                    $ineligibleReasons[]   = "Thiếu thông số SSD hoặc chuỗi mơ hồ — không thể xác minh yêu cầu tối thiểu {$minStorage}GB";
                     $verificationReasons[] = "SSD chưa được xác minh";
                 } elseif ($ssdVal < $minStorage) {
                     $eligible = false;
@@ -181,7 +251,7 @@ class ProductComparisonService
                 }
             }
 
-            // Refresh rate hard requirement
+            // Refresh rate hard requirement (still uses numeric extract since it's just a number)
             if ($minRefresh > 0) {
                 $hzVal = self::extractNumericVal(
                     $parsedSpecs['Tần số quét'] ?? $parsedSpecs['refresh_rate'] ?? ''
@@ -199,7 +269,7 @@ class ProductComparisonService
                 }
             }
 
-            // Scoring — uses effective_price for value fit
+            // Scoring
             $personaFit     = self::calcPersonaFit($catKey, $persona, $p, $parsedSpecs);
             $performanceFit = self::calcPerformanceFit($catKey, $p, $parsedSpecs);
             $valueFit       = self::calcValueFit($effectivePrice, $performanceFit);
@@ -207,7 +277,6 @@ class ProductComparisonService
             $categoryQual   = self::calcCategoryQuality($catKey, $p, $parsedSpecs);
             $dataComplete   = self::calcDataCompleteness($parsedSpecs);
 
-            // Ineligible products get capped score so they cannot win
             $totalScore = $personaFit + $performanceFit + $valueFit + $longevity + $categoryQual + $dataComplete;
             $totalScore = min(99, max(50, round($totalScore)));
 
@@ -246,19 +315,18 @@ class ProductComparisonService
         // Sort: eligible first, then by score desc, then by id asc (stable tie-breaking)
         usort($analyzedProducts, function ($a, $b) {
             if ($a['eligible'] !== $b['eligible']) {
-                return $b['eligible'] <=> $a['eligible']; // true > false
+                return $b['eligible'] <=> $a['eligible']; 
             }
             if ($b['total_score'] !== $a['total_score']) {
                 return $b['total_score'] <=> $a['total_score'];
             }
-            return $a['id'] <=> $b['id']; // stable: lower ID wins tie
+            return $a['id'] <=> $b['id']; 
         });
 
         // ── 2. WINNER SELECTION — eligible products only ─────────────────────
         $eligibleProducts = array_values(array_filter($analyzedProducts, fn($p) => $p['eligible'] === true));
 
         if (empty($eligibleProducts)) {
-            // No valid product — return null winner with reasons
             $verificationRequiredList = array_values(
                 array_filter($analyzedProducts, fn($p) => $p['verification_required'] === true)
             );
@@ -268,8 +336,8 @@ class ProductComparisonService
                 'winner'  => null,
                 'category' => $catKey,
                 'persona'  => $persona,
-                'message'  => 'Không có sản phẩm nào đáp ứng đầy đủ ngân sách và các yêu cầu bắt buộc.',
-                'suggestion' => 'Vui lòng nới rộng ngân sách, giảm yêu cầu RAM/SSD/Hz hoặc xác minh lại thông số sản phẩm.',
+                'message'  => 'Không có sản phẩm nào đáp ứng đầy đủ yêu cầu hợp lệ để so sánh.',
+                'suggestion' => 'Vui lòng kiểm tra lại ngân sách, yêu cầu tối thiểu hoặc tính hợp lệ của sản phẩm.',
                 'products' => $analyzedProducts,
                 'winners'  => ['best_fit' => null, 'best_value' => null, 'best_performance' => null],
                 'reasons_by_product' => $reasonsByProduct,
@@ -278,7 +346,6 @@ class ProductComparisonService
             ];
         }
 
-        // Best fit = highest scoring eligible product (already sorted)
         $bestFit = $eligibleProducts[0];
 
         $bestValue = null;
@@ -313,15 +380,14 @@ class ProductComparisonService
         ];
 
         // ── 3. SERVER VALIDATE AI WINNER IDs ────────────────────────────────
-        // winners must all reference eligible products; any invalid ID → replace with null
         $eligibleIds = array_column($eligibleProducts, 'id');
         foreach ($winners as $role => $wid) {
             if ($wid !== null && !in_array($wid, $eligibleIds, true)) {
-                $winners[$role] = null; // invalid / ineligible / non-existent winner rejected
+                $winners[$role] = null; 
             }
         }
 
-        // ── 4. AI EXPLANATION (server facts are pre-locked) ─────────────────
+        // ── 4. AI EXPLANATION ───────────────────────────────────────────────
         $aiAnalysis = self::generateAiComparisonExplanation($analyzedProducts, $winners, [
             'category'  => $catKey,
             'persona'   => $persona,
@@ -330,7 +396,7 @@ class ProductComparisonService
 
         return [
             'success'    => true,
-            'winner'     => $winners['best_fit'],   // primary winner (nullable)
+            'winner'     => $winners['best_fit'],   
             'category'   => $catKey,
             'persona'    => $persona,
             'priorities' => $priorities,
@@ -345,16 +411,6 @@ class ProductComparisonService
     // DETERMINISTIC SCORING ENGINE
     // ==========================================
 
-    /**
-     * Office persona precedence — fixed operator precedence bug.
-     *
-     * BEFORE (buggy):
-     *   elseif ($persona === 'office' && str_contains($name, 'i3') || str_contains($name, 'văn phòng'))
-     *   → Always triggers when name contains 'văn phòng', regardless of persona.
-     *
-     * AFTER (correct):
-     *   Named booleans + explicit parentheses.
-     */
     private static function calcPersonaFit(string $cat, string $persona, array $p, array $specs): int
     {
         $name  = mb_strtolower($p['name']);
@@ -368,7 +424,6 @@ class ProductComparisonService
             } elseif ($persona === 'ai_ml' && str_contains($name, 'rtx 40')) {
                 $score += 10;
             } else {
-                // Office persona — FIXED: all conditions are grouped with explicit parens
                 $isOfficePersona      = ($persona === 'office');
                 $matchesOfficeKeyword = (str_contains($name, 'i3') || str_contains($name, 'văn phòng'));
                 $needsOfficeWorkload  = ($isOfficePersona && $matchesOfficeKeyword);
@@ -384,7 +439,6 @@ class ProductComparisonService
             } elseif ($persona === 'business_travel' && (str_contains($name, 'slim') || str_contains($name, 'oled') || str_contains($name, 'zenbook'))) {
                 $score += 8;
             } else {
-                // Office persona for laptops — same pattern with explicit parens
                 $isOfficePersona      = ($persona === 'office');
                 $matchesOfficeKeyword = (str_contains($name, 'i3') || str_contains($name, 'văn phòng'));
                 $needsOfficeWorkload  = ($isOfficePersona && $matchesOfficeKeyword);
@@ -474,15 +528,12 @@ class ProductComparisonService
                 : (string)$v;
         }
 
-        // Supplement from product name only when specs are missing
         if (!isset($cleaned['CPU']) && preg_match('/(Intel Core i\d[-\w]*|AMD Ryzen \d[-\w]*|Apple M\d\w*)/i', $p['name'], $m)) {
             $cleaned['CPU'] = $m[1];
         }
         if (!isset($cleaned['VGA']) && preg_match('/(RTX \d{4}[-\w]*|GTX \d{4}[-\w]*|Radeon RX \d{4}[-\w]*)/i', $p['name'], $m)) {
             $cleaned['VGA'] = $m[1];
         }
-        // NOTE: RAM and SSD are NOT supplemented from product name for hard-requirement purposes.
-        // A product whose RAM/SSD cannot be parsed from structured specs is marked verification_required.
 
         return $cleaned;
     }
@@ -569,7 +620,6 @@ class ProductComparisonService
 
     // ==========================================
     // AI COMPARISON EXPLANATION GENERATOR
-    // AI is NOT source of truth. Server facts are pre-locked.
     // ==========================================
 
     private static function generateAiComparisonExplanation(array $products, array $winners, array $context): array
@@ -604,7 +654,7 @@ class ProductComparisonService
                 return $parsed;
             }
         } catch (Exception $e) {
-            // Silence AI error — deterministic winners already locked; return fallback
+            // Fallback
         }
 
         return self::fallbackAnalysis($context['category'], $context['persona']);

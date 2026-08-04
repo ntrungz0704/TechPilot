@@ -123,6 +123,7 @@ class CompareController extends Controller
             'min_ram'           => !empty($_POST['min_ram']) ? (int)$_POST['min_ram'] : 0,
             'min_storage'       => !empty($_POST['min_storage']) ? (int)$_POST['min_storage'] : 0,
             'min_refresh_rate'  => !empty($_POST['min_refresh_rate']) ? (int)$_POST['min_refresh_rate'] : 0,
+            'expected_count'    => count($ids),
         ];
 
         try {
