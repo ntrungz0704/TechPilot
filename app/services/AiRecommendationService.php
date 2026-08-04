@@ -371,17 +371,31 @@ class AiRecommendationService
 
         foreach ($specs as $k => $v) {
             if ($k === 'schema_version' || $k === 'attributes' || $k === 'raw_specs' || $k === 'vfm_score') continue;
-            if (is_array($v)) {
-                $valStr = implode(' / ', array_filter(array_map('strval', $v)));
-            } else {
-                $valStr = (string)$v;
-            }
+            $valStr = self::stringifySpecValue($v);
             if ($valStr !== '') {
                 $result[$k] = $valStr;
             }
         }
 
         return !empty($result) ? $result : ['Thông số kỹ thuật' => 'Chưa có dữ liệu chi tiết'];
+    }
+
+    private static function stringifySpecValue($val): string
+    {
+        if (is_array($val)) {
+            $items = [];
+            foreach ($val as $subKey => $subVal) {
+                $subStr = self::stringifySpecValue($subVal);
+                if ($subStr !== '') {
+                    $items[] = is_string($subKey) && !is_numeric($subKey) ? "$subKey: $subStr" : $subStr;
+                }
+            }
+            return implode(' / ', array_filter($items));
+        }
+        if (is_scalar($val) || (is_object($val) && method_exists($val, '__toString'))) {
+            return (string)$val;
+        }
+        return '';
     }
 
     // ==========================================

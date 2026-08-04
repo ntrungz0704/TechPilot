@@ -128,7 +128,7 @@ class ProductIntelligenceService
         foreach ($products as $i => $p) {
             $specs = json_decode($p['specs'] ?? '{}', true) ?: [];
             $specsStr = implode(', ', array_map(function($k, $v) {
-                $valStr = is_array($v) ? implode('/', array_filter($v, 'is_scalar')) : (string)$v;
+                $valStr = self::stringifySpecValue($v);
                 return "$k: $valStr";
             }, array_keys($specs), $specs));
 
@@ -184,7 +184,7 @@ class ProductIntelligenceService
         foreach ($candidates as $i => $c) {
             $specs = json_decode($c['specs'] ?? '{}', true) ?: [];
             $specsStr = implode(', ', array_map(function($k, $v) {
-                $valStr = is_array($v) ? implode('/', array_filter($v, 'is_scalar')) : (string)$v;
+                $valStr = self::stringifySpecValue($v);
                 return "$k: $valStr";
             }, array_keys($specs), $specs));
             
@@ -246,5 +246,23 @@ class ProductIntelligenceService
             'reasons' => $reasonsArr,
             'tradeoffs' => $tradeoffsArr
         ];
+    }
+
+    private static function stringifySpecValue($val): string
+    {
+        if (is_array($val)) {
+            $items = [];
+            foreach ($val as $subKey => $subVal) {
+                $subStr = self::stringifySpecValue($subVal);
+                if ($subStr !== '') {
+                    $items[] = is_string($subKey) && !is_numeric($subKey) ? "$subKey: $subStr" : $subStr;
+                }
+            }
+            return implode(' / ', array_filter($items));
+        }
+        if (is_scalar($val) || (is_object($val) && method_exists($val, '__toString'))) {
+            return (string)$val;
+        }
+        return '';
     }
 }

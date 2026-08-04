@@ -250,14 +250,14 @@ class ProductComparisonService
         if (isset($rawSpecs['attributes']) && is_array($rawSpecs['attributes'])) {
             foreach ($rawSpecs['attributes'] as $k => $v) {
                 if (in_array($k, $excludedKeys)) continue;
-                $cleaned[self::humanizeSpecKey($k)] = is_array($v) ? implode(' / ', array_filter(array_map('strval', $v))) : (string)$v;
+                $cleaned[self::humanizeSpecKey($k)] = self::stringifySpecValue($v);
             }
         }
 
         foreach ($rawSpecs as $k => $v) {
             if (in_array($k, $excludedKeys)) continue;
             if ($k === 'attributes') continue;
-            $cleaned[self::humanizeSpecKey($k)] = is_array($v) ? implode(' / ', array_filter(array_map('strval', $v))) : (string)$v;
+            $cleaned[self::humanizeSpecKey($k)] = self::stringifySpecValue($v);
         }
 
         // Bổ sung thông số từ Tên sản phẩm nếu thiếu
@@ -398,5 +398,23 @@ class ProductComparisonService
             'who_should_avoid' => "• Nên tránh các mẫu vượt quá hạn mức tài chính hoặc có cấu hình chưa đạt yêu cầu tối thiểu.",
             'tradeoffs' => "• Các mẫu có hiệu năng cao hơn thường có mức giá tiệm cận trần ngân sách hoặc tỏa nhiều nhiệt hơn."
         ];
+    }
+
+    private static function stringifySpecValue($val): string
+    {
+        if (is_array($val)) {
+            $items = [];
+            foreach ($val as $subKey => $subVal) {
+                $subStr = self::stringifySpecValue($subVal);
+                if ($subStr !== '') {
+                    $items[] = is_string($subKey) && !is_numeric($subKey) ? "$subKey: $subStr" : $subStr;
+                }
+            }
+            return implode(' / ', array_filter($items));
+        }
+        if (is_scalar($val) || (is_object($val) && method_exists($val, '__toString'))) {
+            return (string)$val;
+        }
+        return '';
     }
 }
