@@ -251,7 +251,7 @@ $reviews = $reviews ?? [];
             </div>
         </div>
 
-        <a class="flash-sale-view-all" href="<?= url('home/search?promo=1') ?>">
+        <a class="flash-sale-view-all" href="<?= url('home/search?flash=1') ?>">
             Xem tất cả
             <span aria-hidden="true">→</span>
         </a>

@@ -1497,7 +1497,8 @@ class Product
         float $maxPrice = 0,
         bool $inStockOnly = false,
         bool $promoOnly = false,
-        array $facetFilters = []
+        array $facetFilters = [],
+        bool $flashOnly = false
     ): array {
         $conditions = ["p.status = 'active'", "p.verification_status = 'verified'", "c.status = 'active'"];
         $params = [];
@@ -1601,6 +1602,17 @@ class Product
             )';
         }
 
+        // 5.5.1. Flash Sale Only (Chỉ các sản phẩm thuộc chiến dịch Flash Sale đang diễn ra)
+        if ($flashOnly) {
+            $activeFlashItemId = activeFlashSaleItemIdSql('p');
+            $conditions[] = "(p.id IN (
+                SELECT fsi.product_id 
+                FROM flash_sale_items fsi 
+                INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id 
+                WHERE fs.status = 'active' AND fs.start_time <= NOW() AND fs.end_time > NOW() AND fsi.id = {$activeFlashItemId}
+            ))";
+        }
+
         // 5.6. Per-category technical facets (CPU/RAM/SSD/GPU/display...).
         foreach ($this->buildFacetSearchConditions($categorySlug, $facetFilters, $params) as $facetCondition) {
             $conditions[] = $facetCondition;
@@ -1675,9 +1687,10 @@ class Product
         float $maxPrice = 0,
         bool $inStockOnly = false,
         bool $promoOnly = false,
-        array $facetFilters = []
+        array $facetFilters = [],
+        bool $flashOnly = false
     ): array {
-        $plan = $this->getSearchPlan($keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters);
+        $plan = $this->getSearchPlan($keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters, $flashOnly);
         return [$plan['conditions'], $plan['params'], $plan['remaining_keyword']];
     }
 
@@ -1696,7 +1709,8 @@ class Product
         string $sort = 'relevance',
         bool $inStockOnly = false,
         bool $promoOnly = false,
-        array $facetFilters = []
+        array $facetFilters = [],
+        bool $flashOnly = false
     ): array|false {
         if ($this->db === null) {
             return false;
@@ -1704,7 +1718,7 @@ class Product
 
         try {
             $plan = $this->getSearchPlan(
-                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters, $flashOnly
             );
 
             $conditions = $plan['conditions'];
@@ -1804,7 +1818,8 @@ class Product
         float $maxPrice = 0,
         bool $inStockOnly = false,
         bool $promoOnly = false,
-        array $facetFilters = []
+        array $facetFilters = [],
+        bool $flashOnly = false
     ): int {
         if ($this->db === null) {
             return 0;
@@ -1812,7 +1827,7 @@ class Product
 
         try {
             $plan = $this->getSearchPlan(
-                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters
+                $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters, $flashOnly
             );
 
             $conditions = $plan['conditions'];

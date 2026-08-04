@@ -208,9 +208,11 @@ $buildSearchUrl = function (array $overrides = [], array $removeKeys = []) use (
         <!-- ===== Active Filters Summary ===== -->
         <?php
         $activeFilters = [];
+        $flashOnly = $flashOnly ?? false;
         if (!empty($brandSlug)) $activeFilters['brand'] = 'Thương hiệu: ' . ucfirst($brandSlug);
         if ($inStockOnly) $activeFilters['stock'] = 'Sẵn hàng';
-        if ($promoOnly) $activeFilters['promo'] = 'Đang giảm giá';
+        if ($flashOnly) $activeFilters['flash'] = 'Flash Sale 🔥';
+        elseif ($promoOnly) $activeFilters['promo'] = 'Đang giảm giá';
         if ($minPrice > 0) $activeFilters['min_price'] = 'Từ ' . number_format($minPrice / 1000000, 0) . ' triệu';
         if ($maxPrice > 0 && $maxPrice < $priceMaxLimit) $activeFilters['max_price'] = 'Đến ' . number_format($maxPrice / 1000000, 0) . ' triệu';
         foreach ($facetFilters as $fKey => $fValue) {

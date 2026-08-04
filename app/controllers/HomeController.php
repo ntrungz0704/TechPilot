@@ -60,6 +60,7 @@ class HomeController extends Controller
         $maxPrice = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT) ?: (filter_input(INPUT_GET, 'price', FILTER_VALIDATE_FLOAT) ?: 0.0);
         $inStockOnly = ($_GET['stock'] ?? '') === '1';
         $promoOnly = ($_GET['promo'] ?? '') === '1';
+        $flashOnly = ($_GET['flash'] ?? $_GET['flash_sale'] ?? '') === '1';
         $sort = $_GET['sort'] ?? ($keyword !== '' ? 'relevance' : 'newest');
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 24;
@@ -74,7 +75,7 @@ class HomeController extends Controller
 
         // 1. Đếm tổng kết quả trước
         $totalResults = $productModel->countSearch(
-            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters
+            $keyword, $categorySlug, $brandSlug, $minPrice, $maxPrice, $inStockOnly, $promoOnly, $facetFilters, $flashOnly
         );
 
         // 2. Tính toán số trang và Clamp page nếu xơ vơ vượt quá
@@ -86,7 +87,7 @@ class HomeController extends Controller
 
         // 3. Query danh sách sản phẩm theo Search Plan thống nhất
         $searchResult = $productModel->search(
-            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly, $facetFilters
+            $keyword, $categorySlug, $limit, $offset, $brandSlug, $minPrice, $maxPrice, $sort, $inStockOnly, $promoOnly, $facetFilters, $flashOnly
         );
 
         $searchError = false;
@@ -109,7 +110,9 @@ class HomeController extends Controller
         $isStopwordQuery = CatalogGroupService::isPureStopword($keyword) && empty($categorySlug);
 
         $pageTitle = 'Kết quả tìm kiếm';
-        if ($promoOnly) {
+        if ($flashOnly) {
+            $pageTitle = 'Sản phẩm Flash Sale 🔥';
+        } elseif ($promoOnly) {
             $pageTitle = 'Sản phẩm đang Khuyến mãi';
         } elseif (!empty($keyword) && !empty($categorySlug)) {
             $categoryName = CatalogGroupService::getDisplayName($categorySlug);
@@ -147,6 +150,7 @@ class HomeController extends Controller
             'maxPrice'         => $maxPrice,
             'inStockOnly'      => $inStockOnly,
             'promoOnly'        => $promoOnly,
+            'flashOnly'        => $flashOnly,
             'sort'             => $sort,
             'page'             => $page,
             'limit'            => $limit,
