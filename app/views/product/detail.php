@@ -246,21 +246,21 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
     </button>
     <!-- Panel AI Chat -->
     <div class="product-tabs__panel" id="tab-ai-chat">
-        <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: var(--shadow-card); max-width: 800px; margin: 0 auto; box-sizing: border-box;">
+        <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: var(--shadow-card); box-sizing: border-box;">
             <h3 style="font-weight: 700; margin: 0 0 10px 0; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-robot" style="color: var(--primary);"></i> Hỏi đáp AI về <?= e($product['name']) ?>
             </h3>
             <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">Trợ lý AI sẽ phân tích cấu hình phần cứng thực tế và trả lời ngay thắc mắc của bạn (Ví dụ: chạy mượt Photoshop không, chơi Liên Minh bao nhiêu FPS, nâng cấp ổ cứng thế nào...).</p>
 
             <!-- Khung Chat -->
-            <div id="aiProductChatMessages" style="border: 1px solid var(--border); border-radius: 8px; padding: 15px; height: 280px; overflow-y: auto; background-color: #F8FAFC; display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; box-sizing: border-box;">
+            <div id="aiProductChatMessages" style="border: 1px solid var(--border); border-radius: 12px; padding: 18px; min-height: 350px; max-height: 500px; overflow-y: auto; background-color: #F8FAFC; display: flex; flex-direction: column; gap: 14px; margin-bottom: 15px; box-sizing: border-box;">
                 <!-- Tin nhắn chào mừng -->
                 <div style="display: flex; gap: 10px; align-self: flex-start;">
                     <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
                         <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                     </div>
                     <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: var(--text-primary);">
-                        Xin chào! Tôi có thể giải đáp mọi thắc mắc về mẫu sản phẩm **<?= e($product['name']) ?>** này. Bạn hãy đặt câu hỏi bên dưới nhé!
+                        Xin chào! Tôi có thể giải đáp mọi thắc mắc về mẫu sản phẩm <strong><?= e($product['name']) ?></strong> này. Bạn hãy đặt câu hỏi bên dưới nhé!
                     </div>
                 </div>
             </div>
