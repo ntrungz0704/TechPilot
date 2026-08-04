@@ -41,7 +41,13 @@
                 if (isset($rawS['specs']) && is_array($rawS['specs'])) $rawS = $rawS['specs'];
                 if (is_array($rawS)) {
                     if (!empty($rawS['cpu_short'])) $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => $rawS['cpu_short']];
-                    elseif (!empty($rawS['cpu_model'])) $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => mb_substr($rawS['cpu_model'], 0, 15)];
+                    elseif (!empty($rawS['cpu_model'])) {
+                        $cpuClean = preg_replace('/^Intel®?\s*/iu', '', $rawS['cpu_model']);
+                        if (mb_strlen($cpuClean) > 24) {
+                            $cpuClean = mb_substr($cpuClean, 0, 24);
+                        }
+                        $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => $cpuClean];
+                    }
                     
                     if (!empty($rawS['gpu_short'])) $quickSpecs[] = ['icon' => 'fa-desktop', 'text' => $rawS['gpu_short']];
                     elseif (!empty($rawS['vga_short'])) $quickSpecs[] = ['icon' => 'fa-desktop', 'text' => $rawS['vga_short']];

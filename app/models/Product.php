@@ -1614,24 +1614,44 @@ class Product
                 $params[':stopword_name'] = '%' . $remainingKeyword . '%';
             } else {
                 $words = array_values(array_filter(explode(' ', $remainingKeyword)));
+                $isMultiWord = count($words) > 1;
                 $wordConditions = [];
                 foreach ($words as $i => $word) {
                     $pNameName  = ':search_word_name_' . $i;
                     $pNameBrand = ':search_word_brand_' . $i;
-                    $pNameSpecs = ':search_word_specs_' . $i;
-                    $pNameShort = ':search_word_short_' . $i;
-                    $pNameDesc  = ':search_word_desc_' . $i;
                     $pNameCat   = ':search_word_cat_' . $i;
 
-                    $wordConditions[] = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(p.specs) LIKE $pNameSpecs OR LOWER(p.short_desc) LIKE $pNameShort OR LOWER(p.description) LIKE $pNameDesc OR LOWER(c.name) LIKE $pNameCat)";
-
-                    $wordVal = '%' . $word . '%';
+                    $wordVal = '%' . mb_strtolower($word, 'UTF-8') . '%';
                     $params[$pNameName]  = $wordVal;
                     $params[$pNameBrand] = $wordVal;
-                    $params[$pNameSpecs] = $wordVal;
-                    $params[$pNameShort] = $wordVal;
-                    $params[$pNameDesc]  = $wordVal;
                     $params[$pNameCat]   = $wordVal;
+
+                    $clause = "(LOWER(p.name) LIKE $pNameName OR LOWER(b.name) LIKE $pNameBrand OR LOWER(c.name) LIKE $pNameCat";
+
+                    // Với các từ không phải thuần số, tìm kiếm thêm trong short_desc và specs
+                    if (!is_numeric($word)) {
+                        $pNameShort = ':search_word_short_' . $i;
+                        $params[$pNameShort] = $wordVal;
+                        $clause .= " OR LOWER(p.short_desc) LIKE $pNameShort";
+
+                        $pNameSpecs = ':search_word_specs_' . $i;
+                        $params[$pNameSpecs] = $wordVal;
+                        $clause .= " OR LOWER(p.specs) LIKE $pNameSpecs";
+
+                        if (mb_strlen($word, 'UTF-8') >= 4) {
+                            $pNameDesc = ':search_word_desc_' . $i;
+                            $params[$pNameDesc] = $wordVal;
+                            $clause .= " OR LOWER(p.description) LIKE $pNameDesc";
+                        }
+                    } elseif (!$isMultiWord) {
+                        // Nếu truy vấn đơn từ thuần số (ví dụ: "500"), tìm thêm trong short_desc
+                        $pNameShort = ':search_word_short_' . $i;
+                        $params[$pNameShort] = $wordVal;
+                        $clause .= " OR LOWER(p.short_desc) LIKE $pNameShort";
+                    }
+
+                    $clause .= ")";
+                    $wordConditions[] = $clause;
                 }
                 if (!empty($wordConditions)) {
                     $conditions[] = '(' . implode(' AND ', $wordConditions) . ')';

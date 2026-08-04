@@ -124,7 +124,7 @@ $buildSearchUrl = function (array $overrides = [], array $removeKeys = []) use (
                 <?php foreach ($subgroups as $sub): ?>
                     <a href="<?= $buildSearchUrl(['cat' => $sub['slug']], array_keys($facetFilters)) ?>" class="subcategory-chip <?= $categorySlug === $sub['slug'] ? 'is-active' : '' ?>">
                         <?= e($sub['name']) ?>
-                        <?php if (!empty($sub['product_count'])): ?>
+                        <?php if (empty($keyword) && !empty($sub['product_count'])): ?>
                             <span style="font-weight:400; opacity:.6; margin-left:4px;">(<?= (int)$sub['product_count'] ?>)</span>
                         <?php endif; ?>
                     </a>
