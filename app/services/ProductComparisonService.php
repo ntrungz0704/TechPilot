@@ -13,7 +13,7 @@ class ProductComparisonService
     {
         $serverSlug = trim($serverSlug);
         if ($serverSlug === '') return null;
-        
+
         $categories = $config['categories'] ?? [];
         foreach ($categories as $key => $catData) {
             if (isset($catData['slugs']) && in_array($serverSlug, $catData['slugs'], true)) {
@@ -24,34 +24,68 @@ class ProductComparisonService
     }
 
     /**
-     * Parse RAM/Storage capacity into integer GB, strictly handling units and rejecting ambiguity.
+     * Parse RAM/Storage capacity into integer/float GB, strictly handling units and rejecting ambiguity.
      */
-    public static function parseStorageGb(string $val): ?int
+    public static function parseStorageGb(string $val): ?float
     {
         $val = mb_strtoupper(trim($val));
         if ($val === '') return null;
-        
+
         // Reject ambiguous or conflicting strings
-        if (str_contains($val, 'HOẶC') || str_contains($val, '/') || str_contains($val, 'OR')) {
+        if (preg_match('/\b(?:OR|HOẶC)\b/iu', $val) || str_contains($val, '/')) {
             return null;
         }
 
-        // e.g., 2x8GB, 2 X 16 GB
-        if (preg_match('/(\d+)\s*X\s*(\d+(?:\.\d+)?)\s*(GB|MB|TB)/', $val, $m)) {
+        $capacities = [];
+
+        // e.g., 2x8GB, 2 X 16 GB -> extract as a single entity
+        $val = preg_replace_callback('/(\d+)\s*X\s*(\d+(?:\.\d+)?)\s*(GB|MB|TB)/', function($m) use (&$capacities) {
             $num = (float)$m[1] * (float)$m[2];
-            $unit = $m[3];
-        } 
-        // e.g., 512GB, 1TB, 1024MB, 0.5TB
-        elseif (preg_match('/(\d+(?:\.\d+)?)\s*(GB|TB|MB)/', $val, $m)) {
-            $num = (float)$m[1];
-            $unit = $m[2];
-        } else {
+            $capacities[] = ['num' => $num, 'unit' => $m[3]];
+            return ''; // consume to avoid double matching
+        }, $val);
+
+        // Standard capacities
+        preg_replace_callback('/(\d+(?:\.\d+)?)\s*(GB|TB|MB)/', function($m) use (&$capacities) {
+            $capacities[] = ['num' => (float)$m[1], 'unit' => $m[2]];
+            return '';
+        }, $val);
+
+        if (count($capacities) !== 1) {
             return null;
         }
 
-        if ($unit === 'TB') return (int)($num * 1024);
-        if ($unit === 'MB') return max(1, (int)($num / 1024));
-        return (int)$num;
+        $num = $capacities[0]['num'];
+        $unit = $capacities[0]['unit'];
+
+        if ($unit === 'TB') return $num * 1024.0;
+        if ($unit === 'MB') return $num / 1024.0;
+        return $num;
+    }
+
+    /**
+     * Parse Refresh Rate (Hz), rejecting ambiguity.
+     */
+    public static function parseRefreshRateHz(string $val): ?float
+    {
+        $val = mb_strtoupper(trim($val));
+        if ($val === '') return null;
+
+        if (preg_match('/\b(?:OR|HOẶC)\b/iu', $val) || str_contains($val, '/') || str_contains($val, '-')) {
+            return null;
+        }
+
+        $rates = [];
+        preg_replace_callback('/(\d+(?:\.\d+)?)\s*HZ/', function($m) use (&$rates) {
+            $rates[] = (float)$m[1];
+            return '';
+        }, $val);
+
+        if (count($rates) !== 1) {
+            return null;
+        }
+
+        return $rates[0];
     }
 
     /**
@@ -171,7 +205,7 @@ class ProductComparisonService
         $minStorage = !empty($options['min_storage'])      ? (int)$options['min_storage']      : 0;
         $minRefresh = !empty($options['min_refresh_rate']) ? (int)$options['min_refresh_rate'] : 0;
 
-        $now = $options['_now'] ?? null; 
+        $now = $options['_now'] ?? null;
 
         // ── 1. EVALUATE EACH PRODUCT ────────────────────────────────────────
         $analyzedProducts = [];
@@ -204,14 +238,14 @@ class ProductComparisonService
             } else {
                 $effectivePrice = self::effectivePrice($p, $p['flash_sale'] ?? null, $now);
             }
-            
+
             $p['effective_price'] = $effectivePrice;
 
             $rawSpecs    = json_decode($p['specs'] ?? '{}', true) ?: [];
             $parsedSpecs = self::cleanAndParseSpecs($rawSpecs, $p);
             $p['normalized_specs'] = $parsedSpecs;
 
-            // Budget check 
+            // Budget check
             if ($eligible && $maxBudget !== null && $effectivePrice > $maxBudget) {
                 $eligible = false;
                 $failedRequirements[] = 'budget';
@@ -251,16 +285,14 @@ class ProductComparisonService
                 }
             }
 
-            // Refresh rate hard requirement (still uses numeric extract since it's just a number)
+            // Refresh rate hard requirement
             if ($minRefresh > 0) {
-                $hzVal = self::extractNumericVal(
-                    $parsedSpecs['Tần số quét'] ?? $parsedSpecs['refresh_rate'] ?? ''
-                );
-                if ($hzVal <= 0) {
+                $hzVal = self::parseRefreshRateHz($parsedSpecs['Tần số quét'] ?? $parsedSpecs['refresh_rate'] ?? $parsedSpecs['Màn hình'] ?? '');
+                if ($hzVal === null || $hzVal <= 0) {
                     $eligible = false;
                     $verificationRequired = true;
                     $failedRequirements[]  = 'refresh_rate';
-                    $ineligibleReasons[]   = "Thiếu thông số tần số quét — không thể xác minh yêu cầu {$minRefresh}Hz";
+                    $ineligibleReasons[]   = "Thiếu thông số tần số quét hoặc chuỗi mơ hồ — không thể xác minh yêu cầu tối thiểu {$minRefresh}Hz";
                     $verificationReasons[] = "Tần số quét chưa được xác minh";
                 } elseif ($hzVal < $minRefresh) {
                     $eligible = false;
@@ -315,12 +347,12 @@ class ProductComparisonService
         // Sort: eligible first, then by score desc, then by id asc (stable tie-breaking)
         usort($analyzedProducts, function ($a, $b) {
             if ($a['eligible'] !== $b['eligible']) {
-                return $b['eligible'] <=> $a['eligible']; 
+                return $b['eligible'] <=> $a['eligible'];
             }
             if ($b['total_score'] !== $a['total_score']) {
                 return $b['total_score'] <=> $a['total_score'];
             }
-            return $a['id'] <=> $b['id']; 
+            return $a['id'] <=> $b['id'];
         });
 
         // ── 2. WINNER SELECTION — eligible products only ─────────────────────
@@ -383,7 +415,7 @@ class ProductComparisonService
         $eligibleIds = array_column($eligibleProducts, 'id');
         foreach ($winners as $role => $wid) {
             if ($wid !== null && !in_array($wid, $eligibleIds, true)) {
-                $winners[$role] = null; 
+                $winners[$role] = null;
             }
         }
 
@@ -396,7 +428,7 @@ class ProductComparisonService
 
         return [
             'success'    => true,
-            'winner'     => $winners['best_fit'],   
+            'winner'     => $winners['best_fit'],
             'category'   => $catKey,
             'persona'    => $persona,
             'priorities' => $priorities,
