@@ -7,20 +7,32 @@ $reviews = $reviews ?? [];
 
 require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
 
-// Product gallery helper — ensure products.image is always first and deduplicate
-function getGalleryImages(string $mainImg, array $extraImgs): array {
+// Product gallery helper — ensure products.image is always first and deduplicate based on resolved URLs
+function getGalleryImages(array $product, array $extraImgs): array {
     $list = [];
-    $mainImg = trim($mainImg);
-    if ($mainImg !== '') {
+    $resolvedList = [];
+    $catSlug = $product['category_slug'] ?? $product['name'] ?? '';
+    $productId = (int)($product['id'] ?? 0);
+
+    $mainImg = trim((string)($product['image'] ?? ''));
+    $mainResolved = productImageUrl($mainImg, $catSlug, $productId);
+
+    // Add main image if valid
+    if ($mainResolved !== '') {
         $list[] = $mainImg;
+        $resolvedList[] = $mainResolved;
     }
 
     if (!empty($extraImgs)) {
         foreach ($extraImgs as $item) {
             $url = is_array($item) ? ($item['image_url'] ?? $item['image_path'] ?? '') : (string)$item;
             $url = trim($url);
-            if ($url !== '' && !in_array($url, $list, true)) {
-                $list[] = $url;
+            if ($url !== '') {
+                $resolvedUrl = productImageUrl($url, $catSlug, $productId);
+                if ($resolvedUrl !== '' && !in_array($resolvedUrl, $resolvedList, true)) {
+                    $list[] = $url;
+                    $resolvedList[] = $resolvedUrl;
+                }
             }
         }
     }
@@ -31,7 +43,8 @@ function getGalleryImages(string $mainImg, array $extraImgs): array {
     
     return $list;
 }
-$galleryImages = getGalleryImages($product['image'] ?? '', $productImages);
+$galleryImages = getGalleryImages($product, $productImages);
+
 ?>
 
 <section class="container breadcrumb">

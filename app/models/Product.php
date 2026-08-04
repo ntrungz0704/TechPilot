@@ -1195,19 +1195,7 @@ class Product
                 $images = $stmt->fetchAll();
             } catch (Exception $e) {}
         }
-        
-        // Ensure exactly 4 images exist
-        if (count($images) < 4) {
-            $mainProduct = $this->getById($productId);
-            $mainImage = $mainProduct['image'] ?? 'placeholder.png';
-            
-            // Pad array up to 4 images using the main image
-            while (count($images) < 4) {
-                $images[] = ['image_url' => $mainImage];
-            }
-        }
-        
-        return array_slice($images, 0, 4);
+        return $images;
     }
 
     /** Lấy sản phẩm liên quan (cùng danh mục, khác id hiện tại, tương đồng giá và rating) */

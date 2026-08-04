@@ -203,10 +203,10 @@ class CP041StorefrontCartMediaConsistencyTest
         $this->assert(str_contains($img, '123'), 'product ID được dùng khi tạo placeholder deterministic');
         
         $img2 = productImageUrl('', 'monitor', 123);
-        $this->assert($img === $img2, 'PC/monitor placeholder dùng chung logic với ID');
+        $this->assert($img !== $img2, 'PC/monitor placeholder KHÁC nhau (phụ thuộc category)');
         
         $img3 = productImageUrl('', 'phone', 123);
-        $this->assert($img === $img3, 'Phone/component/PC/monitor placeholder giống nhau');
+        $this->assert($img !== $img3, 'Phone/PC placeholder KHÁC nhau');
     }
 }
 

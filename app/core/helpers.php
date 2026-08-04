@@ -340,14 +340,6 @@ if (!function_exists('productImageUrl')) {
             }
         }
         
-        if ($productId) {
-            $placeholders = ['laptop.png', 'màn-hình.png', 'vga.png', 'cpu.png', 'ssd.png', 'case.png', 'fan.png', 'psu.png'];
-            $ph = $placeholders[$productId % count($placeholders)];
-            return url("assets/images/placeholders/{$ph}?id={$productId}");
-        }
-
-        
-
         // 2. Select category slug based on productType/image
         $str = strtolower(trim((string)$productType . ' ' . (string)$image));
         $catSlug = 'laptop';
@@ -421,11 +413,13 @@ if (!function_exists('productImageUrl')) {
             'ram' => 'ssd.png',
         ];
 
+        $idSuffix = ($productId !== null && $productId > 0) ? "?id={$productId}" : "";
+
         if (isset($userCustomMap[$catSlug])) {
             $customFile = $userCustomMap[$catSlug];
             $customPath = ROOT_PATH . '/public/assets/images/placeholders/' . $customFile;
             if (file_exists($customPath)) {
-                return url('assets/images/placeholders/' . $customFile);
+                return url('assets/images/placeholders/' . $customFile) . $idSuffix;
             }
         }
 
@@ -434,9 +428,9 @@ if (!function_exists('productImageUrl')) {
         
         $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . $phFile;
         if (file_exists($phPath)) {
-            return url('assets/images/placeholders/' . $phFile);
+            return url('assets/images/placeholders/' . $phFile) . $idSuffix;
         }
-        return url('assets/images/placeholders/laptop.png');
+        return url('assets/images/placeholders/laptop.png') . $idSuffix;
     }
 }
 
