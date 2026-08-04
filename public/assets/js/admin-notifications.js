@@ -40,18 +40,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let isFetching = false;
 
     function parseApiResponse(res) {
+        const httpStatus = res.status;
         const contentType = res.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            throw { status: 500, message: 'Invalid content type' };
+            throw { status: httpStatus, message: 'Non-JSON response' };
         }
         return res.json().then(data => {
             if (!res.ok || data.success !== true) {
-                throw { status: res.status, data: data };
+                throw { status: httpStatus, data: data };
             }
             return data;
         }).catch(e => {
-            if (e.status) throw e;
-            throw { status: 500, message: 'Malformed JSON' };
+            if (e.status !== undefined) throw e;
+            throw { status: httpStatus, message: 'Malformed JSON' };
         });
     }
 

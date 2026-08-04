@@ -112,7 +112,7 @@ class CP03AdminNotificationSecurityTest
                 return $this->repo;
             }
             protected function requireApiAdmin(): array {
-                return ["id" => 1, "role" => "admin"];
+                return ["id" => 7, "role" => "admin"];
             }
         }
         
@@ -210,6 +210,10 @@ class CP03AdminNotificationSecurityTest
     private function checkDatabaseIntegrity()
     {
         $this->log("\n--- Database Local Integrity ---");
+        // Assert no .bak file exists
+        $bakPath = ROOT_PATH . '/config/database.local.php.bak';
+        $this->assert(!file_exists($bakPath), "config/database.local.php.bak does not exist");
+
         if ($this->dbLocalSha === null) {
             $this->assert(false, "DB Config File", "database.local.php does not exist");
         } else {
@@ -228,8 +232,9 @@ class CP03AdminNotificationSecurityTest
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
             'REQUEST_URI' => '/api/admin/notifications/mark_read',
             'QUERY_STRING' => 'url=api/admin/notifications/mark_read',
-        ], ['csrf_token' => 'real_token', 'user' => ['id' => 1, 'role' => 'admin']], ['id' => 1]);
+        ], ['csrf_token' => 'real_token', 'user' => ['id' => 7, 'role' => 'admin']], ['id' => 1]);
         $this->assert($res['code'] === 403, "Missing CSRF -> HTTP 403");
+        $this->assert(strpos($res['output'], 'CSRF_TOKEN_MISMATCH') !== false, "Missing CSRF -> CSRF_TOKEN_MISMATCH");
         
         // 2. Wrong CSRF
         $res = $this->runIndexPhp([
@@ -238,30 +243,20 @@ class CP03AdminNotificationSecurityTest
             'HTTP_X_CSRF_TOKEN' => 'wrong',
             'REQUEST_URI' => '/api/admin/notifications/mark_read',
             'QUERY_STRING' => 'url=api/admin/notifications/mark_read',
-        ], ['csrf_token' => 'real_token', 'user' => ['id' => 1, 'role' => 'admin']], ['id' => 1]);
+        ], ['csrf_token' => 'real_token', 'user' => ['id' => 7, 'role' => 'admin']], ['id' => 1]);
         $this->assert($res['code'] === 403, "Wrong CSRF -> HTTP 403");
+        $this->assert(strpos($res['output'], 'CSRF_TOKEN_MISMATCH') !== false, "Wrong CSRF -> CSRF_TOKEN_MISMATCH");
 
         // 3. Guest Authorization (No Session)
         $res = $this->runIndexPhp([
-            'REQUEST_METHOD' => 'POST',
+            'REQUEST_METHOD' => 'GET',
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
-            'HTTP_X_CSRF_TOKEN' => 'real_token',
-            'REQUEST_URI' => '/api/admin/notifications/mark_read',
-            'QUERY_STRING' => 'url=api/admin/notifications/mark_read',
-        ], ['csrf_token' => 'real_token'], ['id' => 1]);
-        $this->assert($res['code'] === 401 || $res['code'] === 403, "Guest POST -> HTTP 401/403");
+            'REQUEST_URI' => '/api/admin/notifications',
+            'QUERY_STRING' => 'url=api/admin/notifications',
+        ], [], []);
+        $this->assert($res['code'] === 401, "Guest GET -> HTTP 401");
         
         // 4. Customer Authorization
-        $res = $this->runIndexPhp([
-            'REQUEST_METHOD' => 'POST',
-            'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
-            'HTTP_X_CSRF_TOKEN' => 'real_token',
-            'REQUEST_URI' => '/api/admin/notifications/mark_read',
-            'QUERY_STRING' => 'url=api/admin/notifications/mark_read',
-        ], ['csrf_token' => 'real_token', 'user' => ['id' => 2, 'role' => 'customer']], ['id' => 1]);
-        $this->assert($res['code'] === 403, "Customer POST -> HTTP 403");
-
-        // 5. GET guest/customer authorization
         $res = $this->runIndexPhp([
             'REQUEST_METHOD' => 'GET',
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
@@ -270,75 +265,94 @@ class CP03AdminNotificationSecurityTest
         ], ['user' => ['id' => 2, 'role' => 'customer']]);
         $this->assert($res['code'] === 403, "Customer GET -> HTTP 403");
 
-        // 6. DB Unavailable (FORCE_DB_FAILURE=1)
+        // 5. DB Unavailable GET
         $res = $this->runIndexPhp([
             'REQUEST_METHOD' => 'GET',
             'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
             'REQUEST_URI' => '/api/admin/notifications',
             'QUERY_STRING' => 'url=api/admin/notifications',
             'FORCE_DB_FAILURE' => '1'
-        ], ['user' => ['id' => 1, 'role' => 'admin']]);
-        $this->assert($res['code'] === 503, "DB Unavailable -> HTTP 503");
+        ], ['user' => ['id' => 7, 'role' => 'admin']]);
+        $this->assert($res['code'] === 503, "GET DB unavailable -> HTTP 503");
+        $out = json_decode($res['output'], true);
+        $this->assert($out['success'] === false && $out['error']['code'] === 'DATABASE_UNAVAILABLE', "GET DB unavailable -> success=false + DATABASE_UNAVAILABLE");
+
+        // 6. DB Unavailable POST
+        $res = $this->runIndexPhp([
+            'REQUEST_METHOD' => 'POST',
+            'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
+            'HTTP_X_CSRF_TOKEN' => 'real_token',
+            'REQUEST_URI' => '/api/admin/notifications/mark_read',
+            'QUERY_STRING' => 'url=api/admin/notifications/mark_read',
+            'FORCE_DB_FAILURE' => '1'
+        ], ['csrf_token' => 'real_token', 'user' => ['id' => 7, 'role' => 'admin']], ['id' => 1]);
+        $this->assert($res['code'] === 503, "POST DB unavailable -> HTTP 503");
+        $out = json_decode($res['output'], true);
+        $this->assert($out['success'] === false && $out['error']['code'] === 'DATABASE_UNAVAILABLE', "POST DB unavailable -> success=false + DATABASE_UNAVAILABLE");
     }
 
     private function testControllerLogic()
     {
         $this->log("\n--- Controller Deterministic Business Logic ---");
         
+        // admin ID=7 is admin-owned (user_id=7)
+        // user_id=1 is shared (admin root)
+        // user_id=2 is customer (out-of-scope)
         $initialState = [
-            ['id' => 1, 'user_id' => 1, 'is_read' => 0, 'title' => 'T', 'content' => 'C', 'created_at' => '2023-01-01 00:00:00', 'link' => null],
+            ['id' => 1, 'user_id' => 7, 'is_read' => 0, 'title' => 'T', 'content' => 'C', 'created_at' => '2023-01-01 00:00:00', 'link' => null],
             ['id' => 2, 'user_id' => 1, 'is_read' => 1, 'title' => 'T', 'content' => 'C', 'created_at' => '2023-01-01 00:00:00', 'link' => null],
             ['id' => 3, 'user_id' => 2, 'is_read' => 0, 'title' => 'T', 'content' => 'C', 'created_at' => '2023-01-01 00:00:00', 'link' => null],
             ['id' => 4, 'user_id' => 1, 'is_read' => 0, 'title' => 'T', 'content' => 'C', 'created_at' => '2023-01-01 00:00:00', 'link' => null]
         ];
 
-        // 1. Owned notification ID
+        // 1. Admin-owned notification
         $res = $this->runControllerTest('markReadNotifications', ['id' => 1], $initialState);
-        $this->assert($res['code'] === 200, "Valid specific ID -> HTTP 200");
+        $this->assert($res['code'] === 200, "Admin-owned ID -> HTTP 200");
         $out = json_decode($res['output'], true);
-        $this->assert($out['success'] === true, "success=true");
-        $is_read_0 = $res['state'][0]['is_read'];
-        if ($is_read_0 !== 1) {
-            $this->log("DEBUG: state[0] is " . json_encode($res['state'][0]));
-        }
-        $this->assert($is_read_0 === 1, "Only target is read");
+        $this->assert($out['success'] === true, "Admin-owned ID -> success=true");
+        $this->assert($res['state'][0]['is_read'] === 1, "Admin-owned ID -> state changed");
         $this->assert($res['state'][2]['is_read'] === 0, "Customer notif remains unread");
 
-        // 2. Already-read ID
+        // 2. Already-read ID (shared, user_id=1)
         $res = $this->runControllerTest('markReadNotifications', ['id' => 2], $initialState);
-        $this->assert($res['code'] === 200, "Already read ID -> HTTP 200");
+        $this->assert($res['code'] === 200, "Already-read shared ID -> HTTP 200");
         $out = json_decode($res['output'], true);
-        $this->assert($out['success'] === true, "success=true");
-        $this->assert($res['state'][1]['is_read'] === 1, "State unchanged");
+        $this->assert($out['success'] === true, "Already-read ID -> success=true (idempotent)");
+        $this->assert($res['state'][1]['is_read'] === 1, "Already-read ID -> state unchanged");
 
-        // 3. Cross-user numeric ID
+        // 3. Cross-user ID (user_id=2, customer)
         $res = $this->runControllerTest('markReadNotifications', ['id' => 3], $initialState);
         $this->assert($res['code'] === 404, "Cross-user ID -> HTTP 404");
         $out = json_decode($res['output'], true);
-        $this->assert($out['error']['code'] === 'NOTIFICATION_NOT_FOUND', "code NOTIFICATION_NOT_FOUND");
-        $this->assert($res['state'][2]['is_read'] === 0, "State unchanged");
+        $this->assert($out['error']['code'] === 'NOTIFICATION_NOT_FOUND', "Cross-user ID -> NOTIFICATION_NOT_FOUND");
+        $this->assert($res['state'][2]['is_read'] === 0, "Cross-user ID -> state unchanged");
 
-        // 4. Invalid ID
+        // 4. Invalid ID (SQL injection attempt)
         $res = $this->runControllerTest('markReadNotifications', ['id' => '1 OR 1=1'], $initialState);
         $this->assert($res['code'] === 400, "Invalid ID -> HTTP 400");
         $out = json_decode($res['output'], true);
-        $this->assert($out['error']['code'] === 'INVALID_NOTIFICATION_ID', "code INVALID_NOTIFICATION_ID");
+        $this->assert($out['error']['code'] === 'INVALID_NOTIFICATION_ID', "Invalid ID -> INVALID_NOTIFICATION_ID");
 
-        // 5. Mark-all exact scope
+        // 5. Mark-all: admin-owned (user_id=7) and shared (user_id=1) change; customer (user_id=2) unchanged
         $res = $this->runControllerTest('markReadNotifications', [], $initialState);
         $this->assert($res['code'] === 200, "Mark-all -> HTTP 200");
-        $this->assert($res['state'][0]['is_read'] === 1 && $res['state'][3]['is_read'] === 1, "Admin notifs marked read");
-        $this->assert($res['state'][2]['is_read'] === 0, "Customer notif unchanged");
+        $this->assert($res['state'][0]['is_read'] === 1, "Mark-all -> admin-owned notif (user_id=7) marked read");
+        $this->assert($res['state'][3]['is_read'] === 1, "Mark-all -> shared notif (user_id=1) marked read");
+        $this->assert($res['state'][2]['is_read'] === 0, "Mark-all -> customer notif (user_id=2) unchanged");
 
-        // 6. Repository failure
+        // 6. Repository failure -> 503 + success=false + full state unchanged
         $res = $this->runControllerTest('markReadNotifications', ['id' => 1], $initialState, true);
         $this->assert($res['code'] === 503, "Repository failure -> HTTP 503");
-        
+        $out = json_decode($res['output'], true);
+        $this->assert($out['success'] === false, "Repository failure -> success=false");
+        $this->assert($res['state'][0]['is_read'] === 0, "Repository failure -> state unchanged (id=1)");
+        $this->assert($res['state'][2]['is_read'] === 0, "Repository failure -> state unchanged (id=3)");
+
         // 7. GET admin success
         $res = $this->runControllerTest('notifications', [], $initialState);
         $this->assert($res['code'] === 200, "GET notifications -> HTTP 200");
         $out = json_decode($res['output'], true);
-        $this->assert($out['success'] === true && $out['unread'] === 2, "Success and unread count is correct");
+        $this->assert($out['success'] === true && $out['unread'] === 2, "GET notifications -> success=true, unread=2");
     }
 
     private function testPdoNotificationRepositoryOwnership()
@@ -357,43 +371,34 @@ class CP03AdminNotificationSecurityTest
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )');
         
-        $db->exec("INSERT INTO notifications (id, user_id, is_read, title, content) VALUES (1, 1, 0, 'T', 'C')");
-        $db->exec("INSERT INTO notifications (id, user_id, is_read, title, content) VALUES (2, 2, 0, 'T', 'C')");
+        $db->exec("INSERT INTO notifications (id, user_id, is_read, title, content) VALUES (1, 7, 0, 'T', 'C')");
+        $db->exec("INSERT INTO notifications (id, user_id, is_read, title, content) VALUES (2, 1, 0, 'T', 'C')");
+        $db->exec("INSERT INTO notifications (id, user_id, is_read, title, content) VALUES (3, 2, 0, 'T', 'C')");
         
         require_once ROOT_PATH . '/app/services/PdoNotificationRepository.php';
         $repo = new PdoNotificationRepository();
         
-        // 1. Admin 1 tries to read Admin 1's notification -> TRUE
-        $res = $repo->markRead($db, 1, 1);
-        $this->assert($res === true, "Admin 1 can mark read own notification");
-        
+        // Admin 7 reads own notif
+        $res = $repo->markRead($db, 1, 7);
+        $this->assert($res === true, "Own ID: return true");
         $row = $db->query("SELECT is_read FROM notifications WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
-        $this->assert($row['is_read'] == 1, "Admin 1 notification is actually read in DB");
+        $this->assert($row['is_read'] == 1, "Own ID: state đổi");
         
-        // 2. Admin 1 tries to read Customer 2's notification -> Should return bool but shouldn't update if query says `(user_id = :uid OR user_id = 1)`. Wait, Admin 1 is user_id 1. 
-        // If query is `id = :id AND (user_id = :uid OR user_id = 1)`, and :uid is 2 (e.g. customer 2 trying to read), 
-        // Wait, the rule is user_id = :uid OR user_id = 1.
-        
-        // Customer 2 tries to read Admin 1's notification
-        $res = $repo->markRead($db, 1, 2);
-        // Wait, SQLite will return true for successful execution even if 0 rows affected. But PDOStatement::execute() returns true on success.
-        // We should check affected rows or fetch to see if it changed. Actually PDO execute() just returns true.
-        // Wait, the method signature returns bool. PdoNotificationRepository returns $stmt->execute(), which is always true on success, but doesn't mean rows matched.
-        // However, the test should just ensure the row is not updated if it's ownership failure.
-        
-        $db->exec("UPDATE notifications SET is_read = 0"); // Reset
-        
-        $repo->markRead($db, 1, 2); // user 2 tries to read user 1's notification. But user_id=1 is allowed for anyone! `OR user_id = 1`.
-        
-        // User 3 tries to read User 2's notification
-        $repo->markRead($db, 2, 3);
+        // Admin 7 reads shared notif (user_id = 1)
+        $res = $repo->markRead($db, 2, 7);
+        $this->assert($res === true, "Shared ID: return true");
         $row = $db->query("SELECT is_read FROM notifications WHERE id = 2")->fetch(PDO::FETCH_ASSOC);
-        $this->assert($row['is_read'] == 0, "User 3 cannot mark User 2's notification as read");
+        $this->assert($row['is_read'] == 1, "Shared ID: state đổi");
         
-        // User 2 tries to read User 2's notification
-        $repo->markRead($db, 2, 2);
-        $row = $db->query("SELECT is_read FROM notifications WHERE id = 2")->fetch(PDO::FETCH_ASSOC);
-        $this->assert($row['is_read'] == 1, "User 2 can mark User 2's notification as read");
+        // Admin 7 tries to read Customer 2's notif
+        $res = $repo->markRead($db, 3, 7);
+        $this->assert($res === false, "Out-of-scope ID: return false");
+        $row = $db->query("SELECT is_read FROM notifications WHERE id = 3")->fetch(PDO::FETCH_ASSOC);
+        $this->assert($row['is_read'] == 0, "Out-of-scope ID: state không đổi");
+
+        // Admin 7 tries to read missing ID
+        $res = $repo->markRead($db, 999, 7);
+        $this->assert($res === false, "Missing ID: return false");
     }
 
     private function testSourceSecurityScan()

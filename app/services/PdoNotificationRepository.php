@@ -36,7 +36,10 @@ class PdoNotificationRepository implements NotificationRepositoryInterface
         $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE id = :id AND (user_id = :uid OR user_id = 1)');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':uid', $adminUserId, PDO::PARAM_INT);
-        return $stmt->execute();
+        if ($stmt->execute()) {
+            return $stmt->rowCount() === 1;
+        }
+        return false;
     }
 
     public function markAllRead($db, int $adminUserId): bool
