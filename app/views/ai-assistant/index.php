@@ -4,13 +4,17 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
 <!-- Styles cho AI Assistant -->
 <style>
     .ai-assistant-container {
-        max-width: 1040px;
-        margin: 40px auto 60px auto;
-        padding: 0 16px;
+        max-width: 1400px;
+        width: 100%;
+        margin: 20px auto 60px auto;
+        padding: 0 20px;
         font-family: 'Inter', 'Outfit', sans-serif;
+        box-sizing: border-box;
     }
 
     .ai-card {
+        max-width: 960px;
+        margin: 0 auto;
         background: var(--surface-card, #FFFFFF);
         border: 1px solid var(--border, #E2E8F0);
         border-radius: 20px;
@@ -246,9 +250,14 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
     /* Cards kết quả đề xuất */
     .recs-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 24px;
         margin-top: 25px;
+    }
+    @media (max-width: 1024px) {
+        .recs-container {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
     }
     .rec-card {
         border: 1px solid var(--border);
@@ -693,6 +702,18 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         // Weight
         'Trọng lượng':   { label: 'Trọng lượng',    icon: 'fa-weight-hanging' },
         'weight':         { label: 'Trọng lượng',    icon: 'fa-weight-hanging' },
+        // Additional CPU/RAM/Display keys
+        'cpu_cores':      { label: 'Số nhân CPU',   icon: 'fa-microchip' },
+        'cpu_threads':    { label: 'Số luồng CPU',  icon: 'fa-microchip' },
+        'max_ram_gb':     { label: 'RAM tối đa',    icon: 'fa-memory', suffix: 'GB' },
+        'ram_slots':      { label: 'Khe RAM',       icon: 'fa-memory' },
+        'bus_ram':        { label: 'Bus RAM',       icon: 'fa-gauge-high', suffix: 'MHz' },
+        'Bus RAM':        { label: 'Bus RAM',       icon: 'fa-gauge-high' },
+        'Loại RAM':       { label: 'Loại RAM',      icon: 'fa-memory' },
+        'refresh_rate_hz':{ label: 'Tần số quét',   icon: 'fa-bolt', suffix: 'Hz' },
+        'response_time_ms':{ label: 'Phản hồi',     icon: 'fa-stopwatch', suffix: 'ms' },
+        'weight_kg':      { label: 'Trọng lượng',   icon: 'fa-weight-hanging', suffix: 'kg' },
+        'battery_wh':     { label: 'Dung lượng pin',icon: 'fa-battery-full', suffix: 'Wh' },
         // Upgrade
         'upgrade_support':{ label: 'Nâng cấp được', icon: 'fa-wrench' },
         // Power draw
@@ -719,6 +740,26 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         'os', 'Hệ điều hành',
         'upgrade_support'
     ];
+
+    function formatSpecLabel(key) {
+        if (SPEC_MAP[key]) return SPEC_MAP[key].label;
+        const cleanMap = {
+            'cpu_cores': 'Số nhân CPU',
+            'cpu_threads': 'Số luồng CPU',
+            'max_ram_gb': 'RAM tối đa',
+            'ram_slots': 'Số khe RAM',
+            'bus_ram': 'Bus RAM',
+            'ram_type': 'Loại RAM',
+            'display_size': 'Màn hình',
+            'refresh_rate_hz': 'Tần số quét',
+            'response_time_ms': 'Phản hồi',
+            'weight_kg': 'Trọng lượng',
+            'battery_wh': 'Dung lượng pin',
+            'psu_wattage': 'Công suất nguồn'
+        };
+        if (cleanMap[key]) return cleanMap[key];
+        return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
 
     function buildSpecsHtml(specs) {
         if (!specs || Object.keys(specs).length === 0) {
@@ -747,7 +788,7 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         sortedKeys.forEach(key => {
             if (count >= 8) return; // Max 8 specs
             const mapping = SPEC_MAP[key];
-            const label = mapping ? mapping.label : key;
+            const label = mapping ? mapping.label : formatSpecLabel(key);
 
             // Deduplicate by label
             if (usedLabels.has(label)) return;
