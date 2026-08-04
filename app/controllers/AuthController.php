@@ -46,14 +46,35 @@ class AuthController extends Controller
                             setcookie('remember_techpilot', $token, time() + (30 * 24 * 60 * 60), '/', '', false, true); // 30 days
                         }
 
+                        // Hợp nhất giỏ hàng guest (nếu có)
+                        if (($user['role'] ?? '') !== 'admin' && !empty($_SESSION['guest_cart'])) {
+                            require_once ROOT_PATH . '/app/services/CartService.php';
+                            require_once ROOT_PATH . '/config/database.php';
+                            $db = Database::getConnection();
+                            if ($db) {
+                                try {
+                                    $cartService = new CartService();
+                                    $mergeResult = $cartService->mergeGuestCartIntoUser((int)$user['id'], $db);
+                                    if ($mergeResult['merged'] > 0) {
+                                        flash('success', 'Đã thêm ' . $mergeResult['merged'] . ' sản phẩm từ giỏ hàng tạm.');
+                                    }
+                                    if ($mergeResult['skipped'] > 0) {
+                                        flash('warning', 'Đã bỏ qua ' . $mergeResult['skipped'] . ' sản phẩm không còn hợp lệ hoặc hết hàng.');
+                                    }
+                                } catch (Throwable $e) {
+                                    flash('error', 'Có lỗi khi hợp nhất giỏ hàng tạm: ' . $e->getMessage());
+                                }
+                            }
+                        }
+
                         // Xử lý redirect an toàn sau đăng nhập
                         $redirect = trim($_GET['redirect'] ?? '');
                         if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
-                            $this->redirect($redirect);
+                            $this->redirect(ltrim($redirect, '/'));
                         } elseif (($user['role'] ?? '') === 'admin') {
-                            $this->redirect('/admin');
+                            $this->redirect('admin');
                         } else {
-                            $this->redirect('/');
+                            $this->redirect('');
                         }
                         return;
                     }

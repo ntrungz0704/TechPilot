@@ -340,6 +340,12 @@ if (!function_exists('productImageUrl')) {
             }
         }
         
+        if ($productId) {
+            $colors = ['10B981', '3B82F6', '6366F1', '8B5CF6', 'EC4899', 'F43F5E', 'F97316', 'F59E0B'];
+            $bg = $colors[$productId % count($colors)];
+            return "https://ui-avatars.com/api/?name=Prod+{$productId}&size=512&background={$bg}&color=fff";
+        }
+        
         // 2. Select category slug based on productType/image
         $str = strtolower(trim((string)$productType . ' ' . (string)$image));
         $catSlug = 'laptop';
@@ -428,7 +434,6 @@ if (!function_exists('productImageUrl')) {
         if (file_exists($phPath)) {
             return url('assets/images/placeholders/' . $phFile);
         }
-
         return url('assets/images/placeholders/laptop.png');
     }
 }

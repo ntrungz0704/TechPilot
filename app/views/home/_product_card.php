@@ -103,7 +103,8 @@
         </div>
         
         <!-- Nút thêm nhanh vào giỏ hàng xuất hiện khi hover -->
-        <form method="post" action="<?= url('cart/add') ?>">
+        <form method="post" action="<?= url('cart/add') ?>" class="product-card__add-form">
+            <input type="hidden" name="return_url" value="<?= e($_SERVER['REQUEST_URI'] ?? '/') ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="product_id" value="<?= (int)($p['id'] ?? 0) ?>">
             <input type="hidden" name="quantity" value="1">

@@ -7,28 +7,31 @@ $reviews = $reviews ?? [];
 
 require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
 
-// Product gallery helper — ensure 4 images per product using primary image fallback
-function getGalleryFourImages(string $mainImg, array $extraImgs, string $catSlug = ''): array {
+// Product gallery helper — ensure products.image is always first and deduplicate
+function getGalleryImages(string $mainImg, array $extraImgs): array {
     $list = [];
+    $mainImg = trim($mainImg);
+    if ($mainImg !== '') {
+        $list[] = $mainImg;
+    }
+
     if (!empty($extraImgs)) {
         foreach ($extraImgs as $item) {
             $url = is_array($item) ? ($item['image_url'] ?? $item['image_path'] ?? '') : (string)$item;
             $url = trim($url);
-            if ($url !== '') {
+            if ($url !== '' && !in_array($url, $list, true)) {
                 $list[] = $url;
             }
         }
     }
-    if (empty($list) && trim($mainImg) !== '') {
-        $list[] = trim($mainImg);
+
+    if (empty($list)) {
+        $list[] = ''; // Add empty string to trigger placeholder via productImageUrl later
     }
-    $primary = $list[0] ?? trim($mainImg);
-    while (count($list) < 4 && $primary !== '') {
-        $list[] = $primary;
-    }
-    return array_slice($list, 0, 4);
+    
+    return $list;
 }
-$galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $product['category_slug'] ?? '');
+$galleryImages = getGalleryImages($product['image'] ?? '', $productImages);
 ?>
 
 <section class="container breadcrumb">
@@ -48,13 +51,13 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
                     <span class="product-card__badge product-card__badge--promo" style="font-size: 13px; padding: 6px 14px;" title="🏷️ Sản phẩm Khuyến Mãi"><i class="fa-solid fa-tag"></i> -<?= (int)$product['discount_pct'] ?>% TIẾT KIỆM</span>
                 <?php endif; ?>
             <?php endif; ?>
-            <img src="<?= e(productImageUrl($galleryImages[0] ?? '', $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
+            <img src="<?= e(productImageUrl($galleryImages[0] ?? '', $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
         </div>
         <?php if (count($galleryImages) > 1): ?>
             <div class="product-detail__thumbs">
                 <?php foreach ($galleryImages as $idx => $imgUrl): ?>
-                    <div class="product-detail__thumb <?= $idx === 0 ? 'is-active' : '' ?>" onclick="changeProductImage('<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '')) ?>', this)">
-                        <img src="<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
+                    <div class="product-detail__thumb <?= $idx === 0 ? 'is-active' : '' ?>" onclick="changeProductImage('<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>', this)">
+                        <img src="<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -119,8 +122,10 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
         </div>
 
         <!-- Biểu mẫu Mua hàng / Thêm giỏ hàng -->
-        <form method="post" action="<?= url('cart/add') ?>" id="purchaseForm">
+        <form method="post" action="<?= url('cart/add') ?>" id="purchaseForm" class="product-card__add-form">
             <?= csrf_field() ?>
+            <input type="hidden" name="return_url" value="<?= e($_SERVER['REQUEST_URI'] ?? '/') ?>">
+            <input type="hidden" name="intent" value="add" id="purchaseIntent">
             <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
             <div class="product-detail__actions">
                 <div class="qty-selector">
@@ -380,8 +385,12 @@ $galleryImages = getGalleryFourImages($product['image'] ?? '', $productImages, $
 
     function buyNowSubmit() {
         const form = document.getElementById('purchaseForm');
-        // Thay đổi action trỏ sang thanh toán trực tiếp hoặc bổ sung params
-        form.action = "<?= url('cart/add') ?>?buynow=1";
+        const intentInput = document.getElementById('purchaseIntent');
+        if (intentInput) {
+            intentInput.value = 'buy_now';
+        } else {
+            form.action = "<?= url('cart/add') ?>?buynow=1";
+        }
         form.submit();
     }
 

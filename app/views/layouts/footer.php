@@ -244,6 +244,82 @@
             .catch(err => console.error('Wishlist toggle error:', err));
         }
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addForms = document.querySelectorAll('.product-card__add-form');
+            addForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const intentInput = form.querySelector('input[name="intent"]');
+                    const intent = intentInput ? intentInput.value : 'add';
+                    
+                    if (intent === 'buy_now') {
+                        return; // Let the form submit normally
+                    }
+
+                    e.preventDefault();
+                    
+                    const btn = form.querySelector('button[type="submit"]');
+                    if (btn) btn.disabled = true;
+
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => {
+                        if (!res.ok && res.status !== 401 && res.status !== 403 && res.status !== 404 && res.status !== 409) {
+                            throw new Error('Network error');
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (btn) btn.disabled = false;
+                        
+                        if (!data.success) {
+                            if (data.auth_required && data.login_url) {
+                                window.location.href = data.login_url;
+                            } else {
+                                // Show error toast if available, otherwise alert
+                                if (typeof showToast === 'function') {
+                                    showToast('error', data.message || 'Có lỗi xảy ra.');
+                                } else {
+                                    alert(data.message || 'Có lỗi xảy ra.');
+                                }
+                            }
+                            return;
+                        }
+
+                        // Success Add
+                        if (typeof showToast === 'function') {
+                            showToast('success', data.message || 'Thêm thành công.');
+                        } else {
+                            // minimal toast fallback
+                            const toastFallback = document.createElement('div');
+                            toastFallback.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10B981;color:#fff;padding:12px 20px;border-radius:4px;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,0.1);font-family:sans-serif;';
+                            toastFallback.textContent = data.message || 'Đã thêm vào giỏ hàng.';
+                            document.body.appendChild(toastFallback);
+                            setTimeout(() => toastFallback.remove(), 3000);
+                        }
+
+                        const cartBadge = document.getElementById('cartBadge');
+                        if (cartBadge && data.cart_count !== undefined) {
+                            cartBadge.textContent = data.cart_count;
+                            cartBadge.style.display = data.cart_count > 0 ? 'flex' : 'none';
+                        }
+                    })
+                    .catch(err => {
+                        if (btn) btn.disabled = false;
+                        console.error('Add to cart error:', err);
+                    });
+                });
+            });
+        });
+    </script>
 
     <?php if (currentUser()): ?>
     <script>

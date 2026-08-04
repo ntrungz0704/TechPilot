@@ -176,4 +176,92 @@ class CartService
         unset($cart[$productId]);
         $_SESSION['cart'] = $cart;
     }
+
+    public function storeGuestItem(int $productId, int $quantity, int $stock): array
+    {
+        if ($stock < 1) {
+            return ['ok' => false, 'message' => 'Sản phẩm hiện đã hết hàng.'];
+        }
+
+        $quantity = max(1, $quantity);
+        $cart = $_SESSION['guest_cart'] ?? [];
+        $currentQuantity = (int)($cart[$productId]['quantity'] ?? 0);
+        $newQuantity = min($stock, $currentQuantity + $quantity);
+        $cart[$productId] = [
+            'product_id' => $productId,
+            'quantity' => $newQuantity,
+        ];
+        $_SESSION['guest_cart'] = $cart;
+
+        return ['ok' => true, 'message' => 'Đã lưu sản phẩm vào giỏ hàng.', 'cart_count' => count($cart)];
+    }
+
+    public function mergeGuestCartIntoUser(int $userId, PDO $db): array
+    {
+        $guestCart = $_SESSION['guest_cart'] ?? [];
+        if (empty($guestCart)) {
+            return ['merged' => 0, 'skipped' => 0];
+        }
+
+        $merged = 0;
+        $skipped = 0;
+
+        // Get or Create active cart for user
+        $stmt = $db->prepare("SELECT id FROM carts WHERE user_id = :user_id AND status = 'active' ORDER BY id DESC LIMIT 1");
+        $stmt->execute([':user_id' => $userId]);
+        $cart = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($cart) {
+            $cartId = (int)$cart['id'];
+        } else {
+            $stmt = $db->prepare("INSERT INTO carts (user_id, status) VALUES (:user_id, 'active')");
+            $stmt->execute([':user_id' => $userId]);
+            $cartId = (int)$db->lastInsertId();
+        }
+
+        try {
+            $db->beginTransaction();
+
+            foreach ($guestCart as $productId => $item) {
+                $qty = max(1, (int)$item['quantity']);
+                $pid = (int)$productId;
+
+                // Validate product
+                $stmt = $db->prepare("SELECT stock, status FROM products WHERE id = :id");
+                $stmt->execute([':id' => $pid]);
+                $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$product || $product['status'] !== 'active' || (int)$product['stock'] < 1) {
+                    $skipped++;
+                    continue;
+                }
+
+                $stock = (int)$product['stock'];
+
+                // Lock cart item row
+                $stmt = $db->prepare("SELECT quantity FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id FOR UPDATE");
+                $stmt->execute([':cart_id' => $cartId, ':product_id' => $pid]);
+                $currentQty = (int)($stmt->fetchColumn() ?: 0);
+
+                $newQty = min($stock, $currentQty + $qty);
+
+                $stmt = $db->prepare(
+                    "INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (:cart_id, :product_id, :qty)
+                     ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), updated_at = CURRENT_TIMESTAMP"
+                );
+                $stmt->execute([':cart_id' => $cartId, ':product_id' => $pid, ':qty' => $newQty]);
+                $merged++;
+            }
+
+            $db->commit();
+            unset($_SESSION['guest_cart']);
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['merged' => $merged, 'skipped' => $skipped];
+    }
 }
