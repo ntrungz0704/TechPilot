@@ -173,6 +173,14 @@ class ProductController extends Controller
             exit;
         }
 
+        // Tính giá thực tế (bao gồm flash sale, khuyến mãi)
+        $eff = getEffectiveProductData($product);
+        $product['final_price']    = $eff['final_price'];
+        $product['original_price'] = $eff['original_price'];
+        $product['has_discount']   = $eff['has_discount'];
+        $product['discount_pct']   = $eff['discount_pct'];
+        $product['is_flash_sale']  = $eff['is_flash_sale'];
+
         require_once ROOT_PATH . '/app/services/GeminiService.php';
         require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
 

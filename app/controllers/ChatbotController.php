@@ -146,23 +146,31 @@ class ChatbotController extends Controller
         if ($productId > 0 || $intent === ChatIntentClassifier::INTENT_PRODUCT_QUESTION) {
             $prod = null;
             if ($productId > 0) {
-                $stmt = $this->db->prepare("SELECT * FROM products WHERE id = ? AND status = 'active'");
+                $flashSql = activeFlashPriceSql('p');
+                $stmt = $this->db->prepare(
+                    "SELECT p.*, {$flashSql} AS discount_price, c.name as category_name, c.slug as category_slug, b.name as brand_name
+                     FROM products p
+                     LEFT JOIN categories c ON p.category_id = c.id
+                     LEFT JOIN brands b ON p.brand_id = b.id
+                     WHERE p.id = ? AND p.status = 'active'"
+                );
                 $stmt->execute([$productId]);
                 $prod = $stmt->fetch(PDO::FETCH_ASSOC);
             }
 
             if ($prod) {
-                $specs = json_decode($prod['specs'] ?? '{}', true) ?: [];
-                $specsStr = implode(', ', array_map(function($k, $v) {
-                    $valStr = is_array($v) ? implode('/', array_filter($v, 'is_scalar')) : (string)$v;
-                    return "$k: $valStr";
-                }, array_keys($specs), $specs));
+                // Tính giá thực tế (flash sale / khuyến mãi)
+                $eff = getEffectiveProductData($prod);
+                $prod['final_price']    = $eff['final_price'];
+                $prod['original_price'] = $eff['original_price'];
+                $prod['has_discount']   = $eff['has_discount'];
+                $prod['discount_pct']   = $eff['discount_pct'];
+                $prod['is_flash_sale']  = $eff['is_flash_sale'];
 
-                $productPrompt = "Bạn là trợ lý ảo TechPilot AI. Khách hàng đang xem trang sản phẩm: {$prod['name']} (Giá: " . formatPrice((float)$prod['price']) . ". Cấu hình: $specsStr).\n" .
-                                  "Câu hỏi của khách: \"$queryText\"\n\n" .
-                                  "Hãy trả lời tự nhiên, thân thiện và trung thực dựa trên cấu hình thật của máy. Trả lời ngắn gọn 2-3 câu.";
+                // Dùng chung chatProduct để đảm bảo nhất quán
+                require_once ROOT_PATH . '/app/services/ProductIntelligenceService.php';
+                $answerText = ProductIntelligenceService::chatProduct($prod, $queryText);
 
-                $answerText = GeminiService::callGemini($productPrompt);
                 echo json_encode([
                     'success' => true,
                     'type' => 'text',

@@ -145,21 +145,52 @@ class ProductIntelligenceService
         }
         $specsStr = implode(', ', $specsParts);
 
-        $productName = $product['name'] ?? 'Sản phẩm';
-        $price = isset($product['price']) ? number_format((float)$product['price'], 0, ',', '.') . 'đ' : 'Chưa cập nhật';
-        $stock = (int)($product['stock'] ?? 0);
-        $brandName = $product['brand_name'] ?? '';
+        $productName  = $product['name'] ?? 'Sản phẩm';
+        $brandName    = $product['brand_name'] ?? '';
         $categoryName = $product['category_name'] ?? '';
+        $stock        = (int)($product['stock'] ?? 0);
 
-        $prompt  = "Bạn là Trợ lý ảo TechPilot AI, chuyên tư vấn công nghệ.\n";
-        $prompt .= "Khách hàng đang xem sản phẩm: **{$productName}**\n";
-        $prompt .= "- Thương hiệu: {$brandName}\n";
-        $prompt .= "- Danh mục: {$categoryName}\n";
-        $prompt .= "- Giá bán: {$price}\n";
-        $prompt .= "- Tình trạng kho: " . ($stock > 0 ? "Còn hàng ({$stock} sản phẩm)" : "Hết hàng") . "\n";
-        $prompt .= "- Thông số kỹ thuật: {$specsStr}\n\n";
+        // Giá gốc và giá thực bán (sau giảm giá/flash sale)
+        $originalPrice = (float)($product['original_price'] ?? $product['price'] ?? 0);
+        $finalPrice    = (float)($product['final_price'] ?? $product['price'] ?? 0);
+        $hasDiscount   = !empty($product['has_discount']);
+        $discountPct   = (int)($product['discount_pct'] ?? 0);
+        $isFlashSale   = !empty($product['is_flash_sale']);
+
+        $originalPriceStr = number_format($originalPrice, 0, ',', '.') . 'đ';
+        $finalPriceStr    = number_format($finalPrice, 0, ',', '.') . 'đ';
+
+        // Build price info for prompt
+        $priceInfo = "Giá bán hiện tại: {$finalPriceStr}";
+        if ($hasDiscount) {
+            $priceInfo .= " (giá gốc: {$originalPriceStr}, giảm {$discountPct}%)";
+            if ($isFlashSale) {
+                $priceInfo .= " — Đang có Flash Sale!";
+            } else {
+                $priceInfo .= " — Đang có khuyến mãi!";
+            }
+        }
+
+        $prompt  = "Bạn là Trợ lý ảo TechPilot AI, chuyên gia tư vấn công nghệ máy tính, laptop, linh kiện, gaming gear.\n\n";
+        $prompt .= "=== THÔNG TIN SẢN PHẨM KHÁCH ĐANG XEM ===\n";
+        $prompt .= "Tên: {$productName}\n";
+        $prompt .= "Thương hiệu: {$brandName}\n";
+        $prompt .= "Danh mục: {$categoryName}\n";
+        $prompt .= "{$priceInfo}\n";
+        $prompt .= "Tình trạng kho: " . ($stock > 0 ? "Còn hàng ({$stock} sản phẩm)" : "Hết hàng") . "\n";
+        $prompt .= "Thông số kỹ thuật chi tiết: {$specsStr}\n";
+        $prompt .= "===========================================\n\n";
         $prompt .= "Câu hỏi của khách: \"{$question}\"\n\n";
-        $prompt .= "Hãy trả lời tự nhiên, thân thiện, chính xác dựa trên cấu hình thật của sản phẩm. Trả lời ngắn gọn 2-4 câu bằng tiếng Việt.";
+        $prompt .= "QUY TẮC TRẢ LỜI:\n";
+        $prompt .= "1. Khi nói về giá, LUÔN dùng giá bán hiện tại ({$finalPriceStr})";
+        if ($hasDiscount) {
+            $prompt .= ", có thể đề cập giá gốc {$originalPriceStr} để nhấn mạnh mức giảm {$discountPct}%";
+        }
+        $prompt .= ".\n";
+        $prompt .= "2. Trả lời dựa trên cấu hình THẬT của sản phẩm, chính xác và trung thực.\n";
+        $prompt .= "3. Nếu câu hỏi liên quan đến sản phẩm, ưu tiên trả lời về sản phẩm.\n";
+        $prompt .= "4. Nếu câu hỏi về kiến thức công nghệ chung (so sánh chip, giải thích thuật ngữ...), hãy trả lời bình thường.\n";
+        $prompt .= "5. Trả lời tự nhiên, thân thiện, ngắn gọn 2-4 câu bằng tiếng Việt. Dùng emoji phù hợp.\n";
 
         return GeminiService::callGemini($prompt, [
             'type' => 'product_chat',
