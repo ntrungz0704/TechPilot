@@ -53,7 +53,8 @@ class AiRecommendationService
 
         // 3. HARD FILTER QUERY
         $placeholdersIds = implode(',', array_fill(0, count($categoryIds), '?'));
-        $sql = "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
+        $flashPriceSql = activeFlashPriceSql('p');
+        $sql = "SELECT p.*, {$flashPriceSql} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug
                 FROM products p
                 LEFT JOIN brands b ON p.brand_id = b.id
                 LEFT JOIN categories c ON p.category_id = c.id
@@ -75,7 +76,7 @@ class AiRecommendationService
 
         // Nếu không có sản phẩm trong khoảng giá hẹp, mở rộng nhẹ khoảng giá để không bỏ sót
         if (empty($products) && $maxBudget !== null) {
-            $sqlExpanded = "SELECT p.*, b.name as brand_name, c.name as category_name, c.slug as category_slug
+            $sqlExpanded = "SELECT p.*, {$flashPriceSql} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug
                             FROM products p
                             LEFT JOIN brands b ON p.brand_id = b.id
                             LEFT JOIN categories c ON p.category_id = c.id
@@ -107,6 +108,17 @@ class AiRecommendationService
                 return true;
             }));
         }
+
+        // Tính giá thực tế cho mỗi sản phẩm (flash sale / khuyến mãi)
+        $products = array_map(function($p) {
+            $eff = getEffectiveProductData($p);
+            $p['final_price']    = $eff['final_price'];
+            $p['original_price'] = $eff['original_price'];
+            $p['has_discount']   = $eff['has_discount'];
+            $p['discount_pct']   = $eff['discount_pct'];
+            $p['is_flash_sale']  = $eff['is_flash_sale'];
+            return $p;
+        }, $products);
 
         // 4. DETERMINISTIC SCORING ENGINE (100 POINTS MAX)
         $scoredCandidates = [];

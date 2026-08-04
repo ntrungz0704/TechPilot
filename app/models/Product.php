@@ -917,7 +917,7 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id WHERE p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -1099,7 +1099,7 @@ class Product
                      FROM products p
                      LEFT JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.id = :id LIMIT 1"
+                     WHERE p.id = :id AND p.status = 'active' LIMIT 1"
                 );
                 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
                 $stmt->execute();
@@ -1129,7 +1129,7 @@ class Product
                      FROM products p
                      LEFT JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.slug = :slug LIMIT 1"
+                     WHERE p.slug = :slug AND p.status = 'active' LIMIT 1"
                 );
                 $stmt->bindValue(':slug', $slug);
                 $stmt->execute();
@@ -1288,7 +1288,7 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_best_seller = 1 ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_best_seller = 1 AND p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -1306,7 +1306,7 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_new_arrival = 1 ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_new_arrival = 1 AND p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
@@ -1324,7 +1324,7 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_ai_recommend = 1 ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_ai_recommend = 1 AND p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
