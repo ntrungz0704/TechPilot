@@ -939,6 +939,22 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         }
     }
 
+    const RECOMMEND_STORAGE_KEY = 'techpilot_ai_recommend_result';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const raw = sessionStorage.getItem(RECOMMEND_STORAGE_KEY);
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (cached && cached.res && cached.res.success && (Date.now() - (cached.timestamp || 0) < 86400000)) {
+                    renderRecommendationResults(cached.res, false);
+                }
+            }
+        } catch (e) {
+            console.error('Error restoring AI survey result:', e);
+        }
+    });
+
     function submitAiSurvey() {
         const form = document.getElementById('aiAssistantForm');
         const formData = new FormData(form);
@@ -971,69 +987,7 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         })
         .then(res => {
             if (res.success) {
-                card.style.display = 'none';
-                document.getElementById('aiRecsResult').style.display = 'block';
-                document.getElementById('resultSummary').innerText = res.summary || '';
-
-                const container = document.getElementById('recsCardsContainer');
-                container.innerHTML = '';
-
-                (res.recommendations || []).forEach(item => {
-                    const p = item.product;
-                    const roleKey = item.role || 'best_fit';
-                    const roleLabel = item.role_label || 'Đề xuất AI';
-                    const specs = p.specs || {};
-                    const score = item.score || 90;
-
-                    const specsHtml = buildSpecsHtml(specs);
-                    const scoreRing = buildScoreRing(score, roleKey);
-
-                    const reasonsHtml = (item.reasons || []).map(r => `<li>${r}</li>`).join('');
-                    const tradeoffsHtml = (item.tradeoffs || []).map(t => `<li>${t}</li>`).join('');
-
-                    const cardHtml = `
-                        <div class="rec-card">
-                            <div class="rec-card__header">
-                                <span class="rec-badge badge-${roleKey}">${roleLabel}</span>
-                                ${scoreRing}
-                                <img src="${p.image_url}" alt="${p.name}" loading="lazy">
-                            </div>
-
-                            <div class="rec-card__body">
-                                <h4 class="rec-card__name">${p.name}</h4>
-
-                                <div class="rec-card__price-row">
-                                    <span class="rec-card__price">${p.price_formatted}</span>
-                                    <span class="rec-card__stock">Còn ${p.stock} máy</span>
-                                </div>
-
-                                <div class="rec-specs-grid">
-                                    ${specsHtml}
-                                </div>
-
-                                ${reasonsHtml ? `<div class="rec-insights">
-                                    <div class="rec-insights-title positive"><i class="fa-solid fa-circle-check"></i> Điểm nổi bật</div>
-                                    <ul>${reasonsHtml}</ul>
-                                </div>` : ''}
-
-                                ${tradeoffsHtml ? `<div class="rec-insights">
-                                    <div class="rec-insights-title caution"><i class="fa-solid fa-triangle-exclamation"></i> Cần lưu ý</div>
-                                    <ul>${tradeoffsHtml}</ul>
-                                </div>` : ''}
-
-                                <div class="rec-card__actions">
-                                    <a href="<?= url('product/detail/') ?>${p.slug || p.id}" class="rec-btn-detail" target="_blank"><i class="fa-solid fa-eye"></i> Xem chi tiết</a>
-                                    <form method="post" action="<?= url('compare/add') ?>" target="_blank" style="margin:0;">
-                                        <input type="hidden" name="_csrf" value="${csrfToken}">
-                                        <input type="hidden" name="product_id" value="${p.id}">
-                                        <button type="submit" class="rec-btn-compare" style="width:100%;"><i class="fa-solid fa-scale-balanced"></i> So sánh</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    container.insertAdjacentHTML('beforeend', cardHtml);
-                });
+                renderRecommendationResults(res, true);
             } else {
                 alert("Thông báo: " + (res.error ? res.error.message : res.message || "Không có kết quả phù hợp."));
                 resetWizard();
@@ -1045,7 +999,96 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         });
     }
 
-    function resetWizard() {
-        location.reload();
+    function renderRecommendationResults(res, saveToStorage = true) {
+        if (saveToStorage) {
+            try {
+                sessionStorage.setItem(RECOMMEND_STORAGE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    res: res
+                }));
+            } catch (e) {}
+        }
+
+        const card = document.getElementById('wizardCard');
+        if (card) card.style.display = 'none';
+
+        const resultBox = document.getElementById('aiRecsResult');
+        if (!resultBox) return;
+
+        resultBox.style.display = 'block';
+        document.getElementById('resultSummary').innerText = res.summary || '';
+
+        const container = document.getElementById('recsCardsContainer');
+        container.innerHTML = '';
+
+        const csrfToken = '<?= $_SESSION["csrf_token"] ?? "" ?>';
+
+        (res.recommendations || []).forEach(item => {
+            const p = item.product;
+            const roleKey = item.role || 'best_fit';
+            const roleLabel = item.role_label || 'Đề xuất AI';
+            const specs = p.specs || {};
+            const score = item.score || 90;
+
+            const specsHtml = buildSpecsHtml(specs);
+            const scoreRing = buildScoreRing(score, roleKey);
+
+            const reasonsHtml = (item.reasons || []).map(r => `<li>${r}</li>`).join('');
+            const tradeoffsHtml = (item.tradeoffs || []).map(t => `<li>${t}</li>`).join('');
+
+            const cardHtml = `
+                <div class="rec-card">
+                    <div class="rec-card__header">
+                        <span class="rec-badge badge-${roleKey}">${roleLabel}</span>
+                        ${scoreRing}
+                        <img src="${p.image_url}" alt="${p.name}" loading="lazy">
+                    </div>
+
+                    <div class="rec-card__body">
+                        <h4 class="rec-card__name">${p.name}</h4>
+
+                        <div class="rec-card__price-row">
+                            <span class="rec-card__price">${p.price_formatted}</span>
+                            <span class="rec-card__stock">Còn ${p.stock} máy</span>
+                        </div>
+
+                        <div class="rec-specs-grid">
+                            ${specsHtml}
+                        </div>
+
+                        ${reasonsHtml ? `<div class="rec-insights">
+                            <div class="rec-insights-title positive"><i class="fa-solid fa-circle-check"></i> Điểm nổi bật</div>
+                            <ul>${reasonsHtml}</ul>
+                        </div>` : ''}
+
+                        ${tradeoffsHtml ? `<div class="rec-insights">
+                            <div class="rec-insights-title caution"><i class="fa-solid fa-triangle-exclamation"></i> Cần lưu ý</div>
+                            <ul>${tradeoffsHtml}</ul>
+                        </div>` : ''}
+
+                        <div class="rec-card__actions">
+                            <a href="<?= url('product/detail/') ?>${p.slug || p.id}" class="rec-btn-detail" target="_blank"><i class="fa-solid fa-eye"></i> Xem chi tiết</a>
+                            <form method="post" action="<?= url('compare/add') ?>" target="_blank" style="margin:0;">
+                                <input type="hidden" name="_csrf" value="${csrfToken}">
+                                <input type="hidden" name="product_id" value="${p.id}">
+                                <button type="submit" class="rec-btn-compare" style="width:100%;"><i class="fa-solid fa-scale-balanced"></i> So sánh</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+
+        // Scroll to top of results smoothly
+        resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
+    function resetWizard() {
+        try {
+            sessionStorage.removeItem(RECOMMEND_STORAGE_KEY);
+        } catch (e) {}
+        location.href = '<?= url("ai-assistant") ?>';
+    }
+</script>
 </script>
