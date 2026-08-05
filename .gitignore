@@ -11,6 +11,7 @@ vendor/
 # === Runtime & Temp ===
 *.log
 /storage/backups/
+/scratch/
 
 # === OS ===
 .DS_Store
