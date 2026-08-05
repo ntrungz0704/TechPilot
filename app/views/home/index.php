@@ -798,8 +798,31 @@ document.addEventListener('DOMContentLoaded', function() {
             gap: 24px;
             align-items: start;
         }
+        .news-grid-home {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 1200px) {
+            .news-grid-home {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
         @media (max-width: 1024px) {
             .news-ai-grid {
+                grid-template-columns: 1fr;
+            }
+            .news-grid-home {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .news-grid-home {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 520px) {
+            .news-grid-home {
                 grid-template-columns: 1fr;
             }
         }
@@ -817,7 +840,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h2><i class="fa-solid fa-newspaper" style="color: var(--primary); margin-right: 8px;"></i> Tin Tức Công Nghệ</h2>
                 <a href="<?= url('post') ?>" class="section__more">Xem thêm <i class="fa-solid fa-chevron-right"></i></a>
             </div>
-            <div class="news-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+            <div class="news-grid news-grid-home">
                 <?php foreach (array_slice($posts, 0, 4) as $post): ?>
                     <div class="news-card">
                         <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
