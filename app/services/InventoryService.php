@@ -583,8 +583,15 @@ class InventoryService
             throw new InvalidArgumentException("Loại giao dịch audit kho '{$type}' không nằm trong whitelist.");
         }
 
-        // Nếu có idempotencyKey, kiểm tra trùng lặp
+        // Nếu có idempotencyKey, kiểm tra cột idempotency_key có tồn tại trong bảng không
         if (!empty($idempotencyKey)) {
+            $colStmt = $db->query("SHOW COLUMNS FROM inventory_logs LIKE 'idempotency_key'");
+            $hasIdempotencyCol = (bool)($colStmt ? $colStmt->fetch() : false);
+
+            if (!$hasIdempotencyCol) {
+                throw new RuntimeException("Cột idempotency_key không tồn tại trong bảng inventory_logs");
+            }
+
             $chk = $db->prepare("SELECT id FROM inventory_logs WHERE idempotency_key = :ikey LIMIT 1");
             $chk->execute([':ikey' => $idempotencyKey]);
             if ($chk->fetch()) {
