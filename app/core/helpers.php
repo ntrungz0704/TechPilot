@@ -420,11 +420,13 @@ if (!function_exists('productImageUrl')) {
             'ram' => 'ssd.png',
         ];
 
+        $idSuffix = ($productId !== null && $productId > 0) ? "?id={$productId}" : "";
+
         if (isset($userCustomMap[$catSlug])) {
             $customFile = $userCustomMap[$catSlug];
             $customPath = ROOT_PATH . '/public/assets/images/placeholders/' . $customFile;
             if (file_exists($customPath)) {
-                return url('assets/images/placeholders/' . $customFile);
+                return url('assets/images/placeholders/' . $customFile) . $idSuffix;
             }
         }
 
@@ -433,10 +435,9 @@ if (!function_exists('productImageUrl')) {
         
         $phPath = ROOT_PATH . '/public/assets/images/placeholders/' . $phFile;
         if (file_exists($phPath)) {
-            return url('assets/images/placeholders/' . $phFile);
+            return url('assets/images/placeholders/' . $phFile) . $idSuffix;
         }
-
-        return url('assets/images/placeholders/laptop.png');
+        return url('assets/images/placeholders/laptop.png') . $idSuffix;
     }
 }
 
@@ -450,7 +451,10 @@ if (!function_exists('currentUser')) {
 if (!function_exists('cartItems')) {
     function cartItems(): array
     {
-        return $_SESSION['cart'] ?? [];
+        if (currentUser()) {
+            return $_SESSION['cart'] ?? [];
+        }
+        return $_SESSION['guest_cart'] ?? [];
     }
 }
 

@@ -5,6 +5,12 @@ require_once ROOT_PATH . '/app/services/CartService.php';
 
 class CheckoutController extends Controller
 {
+    protected function getVnpayService()
+    {
+        require_once ROOT_PATH . '/app/services/VnpayService.php';
+        return new VnpayService();
+    }
+
     private function requireAuthenticatedPage(string $redirect = '/checkout'): ?array
     {
         $user = currentUser();
@@ -371,8 +377,7 @@ class CheckoutController extends Controller
         }
 
         if ($paymentMethod === 'VNPAY') {
-            require_once ROOT_PATH . '/app/services/VnpayService.php';
-            $vnpayService = new VnpayService();
+            $vnpayService = $this->getVnpayService();
             if (!$vnpayService->isConfigured()) {
                 $_SESSION['submit_token'] = bin2hex(random_bytes(16));
                 $_SESSION['checkout_error'] = 'Thanh toán qua VNPay tạm thời chưa khả dụng trên môi trường thử nghiệm. Vui lòng chọn phương thức Thanh toán khi nhận hàng (COD).';
@@ -473,9 +478,8 @@ class CheckoutController extends Controller
         unset($_SESSION['applied_coupon']);
         unset($_SESSION['checkout_error']);
         if ($paymentMethod === 'VNPAY') {
-            require_once ROOT_PATH . '/app/services/VnpayService.php';
             try {
-                $paymentUrl = (new VnpayService())->createPaymentUrl([
+                $paymentUrl = $this->getVnpayService()->createPaymentUrl([
                     'order_code' => $order['order_code'],
                     'total' => $total,
                 ]);

@@ -111,9 +111,9 @@ if (!$post) return;
         </article>
 
         <!-- Cột phải: Sidebar (TOC + Bài viết liên quan) -->
-        <?php if ((!empty($hasArticleContent) && $articleH2Count >= 1 && !empty($articleHeadings)) || !empty($related)): ?>
+        <?php if ((!empty($hasArticleContent) && $articleH2Count >= 3 && !empty($articleHeadings)) || !empty($related)): ?>
         <aside class="news-sidebar" aria-label="Mục lục bài viết">
-            <?php if (!empty($hasArticleContent) && $articleH2Count >= 1 && !empty($articleHeadings)): ?>
+            <?php if (!empty($hasArticleContent) && $articleH2Count >= 3 && !empty($articleHeadings)): ?>
             <div class="news-sidebar-widget news-sidebar-toc-widget">
                 <?php
                 $tocVariant = 'desktop';

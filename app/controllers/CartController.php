@@ -98,20 +98,25 @@ class CartController extends Controller
 
     public function add(): void
     {
-        $user = currentUser();
-        if (!$user) {
-            $slug = trim($_POST['slug'] ?? '');
-            $redirectUrl = !empty($slug) ? '/product/detail/' . $slug : '/cart';
-            flash('error', 'Vui lòng đăng nhập để thực hiện chức năng này.');
-            $this->redirect('auth/login?redirect=' . urlencode($redirectUrl));
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+               || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'));
+
+        if (!$this->isPost()) {
+            if ($isAjax) {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+                return;
+            }
+            $this->redirect('cart');
             return;
         }
 
-        if (!$this->isPost()) {
-            $this->redirect('cart');
-        }
-
         if (!verifyCsrf()) {
+            if ($isAjax) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Yêu cầu không hợp lệ (CSRF Token mismatch).']);
+                return;
+            }
             flash('error', 'Yêu cầu không hợp lệ (CSRF Token mismatch). Vui lòng thử lại.');
             $this->redirect('cart');
             return;
@@ -120,28 +125,35 @@ class CartController extends Controller
         $productId = (int)($_POST['product_id'] ?? 0);
         $slug = trim($_POST['slug'] ?? '');
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
+        $intent = trim($_POST['intent'] ?? 'add');
 
         $db = $this->getDbConnection();
         if (!$db) {
+            if ($isAjax) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Không thể kết nối cơ sở dữ liệu.']);
+                return;
+            }
             flash('error', 'Không thể kết nối cơ sở dữ liệu.');
             $this->redirect('cart');
-            return;
-        }
-        if (!$this->hasValidUser($user, $db)) {
-            $this->clearStaleLogin();
             return;
         }
 
         $productModel = $this->model('Product');
         $product = null;
         if ($productId > 0) {
-            $product = $productModel->getById($productId);
+            $product = $productModel->getActiveByIdStrict($productId);
         }
         if (!$product && $slug !== '') {
-            $product = $productModel->getBySlug($slug);
+            $product = $productModel->getActiveBySlugStrict($slug);
         }
 
-        if (!$product || ($product['status'] ?? 'active') !== 'active') {
+        if (!$product) {
+            if ($isAjax) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Sản phẩm không hợp lệ hoặc đã dừng bán.']);
+                return;
+            }
             flash('error', 'Sản phẩm không hợp lệ hoặc đã dừng bán.');
             $this->redirect('cart');
             return;
@@ -149,6 +161,73 @@ class CartController extends Controller
 
         $stock = (int)($product['stock'] ?? 0);
         $productId = (int)$product['id'];
+
+        $user = currentUser();
+
+        if (!$user) {
+            $cartService = new CartService();
+            $res = $cartService->storeGuestItem($productId, $quantity, $stock);
+            
+            $redirectUrl = !empty($slug) ? '/product/detail/' . $slug : '/';
+            if (isset($_POST['return_url'])) {
+                $ret = trim($_POST['return_url']);
+                if (str_starts_with($ret, '/') && !str_contains($ret, '//')) {
+                    $redirectUrl = $ret;
+                }
+            }
+
+            if (!$res['ok']) {
+                if ($isAjax) {
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'auth_required' => false, 'message' => $res['message']]);
+                    return;
+                }
+                flash('error', $res['message']);
+                $this->redirect(ltrim($redirectUrl, '/'));
+                return;
+            }
+
+            if ($intent === 'buy_now') {
+                $loginUrl = '/auth/login?redirect=' . urlencode('/checkout');
+                if ($isAjax) {
+                    http_response_code(401);
+                    echo json_encode([
+                        'success' => false,
+                        'auth_required' => true,
+                        'login_url' => $loginUrl,
+                        'message' => 'Vui lòng đăng nhập để tiếp tục.'
+                    ]);
+                    return;
+                }
+                $this->redirect(ltrim($loginUrl, '/'));
+                return;
+            }
+
+            // Normal add to cart for guest
+            $successMsg = 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.';
+            if ($isAjax) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => $successMsg,
+                    'cart_count' => cartCount()
+                ]);
+                return;
+            }
+            flash('success', $successMsg);
+            $this->redirect(ltrim($redirectUrl, '/'));
+            return;
+        }
+
+        if (!$this->hasValidUser($user, $db)) {
+            if ($isAjax) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Phiên đăng nhập cũ không còn hợp lệ.']);
+                return;
+            }
+            $this->clearStaleLogin();
+            return;
+        }
+
         $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
 
         try {
@@ -169,17 +248,51 @@ class CartController extends Controller
             $stmt->execute([':cart_id'=>$cartId, ':product_id'=>$productId, ':qty'=>$newQty]);
             $db->commit();
             $this->syncCartSession((int)$user['id'], $db);
-            flash('success', 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.');
+            
+            $successMsg = 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.';
+            
+            if ($isAjax) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => $successMsg,
+                    'cart_count' => array_sum(array_column($_SESSION['cart'] ?? [], 'quantity')),
+                    'product_id' => $productId
+                ]);
+                return;
+            }
+
+            flash('success', $successMsg);
         } catch (Throwable $e) {
             if ($db->inTransaction()) $db->rollBack();
+            if ($isAjax) {
+                http_response_code(409); // Conflict
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
             flash('error', $e->getMessage());
-            $this->redirect('cart');
+            
+            $redirectUrl = !empty($slug) ? 'product/detail/' . $slug : 'cart';
+            if (isset($_POST['return_url'])) {
+                $ret = trim($_POST['return_url']);
+                if (str_starts_with($ret, '/') && !str_contains($ret, '//')) {
+                    $redirectUrl = ltrim($ret, '/');
+                }
+            }
+            $this->redirect($redirectUrl);
             return;
         }
-        if (isset($_GET['buynow']) && $_GET['buynow'] == '1') {
+
+        if ($intent === 'buy_now') {
             $this->redirect('checkout');
         } else {
-            $this->redirect('cart');
+            $redirectUrl = !empty($slug) ? 'product/detail/' . $slug : 'cart';
+            if (isset($_POST['return_url'])) {
+                $ret = trim($_POST['return_url']);
+                if (str_starts_with($ret, '/') && !str_contains($ret, '//')) {
+                    $redirectUrl = ltrim($ret, '/');
+                }
+            }
+            $this->redirect($redirectUrl);
         }
     }
 
@@ -211,7 +324,7 @@ class CartController extends Controller
 
         // Kiểm tra tồn kho
         $productModel = $this->model('Product');
-        $product = $productModel->getById($productId);
+        $product = $productModel->getActiveByIdStrict($productId);
         if (!$product) {
             $this->redirect('cart');
             return;

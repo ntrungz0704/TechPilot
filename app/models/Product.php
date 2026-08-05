@@ -11,6 +11,42 @@ class Product
         $this->db = Database::getConnection();
     }
 
+    public function getActiveByIdStrict(int $id): array|false
+    {
+        if (!$this->db) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            WHERE p.id = :id AND p.status = 'active'
+            LIMIT 1
+        ");
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: false;
+    }
+
+    public function getActiveBySlugStrict(string $slug): array|false
+    {
+        if (!$this->db) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            WHERE p.slug = :slug AND p.status = 'active'
+            LIMIT 1
+        ");
+        $stmt->execute([':slug' => $slug]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: false;
+    }
+
     /** Bộ sản phẩm đầy đủ phủ khắp các danh mục storefront khi CSDL chưa có dữ liệu */
     public static function getSampleProducts(): array
     {
@@ -1159,19 +1195,7 @@ class Product
                 $images = $stmt->fetchAll();
             } catch (Exception $e) {}
         }
-        
-        // Ensure exactly 4 images exist
-        if (count($images) < 4) {
-            $mainProduct = $this->getById($productId);
-            $mainImage = $mainProduct['image'] ?? 'placeholder.png';
-            
-            // Pad array up to 4 images using the main image
-            while (count($images) < 4) {
-                $images[] = ['image_url' => $mainImage];
-            }
-        }
-        
-        return array_slice($images, 0, 4);
+        return $images;
     }
 
     /** Lấy sản phẩm liên quan (cùng danh mục, khác id hiện tại, tương đồng giá và rating) */

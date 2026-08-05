@@ -107,7 +107,7 @@ class SpecScraperService
     public static function fetchUrlContent(string $url): string
     {
         $ch = curl_init();
-        curl_setopt_array($ch, [
+        $options = [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -115,9 +115,19 @@ class SpecScraperService
             CURLOPT_TIMEOUT => 3,
             CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0
-        ]);
+        ];
+
+        try {
+            $tlsOptions = SecureCurl::buildTlsOptions();
+            foreach ($tlsOptions as $k => $v) {
+                $options[$k] = $v;
+            }
+        } catch (RuntimeException $e) {
+            curl_close($ch);
+            return '';
+        }
+
+        curl_setopt_array($ch, $options);
 
         $output = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

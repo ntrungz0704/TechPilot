@@ -114,14 +114,16 @@ class CompareController extends Controller
         $ids = $_SESSION['compare'];
         $products = $this->model->getProductsByIds($ids);
 
+        // Trusted category is taken from server-side product data inside analyzeComparison.
+        // Do NOT pass client-supplied 'category' as a trusted value for logic decisions.
         $options = [
-            'category'          => trim($_POST['category'] ?? ($products[0]['category_slug'] ?? 'laptop')),
             'persona'           => trim($_POST['persona'] ?? 'developer'),
             'priorities'        => (array)($_POST['priorities'] ?? ['performance']),
             'budget_max'        => !empty($_POST['budget_max']) ? (float)$_POST['budget_max'] : null,
             'min_ram'           => !empty($_POST['min_ram']) ? (int)$_POST['min_ram'] : 0,
             'min_storage'       => !empty($_POST['min_storage']) ? (int)$_POST['min_storage'] : 0,
-            'min_refresh_rate'  => !empty($_POST['min_refresh_rate']) ? (int)$_POST['min_refresh_rate'] : 0
+            'min_refresh_rate'  => !empty($_POST['min_refresh_rate']) ? (int)$_POST['min_refresh_rate'] : 0,
+            'expected_count'    => count($ids),
         ];
 
         try {

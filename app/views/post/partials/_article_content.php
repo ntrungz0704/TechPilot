@@ -102,7 +102,7 @@ if (!empty($articleBlocks)) {
 }
 ?>
 
-<div class="news-detail-content" style="word-break: break-word; overflow-wrap: break-word;">
+<div class="news-detail-content">
 
     <!-- Quick Summary (nếu có) -->
     <?php if (!empty($quickSummaryHtml)): ?>

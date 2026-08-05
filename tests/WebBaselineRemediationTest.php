@@ -36,6 +36,7 @@ class WebBaselineRemediationTest
             $this->testAiFavoriteGuest();
             $this->testAiFavoriteAuthenticated();
             $this->testForgotPasswordEnumeration();
+            $this->testWrongPasswordNormalPath();
 
             echo "WebBaselineRemediationTest: 0 failed, 0 skipped\n";
             exit(0);
@@ -243,6 +244,47 @@ class WebBaselineRemediationTest
         $stmt->execute([$nonExistingEmail]);
         if ($stmt->fetch()) {
             throw new RuntimeException("Non-existing email created a user account");
+        }
+    }
+
+    private function testWrongPasswordNormalPath(): void
+    {
+        $wrongPassCookieFile = tempnam(sys_get_temp_dir(), 'cookie_wrongpass_');
+        
+        try {
+            // Get login page to extract CSRF
+            $res = $this->request('GET', '/auth/login', [], $wrongPassCookieFile);
+            $csrf = $this->extractCsrfToken($res['body']);
+
+            // Attempt login with valid email but wrong password
+            $res = $this->request('POST', '/auth/login', [
+                'csrf_token' => $csrf,
+                'email' => $this->testUserEmail,
+                'password' => 'wrong_password_123'
+            ], $wrongPassCookieFile);
+
+            if ($res['code'] !== 200) {
+                throw new RuntimeException("Wrong password login expected 200 (re-render form), got {$res['code']}");
+            }
+            if (str_contains($res['headers'], 'Location: /') || str_contains($res['headers'], 'Location: /admin')) {
+                throw new RuntimeException("Wrong password login redirected to protected destination");
+            }
+            if (!str_contains($res['body'], 'Email hoặc mật khẩu không chính xác')) {
+                throw new RuntimeException("Wrong password login missing generic error message");
+            }
+            
+            // Check for leaks
+            if (str_contains($res['body'], 'SQLSTATE') || str_contains($res['body'], 'Exception')) {
+                throw new RuntimeException("Wrong password login leaked DB errors or exceptions");
+            }
+
+            // Attempt to access a protected route with the same cookie
+            $res = $this->request('GET', '/profile/return', [], $wrongPassCookieFile);
+            if ($res['code'] !== 302 || !str_contains($res['headers'], 'Location:') || !str_contains($res['headers'], '/auth/login')) {
+                throw new RuntimeException("Cookie after wrong password login was authenticated, failed to protect route");
+            }
+        } finally {
+            @unlink($wrongPassCookieFile);
         }
     }
 

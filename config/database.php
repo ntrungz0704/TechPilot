@@ -20,6 +20,10 @@ if (!class_exists('Database')) {
 
         public static function getConnection(): ?PDO
         {
+            if (getenv('APP_ENV') === 'test' && getenv('FORCE_DB_FAILURE') === '1') {
+                return null;
+            }
+
             if (self::$instance === null) {
                 $host = getenv('DB_HOST') ?: self::HOST;
                 $dbname = getenv('DB_NAME') ?: self::DBNAME;

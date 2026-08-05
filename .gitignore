@@ -27,3 +27,7 @@ scratch/
 *.html.snapshot
 scratch_*.php
 homepage*.html
+
+# === QA & Reports ===
+
+/tests/web/reports/

@@ -2,6 +2,13 @@
 
 class AdminController extends Controller
 {
+    protected function getNotificationRepository(): NotificationRepositoryInterface
+    {
+        require_once ROOT_PATH . '/app/services/NotificationRepositoryInterface.php';
+        require_once ROOT_PATH . '/app/services/PdoNotificationRepository.php';
+        return new PdoNotificationRepository();
+    }
+
     public function index(): void
     {
         $this->requireAdmin();
@@ -125,19 +132,40 @@ class AdminController extends Controller
         $adminUserId = (int)($adminUser['id'] ?? 1);
 
         header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-cache, must-revalidate');
+        header('Cache-Control: no-store');
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
+
+        if (!$db) {
+            http_response_code(503);
+            echo json_encode([
+                'success' => false,
+                'error' => [
+                    'code' => 'DATABASE_UNAVAILABLE',
+                    'message' => 'Hệ thống đang bảo trì, vui lòng thử lại sau.'
+                ]
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            exit;
+        }
+
         $items = [];
         $unreadCount = 0;
 
-        if ($db) {
-            $stmt = $db->prepare('SELECT id, title, content, is_read, created_at FROM notifications WHERE user_id = :uid OR user_id = 1 ORDER BY id DESC LIMIT 10');
-            $stmt->execute([':uid' => $adminUserId]);
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $repo = $this->getNotificationRepository();
+
+        try {
+            $rawItems = $repo->getLatest($db, $adminUserId, 10);
             
-            foreach ($items as &$item) {
-                $item['link'] = 'javascript:void(0);';
+            foreach ($rawItems as $row) {
+                $item = [
+                    'id'         => (int)$row['id'],
+                    'title'      => (string)$row['title'],
+                    'content'    => (string)$row['content'],
+                    'is_read'    => (int)$row['is_read'],
+                    'created_at' => (string)$row['created_at'],
+                    'link'       => null
+                ];
+                
                 if (preg_match('/#TP-([A-Z0-9\-]+)/i', $item['title'] . ' ' . $item['content'], $matches)) {
                     $orderCode = 'TP-' . $matches[1];
                     $stmtOrder = $db->prepare('SELECT id FROM orders WHERE order_code = ? LIMIT 1');
@@ -147,14 +175,28 @@ class AdminController extends Controller
                         $item['link'] = url('admin/orders/detail/' . $orderId);
                     }
                 }
+                
+                $items[] = $item;
             }
 
-            $stmt2 = $db->prepare('SELECT COUNT(*) FROM notifications WHERE (user_id = :uid OR user_id = 1) AND is_read = 0');
-            $stmt2->execute([':uid' => $adminUserId]);
-            $unreadCount = (int)$stmt2->fetchColumn();
+            $unreadCount = $repo->countUnread($db, $adminUserId);
+        } catch (PDOException $e) {
+            http_response_code(503);
+            echo json_encode([
+                'success' => false,
+                'error' => [
+                    'code' => 'DATABASE_ERROR',
+                    'message' => 'Lỗi truy xuất cơ sở dữ liệu.'
+                ]
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            exit;
         }
 
-        echo json_encode(['success' => true, 'unread' => $unreadCount, 'items' => $items], JSON_UNESCAPED_UNICODE);
+        echo json_encode([
+            'success' => true, 
+            'unread' => $unreadCount, 
+            'items' => $items
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         exit;
     }
 
@@ -171,21 +213,76 @@ class AdminController extends Controller
         }
 
         header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
-        if ($db) {
-            $id = (int)($_POST['id'] ?? 0);
-            if ($id > 0) {
-                $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE id = :id AND (user_id = :uid OR user_id = 1)');
-                $stmt->execute([':id' => $id, ':uid' => $adminUserId]);
-            } else {
-                $stmt = $db->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = :uid OR user_id = 1');
-                $stmt->execute([':uid' => $adminUserId]);
-            }
+        if (!$db) {
+            http_response_code(503);
+            echo json_encode([
+                'success' => false,
+                'error' => [
+                    'code' => 'DATABASE_UNAVAILABLE',
+                    'message' => 'Hệ thống đang bảo trì, vui lòng thử lại sau.'
+                ]
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            exit;
         }
 
-        echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
+        $repo = $this->getNotificationRepository();
+
+        try {
+            if (isset($_POST['id'])) {
+                $id = $_POST['id']; // We will validate if it's numeric/integer
+                if (!is_numeric($id) || (int)$id <= 0 || (string)(int)$id !== (string)$id) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'error' => [
+                            'code' => 'INVALID_NOTIFICATION_ID',
+                            'message' => 'ID thông báo không hợp lệ.'
+                        ]
+                    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                    exit;
+                }
+                
+                $id = (int)$id;
+                $row = $repo->getById($db, $id, $adminUserId);
+                if (!$row) {
+                    http_response_code(404);
+                    echo json_encode([
+                        'success' => false,
+                        'error' => [
+                            'code' => 'NOTIFICATION_NOT_FOUND',
+                            'message' => 'Không tìm thấy thông báo hoặc bạn không có quyền.'
+                        ]
+                    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                    exit;
+                }
+                
+                if ($row['is_read'] == 0) {
+                    if (!$repo->markRead($db, $id, $adminUserId)) {
+                        throw new PDOException("Failed to update");
+                    }
+                }
+            } else {
+                if (!$repo->markAllRead($db, $adminUserId)) {
+                    throw new PDOException("Failed to update all");
+                }
+            }
+        } catch (PDOException $e) {
+            http_response_code(503);
+            echo json_encode([
+                'success' => false,
+                'error' => [
+                    'code' => 'DATABASE_ERROR',
+                    'message' => 'Lỗi cập nhật cơ sở dữ liệu.'
+                ]
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            exit;
+        }
+
+        echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         exit;
     }
 }

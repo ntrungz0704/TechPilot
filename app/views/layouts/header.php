@@ -195,9 +195,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                        title="Giỏ hàng của bạn">
                         <div class="header-action__icon-wrapper">
                             <i class="fa-solid fa-cart-shopping header-action__icon" aria-hidden="true"></i>
-                            <?php if ($cartCountVal > 0): ?>
-                                <span class="cart-badge" aria-hidden="true"><?= $cartCountVal > 99 ? '99+' : $cartCountVal ?></span>
-                            <?php endif; ?>
+                            <span class="cart-badge" id="cartBadge" style="display: <?= $cartCountVal > 0 ? 'flex' : 'none' ?>" aria-hidden="true"><?= $cartCountVal > 99 ? '99+' : $cartCountVal ?></span>
                         </div>
                         <span class="header-actions__label header-action__label">Giỏ hàng</span>
                     </a>
