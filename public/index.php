@@ -25,13 +25,13 @@ if ($isSecure) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 }
 
-// Content-Security-Policy (Phủ đầy đủ CDNs: Google Fonts, FontAwesome, VNPay, Avatars...)
+// Content-Security-Policy (Tối ưu: Bỏ 'unsafe-eval' & bỏ wildcard 'https:' ở img-src)
 $cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
+    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
-    "img-src 'self' data: placehold.co ui-avatars.com https: blob:",
+    "img-src 'self' data: blob: https://placehold.co https://ui-avatars.com https://cdnjs.cloudflare.com",
     "connect-src 'self' https://sandbox.vnpayment.vn https://vnpayment.vn",
     "frame-src 'self' https://www.youtube.com https://www.facebook.com",
     "object-src 'none'",
