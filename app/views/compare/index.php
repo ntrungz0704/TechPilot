@@ -261,19 +261,44 @@
         </div>
 
         <!-- KHUNG KẾT QUẢ PHÂN TÍCH AI PERSONA -->
-        <div id="compareAiResultBox" style="display: none; background: var(--bg-white); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-card); margin-bottom: 40px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary); font-weight: 800; font-size: 20px;">
-                🤖 Báo Cáo Phân Tích So Sánh AI Chi Tiết
-            </h3>
-            <p id="aiSummaryText" style="color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);"></p>
+        <div id="compareAiResultBox" style="display: none; background: var(--bg-white); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); margin-bottom: 40px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--text-primary); font-weight: 800; font-size: 21px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-robot" style="color: var(--primary); font-size: 24px;"></i> Báo Cáo Phân Tích So Sánh AI Chi Tiết
+                </h3>
+                <span style="font-size: 11.5px; font-weight: 800; background: linear-gradient(135deg, #10B981, #059669); color: #FFF; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-bolt"></i> TechPilot AI 4.0 Engine
+                </span>
+            </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 18px; border-radius: 12px;">
-                    <h4 style="color: #047857; margin: 0 0 8px 0; font-weight: 700; font-size: 15px;"><i class="fa-solid fa-user-check"></i> Khuyên dùng theo Persona</h4>
+            <!-- AI Summary Callout Box -->
+            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(59, 130, 246, 0.06) 100%); border-left: 4px solid var(--primary); padding: 16px 20px; border-radius: 12px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-circle-info"></i> TÓM TẮT ĐÁNH GIÁ TỔNG QUAN
+                </div>
+                <p id="aiSummaryText" style="color: var(--text-primary); font-size: 14.5px; line-height: 1.6; margin: 0; font-weight: 500;"></p>
+            </div>
+
+            <!-- PRODUCT CARDS SHOWCASE GRID (RENDERED VIA JS WITH IMAGES & SPECS) -->
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-layer-group" style="color: #6366F1;"></i> Sản Phẩm Được Phân Tích & Chấm Điểm
+                </h4>
+                <div id="aiProductCardsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;"></div>
+            </div>
+
+            <!-- PERSONA RECOMMENDATION & TRADEOFF CARDS -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div style="background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.2); padding: 20px; border-radius: 14px; border-left: 5px solid #10B981;">
+                    <h4 style="color: #047857; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-check" style="font-size: 18px;"></i> Khuyên dùng theo Persona
+                    </h4>
                     <div id="aiWhoShouldBuy" style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary);"></div>
                 </div>
-                <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 18px; border-radius: 12px;">
-                    <h4 style="color: #B91C1C; margin: 0 0 8px 0; font-weight: 700; font-size: 15px;"><i class="fa-solid fa-triangle-exclamation"></i> Điểm cần đánh đổi / Cân nhắc</h4>
+                <div style="background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.2); padding: 20px; border-radius: 14px; border-left: 5px solid #EF4444;">
+                    <h4 style="color: #B91C1C; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 18px;"></i> Điểm cần đánh đổi / Cân nhắc
+                    </h4>
                     <div id="aiTradeoffs" style="font-size: 13.5px; line-height: 1.6; color: var(--text-primary);"></div>
                 </div>
             </div>
@@ -401,7 +426,7 @@
             btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích & Chấm Điểm AI Theo Persona';
 
             if (res.success) {
-                // Hiển thị Winner Badges
+                // Hiển thị Winner Badges trên bảng so sánh
                 const winners = res.winners || {};
                 Object.keys(winners).forEach(wRole => {
                     const pId = winners[wRole];
@@ -417,8 +442,89 @@
                 // Hiển thị báo cáo AI
                 document.getElementById('compareAiResultBox').style.display = 'block';
                 document.getElementById('aiSummaryText').innerText = (res.analysis && res.analysis.summary) ? res.analysis.summary : '';
-                document.getElementById('aiWhoShouldBuy').innerText = (res.analysis && res.analysis.who_should_buy) ? res.analysis.who_should_buy : '';
-                document.getElementById('aiTradeoffs').innerText = (res.analysis && res.analysis.tradeoffs) ? res.analysis.tradeoffs : '';
+
+                // Helper format text lines thành list danh sách có icon
+                function formatAiTextToList(text) {
+                    if (!text) return '<p style="color: var(--text-secondary); margin:0;">Chưa có thông tin</p>';
+                    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length === 0) return '';
+                    return '<ul style="margin: 0; padding-left: 0; list-style: none;">' + 
+                        lines.map(l => {
+                            const clean = l.replace(/^[•\-\*\d\.]+\s*/, '');
+                            return `<li style="margin-bottom: 8px; display: flex; align-items: start; gap: 8px;"><i class="fa-solid fa-circle-check" style="font-size: 13px; color: #10B981; margin-top: 3px; flex-shrink: 0;"></i> <span style="line-height: 1.5; color: var(--text-primary); font-size: 13.5px;">${clean}</span></li>`;
+                        }).join('') + 
+                        '</ul>';
+                }
+
+                function formatAiTradeoffsToList(text) {
+                    if (!text) return '<p style="color: var(--text-secondary); margin:0;">Chưa có thông tin</p>';
+                    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length === 0) return '';
+                    return '<ul style="margin: 0; padding-left: 0; list-style: none;">' + 
+                        lines.map(l => {
+                            const clean = l.replace(/^[•\-\*\d\.]+\s*/, '');
+                            return `<li style="margin-bottom: 8px; display: flex; align-items: start; gap: 8px;"><i class="fa-solid fa-triangle-exclamation" style="font-size: 13px; color: #EF4444; margin-top: 3px; flex-shrink: 0;"></i> <span style="line-height: 1.5; color: var(--text-primary); font-size: 13.5px;">${clean}</span></li>`;
+                        }).join('') + 
+                        '</ul>';
+                }
+
+                document.getElementById('aiWhoShouldBuy').innerHTML = formatAiTextToList(res.analysis ? res.analysis.who_should_buy : '');
+                document.getElementById('aiTradeoffs').innerHTML = formatAiTradeoffsToList(res.analysis ? res.analysis.tradeoffs : '');
+
+                // Render Product Cards Grid trong Khung AI
+                const products = res.products || [];
+                const cardsContainer = document.getElementById('aiProductCardsContainer');
+                if (cardsContainer && products.length > 0) {
+                    cardsContainer.innerHTML = products.map(p => {
+                        let badgeHtml = '';
+                        if (winners.best_fit === p.id) {
+                            badgeHtml = `<span style="background: linear-gradient(135deg, #10B981, #059669); color: #FFF; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-trophy"></i> Phù hợp nhất</span>`;
+                        } else if (winners.best_value === p.id) {
+                            badgeHtml = `<span style="background: linear-gradient(135deg, #3B82F6, #2563EB); color: #FFF; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-piggy-bank"></i> Đáng tiền nhất</span>`;
+                        } else if (winners.best_performance === p.id) {
+                            badgeHtml = `<span style="background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: #FFF; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-bolt"></i> Hiệu năng cao nhất</span>`;
+                        } else {
+                            badgeHtml = `<span style="background: #F1F5F9; color: #64748B; font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 12px;">Ứng viên</span>`;
+                        }
+
+                        const priceVal = p.effective_price || p.price || 0;
+                        const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceVal);
+                        const score = p.total_score || 0;
+                        const scoreBg = score >= 80 ? '#10B981' : (score >= 65 ? '#3B82F6' : '#F59E0B');
+
+                        const strengths = (p.strengths || []).slice(0, 3).map(s => `
+                            <li style="margin-bottom: 4px; display: flex; align-items: start; gap: 6px; font-size: 12px; color: var(--text-primary);">
+                                <i class="fa-solid fa-check" style="color: #10B981; font-size: 10px; margin-top: 3px; flex-shrink: 0;"></i>
+                                <span style="line-height: 1.3;">${s}</span>
+                            </li>
+                        `).join('');
+
+                        return `
+                            <div style="background: var(--bg-card, #FFFFFF); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                                    ${badgeHtml}
+                                    <span style="font-size: 12px; font-weight: 800; color: #FFF; background: ${scoreBg}; padding: 2px 8px; border-radius: 10px;">${score}/100</span>
+                                </div>
+
+                                <div style="text-align: center; background: var(--surface-muted, #F8FAFC); padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: center; height: 110px;">
+                                    <img src="${p.image_url}" alt="${p.name}" style="max-height: 90px; max-width: 100%; object-fit: contain;">
+                                </div>
+
+                                <div>
+                                    <h5 style="margin: 0 0 6px 0; font-size: 13.5px; font-weight: 700; color: var(--text-primary); line-height: 1.35; height: 36px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.name}</h5>
+                                    <div style="font-size: 14.5px; font-weight: 800; color: var(--primary);">${formattedPrice}</div>
+                                </div>
+
+                                ${strengths ? `
+                                    <div style="border-top: 1px dashed var(--border); padding-top: 8px;">
+                                        <strong style="font-size: 11.5px; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 6px;">Điểm cộng nổi bật:</strong>
+                                        <ul style="margin: 0; padding: 0; list-style: none;">${strengths}</ul>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
 
                 document.getElementById('compareAiResultBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {

@@ -318,6 +318,7 @@ class ProductComparisonService
             $p['strengths']  = $strengths;
             $p['weaknesses'] = $weaknesses;
             $p['fps_estimates'] = self::calculateGameFpsEstimates($catKey, $p, $parsedSpecs);
+            $p['image_url']     = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $catKey, (int)($p['id'] ?? 0));
 
             $analyzedProducts[] = $p;
         }
