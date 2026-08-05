@@ -12,10 +12,33 @@ require_once dirname(__DIR__) . '/app/core/Router.php';
 
 ErrorHandler::register();
 
-// Security Headers tối thiểu
+// Security Headers
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+
+// Strict-Transport-Security (Chỉ áp dụng khi truy cập qua HTTPS thực tế)
+$isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+if ($isSecure) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+
+// Content-Security-Policy (Phủ đầy đủ CDNs: Google Fonts, FontAwesome, VNPay, Avatars...)
+$cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
+    "img-src 'self' data: placehold.co ui-avatars.com https: blob:",
+    "connect-src 'self' https://sandbox.vnpayment.vn https://vnpayment.vn",
+    "frame-src 'self' https://www.youtube.com https://www.facebook.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://sandbox.vnpayment.vn https://vnpayment.vn"
+];
+header('Content-Security-Policy: ' . implode('; ', $cspDirectives));
 
 // Lấy phần URL sau index.php, ví dụ: product/detail/asus-rog-zephyrus-g16
 $url = $_GET['url'] ?? '';
