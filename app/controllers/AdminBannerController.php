@@ -34,6 +34,13 @@ class AdminBannerController extends Controller
             $this->redirect('admin/banners');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/banners');
+            return;
+        }
+
         $title = trim($_POST['title'] ?? '');
         $link = trim($_POST['link'] ?? '#');
         $type = trim($_POST['type'] ?? 'hero');
@@ -124,6 +131,13 @@ class AdminBannerController extends Controller
             $this->redirect('admin/banners');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/banners');
+            return;
+        }
+
         $title = trim($_POST['title'] ?? '');
         $link = trim($_POST['link'] ?? '#');
         $type = trim($_POST['type'] ?? 'hero');
@@ -178,6 +192,13 @@ class AdminBannerController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/banners');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/banners');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';

@@ -71,6 +71,12 @@ class AdminUserController extends Controller
             $this->redirect('admin/users');
         }
 
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/users');
+            return;
+        }
+
         $currentAdminId = (int)($_SESSION['user']['id'] ?? 0);
         if ($id === $currentAdminId) {
             flash('error', 'Bạn không thể tự khoá tài khoản của chính mình.');
@@ -110,6 +116,12 @@ class AdminUserController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/users');
+        }
+
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/users');
+            return;
         }
 
         $currentAdminId = (int)($_SESSION['user']['id'] ?? 0);

@@ -34,6 +34,13 @@ class AdminCouponController extends Controller
             $this->redirect('admin/coupons');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/coupons');
+            return;
+        }
+
         $code = strtoupper(trim($_POST['code'] ?? ''));
         $type = trim($_POST['type'] ?? 'fixed');
         $discountValue = (float)($_POST['discount_value'] ?? 0);
@@ -133,6 +140,13 @@ class AdminCouponController extends Controller
             $this->redirect('admin/coupons');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/coupons');
+            return;
+        }
+
         $code = strtoupper(trim($_POST['code'] ?? ''));
         $type = trim($_POST['type'] ?? 'fixed');
         $discountValue = (float)($_POST['discount_value'] ?? 0);
@@ -209,6 +223,13 @@ class AdminCouponController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/coupons');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/coupons');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';

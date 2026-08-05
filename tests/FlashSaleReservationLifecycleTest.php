@@ -501,8 +501,12 @@ if ($db instanceof PDO && file_exists($servicePath)) {
 
         $originalPost = $_POST;
         $originalRequestMethod = $_SERVER['REQUEST_METHOD'] ?? null;
+        $originalSession = $_SESSION ?? [];
         $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SESSION['user'] = ['id' => 999, 'full_name' => 'Test Admin', 'email' => 'admin@test.vn', 'role' => 'admin'];
+        $_SESSION['csrf_token'] = 'test_csrf_flash_sale';
         $_POST = [
+            '_csrf' => 'test_csrf_flash_sale',
             'title' => 'Campaign updated safely',
             'start_time' => '2026-08-01T10:00',
             'end_time' => '2026-08-01T12:00',
@@ -551,6 +555,7 @@ if ($db instanceof PDO && file_exists($servicePath)) {
         );
 
         $_POST = $originalPost;
+        $_SESSION = $originalSession;
         if ($originalRequestMethod === null) {
             unset($_SERVER['REQUEST_METHOD']);
         } else {

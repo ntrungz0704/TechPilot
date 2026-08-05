@@ -160,6 +160,13 @@ class AdminFlashSaleController extends Controller
             $this->redirect('admin/flash-sales');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/flash-sales');
+            return;
+        }
+
         $title = trim($_POST['title'] ?? '');
         $startTime = trim($_POST['start_time'] ?? '');
         $endTime = trim($_POST['end_time'] ?? '');
@@ -291,6 +298,13 @@ class AdminFlashSaleController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/flash-sales');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/flash-sales');
+            return;
         }
 
         $title = trim($_POST['title'] ?? '');
@@ -433,6 +447,13 @@ class AdminFlashSaleController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/flash-sales');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/flash-sales');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';

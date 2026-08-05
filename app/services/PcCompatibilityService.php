@@ -304,7 +304,9 @@ class PcCompatibilityService
                 $mbSupportedGens = $mbSpecs['bios_cpu_generations'] ?? [];
                 $mbBiosGens = $mbSpecs['bios_warning_generations'] ?? [];
 
-                if ($cpuSocket !== '' && $mbSocket !== '' && strcasecmp($cpuSocket, $mbSocket) !== 0) {
+                if ($cpuSocket === '' || $mbSocket === '') {
+                    $warnings[] = "Không thể kiểm tra tương thích socket do thiếu thông tin socket của CPU hoặc Bo mạch chủ.";
+                } elseif (strcasecmp($cpuSocket, $mbSocket) !== 0) {
                     $blockers[] = "Socket CPU ({$cpuSocket}) không khớp với Socket của Bo mạch chủ ({$mbSocket}).";
                 }
 
@@ -326,7 +328,9 @@ class PcCompatibilityService
             if ($cpu) {
                 $cpuSpecs = self::flattenSpecs($cpu['specs'] ?? '');
                 $cpuSocket = $cpuSpecs['socket'] ?? '';
-                if ($cpuSocket !== '' && $mbSocket !== '' && strcasecmp($cpuSocket, $mbSocket) !== 0) {
+                if ($cpuSocket === '' || $mbSocket === '') {
+                    $warnings[] = "Không thể kiểm tra tương thích socket do thiếu thông tin socket của CPU hoặc Bo mạch chủ.";
+                } elseif (strcasecmp($cpuSocket, $mbSocket) !== 0) {
                     $blockers[] = "Socket Bo mạch chủ ({$mbSocket}) không khớp với Socket của CPU đang chọn ({$cpuSocket}).";
                 }
             }

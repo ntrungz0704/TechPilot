@@ -82,6 +82,12 @@ class AdminReviewController extends Controller
             $this->redirect('admin/reviews');
         }
 
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/reviews');
+            return;
+        }
+
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
@@ -103,6 +109,12 @@ class AdminReviewController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/reviews');
+        }
+
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/reviews');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';

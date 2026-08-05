@@ -9,77 +9,83 @@ class AuthController extends Controller
         $old = ['email' => ''];
 
         if ($this->isPost()) {
-            $email    = strtolower(trim($_POST['email'] ?? ''));
-            $password = $_POST['password'] ?? '';
-            $old['email'] = $email;
-
-            if ($email === '' || $password === '') {
-                $errors[] = 'Vui lòng nhập đầy đủ Email và Mật khẩu.';
-            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'Email không hợp lệ.';
+            if (!verifyCsrf()) {
+                $errors[] = 'Phiên làm việc hết hạn. Vui lòng tải lại trang.';
             }
 
             if (empty($errors)) {
-                require_once ROOT_PATH . '/config/database.php';
-                if (Database::getConnection() === null) {
-                    throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
-                } else {
-                    $userModel = $this->model('User');
-                    $user = $userModel->verify($email, $password);
+                $email    = strtolower(trim($_POST['email'] ?? ''));
+                $password = $_POST['password'] ?? '';
+                $old['email'] = $email;
 
-                    if ($user) {
-                        session_regenerate_id(true);
+                if ($email === '' || $password === '') {
+                    $errors[] = 'Vui lòng nhập đầy đủ Email và Mật khẩu.';
+                } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'Email không hợp lệ.';
+                }
+
+                if (empty($errors)) {
+                    require_once ROOT_PATH . '/config/database.php';
+                    if (Database::getConnection() === null) {
+                        throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
+                    } else {
+                        $userModel = $this->model('User');
+                        $user = $userModel->verify($email, $password);
+
+                        if ($user) {
+                            session_regenerate_id(true);
                         
-                        // Lưu session thông tin tối giản an toàn
-                        $_SESSION['user'] = [
-                            'id' => $user['id'],
-                            'full_name' => $user['full_name'],
-                            'email' => $user['email'],
-                            'role' => $user['role']
-                        ];
+                            // Lưu session thông tin tối giản an toàn
+                            $_SESSION['user'] = [
+                                'id' => $user['id'],
+                                'full_name' => $user['full_name'],
+                                'email' => $user['email'],
+                                'role' => $user['role']
+                            ];
 
-                        // Xử lý ghi nhớ đăng nhập
-                        if (!empty($_POST['remember'])) {
-                            $token = bin2hex(random_bytes(32));
-                            $userModel->updateRememberToken($user['id'], $token);
-                            setcookie('remember_techpilot', $token, time() + (30 * 24 * 60 * 60), '/', '', false, true); // 30 days
-                        }
+                            // Xử lý ghi nhớ đăng nhập
+                            if (!empty($_POST['remember'])) {
+                                $token = bin2hex(random_bytes(32));
+                                $userModel->updateRememberToken($user['id'], $token);
+                                setcookie('remember_techpilot', $token, time() + (30 * 24 * 60 * 60), '/', '', false, true); // 30 days
+                            }
 
-                        // Hợp nhất giỏ hàng guest (nếu có)
-                        if (($user['role'] ?? '') !== 'admin' && !empty($_SESSION['guest_cart'])) {
-                            require_once ROOT_PATH . '/app/services/CartService.php';
-                            require_once ROOT_PATH . '/config/database.php';
-                            $db = Database::getConnection();
-                            if ($db) {
-                                try {
-                                    $cartService = new CartService();
-                                    $mergeResult = $cartService->mergeGuestCartIntoUser((int)$user['id'], $db);
-                                    if ($mergeResult['merged'] > 0) {
-                                        flash('success', 'Đã thêm ' . $mergeResult['merged'] . ' sản phẩm từ giỏ hàng tạm.');
+                            // Hợp nhất giỏ hàng guest (nếu có)
+                            if (($user['role'] ?? '') !== 'admin' && !empty($_SESSION['guest_cart'])) {
+                                require_once ROOT_PATH . '/app/services/CartService.php';
+                                require_once ROOT_PATH . '/config/database.php';
+                                $db = Database::getConnection();
+                                if ($db) {
+                                    try {
+                                        $cartService = new CartService();
+                                        $mergeResult = $cartService->mergeGuestCartIntoUser((int)$user['id'], $db);
+                                        if ($mergeResult['merged'] > 0) {
+                                            flash('success', 'Đã thêm ' . $mergeResult['merged'] . ' sản phẩm từ giỏ hàng tạm.');
+                                        }
+                                        if ($mergeResult['skipped'] > 0) {
+                                            flash('warning', 'Đã bỏ qua ' . $mergeResult['skipped'] . ' sản phẩm không còn hợp lệ hoặc hết hàng.');
+                                        }
+                                    } catch (Throwable $e) {
+                                        error_log('[Cart Merge Error] ' . $e->getMessage());
+                                        flash('error', 'Có lỗi xảy ra khi đồng bộ giỏ hàng, vui lòng thử lại sau.');
                                     }
-                                    if ($mergeResult['skipped'] > 0) {
-                                        flash('warning', 'Đã bỏ qua ' . $mergeResult['skipped'] . ' sản phẩm không còn hợp lệ hoặc hết hàng.');
-                                    }
-                                } catch (Throwable $e) {
-                                    error_log('[Cart Merge Error] ' . $e->getMessage());
-                                    flash('error', 'Có lỗi xảy ra khi đồng bộ giỏ hàng, vui lòng thử lại sau.');
                                 }
                             }
+
+                            // Xử lý redirect an toàn sau đăng nhập
+                            $redirect = trim($_GET['redirect'] ?? '');
+                            if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
+                                $this->redirect(ltrim($redirect, '/'));
+                            } elseif (($user['role'] ?? '') === 'admin') {
+                                $this->redirect('admin');
+                            } else {
+                                $this->redirect('');
+                            }
+                            return;
                         }
 
-                        // Xử lý redirect an toàn sau đăng nhập
-                        $redirect = trim($_GET['redirect'] ?? '');
-                        if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
-                            $this->redirect(ltrim($redirect, '/'));
-                        } elseif (($user['role'] ?? '') === 'admin') {
-                            $this->redirect('admin');
-                        } else {
-                            $this->redirect('');
-                        }
-                        return;
+                        $errors[] = 'Email hoặc mật khẩu không chính xác.';
                     }
-
-                    $errors[] = 'Email hoặc mật khẩu không chính xác.';
                 }
             }
         }
@@ -99,55 +105,61 @@ class AuthController extends Controller
         $old = ['full_name' => '', 'email' => '', 'phone' => ''];
 
         if ($this->isPost()) {
-            $fullName = trim($_POST['full_name'] ?? '');
-            $email    = strtolower(trim($_POST['email'] ?? ''));
-            $phone    = trim($_POST['phone'] ?? '');
-            $password = $_POST['password'] ?? '';
-            $confirm  = $_POST['confirm_password'] ?? '';
-
-            // Sanitize phone: chỉ giữ số, dấu +, khoảng trắng và gạch nối; reject nếu chứa @ hoặc dài quá 15 ký tự
-            if ($phone !== '') {
-                if (str_contains($phone, '@') || strlen($phone) > 15 || !preg_match('/^[\d\s\+\-\(\)]+$/', $phone)) {
-                    $phone = ''; // xóa giá trị sai, không báo lỗi (field không bắt buộc)
-                } else {
-                    // Chỉ giữ số và dấu + ở đầu
-                    $phone = preg_replace('/[^\d\+]/', '', $phone);
-                }
-            }
-
-            $old = ['full_name' => $fullName, 'email' => $email, 'phone' => ''];
-
-            if ($fullName === '' || $email === '' || $password === '' || $confirm === '') {
-                $errors[] = 'Vui lòng điền đầy đủ các trường bắt buộc.';
-            }
-            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'Email không hợp lệ.';
-            }
-            if (strlen($password) > 0 && strlen($password) < 8) {
-                $errors[] = 'Mật khẩu phải có ít nhất 8 ký tự.';
-            }
-            if ($password !== $confirm) {
-                $errors[] = 'Mật khẩu nhập lại không khớp.';
+            if (!verifyCsrf()) {
+                $errors[] = 'Phiên làm việc hết hạn. Vui lòng tải lại trang.';
             }
 
             if (empty($errors)) {
-                require_once ROOT_PATH . '/config/database.php';
-                if (Database::getConnection() === null) {
-                    throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
-                } else {
-                    $userModel = $this->model('User');
+                $fullName = trim($_POST['full_name'] ?? '');
+                $email    = strtolower(trim($_POST['email'] ?? ''));
+                $phone    = trim($_POST['phone'] ?? '');
+                $password = $_POST['password'] ?? '';
+                $confirm  = $_POST['confirm_password'] ?? '';
 
-                    if ($userModel->findByEmail($email)) {
-                        $errors[] = 'Email này đã được sử dụng. Vui lòng sử dụng Email khác hoặc Đăng nhập.';
-                    } elseif ($phone !== '' && $userModel->findByPhone($phone)) {
-                        $errors[] = 'Số điện thoại này đã được đăng ký bởi một tài khoản khác.';
+                // Sanitize phone: chỉ giữ số, dấu +, khoảng trắng và gạch nối; reject nếu chứa @ hoặc dài quá 15 ký tự
+                if ($phone !== '') {
+                    if (str_contains($phone, '@') || strlen($phone) > 15 || !preg_match('/^[\d\s\+\-\(\)]+$/', $phone)) {
+                        $phone = ''; // xóa giá trị sai, không báo lỗi (field không bắt buộc)
                     } else {
-                        if ($userModel->create($fullName, $email, $phone, $password)) {
-                            flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
-                            $this->redirect('auth/login');
-                            return;
+                        // Chỉ giữ số và dấu + ở đầu
+                        $phone = preg_replace('/[^\d\+]/', '', $phone);
+                    }
+                }
+
+                $old = ['full_name' => $fullName, 'email' => $email, 'phone' => ''];
+
+                if ($fullName === '' || $email === '' || $password === '' || $confirm === '') {
+                    $errors[] = 'Vui lòng điền đầy đủ các trường bắt buộc.';
+                }
+                if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'Email không hợp lệ.';
+                }
+                if (strlen($password) > 0 && strlen($password) < 8) {
+                    $errors[] = 'Mật khẩu phải có ít nhất 8 ký tự.';
+                }
+                if ($password !== $confirm) {
+                    $errors[] = 'Mật khẩu nhập lại không khớp.';
+                }
+
+                if (empty($errors)) {
+                    require_once ROOT_PATH . '/config/database.php';
+                    if (Database::getConnection() === null) {
+                        throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
+                    } else {
+                        $userModel = $this->model('User');
+
+                        if ($userModel->findByEmail($email)) {
+                            $errors[] = 'Email này đã được sử dụng. Vui lòng sử dụng Email khác hoặc Đăng nhập.';
+                        } elseif ($phone !== '' && $userModel->findByPhone($phone)) {
+                            $errors[] = 'Số điện thoại này đã được đăng ký bởi một tài khoản khác.';
                         } else {
-                            $errors[] = 'Đăng ký thất bại. Vui lòng liên hệ quản trị viên.';
+                            if ($userModel->create($fullName, $email, $phone, $password)) {
+                                flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+                                $this->redirect('auth/login');
+                                return;
+                            } else {
+                                $errors[] = 'Đăng ký thất bại. Vui lòng liên hệ quản trị viên.';
+                            }
                         }
                     }
                 }
@@ -186,28 +198,34 @@ class AuthController extends Controller
         $errors = [];
         $message = '';
         if ($this->isPost()) {
-            $email = strtolower(trim($_POST['email'] ?? ''));
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'Vui lòng nhập một địa chỉ email hợp lệ.';
-            } else {
-                try {
-                    require_once ROOT_PATH . '/config/database.php';
-                    if (Database::getConnection() === null) {
-                        http_response_code(503);
-                        $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
-                    } else {
-                        $userModel = $this->model('User');
-                        $user = $userModel->findByEmail($email);
-                        if ($user) {
-                            $token = bin2hex(random_bytes(32));
-                            $expiry = date('Y-m-d H:i:s', time() + 3600);
-                            $userModel->setResetToken($email, $token, $expiry);
+            if (!verifyCsrf()) {
+                $errors[] = 'Phiên làm việc hết hạn. Vui lòng tải lại trang.';
+            }
+
+            if (empty($errors)) {
+                $email = strtolower(trim($_POST['email'] ?? ''));
+                if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'Vui lòng nhập một địa chỉ email hợp lệ.';
+                } else {
+                    try {
+                        require_once ROOT_PATH . '/config/database.php';
+                        if (Database::getConnection() === null) {
+                            http_response_code(503);
+                            $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
+                        } else {
+                            $userModel = $this->model('User');
+                            $user = $userModel->findByEmail($email);
+                            if ($user) {
+                                $token = bin2hex(random_bytes(32));
+                                $expiry = date('Y-m-d H:i:s', time() + 3600);
+                                $userModel->setResetToken($email, $token, $expiry);
+                            }
+                            $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
                         }
+                    } catch (Throwable $e) {
+                        error_log('Forgot password error: ' . $e->getMessage());
                         $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
                     }
-                } catch (Throwable $e) {
-                    error_log('Forgot password error: ' . $e->getMessage());
-                    $message = 'Nếu địa chỉ email tồn tại trong hệ thống, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.';
                 }
             }
         }
@@ -242,22 +260,28 @@ class AuthController extends Controller
 
         $errors = [];
         if ($this->isPost()) {
-            $password = $_POST['password'] ?? '';
-            $confirm = $_POST['confirm_password'] ?? '';
+            if (!verifyCsrf()) {
+                $errors[] = 'Phiên làm việc hết hạn. Vui lòng tải lại trang.';
+            }
+
+            if (empty($errors)) {
+                $password = $_POST['password'] ?? '';
+                $confirm = $_POST['confirm_password'] ?? '';
             
-            if (empty($password) || strlen($password) < 8) {
-                $errors[] = 'Mật khẩu phải có ít nhất 8 ký tự.';
-            } elseif (!preg_match('/[0-9]/', $password) || !preg_match('/[a-zA-Z]/', $password)) {
-                $errors[] = 'Mật khẩu mới phải bao gồm cả chữ cái và chữ số để đảm bảo an toàn.';
-            } elseif ($password !== $confirm) {
-                $errors[] = 'Mật khẩu xác nhận không khớp với mật khẩu mới.';
-            } else {
-                $userModel->updatePassword($user['id'], $password);
-                $userModel->setResetToken($user['email'], '', '1970-01-01 00:00:00'); // Invalidate token permanently
-                $userModel->updateRememberToken($user['id'], null); // Revoke old remember tokens
-                flash('success', 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay bằng mật khẩu mới.');
-                $this->redirect('auth/login');
-                return;
+                if (empty($password) || strlen($password) < 8) {
+                    $errors[] = 'Mật khẩu phải có ít nhất 8 ký tự.';
+                } elseif (!preg_match('/[0-9]/', $password) || !preg_match('/[a-zA-Z]/', $password)) {
+                    $errors[] = 'Mật khẩu mới phải bao gồm cả chữ cái và chữ số để đảm bảo an toàn.';
+                } elseif ($password !== $confirm) {
+                    $errors[] = 'Mật khẩu xác nhận không khớp với mật khẩu mới.';
+                } else {
+                    $userModel->updatePassword($user['id'], $password);
+                    $userModel->setResetToken($user['email'], '', '1970-01-01 00:00:00'); // Invalidate token permanently
+                    $userModel->updateRememberToken($user['id'], null); // Revoke old remember tokens
+                    flash('success', 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay bằng mật khẩu mới.');
+                    $this->redirect('auth/login');
+                    return;
+                }
             }
         }
 

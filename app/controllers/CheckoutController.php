@@ -187,6 +187,11 @@ class CheckoutController extends Controller
             exit;
         }
 
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            echo json_encode(['success' => false, 'message' => 'Phiên làm việc hết hạn. Vui lòng tải lại trang.']);
+            exit;
+        }
+
         $code = trim($_POST['coupon_code'] ?? '');
         $summary = $this->getCartSummary();
         $subtotal = (float)$summary['subtotal'];
@@ -302,6 +307,11 @@ class CheckoutController extends Controller
             exit;
         }
 
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            echo json_encode(['success' => false, 'message' => 'Phiên làm việc hết hạn. Vui lòng tải lại trang.']);
+            exit;
+        }
+
         $summary = $this->getCartSummary();
         $subtotal = (float)$summary['subtotal'];
         unset($_SESSION['applied_coupon']);
@@ -327,6 +337,12 @@ class CheckoutController extends Controller
         }
 
         if (!$this->isPost()) {
+            $this->redirect('checkout');
+            return;
+        }
+
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            $_SESSION['checkout_error'] = 'Phiên làm việc hết hạn, vui lòng thử lại.';
             $this->redirect('checkout');
             return;
         }

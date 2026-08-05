@@ -66,6 +66,13 @@ class AdminCategoryController extends Controller
             $this->redirect('admin/categories');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/categories');
+            return;
+        }
+
         $name = trim($_POST['name'] ?? '');
         $slug = trim($_POST['slug'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -133,7 +140,8 @@ class AdminCategoryController extends Controller
             $stmt->execute([':id' => $id]);
             $category = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $stmt2 = $db->query('SELECT id, name FROM categories WHERE parent_id IS NULL AND id != ' . $id . ' ORDER BY name ASC');
+            $stmt2 = $db->prepare('SELECT id, name FROM categories WHERE parent_id IS NULL AND id != :exclude_id ORDER BY name ASC');
+            $stmt2->execute([':exclude_id' => $id]);
             $categories = $stmt2->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -157,6 +165,13 @@ class AdminCategoryController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/categories');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/categories');
+            return;
         }
 
         $name = trim($_POST['name'] ?? '');
@@ -218,6 +233,13 @@ class AdminCategoryController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/categories');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/categories');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';

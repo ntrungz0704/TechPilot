@@ -59,6 +59,12 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+                $_SESSION['error'] = 'Phiên làm việc hết hạn, vui lòng thử lại.';
+                header('Location: ' . url('admin/posts'));
+                exit;
+            }
+
             $validation = PostPublishingValidator::validate($_POST);
             if (!$validation['valid']) {
                 $this->renderAdmin('admin/posts/create', [
@@ -180,6 +186,12 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+                $_SESSION['error'] = 'Phiên làm việc hết hạn, vui lòng thử lại.';
+                header('Location: ' . url('admin/posts'));
+                exit;
+            }
+
             $db = Database::getConnection();
             $stmt = $db->prepare('SELECT * FROM posts WHERE id = :id');
             $stmt->execute([':id' => $id]);
@@ -312,6 +324,12 @@ class AdminPostController extends Controller
     {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+                $_SESSION['error'] = 'Phiên làm việc hết hạn, vui lòng thử lại.';
+                header('Location: ' . url('admin/posts'));
+                exit;
+            }
+
             try {
                 $db = Database::getConnection();
                 

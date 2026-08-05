@@ -43,6 +43,13 @@ class AdminBrandController extends Controller
             $this->redirect('admin/brands');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/brands');
+            return;
+        }
+
         $name = trim($_POST['name'] ?? '');
         $slug = trim($_POST['slug'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -135,6 +142,13 @@ class AdminBrandController extends Controller
             $this->redirect('admin/brands');
         }
 
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/brands');
+            return;
+        }
+
         $name = trim($_POST['name'] ?? '');
         $slug = trim($_POST['slug'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -196,6 +210,13 @@ class AdminBrandController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/brands');
+        }
+
+        $this->requireAdmin();
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/brands');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';

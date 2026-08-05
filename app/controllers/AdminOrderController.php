@@ -117,6 +117,12 @@ class AdminOrderController extends Controller
             $this->redirect('admin/orders');
         }
 
+        if (!verifyCsrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Phiên làm việc hết hạn, vui lòng thử lại.');
+            $this->redirect('admin/orders');
+            return;
+        }
+
         $newStatus = trim($_POST['status'] ?? '');
         if ($newStatus === '') {
             $this->redirect('admin/orders/detail/' . $id);

@@ -185,8 +185,10 @@ class FailClosedRegressionTest
             $this->forceDbFailure();
             echo "\n--- A. Login khi DB unavailable → RuntimeException ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_SESSION['csrf_token'] = 'test_csrf_cp01';
             $_POST['email'] = 'admin@techpilot.vn';
             $_POST['password'] = 'wrong_password';
+            $_POST['_csrf'] = 'test_csrf_cp01';
             
             $thrown = false;
             try {
@@ -208,8 +210,10 @@ class FailClosedRegressionTest
             $this->forceDbFailure();
             echo "\n--- A2. Login đúng email đúng password khi DB unavailable ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_SESSION['csrf_token'] = 'test_csrf_cp01';
             $_POST['email'] = 'admin@techpilot.vn';
             $_POST['password'] = 'admin123';
+            $_POST['_csrf'] = 'test_csrf_cp01';
             
             $thrown = false;
             try {
@@ -227,10 +231,12 @@ class FailClosedRegressionTest
             $this->forceDbFailure();
             echo "\n--- B. Register khi DB unavailable → RuntimeException ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_SESSION['csrf_token'] = 'test_csrf_cp01';
             $_POST['full_name'] = 'Test';
             $_POST['email'] = 'test@example.com';
             $_POST['password'] = 'password';
             $_POST['confirm_password'] = 'password';
+            $_POST['_csrf'] = 'test_csrf_cp01';
             
             $thrown = false;
             try {
@@ -283,6 +289,7 @@ class FailClosedRegressionTest
             $_POST['submit_token'] = 'valid_token';
             $_SESSION['submit_token'] = 'valid_token';
             $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
+            $_SESSION['csrf_token'] = 'test_csrf_token_cp01';
             
             $cartBefore = [1 => 1];
             $_SESSION['cart'] = $cartBefore;
@@ -294,6 +301,7 @@ class FailClosedRegressionTest
             $_POST['phone'] = '1234567890';
             $_POST['address'] = '123 Test St';
             $_POST['payment_method'] = 'COD';
+            $_POST['_csrf'] = 'test_csrf_token_cp01';
 
             $controller = new TestCheckoutController();
             $controller->submit();
@@ -324,6 +332,7 @@ class FailClosedRegressionTest
             $_POST['submit_token'] = 'valid_token';
             $_SESSION['submit_token'] = 'valid_token';
             $_SESSION['user'] = ['id' => 1, 'role' => 'customer'];
+            $_SESSION['csrf_token'] = 'test_csrf_token_cp01';
             
             $cartBefore = [1 => 1];
             $_SESSION['cart'] = $cartBefore;
@@ -335,6 +344,7 @@ class FailClosedRegressionTest
             $_POST['phone'] = '1234567890';
             $_POST['address'] = '123 Test St';
             $_POST['payment_method'] = 'VNPAY';
+            $_POST['_csrf'] = 'test_csrf_token_cp01';
 
             putenv('VNPAY_TMN_CODE=TESTCODE');
             putenv('VNPAY_HASH_SECRET=TESTSECRET');
