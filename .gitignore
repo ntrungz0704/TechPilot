@@ -30,5 +30,7 @@ scratch_*.php
 homepage*.html
 
 # === QA & Reports ===
-
 /tests/web/reports/
+*_report.md
+*-report.md
+techpilot-*.md

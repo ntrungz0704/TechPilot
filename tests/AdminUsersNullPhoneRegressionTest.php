@@ -106,7 +106,7 @@ function runAdminUsersNullPhoneRegressionTest()
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
         'email' => 'admin@techpilot.vn', 
-        'password' => 'TechPilot@Dev2026!',
+        'password' => $newPassword,
         'csrf_token' => $csrfToken
     ]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);

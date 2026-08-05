@@ -184,8 +184,8 @@ Sau khi import thành công, database sẽ có **28 bảng vật lý**, 651 sả
 
 | Role | Email | Mật khẩu |
 |------|-------|----------|
-| Admin | `admin@techpilot.vn` | `TechPilot@Dev2026!` |
-| Customer | `dev@techpilot.vn` | `TechPilot@Dev2026!` |
+| Admin | `admin@techpilot.vn` | `[Khởi tạo an toàn - vault]` |
+| Customer | `dev@techpilot.vn` | `[Khởi tạo an toàn - vault]` |
 
 > 💡 **Ghi chú:** Nếu chỉ cần tạo cấu trúc bảng (không có dữ liệu mẫu), dùng `database/schema.sql` thay vì `seed_dev.sql`.
 

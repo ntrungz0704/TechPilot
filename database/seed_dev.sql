@@ -1,7 +1,7 @@
 -- ============================================================================
 -- ⚠️  CHỈ DÙNG CHO LOCAL DEVELOPMENT & TESTING — KHÔNG DÙNG TRÊN PRODUCTION  ⚠️
 -- TechPilot — Dữ liệu mẫu cho môi trường phát triển
--- Tài khoản dev: admin@techpilot.vn / TechPilot@Dev2026!
+-- Tài khoản dev: admin@techpilot.vn / dev@techpilot.vn (mật khẩu đã khởi tạo an toàn)
 -- ============================================================================
 
 -- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
@@ -934,7 +934,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'TechPilot Dev Admin','admin@techpilot.vn','0900000001','$2y$12$8GftlTPbcJ3p6tw1HtKv4.jA9llhUAkyTWruYOjaDIcG//gXnfDNC','admin',NULL,'active',NOW(),NOW(),NULL,NULL,NULL),(2,'TechPilot Dev User','dev@techpilot.vn','0900000002','$2y$12$8GftlTPbcJ3p6tw1HtKv4.jA9llhUAkyTWruYOjaDIcG//gXnfDNC','customer',NULL,'active',NOW(),NOW(),NULL,NULL,NULL);
+INSERT INTO `users` VALUES (1,'TechPilot Dev Admin','admin@techpilot.vn','0900000001','$2y$12$pgb4No7pZpfeeqdE.hr0Deki/onD82by5ibuu9FlwUDzWSCRG3.le','admin',NULL,'active',NOW(),NOW(),NULL,NULL,NULL),(2,'TechPilot Dev User','dev@techpilot.vn','0900000002','$2y$12$S93rcBE.PQXNBsddH9cQOOjyu5YffmYG1MsepnX7fgVIb4PgA/58G','customer',NULL,'active',NOW(),NOW(),NULL,NULL,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
