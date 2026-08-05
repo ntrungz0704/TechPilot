@@ -85,7 +85,7 @@ function runAdminUsersNullPhoneRegressionTest()
     };
 
     // Since we need to test HTTP response, we should use a curl wrapper to the dev server
-    $serverUrl = 'http://127.0.0.1:8011';
+    $serverUrl = rtrim($argv[1] ?? 'http://127.0.0.1:8000', '/');
     
     // First, login to get session cookie
     // Fetch login page to get CSRF token
@@ -105,8 +105,8 @@ function runAdminUsersNullPhoneRegressionTest()
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-        'email' => 'admin99@test.com', 
-        'password' => 'password123', // Admin password might be password123 as seen in AdminRouteAuthorizationTest
+        'email' => 'admin@techpilot.vn', 
+        'password' => 'TechPilot@Dev2026!',
         'csrf_token' => $csrfToken
     ]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);

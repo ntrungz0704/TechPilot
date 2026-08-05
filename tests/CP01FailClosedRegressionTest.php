@@ -183,17 +183,24 @@ class FailClosedRegressionTest
         $this->runIsolated(function() {
             $this->assert(http_response_code() === 200, "Trước Auth case status là 200");
             $this->forceDbFailure();
-            echo "\n--- A. Login đúng email sai password khi DB unavailable ---\n";
+            echo "\n--- A. Login khi DB unavailable → RuntimeException ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_POST['email'] = 'admin@techpilot.vn';
             $_POST['password'] = 'wrong_password';
             
-            $controller = new TestAuthController();
-            $controller->login();
-            
+            $thrown = false;
+            try {
+                $controller = new TestAuthController();
+                $controller->login();
+            } catch (\RuntimeException $e) {
+                $thrown = true;
+                $this->assert(
+                    str_contains($e->getMessage(), 'kết nối cơ sở dữ liệu'),
+                    "RuntimeException message chứa lý do DB unavailable"
+                );
+            }
+            $this->assert($thrown, "User constructor ném RuntimeException khi DB unavailable");
             $this->assert(!isset($_SESSION['user']), "Không tạo session user");
-            $this->assert($controller->lastRedirect === null, "Không redirect như login thành công");
-            $this->assert(http_response_code() === 503, "Login DB outage tự chuyển thành 503");
         });
 
         $this->runIsolated(function() {
@@ -204,52 +211,68 @@ class FailClosedRegressionTest
             $_POST['email'] = 'admin@techpilot.vn';
             $_POST['password'] = 'admin123';
             
-            $controller = new TestAuthController();
-            $controller->login();
-            
+            $thrown = false;
+            try {
+                $controller = new TestAuthController();
+                $controller->login();
+            } catch (\RuntimeException $e) {
+                $thrown = true;
+            }
+            $this->assert($thrown, "Login với admin123 cũng bị RuntimeException khi DB unavailable");
             $this->assert(!isset($_SESSION['user']), "Không tạo session user");
-            $this->assert($controller->lastRedirect === null, "Không redirect như login thành công");
-            $this->assert(http_response_code() === 503, "Login DB outage tự chuyển thành 503");
         });
 
         $this->runIsolated(function() {
             $this->assert(http_response_code() === 200, "Trước Auth case status là 200");
             $this->forceDbFailure();
-            echo "\n--- B. Register khi DB unavailable ---\n";
+            echo "\n--- B. Register khi DB unavailable → RuntimeException ---\n";
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_POST['full_name'] = 'Test';
             $_POST['email'] = 'test@example.com';
             $_POST['password'] = 'password';
             $_POST['confirm_password'] = 'password';
             
-            $controller = new TestAuthController();
-            $controller->register();
-            
+            $thrown = false;
+            try {
+                $controller = new TestAuthController();
+                $controller->register();
+            } catch (\RuntimeException $e) {
+                $thrown = true;
+            }
+            $this->assert($thrown, "Register cũng bị RuntimeException khi DB unavailable");
             $this->assert(!isset($_SESSION['user']), "Không tạo session user");
-            $this->assert($controller->lastRedirect === null, "Không redirect như đăng ký thành công");
-            $this->assert(http_response_code() === 503, "Register DB outage tự chuyển thành 503");
         });
 
         $this->runIsolated(function() {
             $this->forceDbFailure();
-            echo "\n--- C. Remember-me khi DB unavailable ---\n";
+            echo "\n--- C. Remember-me khi DB unavailable → RuntimeException ---\n";
             $_COOKIE['remember_techpilot'] = 'fake_token';
-            $controller = new TestAuthController();
-            $this->assert(!isset($_SESSION['user']), "Controller constructor không tạo session user khi DB hỏng");
+            $thrown = false;
+            try {
+                $controller = new TestAuthController();
+            } catch (\RuntimeException $e) {
+                $thrown = true;
+            }
+            $this->assert($thrown, "Constructor ném RuntimeException khi DB unavailable + remember cookie");
+            $this->assert(!isset($_SESSION['user']), "Constructor không tạo session user khi DB hỏng");
         });
 
         $this->runIsolated(function() {
             $this->assert(http_response_code() === 200, "Trước Auth case status là 200");
             $this->forceDbFailure();
-            echo "\n--- D. Reset password khi DB unavailable ---\n";
+            echo "\n--- D. Reset password khi DB unavailable → RuntimeException ---\n";
             $_GET['token'] = 'token_abc';
-            $controller = new TestAuthController();
-            $controller->reset();
-            
-            $this->assert($controller->lastRedirect === null, "Không redirect như login giả dạng lỗi");
-            $this->assert(http_response_code() === 503, "Reset DB outage tự chuyển thành 503");
+            $thrown = false;
+            try {
+                $controller = new TestAuthController();
+                $controller->reset();
+            } catch (\RuntimeException $e) {
+                $thrown = true;
+            }
+            $this->assert($thrown, "Reset password cũng bị RuntimeException khi DB unavailable");
         });
     }
+
     
     private function testCheckoutFailClosed()
     {

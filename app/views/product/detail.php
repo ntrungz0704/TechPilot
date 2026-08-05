@@ -381,10 +381,16 @@ $galleryImages = getGalleryImages($product, $productImages);
         <div class="section__head">
             <h2>Sản phẩm liên quan</h2>
         </div>
-        <div class="product-grid product-grid--6">
-            <?php foreach ($related as $p): ?>
-                <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-            <?php endforeach; ?>
+        <div class="section-slider-wrapper">
+            <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+            <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+            <div class="product-slider-track">
+                <?php foreach ($related as $p): ?>
+                    <div>
+                        <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
     </section>
 <?php endif; ?>
@@ -750,4 +756,43 @@ $galleryImages = getGalleryImages($product, $productImages);
 
         setInterval(checkLiveStock, 20000);
     })();
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.section-slider-wrapper').forEach(function(wrapper) {
+            const track = wrapper.querySelector('.product-slider-track');
+            const prevBtn = wrapper.querySelector('.product-slider-arrow.prev');
+            const nextBtn = wrapper.querySelector('.product-slider-arrow.next');
+            if (!track) return;
+
+            let autoPlayTimer = null;
+            function getCardScrollWidth() {
+                const firstCard = track.children[0];
+                if (!firstCard) return 220;
+                return firstCard.getBoundingClientRect().width + 16;
+            }
+
+            function scrollNext() {
+                if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+                    track.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    track.scrollBy({ left: getCardScrollWidth(), behavior: 'smooth' });
+                }
+            }
+
+            function scrollPrev() {
+                if (track.scrollLeft <= 10) {
+                    track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
+                } else {
+                    track.scrollBy({ left: -getCardScrollWidth(), behavior: 'smooth' });
+                }
+            }
+
+            if (nextBtn) nextBtn.addEventListener('click', function(e) { e.preventDefault(); scrollNext(); });
+            if (prevBtn) prevBtn.addEventListener('click', function(e) { e.preventDefault(); scrollPrev(); });
+
+            autoPlayTimer = setInterval(scrollNext, 4000);
+            track.addEventListener('mouseenter', function() { if (autoPlayTimer) clearInterval(autoPlayTimer); });
+            track.addEventListener('mouseleave', function() { autoPlayTimer = setInterval(scrollNext, 4000); });
+        });
+    });
 </script>

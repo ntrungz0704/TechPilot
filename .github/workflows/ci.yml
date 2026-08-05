@@ -92,15 +92,23 @@ jobs:
           ];
           EOF
 
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h127.0.0.1 -uroot -proot && break
+            echo "Waiting for MySQL..."
+            sleep 1
+          done
+
       - name: Import database schema + seed data
         run: |
           mysql -h 127.0.0.1 -P 3306 -u root -proot --default-character-set=utf8mb4 techpilot < database/seed_dev.sql
 
       - name: Chạy PHP Migration
-        run: php scripts/database/migrate.php || true
+        run: php scripts/database/migrate.php
 
       - name: Chạy Verify Install
-        run: php scripts/verify-install.php || true
+        run: php scripts/verify-install.php
 
       - name: Run Test Suite
         run: |

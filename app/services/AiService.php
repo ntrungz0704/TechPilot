@@ -189,7 +189,7 @@ class AiService
         $curlErr = curl_error($ch);
 
         if ($response === false) {
-            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || $curlErrNo === CURLE_PEER_FAILED_VERIFICATION || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
+            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || (defined('CURLE_PEER_FAILED_VERIFICATION') && $curlErrNo === CURLE_PEER_FAILED_VERIFICATION) || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
             
             if ($isTlsError) {
                 $errorCode = 'TLS_VERIFICATION_FAILED';
@@ -318,7 +318,7 @@ class AiService
         $curlErr = curl_error($ch);
 
         if ($response === false) {
-            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || $curlErrNo === CURLE_PEER_FAILED_VERIFICATION || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
+            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || (defined('CURLE_PEER_FAILED_VERIFICATION') && $curlErrNo === CURLE_PEER_FAILED_VERIFICATION) || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
             
             if ($isTlsError) {
                 $errorCode = 'TLS_VERIFICATION_FAILED';

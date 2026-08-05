@@ -5,6 +5,120 @@ require_once ROOT_PATH . '/app/services/GeminiService.php';
 class ProductComparisonService
 {
     /**
+     * Tính giá hiệu lực (effective price) của sản phẩm theo quy tắc ưu tiên giá thấp nhất hợp lệ
+     */
+    public static function effectivePrice(array $product, ?array $flashSaleRow = null, ?int $nowTimestamp = null): float
+    {
+        $basePrice = (float)($product['price'] ?? 0);
+        if ($basePrice <= 0 || is_nan($basePrice) || is_infinite($basePrice)) {
+            return 0.0;
+        }
+
+        $validPrices = [$basePrice];
+
+        // Normal sale_price
+        $salePrice = (float)($product['sale_price'] ?? 0);
+        if ($salePrice > 0 && $salePrice < $basePrice && !is_nan($salePrice) && !is_infinite($salePrice)) {
+            $validPrices[] = $salePrice;
+        }
+
+        // Check embedded or passed flash_sale
+        $fs = $flashSaleRow ?? ($product['flash_sale'] ?? null);
+        if (is_array($fs)) {
+            $now = $nowTimestamp ?? time();
+            $fsPid = (int)($fs['fs_product_id'] ?? $fs['product_id'] ?? $product['id'] ?? 0);
+            $pId = (int)($product['id'] ?? 0);
+            $status = (string)($fs['fs_status'] ?? $fs['status'] ?? 'active');
+            
+            $startTime = isset($fs['fs_start']) ? strtotime($fs['fs_start']) : (isset($fs['start_time']) ? strtotime($fs['start_time']) : 0);
+            $endTime = isset($fs['fs_end']) ? strtotime($fs['fs_end']) : (isset($fs['end_time']) ? strtotime($fs['end_time']) : 0);
+            
+            $discPrice = (float)($fs['discount_price'] ?? 0);
+
+            if (
+                $fsPid === $pId &&
+                $status === 'active' &&
+                $startTime <= $now &&
+                $endTime > $now &&
+                $discPrice > 0 &&
+                $discPrice < $basePrice &&
+                !is_nan($discPrice) &&
+                !is_infinite($discPrice)
+            ) {
+                $validPrices[] = $discPrice;
+            }
+        }
+
+        return min($validPrices);
+    }
+    /**
+     * Chuẩn hóa slug / category_key về key chính trong config/product-comparison.php
+     */
+    public static function normalizeCategoryKey(?string $input, array $config = []): ?string
+    {
+        if (empty($input)) return null;
+        if (empty($config)) {
+            $config = require ROOT_PATH . '/config/product-comparison.php';
+        }
+        $input = strtolower(trim($input));
+        $categories = $config['categories'] ?? [];
+        foreach ($categories as $key => $cat) {
+            if ($key === $input) return $key;
+            $slugs = (array)($cat['slugs'] ?? []);
+            if (in_array($input, $slugs, true)) return $key;
+        }
+        return null;
+    }
+
+    public static function parseStorageGb(?string $str): ?float
+    {
+        if (empty($str)) return null;
+        $str = trim($str);
+
+        // Ambiguous checks: /, hoặc, or, +, comma, onboard, slot
+        if (preg_match('/[\/\+\,]|\b(hoặc|or|onboard|slot)\b/iu', $str)) {
+            return null;
+        }
+
+        // Multiplier 2x8GB, 2 X 16 GB, 2×8GB
+        if (preg_match('/^(\d+)\s*[xX×]\s*(\d+(\.\d+)?)\s*(GB|TB|MB)?$/iu', $str, $m)) {
+            $count = (float)$m[1];
+            $val = (float)$m[2];
+            $unit = strtoupper($m[4] ?? 'GB');
+            if ($unit === 'TB') $val *= 1024;
+            elseif ($unit === 'MB') $val /= 1024;
+            return $count * $val;
+        }
+
+        // Single value
+        if (preg_match('/(\d+(\.\d+)?)\s*(TB|GB|MB)\b/iu', $str, $m)) {
+            $val = (float)$m[1];
+            $unit = strtoupper($m[3]);
+            if ($unit === 'TB') return $val * 1024;
+            if ($unit === 'MB') return $val / 1024;
+            return $val;
+        }
+
+        return null;
+    }
+
+    public static function parseRefreshRateHz(?string $str): ?float
+    {
+        if (empty($str)) return null;
+        $str = trim($str);
+
+        if (preg_match('/[\/]|(?:\d|Hz)\s*-\s*\d+|\b(hoặc|or)\b/iu', $str)) {
+            return null;
+        }
+
+        if (preg_match('/(\d+(\.\d+)?)\s*Hz\b/iu', $str, $m)) {
+            return (float)$m[1];
+        }
+
+        return null;
+    }
+
+    /**
      * Phân tích và chấm điểm so sánh theo Persona & Danh mục (Deterministic Persona Engine)
      */
     public static function analyzeComparison(array $products, array $options = []): array
@@ -12,19 +126,46 @@ class ProductComparisonService
         if (empty($products)) {
             return [
                 'success' => false,
+                'winner'  => null,
                 'message' => 'Danh sách sản phẩm so sánh rỗng.'
             ];
         }
 
         $config = require ROOT_PATH . '/config/product-comparison.php';
 
-        $catKey   = trim($options['category'] ?? 'laptop');
-        $persona  = trim($options['persona'] ?? 'developer');
-        $priorities = (array)($options['priorities'] ?? ['performance']);
-        $maxBudget  = !empty($options['budget_max']) ? (float)$options['budget_max'] : null;
-        $minRam     = !empty($options['min_ram']) ? (int)$options['min_ram'] : 0;
-        $minStorage = !empty($options['min_storage']) ? (int)$options['min_storage'] : 0;
-        $minRefresh = !empty($options['min_refresh_rate']) ? (int)$options['min_refresh_rate'] : 0;
+        $catKeyOption = trim($options['category'] ?? 'laptop');
+        $persona      = trim($options['persona'] ?? 'developer');
+        $priorities   = (array)($options['priorities'] ?? ['performance']);
+        $maxBudget    = !empty($options['budget_max']) ? (float)$options['budget_max'] : null;
+        $minRam       = !empty($options['min_ram']) ? (int)$options['min_ram'] : 0;
+        $minStorage   = !empty($options['min_storage']) ? (int)$options['min_storage'] : 0;
+        $minRefresh   = !empty($options['min_refresh_rate']) ? (int)$options['min_refresh_rate'] : 0;
+        $expectedCount = (int)($options['expected_count'] ?? 0);
+
+        // Check mixed categories across input products
+        $catsSeen = [];
+        foreach ($products as $prod) {
+            $cSlug = $prod['category_slug'] ?? $prod['category_key'] ?? '';
+            $norm = self::normalizeCategoryKey($cSlug, $config);
+            if ($norm !== null) {
+                $catsSeen[$norm] = true;
+            }
+        }
+        if (count($catsSeen) > 1) {
+            return [
+                'success'  => true,
+                'winner'   => null,
+                'winners'  => null,
+                'message'  => 'Các sản phẩm so sánh thuộc nhiều danh mục khác nhau.',
+                'products' => $products
+            ];
+        }
+
+        // Determine server-authoritative category key
+        $catKey = $catKeyOption;
+        if (!empty($catsSeen)) {
+            $catKey = array_key_first($catsSeen);
+        }
 
         // 1. EVALUATE HARD REQUIREMENTS & DETERMINISTIC SCORING FOR EACH PRODUCT
         $analyzedProducts = [];
@@ -34,41 +175,114 @@ class ProductComparisonService
 
             // Hard Requirement Verification
             $eligible = true;
+            $verificationRequired = false;
             $ineligibleReasons = [];
+            $failedRequirements = [];
 
-            if ($maxBudget !== null && (float)$p['price'] > $maxBudget) {
+            // Category check: product must have valid server category if category_slug is checked
+            $prodCatSlug = $p['category_slug'] ?? $p['category_key'] ?? null;
+            if ($prodCatSlug !== null) {
+                $normProdCat = self::normalizeCategoryKey((string)$prodCatSlug, $config);
+                if ($normProdCat === null) {
+                    $eligible = false;
+                    $failedRequirements[] = 'category';
+                    $ineligibleReasons[] = 'Danh mục sản phẩm không hợp lệ.';
+                }
+            } elseif (array_key_exists('category_slug', $p) && $p['category_slug'] === null) {
                 $eligible = false;
-                $ineligibleReasons[] = "Giá " . formatPrice((float)$p['price']) . " vượt mức ngân sách " . formatPrice($maxBudget);
+                $failedRequirements[] = 'category';
+                $ineligibleReasons[] = 'Danh mục sản phẩm rỗng.';
+            }
+
+            // Price validation
+            $rawPrice = $p['price'] ?? null;
+            $priceVal = (is_numeric($rawPrice) && !is_nan((float)$rawPrice) && !is_infinite((float)$rawPrice)) ? (float)$rawPrice : 0.0;
+            $nowTs = isset($options['_now']) ? (int)$options['_now'] : null;
+            $effectivePrice = self::effectivePrice($p, null, $nowTs);
+
+            if ($priceVal <= 0) {
+                $eligible = false;
+                $failedRequirements[] = 'price';
+                $ineligibleReasons[] = 'Giá sản phẩm không hợp lệ.';
+                $effectivePrice = 0.0;
+            }
+
+            if ($maxBudget !== null && $effectivePrice > $maxBudget) {
+                $eligible = false;
+                $failedRequirements[] = 'budget';
+                $ineligibleReasons[] = "Giá " . formatPrice($effectivePrice) . " vượt mức ngân sách " . formatPrice($maxBudget);
             }
 
             if ($minRam > 0) {
-                $ramVal = self::extractNumericVal($parsedSpecs['RAM'] ?? '');
-                if ($ramVal > 0 && $ramVal < $minRam) {
+                $ramStr = $parsedSpecs['RAM'] ?? '';
+                if (empty($ramStr)) {
                     $eligible = false;
-                    $ineligibleReasons[] = "RAM {$ramVal}GB thấp hơn mức tối thiểu {$minRam}GB";
+                    $verificationRequired = true;
+                    $failedRequirements[] = 'ram';
+                    $ineligibleReasons[] = "Thiếu thông số RAM";
+                } else {
+                    $ramGb = self::parseStorageGb($ramStr);
+                    if ($ramGb === null) {
+                        $eligible = false;
+                        $verificationRequired = true;
+                        $failedRequirements[] = 'ram';
+                        $ineligibleReasons[] = "RAM không xác định";
+                    } elseif ($ramGb < $minRam) {
+                        $eligible = false;
+                        $failedRequirements[] = 'ram';
+                        $ineligibleReasons[] = "RAM {$ramGb}GB thấp hơn mức tối thiểu {$minRam}GB";
+                    }
                 }
             }
 
             if ($minStorage > 0) {
-                $ssdVal = self::extractNumericVal($parsedSpecs['SSD'] ?? $parsedSpecs['Storage'] ?? '');
-                if ($ssdVal > 0 && $ssdVal < $minStorage) {
+                $ssdStr = $parsedSpecs['SSD'] ?? $parsedSpecs['Storage'] ?? '';
+                if (empty($ssdStr)) {
                     $eligible = false;
-                    $ineligibleReasons[] = "Dung lượng lưu trữ thấp hơn mức tối thiểu {$minStorage}GB";
+                    $verificationRequired = true;
+                    $failedRequirements[] = 'ssd';
+                    $ineligibleReasons[] = "Thiếu thông số ổ cứng";
+                } else {
+                    $ssdGb = self::parseStorageGb($ssdStr);
+                    if ($ssdGb === null) {
+                        $eligible = false;
+                        $verificationRequired = true;
+                        $failedRequirements[] = 'ssd';
+                        $ineligibleReasons[] = "Ổ cứng không xác định";
+                    } elseif ($ssdGb < $minStorage) {
+                        $eligible = false;
+                        $failedRequirements[] = 'ssd';
+                        $ineligibleReasons[] = "Dung lượng lưu trữ thấp hơn mức tối thiểu {$minStorage}GB";
+                    }
                 }
             }
 
             if ($minRefresh > 0) {
-                $hzVal = self::extractNumericVal($parsedSpecs['Tần số quét'] ?? $parsedSpecs['refresh_rate'] ?? '');
-                if ($hzVal > 0 && $hzVal < $minRefresh) {
+                $hzStr = $parsedSpecs['Tần số quét'] ?? $parsedSpecs['refresh_rate'] ?? $parsedSpecs['Màn hình'] ?? $parsedSpecs['screen_size'] ?? '';
+                if (empty($hzStr)) {
                     $eligible = false;
-                    $ineligibleReasons[] = "Tần số quét {$hzVal}Hz chưa đạt mức yêu cầu {$minRefresh}Hz";
+                    $verificationRequired = true;
+                    $failedRequirements[] = 'refresh_rate';
+                    $ineligibleReasons[] = "Thiếu thông số tần số quét";
+                } else {
+                    $hzVal = self::parseRefreshRateHz($hzStr);
+                    if ($hzVal === null) {
+                        $eligible = false;
+                        $verificationRequired = true;
+                        $failedRequirements[] = 'refresh_rate';
+                        $ineligibleReasons[] = "Tần số quét không xác định";
+                    } elseif ($hzVal < $minRefresh) {
+                        $eligible = false;
+                        $failedRequirements[] = 'refresh_rate';
+                        $ineligibleReasons[] = "Tần số quét {$hzVal}Hz chưa đạt mức yêu cầu {$minRefresh}Hz";
+                    }
                 }
             }
 
             // Chấm điểm xác định 100 điểm
             $personaFit    = self::calcPersonaFit($catKey, $persona, $p, $parsedSpecs);
             $performanceFit= self::calcPerformanceFit($catKey, $p, $parsedSpecs);
-            $valueFit      = self::calcValueFit((float)$p['price'], $performanceFit);
+            $valueFit      = self::calcValueFit($effectivePrice, $performanceFit);
             $longevity     = self::calcLongevityUpgrade($catKey, $p, $parsedSpecs);
             $categoryQual  = self::calcCategoryQuality($catKey, $p, $parsedSpecs);
             $dataComplete  = self::calcDataCompleteness($parsedSpecs);
@@ -84,12 +298,15 @@ class ProductComparisonService
             $strengths = self::extractStrengths($catKey, $p, $parsedSpecs, $totalScore);
             $weaknesses = self::extractWeaknesses($catKey, $p, $parsedSpecs, $ineligibleReasons);
 
-            $p['eligible']           = $eligible;
-            $p['ineligible_reasons'] = $ineligibleReasons;
-            $p['total_score']        = $totalScore;
-            $p['confidence']         = $confidence;
-            $p['parsed_specs']       = $parsedSpecs;
-            $p['score_breakdown']    = [
+            $p['eligible']              = $eligible;
+            $p['verification_required'] = $verificationRequired;
+            $p['failed_requirements']   = array_values(array_unique($failedRequirements));
+            $p['ineligible_reasons']    = $ineligibleReasons;
+            $p['effective_price']       = $effectivePrice;
+            $p['total_score']           = $totalScore;
+            $p['confidence']            = $confidence;
+            $p['parsed_specs']          = $parsedSpecs;
+            $p['score_breakdown']       = [
                 'persona_fit'               => $personaFit,
                 'performance_fit'           => $performanceFit,
                 'value_fit'                 => $valueFit,
@@ -105,46 +322,78 @@ class ProductComparisonService
             $analyzedProducts[] = $p;
         }
 
-        // Sort candidates
-        usort($analyzedProducts, function($a, $b) {
-            if ($a['eligible'] !== $b['eligible']) {
-                return $b['eligible'] <=> $a['eligible'];
+        if ($expectedCount >= 2 && count($analyzedProducts) < $expectedCount) {
+            return [
+                'success'  => true,
+                'winner'   => null,
+                'winners'  => null,
+                'message'  => 'Một số sản phẩm không còn hợp lệ.',
+                'products' => $analyzedProducts
+            ];
+        }
+
+        // Filter eligible products ONLY for winner selection
+        $eligibleCandidates = array_values(array_filter($analyzedProducts, fn($cand) => $cand['eligible']));
+
+        if (empty($eligibleCandidates)) {
+            $reasonsByProduct = [];
+            foreach ($analyzedProducts as $ap) {
+                $reasonsByProduct[$ap['id']] = $ap['ineligible_reasons'];
             }
-            return $b['total_score'] <=> $a['total_score'];
+            return [
+                'success'            => true,
+                'winner'             => null,
+                'winners'            => ['best_fit' => null, 'best_value' => null, 'best_performance' => null],
+                'message'            => 'Không có sản phẩm nào đáp ứng đầy đủ điều kiện.',
+                'suggestion'         => 'Vui lòng nới lỏng ngân sách hoặc yêu cầu cấu hình tối thiểu.',
+                'reasons_by_product' => $reasonsByProduct,
+                'products'           => $analyzedProducts,
+                'analysis'           => self::fallbackAnalysis($catKey, $persona)
+            ];
+        }
+
+        // Stable sort for eligible candidates: total_score DESC, then id ASC
+        usort($eligibleCandidates, function($a, $b) {
+            if ($a['total_score'] !== $b['total_score']) {
+                return $b['total_score'] <=> $a['total_score'];
+            }
+            return $a['id'] <=> $b['id'];
         });
 
-        // 2. CHỌN 3 SẢN PHẨM CHIẾN THẮNG THEO VAI TRÒ
-        $bestFit = $analyzedProducts[0];
+        // 2. CHỌN SẢN PHẨM CHIẾN THẮNG THEO VAI TRÒ (CHỈ TỪ ELIGIBLE CANDIDATES)
+        $bestFit = $eligibleCandidates[0];
         
         $bestValue = null;
         $maxValRatio = -1;
-        foreach ($analyzedProducts as $cand) {
-            if ($cand['id'] === $bestFit['id']) continue;
-            $ratio = ($cand['total_score'] * 1000000) / max(1, (float)$cand['price']);
+        foreach ($eligibleCandidates as $cand) {
+            if ($cand['id'] === $bestFit['id'] && count($eligibleCandidates) > 1) continue;
+            $ratio = ($cand['total_score'] * 1000000) / max(1, (float)$cand['effective_price']);
             if ($ratio > $maxValRatio) {
                 $maxValRatio = $ratio;
                 $bestValue = $cand;
             }
         }
-        if (!$bestValue) $bestValue = $analyzedProducts[1] ?? $bestFit;
+        if (!$bestValue) $bestValue = $eligibleCandidates[1] ?? $bestFit;
 
         $bestPerf = null;
         $maxPerfScore = -1;
-        foreach ($analyzedProducts as $cand) {
-            if ($cand['id'] === $bestFit['id'] || $cand['id'] === $bestValue['id']) continue;
+        foreach ($eligibleCandidates as $cand) {
+            if (($cand['id'] === $bestFit['id'] || $cand['id'] === $bestValue['id']) && count($eligibleCandidates) > 2) continue;
             $perfScore = $cand['score_breakdown']['performance_fit'] + $cand['score_breakdown']['persona_fit'];
             if ($perfScore > $maxPerfScore) {
                 $maxPerfScore = $perfScore;
                 $bestPerf = $cand;
             }
         }
-        if (!$bestPerf) $bestPerf = $analyzedProducts[2] ?? ($analyzedProducts[1] ?? $bestFit);
+        if (!$bestPerf) $bestPerf = $eligibleCandidates[2] ?? ($eligibleCandidates[1] ?? $bestFit);
 
         $winners = [
             'best_fit'         => (int)$bestFit['id'],
             'best_value'       => (int)$bestValue['id'],
             'best_performance' => (int)$bestPerf['id']
         ];
+
+        $finalWinner = (int)$bestFit['id'];
 
         // 3. GENERATE AI EXPLANATION FOR LOCKED BACKEND WINNERS
         $aiAnalysis = self::generateAiComparisonExplanation($analyzedProducts, $winners, [
@@ -153,14 +402,21 @@ class ProductComparisonService
             'priorities' => $priorities
         ]);
 
+        $reasonsByProduct = [];
+        foreach ($analyzedProducts as $ap) {
+            $reasonsByProduct[$ap['id']] = $ap['ineligible_reasons'];
+        }
+
         return [
-            'success'    => true,
-            'category'   => $catKey,
-            'persona'    => $persona,
-            'priorities' => $priorities,
-            'products'   => $analyzedProducts,
-            'winners'    => $winners,
-            'analysis'   => $aiAnalysis
+            'success'            => true,
+            'category'           => $catKey,
+            'persona'            => $persona,
+            'priorities'         => $priorities,
+            'products'           => $analyzedProducts,
+            'winner'             => $finalWinner,
+            'winners'            => $winners,
+            'reasons_by_product' => $reasonsByProduct,
+            'analysis'           => $aiAnalysis
         ];
     }
 
@@ -170,18 +426,19 @@ class ProductComparisonService
 
     private static function calcPersonaFit(string $cat, string $persona, array $p, array $specs): int
     {
-        $name = mb_strtolower($p['name']);
+        $name = mb_strtolower($p['name'] ?? '');
         $score = 25;
 
         if ($cat === 'prebuilt_pc') {
             if ($persona === 'aaa_gaming' && (str_contains($name, 'rtx 4070') || str_contains($name, 'rtx 4080') || str_contains($name, 'rtx 4090'))) $score += 10;
             elseif ($persona === 'esports' && (str_contains($name, 'rtx 4060') || str_contains($name, 'i5') || str_contains($name, 'ryzen 5'))) $score += 8;
             elseif ($persona === 'ai_ml' && str_contains($name, 'rtx 40')) $score += 10;
-            elseif ($persona === 'office' && str_contains($name, 'i3') || str_contains($name, 'văn phòng')) $score += 8;
+            elseif ($persona === 'office' && (str_contains($name, 'i3') || str_contains($name, 'văn phòng'))) $score += 8;
         } elseif ($cat === 'laptop') {
             if ($persona === 'gamer' && (str_contains($name, 'gaming') || str_contains($name, 'rtx'))) $score += 10;
             elseif ($persona === 'developer' && (str_contains($name, 'i7') || str_contains($name, 'ryzen 7') || str_contains($name, '32gb'))) $score += 8;
             elseif ($persona === 'business_travel' && (str_contains($name, 'slim') || str_contains($name, 'oled') || str_contains($name, 'zenbook'))) $score += 8;
+            elseif ($persona === 'office' && (str_contains($name, 'i3') || str_contains($name, 'văn phòng'))) $score += 8;
         } elseif ($cat === 'monitor') {
             if ($persona === 'esports' && (str_contains($name, '180hz') || str_contains($name, '240hz'))) $score += 10;
             elseif ($persona === 'creator' && (str_contains($name, '4k') || str_contains($name, '2k') || str_contains($name, 'ips'))) $score += 8;
@@ -392,8 +649,13 @@ class ProductComparisonService
             // Silence AI error, fallback to local template
         }
 
+        return self::fallbackAnalysis($context['category'] ?? 'laptop', $context['persona'] ?? 'developer');
+    }
+
+    public static function fallbackAnalysis(string $category, string $persona): array
+    {
         return [
-            'summary' => "Dựa trên phân tích kỹ thuật theo Persona " . $context['persona'] . ", hệ thống đã xác định được 3 sản phẩm tương ứng với các vai trò Phù hợp nhất, Đáng tiền nhất và Hiệu năng cao nhất.",
+            'summary' => "Dựa trên phân tích kỹ thuật theo Persona {$persona}, hệ thống đã xác định được 3 sản phẩm tương ứng với các vai trò Phù hợp nhất, Đáng tiền nhất và Hiệu năng cao nhất.",
             'who_should_buy' => "• Nếu bạn cần sự an tâm và cân bằng nhất: Hãy chọn mẫu Phù hợp nhất.\n• Nếu bạn muốn tối ưu hóa từng đồng chi phí: Hãy chọn mẫu Đáng tiền nhất.",
             'who_should_avoid' => "• Nên tránh các mẫu vượt quá hạn mức tài chính hoặc có cấu hình chưa đạt yêu cầu tối thiểu.",
             'tradeoffs' => "• Các mẫu có hiệu năng cao hơn thường có mức giá tiệm cận trần ngân sách hoặc tỏa nhiều nhiệt hơn."

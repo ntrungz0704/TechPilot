@@ -65,9 +65,15 @@ if (file_exists($envPath)) {
         }
 
         if ($name !== '') {
-            putenv("{$name}={$value}");
-            $_ENV[$name]    = $value;
-            $_SERVER[$name] = $value;
+            if ($name === 'APP_ENV' && (getenv('APP_ENV') === 'test' || ($_SERVER['APP_ENV'] ?? '') === 'test')) {
+                // Preserve test environment set by test runners
+                $_ENV['APP_ENV'] = 'test';
+                $_SERVER['APP_ENV'] = 'test';
+            } else {
+                putenv("{$name}={$value}");
+                $_ENV[$name]    = $value;
+                $_SERVER[$name] = $value;
+            }
         }
     }
 }
@@ -94,7 +100,11 @@ if (session_status() === PHP_SESSION_NONE) {
         'httponly'  => true,
         'samesite' => 'Lax'
     ]);
-    session_start();
+    $savePath = @ini_get('session.save_path');
+    if (empty($savePath) || !@is_dir($savePath) || !@is_writable($savePath)) {
+        @ini_set('session.save_path', sys_get_temp_dir());
+    }
+    @session_start();
 }
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -133,7 +143,7 @@ if (!defined('ROOT_PATH')) {
 
 // Chuẩn hóa môi trường APP_ENV (mặc định production nếu thiếu hoặc không hợp lệ)
 $rawEnv = strtolower(trim((string)(getenv('APP_ENV') ?: 'production')));
-$appEnv = in_array($rawEnv, ['development', 'testing', 'production'], true) ? $rawEnv : 'production';
+$appEnv = in_array($rawEnv, ['development', 'testing', 'test', 'production'], true) ? $rawEnv : 'production';
 if (!defined('APP_ENV')) {
     define('APP_ENV', $appEnv);
 }

@@ -178,7 +178,7 @@ Hoặc chạy lệnh 1 dòng trên PowerShell / CMD:
 mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot < database\seed_dev.sql
 ```
 
-Sau khi import thành công, database sẽ có **27 bảng vật lý**, 651 sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
+Sau khi import thành công, database sẽ có **28 bảng vật lý**, 651 sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
 
 **Tài khoản dev mặc định** (chỉ dùng local dev):
 

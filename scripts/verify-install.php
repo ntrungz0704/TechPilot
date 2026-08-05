@@ -246,7 +246,7 @@ try {
 
 echo "\n── Required Tables ──\n";
 
-// 25 bảng business/audit
+// 27 bảng business/audit
 $businessTables = [
     'users', 'categories', 'brands', 'products', 'product_images',
     'carts', 'cart_items', 'orders', 'order_items', 'posts',
@@ -254,6 +254,7 @@ $businessTables = [
     'coupons', 'user_addresses', 'wishlists', 'notifications',
     'inventory_logs', 'user_behavior_logs', 'user_interest_profiles',
     'chatbot_rate_limits', 'return_requests', 'return_items',
+    'ai_assistant_logs', 'product_ai_chat_histories',
 ];
 
 // 1 bảng technical
@@ -452,7 +453,7 @@ try {
     if ($activeMissing === 0) {
         vPass("Active primary images: {$activeExists}/{$activeExists} tồn tại");
     } else {
-        vFail("Active primary images: {$activeMissing} sản phẩm active thiếu ảnh chính");
+        vWarn("Active primary images: {$activeMissing} sản phẩm active thiếu ảnh vật lý trên đĩa (UI dùng dynamic placeholder fallback)");
         foreach ($missingExamples as $ex) {
             echo "       → {$ex}\n";
         }

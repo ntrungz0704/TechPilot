@@ -22,8 +22,7 @@ class AuthController extends Controller
             if (empty($errors)) {
                 require_once ROOT_PATH . '/config/database.php';
                 if (Database::getConnection() === null) {
-                    http_response_code(503);
-                    $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
+                    throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
                 } else {
                     $userModel = $this->model('User');
                     $user = $userModel->verify($email, $password);
@@ -134,8 +133,7 @@ class AuthController extends Controller
             if (empty($errors)) {
                 require_once ROOT_PATH . '/config/database.php';
                 if (Database::getConnection() === null) {
-                    http_response_code(503);
-                    $errors[] = 'Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.';
+                    throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
                 } else {
                     $userModel = $this->model('User');
 
@@ -231,13 +229,7 @@ class AuthController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         if (Database::getConnection() === null) {
-            http_response_code(503);
-            $this->render('auth/reset', [
-                'pageTitle' => 'Đặt lại mật khẩu',
-                'errors' => ['Hệ thống đang tạm thời không thể xử lý yêu cầu. Vui lòng thử lại sau.'],
-                'token' => $token
-            ]);
-            return;
+            throw new RuntimeException('Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.', 500);
         }
 
         $userModel = $this->model('User');

@@ -20,7 +20,8 @@ if (!class_exists('Database')) {
 
         public static function getConnection(): ?PDO
         {
-            if (getenv('APP_ENV') === 'test' && getenv('FORCE_DB_FAILURE') === '1') {
+            $currentAppEnv = strtolower((string)(getenv('APP_ENV') ?: ($_SERVER['APP_ENV'] ?? (defined('APP_ENV') ? APP_ENV : ''))));
+            if ((getenv('FORCE_DB_FAILURE') === '1' || ($_SERVER['FORCE_DB_FAILURE'] ?? '') === '1') && in_array($currentAppEnv, ['test', 'testing'], true)) {
                 return null;
             }
 

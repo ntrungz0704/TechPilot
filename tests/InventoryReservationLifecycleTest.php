@@ -496,10 +496,7 @@ if ($db instanceof PDO) {
 
         $seedSource = file_get_contents($rootPath . '/database/seed_dev.sql');
         assertInventory(
-            str_contains(
-                $seedSource,
-                "`inventory_status` enum('not_reserved','reserved','released','committed') NOT NULL DEFAULT 'not_reserved'"
-            ),
+            preg_match("/`inventory_status` enum\('not_reserved','reserved','released','committed'\)(?:\s+COLLATE\s+\w+)? NOT NULL DEFAULT 'not_reserved'/i", $seedSource) === 1,
             'Fresh-install seed dùng default not_reserved'
         );
 

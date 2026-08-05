@@ -344,10 +344,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2><i class="fa-solid fa-fire" style="color: #ff4757; margin-right: 8px;"></i>Sản phẩm nổi bật</h2>
         <a href="<?= url('home/search?sort=popular') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($featuredProducts as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($featuredProducts as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -422,42 +428,72 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="tabs-content">
         <!-- Tab Laptop -->
         <div class="tabs-content__panel is-active" id="tab-laptop">
-            <div class="product-grid product-grid--6">
-                <?php foreach ($bestSellersLaptop as $p): ?>
-                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-                <?php endforeach; ?>
+            <div class="section-slider-wrapper">
+                <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+                <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="product-slider-track">
+                    <?php foreach ($bestSellersLaptop as $p): ?>
+                        <div>
+                            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         <!-- Tab Gaming -->
         <div class="tabs-content__panel" id="tab-gaming">
-            <div class="product-grid product-grid--6">
-                <?php foreach ($bestSellersGaming as $p): ?>
-                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-                <?php endforeach; ?>
+            <div class="section-slider-wrapper">
+                <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+                <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="product-slider-track">
+                    <?php foreach ($bestSellersGaming as $p): ?>
+                        <div>
+                            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         <!-- Tab Components -->
         <div class="tabs-content__panel" id="tab-components">
-            <div class="product-grid product-grid--6">
-                <?php foreach ($bestSellersComponents as $p): ?>
-                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-                <?php endforeach; ?>
+            <div class="section-slider-wrapper">
+                <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+                <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="product-slider-track">
+                    <?php foreach ($bestSellersComponents as $p): ?>
+                        <div>
+                            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         <!-- Tab Monitor -->
         <div class="tabs-content__panel" id="tab-monitor">
-            <div class="product-grid product-grid--6">
-                <?php foreach ($bestSellersMonitor as $p): ?>
-                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-                <?php endforeach; ?>
+            <div class="section-slider-wrapper">
+                <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+                <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="product-slider-track">
+                    <?php foreach ($bestSellersMonitor as $p): ?>
+                        <div>
+                            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         <!-- Tab Accessories -->
         <div class="tabs-content__panel" id="tab-accessories">
-            <div class="product-grid product-grid--6">
-                <?php foreach ($bestSellersAccessories as $p): ?>
-                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-                <?php endforeach; ?>
+            <div class="section-slider-wrapper">
+                <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+                <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="product-slider-track">
+                    <?php foreach ($bestSellersAccessories as $p): ?>
+                        <div>
+                            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -470,10 +506,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2><i class="fa-solid fa-sparkles" style="color: #2ed573; margin-right: 8px;"></i>Sản phẩm mới về</h2>
         <a href="<?= url('home/search?sort=newest') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($newProducts as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($newProducts as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -596,10 +638,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2>Laptop Gaming</h2>
         <a href="<?= url('home/search?cat=laptop&gpu=dedicated') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($laptopGaming as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($laptopGaming as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -622,10 +670,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2>Laptop Văn Phòng</h2>
         <a href="<?= url('home/search?cat=laptop&gpu=integrated') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($laptopVanPhong as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($laptopVanPhong as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -637,10 +691,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2>PC Build Sẵn</h2>
         <a href="<?= url('home/search?cat=pc-build-san') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($pcBuildSan as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($pcBuildSan as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -652,10 +712,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2>Linh Kiện PC</h2>
         <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($pcLinhKien as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($pcLinhKien as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -667,10 +733,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2>Gaming Gear</h2>
         <a href="<?= url('home/search?cat=gaming-gear') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($gamingGear as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($gamingGear as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -682,10 +754,16 @@ document.addEventListener('DOMContentLoaded', function() {
         <h2>Màn Hình</h2>
         <a href="<?= url('home/search?cat=man-hinh') ?>" class="section__more">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
     </div>
-    <div class="product-grid product-grid--6">
-        <?php foreach ($monHinh as $p): ?>
-            <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
-        <?php endforeach; ?>
+    <div class="section-slider-wrapper">
+        <button type="button" class="product-slider-arrow prev" aria-label="Sản phẩm trước"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="product-slider-arrow next" aria-label="Sản phẩm tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="product-slider-track">
+            <?php foreach ($monHinh as $p): ?>
+                <div>
+                    <?php include ROOT_PATH . '/app/views/home/_product_card.php'; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -843,3 +921,95 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </section>
 </div><!-- .home-page-wrapper -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function setupProductSlider(wrapper) {
+        if (!wrapper || wrapper.dataset.sliderInitialized) return;
+        wrapper.dataset.sliderInitialized = 'true';
+
+        const track = wrapper.querySelector('.product-slider-track');
+        const prevBtn = wrapper.querySelector('.product-slider-arrow.prev');
+        const nextBtn = wrapper.querySelector('.product-slider-arrow.next');
+        if (!track) return;
+
+        // Tự động clone các item nếu số item ít hơn 10 để slider cuộn mượt không bị nghẽn
+        if (track.children.length > 0 && track.children.length < 10) {
+            const originalChildren = Array.from(track.children);
+            originalChildren.forEach(child => {
+                const clone = child.cloneNode(true);
+                track.appendChild(clone);
+            });
+        }
+
+        let autoPlayTimer = null;
+
+        function getCardScrollWidth() {
+            const firstCard = track.children[0];
+            if (!firstCard) return 220;
+            const cardRect = firstCard.getBoundingClientRect();
+            const gap = parseFloat(getComputedStyle(track).gap) || 16;
+            return cardRect.width + gap;
+        }
+
+        function scrollNext() {
+            if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 15) {
+                track.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                track.scrollBy({ left: getCardScrollWidth(), behavior: 'smooth' });
+            }
+        }
+
+        function scrollPrev() {
+            if (track.scrollLeft <= 15) {
+                track.scrollTo({ left: track.scrollWidth - track.clientWidth, behavior: 'smooth' });
+            } else {
+                track.scrollBy({ left: -getCardScrollWidth(), behavior: 'smooth' });
+            }
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                scrollNext();
+                resetAutoPlay();
+            });
+        }
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                scrollPrev();
+                resetAutoPlay();
+            });
+        }
+
+        function startAutoPlay() {
+            if (autoPlayTimer) clearInterval(autoPlayTimer);
+            autoPlayTimer = setInterval(scrollNext, 3500);
+        }
+
+        function resetAutoPlay() {
+            if (autoPlayTimer) clearInterval(autoPlayTimer);
+            startAutoPlay();
+        }
+
+        startAutoPlay();
+        wrapper.addEventListener('mouseenter', function() {
+            if (autoPlayTimer) clearInterval(autoPlayTimer);
+        });
+        wrapper.addEventListener('mouseleave', startAutoPlay);
+    }
+
+    document.querySelectorAll('.section-slider-wrapper').forEach(setupProductSlider);
+
+    // Re-init tabbed sliders on tab button click
+    document.querySelectorAll('.tab-btn').forEach(function(tabBtn) {
+        tabBtn.addEventListener('click', function() {
+            setTimeout(function() {
+                document.querySelectorAll('.tabs-content__panel.is-active .section-slider-wrapper').forEach(setupProductSlider);
+            }, 60);
+        });
+    });
+});
+</script>

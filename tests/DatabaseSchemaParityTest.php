@@ -13,6 +13,7 @@ define('ROOT_PATH', dirname(__DIR__));
 final class DatabaseSchemaParityTest
 {
     private const EXPECTED_TABLES = [
+        'ai_assistant_logs',
         'banners',
         'brands',
         'cart_items',
@@ -29,6 +30,7 @@ final class DatabaseSchemaParityTest
         'order_items',
         'orders',
         'posts',
+        'product_ai_chat_histories',
         'product_images',
         'products',
         'return_items',
@@ -102,7 +104,7 @@ final class DatabaseSchemaParityTest
         $expected = self::EXPECTED_TABLES;
         sort($expected, SORT_STRING);
 
-        $this->assert(count($seedNames) === 26, 'seed_dev.sql tạo đúng 26 bảng vật lý');
+        $this->assert(count($seedNames) === 28, 'seed_dev.sql tạo đúng 28 bảng vật lý');
         $this->assertSameList($expected, $seedNames, 'Danh sách bảng trong seed khớp schema contract');
 
         foreach (self::DRIFT_TABLES as $table) {
@@ -132,14 +134,14 @@ final class DatabaseSchemaParityTest
 
         $readme = file_get_contents(ROOT_PATH . '/README.md');
         $this->assert(
-            str_contains($readme, '**26 bảng vật lý**'),
-            'README công bố đúng 26 bảng vật lý'
+            str_contains($readme, '**28 bảng vật lý**'),
+            'README công bố đúng 28 bảng vật lý'
         );
 
         $verifySource = file_get_contents(ROOT_PATH . '/scripts/verify-install.php');
         $verifyTables = $this->parseVerifyInstallTables($verifySource);
         sort($verifyTables, SORT_STRING);
-        $this->assertSameList($expected, $verifyTables, 'verify-install kiểm tra đủ 26 bảng');
+        $this->assertSameList($expected, $verifyTables, 'verify-install kiểm tra đủ 28 bảng');
 
         return $seedTables;
     }

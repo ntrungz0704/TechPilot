@@ -5,8 +5,9 @@
 
 require_once __DIR__ . '/AiService.php';
 
-class GeminiService
-{
+if (!class_exists('GeminiService')) {
+    class GeminiService
+    {
     /**
      * Lấy cấu hình Gemini từ AiService
      */
@@ -99,7 +100,7 @@ class GeminiService
         $curlErr = curl_error($ch);
 
         if ($response === false) {
-            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || $curlErrNo === CURLE_PEER_FAILED_VERIFICATION || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
+            $isTlsError = $curlErrNo === CURLE_SSL_CONNECT_ERROR || (defined('CURLE_PEER_FAILED_VERIFICATION') && $curlErrNo === CURLE_PEER_FAILED_VERIFICATION) || (defined('CURLE_SSL_CACERT') && $curlErrNo === CURLE_SSL_CACERT) || str_contains(strtolower((string)$curlErr), 'certificate') || str_contains(strtolower((string)$curlErr), 'ssl');
             
             $errorCode = $isTlsError ? 'TLS_VERIFICATION_FAILED' : 'GEMINI_NETWORK_ERROR';
             $errorMessage = $isTlsError ? 'TLS Certificate Verification Failed.' : 'Lỗi kết nối cURL: ' . $curlErr;
@@ -191,3 +192,5 @@ class GeminiService
         return AiService::callGemini($prompt, $contextData);
     }
 }
+}
+
