@@ -31,7 +31,7 @@ $canCheckout = $canCheckout ?? false;
                         <div class="cart-item__info">
                             <div class="cart-item__thumb">
                                 <?php $imgUrl = productImageUrl($item['image'] ?? '', $item['category_slug'] ?? $item['slug'] ?? '', (int)($item['product_id'] ?? $item['id'] ?? 0)); ?>
-                                <img src="<?= e($imgUrl) ?>" alt="<?= e($item['name']) ?>">
+                                <img src="<?= e($imgUrl) ? alt="TechPilot Asset">" alt="<?= e($item['name']) ?>">
                             </div>
                             <div>
                                 <h3>

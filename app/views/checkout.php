@@ -120,7 +120,7 @@ $savedAddresses = $savedAddresses ?? [];
                 ?>
                 <div class="summary-item" style="display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border);">
                     <div style="width: 52px; height: 52px; border-radius: 8px; border: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
-                        <img src="<?= e($imgUrl) ?>" alt="<?= e($item['name']) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <img src="<?= e($imgUrl) ? alt="TechPilot Asset">" alt="<?= e($item['name']) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                     </div>
                     <div style="flex: 1; min-width: 0;">
                         <span style="display: block; font-weight: 600; font-size: 13.5px; line-height: 1.35; color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?= e($item['name']) ?></span>

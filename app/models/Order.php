@@ -147,7 +147,7 @@ class Order
             $calculatedTotal = max(0.0, $calculatedSubtotal - $discountAmount + $shippingFee);
 
             $stmt = $this->db->prepare(
-                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, st[...]
+                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status) VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status)"
             );
 
             $stmt->execute([
@@ -250,7 +250,7 @@ class Order
                 );
                 $adminNotif->execute([
                     ':title' => 'Đơn hàng mới #' . $orderCode,
-                    ':content' => 'Khách hàng ' . ($payload['customer_name'] ?? 'Khách') . ' vừa đặt đơn hàng #' . $orderCode . ' tổng trị giá ' . number_format($calculatedTotal, [...]
+                    ':content' => 'Khách hàng ' . ($payload['customer_name'] ?? 'Khách') . ' vừa đặt đơn hàng #' . $orderCode . ' tổng trị giá ' . number_format($calculatedTotal, 0, ',', '.') . 'đ',
                 ]);
             } catch (Throwable $e) {}
 

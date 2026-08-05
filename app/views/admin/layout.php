@@ -595,7 +595,7 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="adminSidebar" style="background-color: #091830;">
         <a href="<?= url('admin') ?>" class="sidebar__logo" style="display: flex; align-items: center; gap: 10px; padding: 16px 20px;">
-            <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Admin Logo" style="height: 32px; max-width: 160px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+            <img src="<?= url('assets/images/logo.png') ? alt="TechPilot Asset">" alt="TechPilot Admin Logo" style="height: 32px; max-width: 160px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
         </a>
         <ul class="sidebar__menu">
             <li class="sidebar__menu-item <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">

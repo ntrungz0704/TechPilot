@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php foreach ($popularCategoriesList as $item): ?>
             <a href="<?= url('home/search?cat=' . urlencode($item['cat'])) ?>" class="category-strip__item">
                 <div class="category-strip__icon">
-                    <img src="<?= url('assets/images/categories/category-' . e($item['cat']) . '.png') ?>" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
+                    <img src="<?= url('assets/images/categories/category-' . e($item['cat']) . '.png') ? alt="TechPilot Asset">" alt="<?= e($item['name']) ?>" onerror="this.outerHTML='<i class=\'fa-solid fa-tag\' style=\'font-size: 24px; color: var(--primary);\'></i>'">
                 </div>
                 <span><?= e($item['name']) ?></span>
             </a>
@@ -821,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <?php foreach (array_slice($posts, 0, 4) as $post): ?>
                     <div class="news-card">
                         <a href="<?= url('post/detail/' . e($post['slug'])) ?>" class="news-card__thumb">
-                            <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
+                            <img src="<?= postImageUrl($post['image']) ? alt="TechPilot Asset">" alt="<?= e($post['title']) ?>" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<div style=\'background-color: var(--secondary); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;\'><i class=\'fa-solid fa-newspaper\' style=\'font-size: 42px; color: var(--primary);\'></i></div>'">
                         </a>
                         <div class="news-card__body">
                             <span class="news-card__date"><i class="fa-regular fa-clock"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?></span>
@@ -889,7 +889,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ?>
                 <div class="brand-logo-card" title="<?= e($brand['name']) ?>">
                     <?php if ($logoUrl): ?>
-                        <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" loading="lazy" decoding="async" onerror="handleBrandLogoError(this, '<?= e($brand['slug'] ?? '') ?>')">
+                        <img src="<?= $logoUrl ? alt="TechPilot Asset">" alt="<?= e($brand['name']) ?>" loading="lazy" decoding="async" onerror="handleBrandLogoError(this, '<?= e($brand['slug'] ?? '') ?>')">
                         <span class="brand-logo-text-fallback" style="display: none;"><?= e($brand['name']) ?></span>
                     <?php else: ?>
                         <span class="brand-logo-text-fallback"><?= e($brand['name']) ?></span>

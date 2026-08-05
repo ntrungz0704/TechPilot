@@ -57,7 +57,7 @@
                             <a href="<?= url('product/detail/' . e($p['slug'])) ?>" style="text-decoration: none; color: inherit; display: block;">
                                 <div class="product-card__image-wrapper" style="height: 160px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                                     <?php $imageUrl = productImageUrl($p['image'] ?? '', $p['category_slug'] ?? $p['name'] ?? '', (int)($p['id'] ?? 0)); ?>
-                                    <img src="<?= e($imageUrl) ?>" alt="<?= e($p['name']) ?>" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    <img src="<?= e($imageUrl) ? alt="TechPilot Asset">" alt="<?= e($p['name']) ?>" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                 </div>
                                 <div class="product-card__info">
                                     <span class="product-card__brand" style="font-size: 11px; text-transform: uppercase; color: var(--primary); font-weight: 700; display: block; margin-bottom: 4px;"><?= e($p['brand_name']) ?></span>

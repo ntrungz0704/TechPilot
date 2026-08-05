@@ -22,7 +22,7 @@
                     <?php foreach ($items as $item): ?>
                         <tr>
                             <td>
-                                <img src="<?= e(productImageUrl($item['product_image'] ?? '', $item['product_name'] ?? '')) ?>" alt="<?= e($item['product_name'] ?? '') ?>" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body);">
+                                <img src="<?= e(productImageUrl($item['product_image'] ?? '', $item['product_name'] ?? '')) ? alt="TechPilot Asset">" alt="<?= e($item['product_name'] ?? '') ?>" style="width: 40px; height: 40px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body);">
                             </td>
                             <td>
                                 <strong style="font-size: 13.5px;"><?= e($item['product_name'] ?? 'Sản phẩm đã bị xoá') ?></strong>

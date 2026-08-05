@@ -31,7 +31,7 @@
         <div class="container footer-grid">
             <div class="footer-col footer-brand">
                 <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none; margin-bottom: 20px;">
-                    <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
+                    <img src="<?= url('assets/images/logo.png') ? alt="TechPilot Asset">" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
                     <div class="logo-brand-info">
                         <span class="logo-brand-title">Tech<span>Pilot</span></span>
                         <span class="logo-brand-tagline" style="color: rgba(255,255,255,0.65);">Technology • Trust • Future</span>
@@ -95,7 +95,7 @@
     ?>
         <div class="mobile-fixed-buy-bar">
             <div class="fixed-buy-bar__info">
-                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>" alt="thumb">
+                <img src="<?= e(productImageUrl($product['image'] ?? '', $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ? alt="TechPilot Asset">" alt="thumb">
                 <div class="fixed-buy-bar__txt">
                     <span class="fixed-buy-bar__name"><?= e($product['name']) ?></span>
                     <span class="fixed-buy-bar__price"><?= formatPrice($product['final_price'] ?? $product['effective_price'] ?? $product['price']) ?></span>
@@ -1133,7 +1133,7 @@
 
     <!-- Floating Launcher Button -->
     <button type="button" class="tp-chatbot-launcher" id="tpChatbotLauncher" onclick="toggleChatbot()">
-        <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI Avatar" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+        <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI Avatar" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         <span class="tp-chatbot-launcher-pulse"></span>
     </button>
 
@@ -1142,7 +1142,7 @@
         <!-- Header -->
         <div class="tp-chatbot-header">
             <div class="tp-chatbot-header-left">
-                <span class="tp-chatbot-header-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI Avatar" style="width: 100%; height: 100%; object-fit: cover;"></span>
+                <span class="tp-chatbot-header-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI Avatar" style="width: 100%; height: 100%; object-fit: cover;"></span>
                 <div class="tp-chatbot-header-info">
                     <h4>TechPilot AI</h4>
                     <span class="tp-chatbot-header-status"><span class="status-dot"></span> Trợ lý ảo online</span>
@@ -1868,7 +1868,7 @@
 
             wrapper.innerHTML = `
                 <div class="tp-message-avatar">
-                    <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div style="display: flex; flex-direction: column; width: 100%;">
                     <div class="tp-message-content"></div>
@@ -1949,7 +1949,7 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'tp-message bot tp-typing-wrapper';
             wrapper.innerHTML = `
-                <div class="tp-message-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>
+                <div class="tp-message-avatar"><img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="Bot Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>
                 <div class="tp-message-content">
                     <div class="tp-typing">
                         <span></span><span></span><span></span>

@@ -64,13 +64,13 @@ $galleryImages = getGalleryImages($product, $productImages);
                     <span class="product-card__badge product-card__badge--promo" style="font-size: 13px; padding: 6px 14px;" title="🏷️ Sản phẩm Khuyến Mãi"><i class="fa-solid fa-tag"></i> -<?= (int)$product['discount_pct'] ?>% TIẾT KIỆM</span>
                 <?php endif; ?>
             <?php endif; ?>
-            <img src="<?= e(productImageUrl($galleryImages[0] ?? '', $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
+            <img src="<?= e(productImageUrl($galleryImages[0] ?? '', $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ? alt="TechPilot Asset">" alt="<?= e($product['name']) ?>" class="product-detail__main-image-src" id="mainProdImage">
         </div>
         <?php if (count($galleryImages) > 1): ?>
             <div class="product-detail__thumbs">
                 <?php foreach ($galleryImages as $idx => $imgUrl): ?>
                     <div class="product-detail__thumb <?= $idx === 0 ? 'is-active' : '' ?>" onclick="changeProductImage('<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>', this)">
-                        <img src="<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ?>" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
+                        <img src="<?= e(productImageUrl($imgUrl, $product['category_slug'] ?? $product['name'] ?? '', (int)($product['id'] ?? 0))) ? alt="TechPilot Asset">" alt="<?= e($product['name']) ?>" class="product-detail__thumb-image">
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -278,7 +278,7 @@ $galleryImages = getGalleryImages($product, $productImages);
                 <!-- Tin nhắn chào mừng -->
                 <div style="display: flex; gap: 10px; align-self: flex-start;">
                     <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
-                        <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                        <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                     </div>
                     <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: var(--text-primary);">
                         Xin chào! Tôi có thể giải đáp mọi thắc mắc về mẫu sản phẩm <strong><?= e($product['name']) ?></strong> này. Bạn hãy đặt câu hỏi bên dưới nhé!
@@ -537,7 +537,7 @@ $galleryImages = getGalleryImages($product, $productImages);
             const answerHtml = `
                 <div style="display: flex; gap: 10px; align-self: flex-start;">
                     <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
-                        <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                        <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                     </div>
                     <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: var(--text-primary);">
                         ${formatMarkdownText(messageText)}
@@ -634,7 +634,7 @@ $galleryImages = getGalleryImages($product, $productImages);
         const typingHtml = `
             <div id="${typingId}" style="display: flex; gap: 10px; align-self: flex-start;">
                 <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
-                    <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                    <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                 </div>
                 <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: var(--text-primary);">
                     <i class="fa-solid fa-circle-notch fa-spin"></i> Đang phân tích...
@@ -671,7 +671,7 @@ $galleryImages = getGalleryImages($product, $productImages);
                 const errHtml = `
                     <div style="display: flex; gap: 10px; align-self: flex-start;">
                         <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
-                            <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                            <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                         <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: #EF4444;">
                             Lỗi: ${escapeHtml(res.message)}
@@ -687,7 +687,7 @@ $galleryImages = getGalleryImages($product, $productImages);
             const errHtml = `
                 <div style="display: flex; gap: 10px; align-self: flex-start;">
                     <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink:0;">
-                        <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                        <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                     </div>
                     <div style="background-color: #FFFFFF; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.5; color: #EF4444;">
                         Lỗi kết nối mạng. Không thể gửi tin nhắn.

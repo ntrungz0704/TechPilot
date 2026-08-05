@@ -7,8 +7,7 @@
 ?>
 <div class="news-horizontal-card">
     <a href="<?= url('post/detail/' . e($p['slug'])) ?>" class="news-horizontal-card__img" aria-label="<?= e($p['title']) ?>">
-        <img
-            src="<?= postImageUrl($p['image'] ?? '') ?>"
+        <img src="<?= postImageUrl($p['image'] ?? '') ? alt="TechPilot Asset">"
             alt="<?= e($p['title']) ?>"
             loading="lazy"
             onerror="this.src='<?= url('assets/images/products/placeholder-component.webp') ?>'"

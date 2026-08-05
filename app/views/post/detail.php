@@ -69,8 +69,7 @@ if (!$post) return;
             <!-- Ảnh cover -->
             <?php if (!empty($post['image'])): ?>
                 <div class="news-detail-image">
-                    <img
-                        src="<?= postImageUrl($post['image']) ?>"
+                    <img src="<?= postImageUrl($post['image']) ? alt="TechPilot Asset">"
                         alt="<?= e($post['title']) ?>"
                         loading="eager"
                         fetchpriority="high"
@@ -131,7 +130,7 @@ if (!$post) return;
                     <?php foreach (array_slice($related, 0, 5) as $rel): ?>
                     <a href="<?= url('post/detail/' . e($rel['slug'])) ?>" style="display:flex;gap:10px;text-decoration:none;padding:8px;border-radius:8px;transition:all 0.2s;border:1px solid transparent;" onmouseover="this.style.background='#F8FAFC';this.style.borderColor='#E2E8F0'" onmouseout="this.style.background='';this.style.borderColor='transparent'">
                         <?php if (!empty($rel['image'])): ?>
-                        <img src="<?= postImageUrl($rel['image'] ?? '') ?>" alt="<?= e($rel['title'] ?? '') ?>" style="width:60px;height:45px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy" onerror="this.src='<?= url('assets/images/products/placeholder-component.png') ?>'">
+                        <img src="<?= postImageUrl($rel['image'] ?? '') ? alt="TechPilot Asset">" alt="<?= e($rel['title'] ?? '') ?>" style="width:60px;height:45px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy" onerror="this.src='<?= url('assets/images/products/placeholder-component.png') ?>'">
                         <?php endif; ?>
                         <span style="font-size:13px;font-weight:600;color:var(--text-primary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"><?= e($rel['title']) ?></span>
                     </a>
@@ -169,8 +168,7 @@ if (!$post) return;
             <?php foreach ($related as $r): ?>
                 <div class="news-related-grid-card">
                     <a href="<?= url('post/detail/' . e($r['slug'])) ?>" class="news-related-grid-img" aria-label="<?= e($r['title']) ?>">
-                        <img
-                            src="<?= postImageUrl($r['image'] ?? '') ?>"
+                        <img src="<?= postImageUrl($r['image'] ?? '') ? alt="TechPilot Asset">"
                             alt="<?= e($r['title']) ?>"
                             loading="lazy"
                             onerror="this.src='<?= url('assets/images/products/placeholder-component.webp') ?>'"

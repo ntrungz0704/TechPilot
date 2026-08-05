@@ -10,8 +10,7 @@
     <!-- Bài viết nổi bật lớn -->
     <div class="news-featured">
         <a href="<?= url('post/detail/' . e($featured['slug'])) ?>" class="news-featured__img" aria-label="<?= e($featured['title']) ?>">
-            <img
-                src="<?= postImageUrl($featured['image'] ?? '') ?>"
+            <img src="<?= postImageUrl($featured['image'] ?? '') ? alt="TechPilot Asset">"
                 alt="<?= e($featured['title']) ?>"
                 loading="eager"
                 fetchpriority="high"
@@ -41,8 +40,7 @@
         <?php foreach ($heroPopular as $pop): ?>
             <div class="news-hero-popular-item">
                 <a href="<?= url('post/detail/' . e($pop['slug'])) ?>" class="news-hero-popular__img" aria-label="<?= e($pop['title']) ?>">
-                    <img
-                        src="<?= postImageUrl($pop['image'] ?? '') ?>"
+                    <img src="<?= postImageUrl($pop['image'] ?? '') ? alt="TechPilot Asset">"
                         alt="<?= e($pop['title']) ?>"
                         loading="lazy"
                         decoding="async"

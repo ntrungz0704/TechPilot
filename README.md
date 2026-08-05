@@ -180,12 +180,12 @@ mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot 
 
 Sau khi import thành công, database sẽ có **28 bảng vật lý**, 651 sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
 
-**Tài khoản dev mặc định** (chỉ dùng local dev):
+**Tài khoản đăng nhập hệ thống (Đã lưu trực tiếp trong Database & seed_dev.sql):**
 
-| Role | Email | Mật khẩu |
-|------|-------|----------|
-| Admin | `admin@techpilot.vn` | `[Khởi tạo an toàn - vault]` |
-| Customer | `dev@techpilot.vn` | `[Khởi tạo an toàn - vault]` |
+| Role | Email | Mật khẩu | Quyền hạn |
+|------|-------|----------|-----------|
+| **Admin** | `admin@techpilot.vn` | `TechPilotAdmin2026!` | Quản trị viên hệ thống & Admin Dashboard |
+| **Customer** | `dev@techpilot.vn` | `TechPilotDev2026!` | Khách hàng mua sắm, Checkout, AI Assistant |
 
 > 💡 **Ghi chú:** Nếu chỉ cần tạo cấu trúc bảng (không có dữ liệu mẫu), dùng `database/schema.sql` thay vì `seed_dev.sql`.
 
@@ -279,8 +279,8 @@ Trang quản trị Admin: **`http://127.0.0.1:8000/admin`** hoặc click nút "Q
 
 | Tài khoản | Email | Mật khẩu | Quyền hạn |
 |---|---|---|---|
-| Admin | `admin@techpilot.vn` | `Admin@123` | Quản trị toàn bộ hệ thống |
-| Customer | `user@techpilot.vn` | `User@123` | Khách hàng mua hàng mẫu |
+| **Admin** | `admin@techpilot.vn` | `TechPilotAdmin2026!` | Quản trị toàn bộ hệ thống & Dashboard |
+| **Customer** | `dev@techpilot.vn` | `TechPilotDev2026!` | Khách hàng mua sắm mẫu |
 
 ---
 
