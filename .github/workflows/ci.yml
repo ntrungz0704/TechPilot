@@ -113,6 +113,15 @@ jobs:
       - name: Run Test Suite
         run: |
           echo "🧪 Running TechPilot test suite..."
+          
+          # Start a local PHP built-in server routed with router.php so web baseline tests can hit a base URL.
+          php -S 127.0.0.1:8000 router.php > /dev/null 2>&1 &
+          PHP_SERVER_PID=$!
+          echo "Started PHP built-in server (PID=$PHP_SERVER_PID)"
+          
+          # Give server a moment to start
+          sleep 1
+          
           passed=0
           failed=0
           skipped=0
@@ -122,20 +131,42 @@ jobs:
             echo ""
             echo "━━━ $test_name ━━━"
             
-            if php "$test_file" 2>&1; then
-              passed=$((passed + 1))
-              echo "  ✅ PASSED"
-            else
-              exit_code=$?
-              if [ $exit_code -eq 2 ]; then
-                skipped=$((skipped + 1))
-                echo "  ⏭️  SKIPPED"
+            # Web baseline test requires a baseUrl argument; provide local server URL.
+            if [ "$(basename "$test_file")" = "WebBaselineRemediationTest.php" ]; then
+              if php "$test_file" http://127.0.0.1:8000 2>&1; then
+                passed=$((passed + 1))
+                echo "  ✅ PASSED"
               else
-                failed=$((failed + 1))
-                echo "  ❌ FAILED (exit code: $exit_code)"
+                exit_code=$?
+                if [ $exit_code -eq 2 ]; then
+                  skipped=$((skipped + 1))
+                  echo "  ⏭️  SKIPPED"
+                else
+                  failed=$((failed + 1))
+                  echo "  ❌ FAILED (exit code: $exit_code)"
+                fi
+              fi
+            else
+              if php "$test_file" 2>&1; then
+                passed=$((passed + 1))
+                echo "  ✅ PASSED"
+              else
+                exit_code=$?
+                if [ $exit_code -eq 2 ]; then
+                  skipped=$((skipped + 1))
+                  echo "  ⏭️  SKIPPED"
+                else
+                  failed=$((failed + 1))
+                  echo "  ❌ FAILED (exit code: $exit_code)"
+                fi
               fi
             fi
           done
+          
+          # Cleanup server
+          if [ -n "$PHP_SERVER_PID" ]; then
+            kill $PHP_SERVER_PID || true
+          fi
           
           echo ""
           echo "══════════════════════════════════════════"

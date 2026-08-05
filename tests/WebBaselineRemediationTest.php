@@ -331,9 +331,11 @@ class WebBaselineRemediationTest
     }
 }
 
-if ($argc < 2) {
-    die("Usage: php WebBaselineRemediationTest.php <baseUrl>\n");
+$baseUrl = $argv[1] ?? getenv('BASE_URL') ?: 'http://127.0.0.1:8000';
+if (!filter_var($baseUrl, FILTER_VALIDATE_URL)) {
+    echo "Invalid or missing baseUrl. Please run: php tests/WebBaselineRemediationTest.php <baseUrl>\n";
+    exit(1);
 }
 
-$test = new WebBaselineRemediationTest($argv[1]);
+$test = new WebBaselineRemediationTest($baseUrl);
 $test->run();
