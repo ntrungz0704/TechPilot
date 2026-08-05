@@ -4,11 +4,17 @@ require_once ROOT_PATH . '/app/services/InventoryService.php';
 
 class InventoryApiController extends Controller
 {
-    /** Endpoint công khai / API kiểm tra tồn kho sản phẩm: GET /api/inventory/product/{id} */
+    /** Endpoint Admin / API kiểm tra tồn kho sản phẩm: GET /api/inventory/product/{id} */
     public function product(string $id = '0'): void
     {
         header('Content-Type: application/json');
         header('Cache-Control: no-cache, must-revalidate');
+
+        $user = currentUser();
+        if (!$user || ($user['role'] ?? '') !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền truy cập dữ liệu này.']);
+            exit;
+        }
 
         $productId = (int)$id;
         if ($productId <= 0) {

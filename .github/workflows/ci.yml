@@ -1,0 +1,139 @@
+name: TechPilot CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_mysql, mbstring, curl, openssl, fileinfo
+          coverage: none
+
+      - name: PHP Lint — kiểm tra lỗi cú pháp toàn bộ file .php
+        run: |
+          echo "🔍 Checking PHP syntax across all .php files..."
+          errors=0
+          while IFS= read -r file; do
+            output=$(php -l "$file" 2>&1)
+            if [ $? -ne 0 ]; then
+              echo "❌ $output"
+              errors=$((errors + 1))
+            fi
+          done < <(find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" -not -path "./.git/*")
+          
+          if [ $errors -gt 0 ]; then
+            echo ""
+            echo "❌ Found $errors syntax error(s)!"
+            exit 1
+          fi
+          echo "✅ All PHP files passed syntax check."
+
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: techpilot
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_mysql, mbstring, curl, openssl, fileinfo
+          coverage: none
+
+      - name: Cấu hình .env cho CI
+        run: |
+          cp .env.example .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i 's/^DB_NAME=.*/DB_NAME=techpilot/' .env
+          sed -i 's/^DB_USER=.*/DB_USER=root/' .env
+          sed -i 's/^DB_PASS=.*/DB_PASS=root/' .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
+
+      - name: Cấu hình database.local.php cho CI
+        run: |
+          cat > config/database.local.php << 'EOF'
+          <?php
+          return [
+              'host'     => '127.0.0.1',
+              'port'     => '3306',
+              'database' => 'techpilot',
+              'username' => 'root',
+              'password' => 'root',
+              'charset'  => 'utf8mb4',
+          ];
+          EOF
+
+      - name: Import database schema + seed data
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -proot --default-character-set=utf8mb4 techpilot < database/seed_dev.sql
+
+      - name: Chạy PHP Migration
+        run: php scripts/database/migrate.php || true
+
+      - name: Chạy Verify Install
+        run: php scripts/verify-install.php || true
+
+      - name: Run Test Suite
+        run: |
+          echo "🧪 Running TechPilot test suite..."
+          passed=0
+          failed=0
+          skipped=0
+          
+          for test_file in tests/*Test.php; do
+            test_name=$(basename "$test_file" .php)
+            echo ""
+            echo "━━━ $test_name ━━━"
+            
+            if php "$test_file" 2>&1; then
+              passed=$((passed + 1))
+              echo "  ✅ PASSED"
+            else
+              exit_code=$?
+              if [ $exit_code -eq 2 ]; then
+                skipped=$((skipped + 1))
+                echo "  ⏭️  SKIPPED"
+              else
+                failed=$((failed + 1))
+                echo "  ❌ FAILED (exit code: $exit_code)"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "══════════════════════════════════════════"
+          echo "Test Results: $passed passed, $failed failed, $skipped skipped"
+          echo "══════════════════════════════════════════"
+          
+          if [ $failed -gt 0 ]; then
+            exit 1
+          fi
