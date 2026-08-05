@@ -27,32 +27,71 @@ spl_autoload_register(function ($class) {
     }
 });
 
-// Tải cấu hình từ file .env nếu có
+// ── .env parser (robust: xử lý quote, dấu "=" trong value, inline comment) ──
 $envPath = dirname(__DIR__) . '/.env';
 if (file_exists($envPath)) {
     $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $line = trim($line);
-        if ($line === '' || strpos($line, '#') === 0) continue;
-        if (strpos($line, '=') !== false) {
-            list($name, $value) = explode('=', $line, 2);
-            $name = trim($name);
-            $value = trim($value);
+        // Bỏ qua dòng trống hoặc comment
+        if ($line === '' || $line[0] === '#') continue;
+
+        // Tìm vị trí dấu "=" đầu tiên — phần trước là key, phần sau là value
+        $eqPos = strpos($line, '=');
+        if ($eqPos === false) continue;
+
+        $name  = trim(substr($line, 0, $eqPos));
+        $value = substr($line, $eqPos + 1);
+
+        // Bỏ giá trị null/empty
+        if ($value === false) $value = '';
+        $value = trim($value);
+
+        // Xử lý quoted values: "value" hoặc 'value'
+        $len = strlen($value);
+        if ($len >= 2) {
+            $first = $value[0];
+            $last  = $value[$len - 1];
+            if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+                $value = substr($value, 1, -1);
+            } else {
+                // Xóa inline comment (chỉ khi value KHÔNG nằm trong quote)
+                // VD: APP_URL=http://localhost # comment → lấy "http://localhost"
+                $commentPos = strpos($value, ' #');
+                if ($commentPos !== false) {
+                    $value = rtrim(substr($value, 0, $commentPos));
+                }
+            }
+        }
+
+        if ($name !== '') {
             putenv("{$name}={$value}");
-            $_ENV[$name] = $value;
+            $_ENV[$name]    = $value;
             $_SERVER[$name] = $value;
         }
     }
 }
 
+// ── Session cookie security ─────────────────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
     $isSecure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
+
+    // Cảnh báo nếu production chạy qua HTTP — không silent fail
+    $envForSession = strtolower(trim((string)(getenv('APP_ENV') ?: 'production')));
+    if ($envForSession === 'production' && !$isSecure) {
+        error_log(
+            '[TechPilot SECURITY WARNING] APP_ENV=production nhưng KHÔNG phát hiện HTTPS. '
+            . 'Session cookie KHÔNG có secure flag. Nếu đây là server thật, '
+            . 'cần cấu hình HTTPS hoặc reverse proxy truyền header X-Forwarded-Proto.'
+        );
+    }
+
     session_set_cookie_params([
         'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isSecure,
-        'httponly' => true,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isSecure,
+        'httponly'  => true,
         'samesite' => 'Lax'
     ]);
     session_start();
