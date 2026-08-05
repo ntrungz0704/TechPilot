@@ -128,7 +128,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 
                     <!-- Logo Thương hiệu -->
                     <a href="<?= url('/') ?>" class="logo" style="display: flex; align-items: center; gap: 1px; text-decoration: none;">
-                        <img src="<?= url('assets/images/logo.png') ? alt="TechPilot Asset">" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
+                        <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Logo" style="height: 40px; object-fit: contain; display: block;">
                         <div class="logo-brand-info">
                             <span class="logo-brand-title">Tech<span>Pilot</span></span>
                         </div>

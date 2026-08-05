@@ -65,7 +65,7 @@
             <?php if (!empty($product['image'])): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ảnh hiện tại:</span>
-                    <img src="<?= e(productImageUrl($product['image'] ?? '', $product['name'] ?? '')) ? alt="TechPilot Asset">" alt="<?= e($product['name']) ?>" style="height: 80px; width: 80px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: var(--bg-body);">
+                    <img src="<?= e(productImageUrl($product['image'] ?? '', $product['name'] ?? '')) ?>" alt="<?= e($product['name']) ?>" style="height: 80px; width: 80px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: var(--bg-body);">
                 </div>
             <?php endif; ?>
 

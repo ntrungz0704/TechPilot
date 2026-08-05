@@ -34,7 +34,7 @@
                             <td>
                                 <?php $logoUrl = brandLogoUrl($b['logo'] ?? null, $b['slug'] ?? null); ?>
                                 <?php if ($logoUrl): ?>
-                                    <img src="<?= $logoUrl ? alt="TechPilot Asset">" alt="<?= e($b['name']) ?>" style="height: 36px; max-width: 100px; object-fit: contain; display: block;">
+                                    <img src="<?= $logoUrl ?>" alt="<?= e($b['name']) ?>" style="height: 36px; max-width: 100px; object-fit: contain; display: block;">
                                 <?php else: ?>
                                     <span style="color: #9CA3AF; font-size: 12px; font-style: italic;">Không có logo</span>
                                 <?php endif; ?>

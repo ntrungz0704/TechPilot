@@ -26,7 +26,7 @@
             <?php if (!empty($post['image'])): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ảnh hiện tại:</span>
-                    <img src="<?= postImageUrl($post['image']) ? alt="TechPilot Asset">" alt="<?= e($post['title']) ?>" style="height: 80px; width: 150px; object-fit: cover; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="height: 80px; width: 150px; object-fit: cover; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
                 </div>
             <?php endif; ?>
 

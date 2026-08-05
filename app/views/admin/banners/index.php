@@ -24,7 +24,7 @@
                         <tr>
                             <td style="text-align: center; font-weight: 600; color: var(--text-secondary);"><?= $index + 1 ?></td>
                             <td>
-                                <img src="<?= bannerImageUrl($bn['image'] ?? '') ? alt="TechPilot Asset">" alt="<?= e($bn['title']) ?>" style="width: 140px; height: 55px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; padding: 2px; background: #FFF;">
+                                <img src="<?= bannerImageUrl($bn['image'] ?? '') ?>" alt="<?= e($bn['title']) ?>" style="width: 140px; height: 55px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; padding: 2px; background: #FFF;">
                             </td>
                             <td><strong><?= e($bn['title']) ?></strong></td>
                             <td>

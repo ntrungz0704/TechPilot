@@ -97,7 +97,7 @@ $buildUrl = function (array $overrides = []) use ($filters): string {
                         <tr>
                             <td>#<?= (int)$log['id'] ?></td>
                             <td>
-                                <img src="<?= e(productImageUrl($log['product_image'] ?? '', $log['product_name'] ?? '')) ? alt="TechPilot Asset">" alt="<?= e($log['product_name'] ?? '') ?>" style="width: 36px; height: 36px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; padding: 2px;">
+                                <img src="<?= e(productImageUrl($log['product_image'] ?? '', $log['product_name'] ?? '')) ?>" alt="<?= e($log['product_name'] ?? '') ?>" style="width: 36px; height: 36px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; padding: 2px;">
                             </td>
                             <td>
                                 <strong style="font-size: 13px; max-width: 240px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= e($log['product_name'] ?? '') ?>">

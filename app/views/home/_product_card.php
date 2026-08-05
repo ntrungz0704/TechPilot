@@ -26,7 +26,7 @@
         </a>
         
         <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__thumb">
-            <img class="product-card__image" src="<?= e($imageUrl) ? alt="TechPilot Asset">" alt="<?= e($p['name'] ?? '') ?>" loading="lazy">
+            <img class="product-card__image" src="<?= e($imageUrl) ?>" alt="<?= e($p['name'] ?? '') ?>" loading="lazy">
         </a>
         
         <div class="product-card__body">

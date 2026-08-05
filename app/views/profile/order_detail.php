@@ -62,7 +62,7 @@
                     <?php foreach ($order['items'] as $item): ?>
                         <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
                             <div style="display: flex; gap: 15px; align-items: center;">
-                                <img src="<?= e(productImageUrl($item['image'] ?? '')) ? alt="TechPilot Asset">" alt="<?= e($item['product_name']) ?>" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: #FFF;">
+                                <img src="<?= e(productImageUrl($item['image'] ?? '')) ?>" alt="<?= e($item['product_name']) ?>" style="width: 60px; height: 60px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: #FFF;">
                                 <div>
                                     <h4 style="margin: 0; font-size: 14.5px; font-weight: 600;"><?= e($item['product_name']) ?></h4>
                                     <?php if (!empty($item['variant_name'])): ?>

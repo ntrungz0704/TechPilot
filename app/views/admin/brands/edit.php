@@ -22,7 +22,7 @@
             <?php if ($logoUrl): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Logo hiện tại:</span>
-                    <img src="<?= $logoUrl ? alt="TechPilot Asset">" alt="<?= e($brand['name']) ?>" style="height: 40px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= $logoUrl ?>" alt="<?= e($brand['name']) ?>" style="height: 40px; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
                 </div>
             <?php endif; ?>
 

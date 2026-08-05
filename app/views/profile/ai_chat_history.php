@@ -53,7 +53,7 @@
                                 ?>
                                 <a href="<?= url('profile/ai-chat-history?product_id=' . $s['product_id']) ?>" 
                                    style="display: flex; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid <?= $isSelected ? 'var(--primary)' : 'var(--border)' ?>; background-color: <?= $isSelected ? '#EFF6FF' : '#FAFAFA' ?>; text-decoration: none; color: inherit; transition: all 0.2s ease;">
-                                    <img src="<?= e($imgUrl) ? alt="TechPilot Asset">" alt="<?= e($s['product_name']) ?>" style="width: 50px; height: 50px; object-fit: contain; border-radius: 6px; background: #FFF; padding: 2px;">
+                                    <img src="<?= e($imgUrl) ?>" alt="<?= e($s['product_name']) ?>" style="width: 50px; height: 50px; object-fit: contain; border-radius: 6px; background: #FFF; padding: 2px;">
                                     <div style="flex: 1; min-width: 0;">
                                         <div style="font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);">
                                             <?= e($s['product_name']) ?>
@@ -77,7 +77,7 @@
                                 <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px;">
                                     <div style="display: flex; align-items: center; gap: 12px;">
                                         <?php $pImg = !empty($selectedProduct['image']) ? url(ltrim($selectedProduct['image'], '/')) : url('assets/images/no-image.png'); ?>
-                                        <img src="<?= e($pImg) ? alt="TechPilot Asset">" alt="<?= e($selectedProduct['name']) ?>" style="width: 42px; height: 42px; object-fit: contain;">
+                                        <img src="<?= e($pImg) ?>" alt="<?= e($selectedProduct['name']) ?>" style="width: 42px; height: 42px; object-fit: contain;">
                                         <div>
                                             <div style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);"><?= e($selectedProduct['name']) ?></div>
                                             <div style="font-size: 13px; color: var(--primary); font-weight: 600;"><?= formatPrice((float)$selectedProduct['price']) ?></div>
@@ -101,7 +101,7 @@
                                         <?php else: ?>
                                             <div style="display: flex; gap: 10px; align-self: flex-start;">
                                                 <div style="width: 30px; height: 30px; border-radius: 50%; background-color: var(--primary); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 12px; overflow: hidden; flex-shrink: 0;">
-                                                    <img src="<?= url('assets/images/chatbot-avatar.png') ? alt="TechPilot Asset">" alt="AI" style="width:100%; height:100%; object-fit:cover;">
+                                                    <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                                                 </div>
                                                 <div style="background-color: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 85%; line-height: 1.5; color: var(--text-primary);">
                                                     <div><?= nl2br(e($h['message'])) ?></div>

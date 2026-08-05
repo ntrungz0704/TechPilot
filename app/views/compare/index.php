@@ -208,7 +208,7 @@
                                 <div id="winnerBadgeSlot-<?= $p['id'] ?>"></div>
 
                                 <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 15px;">
-                                    <img src="<?= productImageUrl($p['image'] ?? '', $p['category_slug'] ?? '', (int)$p['id']) ? alt="TechPilot Asset">" alt="<?= e($p['name']) ?>" style="height: 90px; object-fit: contain; margin-bottom: 15px;">
+                                    <img src="<?= productImageUrl($p['image'] ?? '', $p['category_slug'] ?? '', (int)$p['id']) ?>" alt="<?= e($p['name']) ?>" style="height: 90px; object-fit: contain; margin-bottom: 15px;">
                                     <strong style="font-size: 13.5px; line-height: 1.4; height: 38px; overflow: hidden; display: block; margin-bottom: 8px; color: var(--text-primary);"><?= e($p['name']) ?></strong>
                                     <span style="color: var(--primary); font-weight: 800; font-size: 16px;"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
                                 </div>
