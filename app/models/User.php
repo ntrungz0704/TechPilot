@@ -3,45 +3,25 @@ require_once ROOT_PATH . '/config/database.php';
 
 class User
 {
-    private ?PDO $db;
-    private bool $useFallback;
+    private PDO $db;
 
     public function __construct()
     {
-        $this->db = Database::getConnection();
-        $this->useFallback = $this->db === null;
+        $connection = Database::getConnection();
 
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+        if ($connection === null) {
+            throw new RuntimeException(
+                'Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình MySQL và thử lại.',
+                500
+            );
         }
 
-        if (!isset($_SESSION['_fallback_users'])) {
-            $_SESSION['_fallback_users'] = [
-                [
-                    'id' => 1,
-                    'full_name' => 'TechPilot Admin',
-                    'email' => 'admin@techpilot.vn',
-                    'phone' => '0901234567',
-                    'role' => 'admin',
-                    'status' => 'active',
-                    'password' => password_hash('admin123', PASSWORD_DEFAULT),
-                ]
-            ];
-        }
+        $this->db = $connection;
     }
 
     /** Kiểm tra email đã tồn tại chưa */
     public function findByEmail(string $email): array|false
     {
-        if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as $user) {
-                if (strcasecmp($user['email'] ?? '', $email) === 0) {
-                    return $user;
-                }
-            }
-            return false;
-        }
-
         $stmt = $this->db->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
         $stmt->bindValue(':email', $email);
         $stmt->execute();
@@ -53,14 +33,6 @@ class User
     {
         $phone = trim($phone);
         if ($phone === '') return false;
-        if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as $user) {
-                if (($user['phone'] ?? '') === $phone) {
-                    return $user;
-                }
-            }
-            return false;
-        }
 
         $stmt = $this->db->prepare('SELECT * FROM users WHERE phone = :phone LIMIT 1');
         $stmt->bindValue(':phone', $phone);
@@ -72,19 +44,6 @@ class User
     public function create(string $fullName, string $email, string $phone, string $password, string $role = 'customer'): bool
     {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
-
-        if ($this->useFallback) {
-            $_SESSION['_fallback_users'][] = [
-                'id' => count($_SESSION['_fallback_users']) + 1,
-                'full_name' => $fullName,
-                'email' => $email,
-                'phone' => $phone,
-                'role' => $role,
-                'status' => 'active',
-                'password' => $hashed,
-            ];
-            return true;
-        }
 
         $stmt = $this->db->prepare(
             'INSERT INTO users (full_name, email, phone, password, role) VALUES (:full_name, :email, :phone, :password, :role)'
@@ -121,16 +80,6 @@ class User
     /** Lấy thông tin user theo ID */
     public function getById(int $id): array|false
     {
-        if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as $user) {
-                if ($user['id'] == $id) {
-                    unset($user['password']);
-                    return $user;
-                }
-            }
-            return false;
-        }
-
         $stmt = $this->db->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
@@ -140,17 +89,6 @@ class User
     /** Cập nhật thông tin cơ bản của user */
     public function updateProfile(int $id, string $fullName, string $phone): bool
     {
-        if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as &$user) {
-                if ($user['id'] == $id) {
-                    $user['full_name'] = $fullName;
-                    $user['phone'] = $phone;
-                    return true;
-                }
-            }
-            return false;
-        }
-
         $stmt = $this->db->prepare('UPDATE users SET full_name = :full_name, phone = :phone WHERE id = :id');
         return $stmt->execute([
             ':full_name' => $fullName,
@@ -170,16 +108,6 @@ class User
         $info = password_get_info($newPassword);
         $hashed = ($info['algo'] !== null && (int)$info['algo'] > 0) ? $newPassword : password_hash($newPassword, PASSWORD_DEFAULT);
 
-        if ($this->useFallback) {
-            foreach ($_SESSION['_fallback_users'] as &$user) {
-                if ($user['id'] == $id) {
-                    $user['password'] = $hashed;
-                    return true;
-                }
-            }
-            return false;
-        }
-
         $stmt = $this->db->prepare('UPDATE users SET password = :password WHERE id = :id');
         return $stmt->execute([
             ':password' => $hashed,
@@ -190,7 +118,6 @@ class User
     /** Cập nhật remember_token */
     public function updateRememberToken(int $id, ?string $token): bool
     {
-        if ($this->useFallback) return true;
         try {
             $stmt = $this->db->prepare('UPDATE users SET remember_token = :token WHERE id = :id');
             return $stmt->execute([':token' => $token, ':id' => $id]);
@@ -203,7 +130,6 @@ class User
     /** Tìm user qua remember_token */
     public function findByRememberToken(string $token): array|false
     {
-        if ($this->useFallback) return false;
         try {
             $stmt = $this->db->prepare('SELECT * FROM users WHERE remember_token = :token LIMIT 1');
             $stmt->bindValue(':token', $token);
@@ -218,7 +144,6 @@ class User
     /** Lưu reset_token cho email */
     public function setResetToken(string $email, string $token, string $expiry): bool
     {
-        if ($this->useFallback) return true;
         $stmt = $this->db->prepare('UPDATE users SET reset_token = :token, reset_token_expiry = :expiry WHERE email = :email');
         return $stmt->execute([':token' => $token, ':expiry' => $expiry, ':email' => $email]);
     }
@@ -226,10 +151,10 @@ class User
     /** Tìm user qua reset_token hợp lệ */
     public function findByResetToken(string $token): array|false
     {
-        if ($this->useFallback) return false;
         $stmt = $this->db->prepare('SELECT * FROM users WHERE reset_token = :token AND reset_token_expiry > NOW() LIMIT 1');
         $stmt->bindValue(':token', $token);
         $stmt->execute();
         return $stmt->fetch();
     }
 }
+

@@ -154,9 +154,11 @@ Quy tắc môi trường VNPay:
 
 ---
 
-### Bước 4: Khởi Tạo Cơ Sở Dữ Liệu & Import Data Mẫu (Seed SQL)
+### Bước 4: Khởi Tạo Cơ Sở Dữ Liệu & Import Data Mẫu
 
-Moở MySQL CLI hoặc phpMyAdmin để tạo database `techpilot`:
+> ⚠️ **Lưu ý bảo mật:** File `database/seed_dev.sql` chứa tài khoản dev test với mật khẩu mẫu. **CHỈ DÙNG CHO LOCAL DEVELOPMENT**, không deploy lên production.
+
+Mở MySQL CLI hoặc phpMyAdmin để tạo database `techpilot`:
 
 ```powershell
 mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4
@@ -167,16 +169,25 @@ Trong prompt MySQL:
 ```sql
 CREATE DATABASE IF NOT EXISTS techpilot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE techpilot;
-SOURCE database/seed.sql;
+SOURCE database/seed_dev.sql;
 ```
 
 Hoặc chạy lệnh 1 dòng trên PowerShell / CMD:
 
 ```cmd
-mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot < database\seed.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p --default-character-set=utf8mb4 techpilot < database\seed_dev.sql
 ```
 
-Sau khi import thành công, database sẽ có **26 bảng vật lý**, 650+ sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
+Sau khi import thành công, database sẽ có **27 bảng vật lý**, 651 sản phẩm công nghệ thực tế và 30 logo thương hiệu chính hãng.
+
+**Tài khoản dev mặc định** (chỉ dùng local dev):
+
+| Role | Email | Mật khẩu |
+|------|-------|----------|
+| Admin | `admin@techpilot.vn` | `TechPilot@Dev2026!` |
+| Customer | `dev@techpilot.vn` | `TechPilot@Dev2026!` |
+
+> 💡 **Ghi chú:** Nếu chỉ cần tạo cấu trúc bảng (không có dữ liệu mẫu), dùng `database/schema.sql` thay vì `seed_dev.sql`.
 
 ---
 
@@ -224,7 +235,7 @@ php scripts/database/migrate.php
 Runner ghi ledger sau khi `up()` trả về thành công, tự bỏ qua migration đã ghi,
 khóa chống hai runner chạy đồng thời và dừng ngay tại migration đầu tiên bị lỗi.
 
-`database/seed.sql` đã baseline toàn bộ migration có trong snapshot. Với database
+`database/seed_dev.sql` đã baseline toàn bộ migration có trong snapshot. Với database
 legacy được tạo trước khi runner có ledger, chỉ sau khi đã backup và xác minh
 schema/data khớp seed hiện tại mới chạy đúng một lần:
 

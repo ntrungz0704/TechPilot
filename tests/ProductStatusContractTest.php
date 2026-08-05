@@ -110,7 +110,7 @@ foreach ($viewContracts as $name => $path) {
 }
 
 echo "\n--- 3. Fresh-install seed schema ---\n";
-$seedSource = file_get_contents($rootPath . '/database/seed.sql');
+$seedSource = file_get_contents($rootPath . '/database/seed_dev.sql');
 $productsDefinition = '';
 if (preg_match('/CREATE TABLE `products`\s*\((.*?)\) ENGINE=/si', $seedSource, $match)) {
     $productsDefinition = $match[1];
@@ -119,7 +119,7 @@ $seedStatuses = [];
 if ($productsDefinition !== '' && preg_match('/`status`\s+enum\(([^)]*)\)/i', $productsDefinition, $match)) {
     $seedStatuses = enumValues('enum(' . $match[1] . ')');
 }
-assertContract($seedStatuses === $expectedSchemaStatuses, 'seed.sql giữ nguyên 3 giá trị legacy và append 4 lifecycle status');
+assertContract($seedStatuses === $expectedSchemaStatuses, 'seed_dev.sql giữ nguyên 3 giá trị legacy và append 4 lifecycle status');
 
 echo "\n--- 4. Migration contract ---\n";
 $migrationPath = $rootPath . '/database/migrations/2026_08_01_000002_expand_product_status_enum.php';

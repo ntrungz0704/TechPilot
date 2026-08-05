@@ -5,6 +5,8 @@
 *.local.sql
 *.local.json
 config/.db_sync_state.json
+/database/seed.sql
+vendor/
 
 # === Runtime & Temp ===
 *.log

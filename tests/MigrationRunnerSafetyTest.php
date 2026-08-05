@@ -95,7 +95,7 @@ final class MigrationRunnerSafetyTest
             'Promo migration dùng công thức giảm giá deterministic theo product id'
         );
 
-        $seedSource = file_get_contents(ROOT_PATH . '/database/seed.sql');
+        $seedSource = file_get_contents(ROOT_PATH . '/database/seed_dev.sql');
         $migrationFiles = glob(ROOT_PATH . '/database/migrations/*.php') ?: [];
         sort($migrationFiles, SORT_STRING);
 

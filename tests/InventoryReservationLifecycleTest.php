@@ -494,7 +494,7 @@ if ($db instanceof PDO) {
         assertInventory(($downColumn['Default'] ?? null) === 'reserved', 'Migration down() chỉ khôi phục default reserved');
         assertInventory($migrationClass::up($db), 'Migration up() chạy lại sau rollback thành công');
 
-        $seedSource = file_get_contents($rootPath . '/database/seed.sql');
+        $seedSource = file_get_contents($rootPath . '/database/seed_dev.sql');
         assertInventory(
             str_contains(
                 $seedSource,

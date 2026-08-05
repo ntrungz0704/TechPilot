@@ -47,7 +47,7 @@ echo "--- 1. Source contracts ---\n";
 assertFlashReservation(file_exists($migrationPath), 'Migration tạo flash_sale_reservations tồn tại');
 assertFlashReservation(file_exists($servicePath), 'FlashSaleService tồn tại');
 
-$seedSource = file_get_contents($rootPath . '/database/seed.sql');
+$seedSource = file_get_contents($rootPath . '/database/seed_dev.sql');
 $orderSource = file_get_contents($rootPath . '/app/models/Order.php');
 $adminOrderSource = file_get_contents($rootPath . '/app/controllers/AdminOrderController.php');
 $profileSource = file_get_contents($rootPath . '/app/controllers/ProfileController.php');

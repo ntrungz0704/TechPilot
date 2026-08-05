@@ -155,7 +155,8 @@ $requiredFiles = [
     'config/app.php',
     'config/database.php',
     'config/database.local.example.php',
-    'database/seed.sql',
+    'database/schema.sql',
+    'database/seed_dev.sql',
     'README.md',
     '.env.example',
 ];
@@ -342,7 +343,7 @@ foreach ($baselineChecks as $table => $minCount) {
         if ($count > 0) {
             vPass("{$table}: {$count} records");
         } else {
-            vFail("{$table}: 0 records — cần import database/seed.sql");
+            vFail("{$table}: 0 records — cần import database/seed_dev.sql");
         }
     } catch (\Throwable $e) {
         vFail("Không đếm được {$table}: " . $e->getMessage());

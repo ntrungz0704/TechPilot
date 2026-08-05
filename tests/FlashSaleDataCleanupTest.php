@@ -36,7 +36,7 @@ $targetIds = [50, 52, 53, 55, 57, 58];
 echo "--- 1. Source contracts ---\n";
 assertFlashCleanup(file_exists($migrationPath), 'Migration cleanup Flash Sale tồn tại');
 
-$seedSource = file_get_contents($rootPath . '/database/seed.sql');
+$seedSource = file_get_contents($rootPath . '/database/seed_dev.sql');
 assertFlashCleanup(
     str_contains($seedSource, $migrationName),
     'Fresh-install seed baseline migration cleanup'

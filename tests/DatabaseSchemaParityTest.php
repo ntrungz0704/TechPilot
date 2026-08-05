@@ -95,14 +95,14 @@ final class DatabaseSchemaParityTest
     {
         echo "--- 1. Fresh-install source contracts ---\n";
 
-        $seedSource = file_get_contents(ROOT_PATH . '/database/seed.sql');
+        $seedSource = file_get_contents(ROOT_PATH . '/database/seed_dev.sql');
         $seedTables = $this->parseSeedTables($seedSource);
         $seedNames = array_keys($seedTables);
         sort($seedNames, SORT_STRING);
         $expected = self::EXPECTED_TABLES;
         sort($expected, SORT_STRING);
 
-        $this->assert(count($seedNames) === 26, 'seed.sql tạo đúng 26 bảng vật lý');
+        $this->assert(count($seedNames) === 26, 'seed_dev.sql tạo đúng 26 bảng vật lý');
         $this->assertSameList($expected, $seedNames, 'Danh sách bảng trong seed khớp schema contract');
 
         foreach (self::DRIFT_TABLES as $table) {
@@ -228,7 +228,7 @@ final class DatabaseSchemaParityTest
     private function testSeedDdlOnTemporaryTables(PDO $db, array $seedTables): void
     {
         echo "\n--- 4. Fresh-install DDL bằng TEMPORARY tables ---\n";
-        $seedSource = file_get_contents(ROOT_PATH . '/database/seed.sql');
+        $seedSource = file_get_contents(ROOT_PATH . '/database/seed_dev.sql');
 
         foreach (self::DRIFT_TABLES as $table) {
             $quotedTable = preg_quote($table, '/');
