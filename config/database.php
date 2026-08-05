@@ -51,12 +51,23 @@ if (!class_exists('Database')) {
                     $dsn .= ';port=' . $port;
                 }
 
+                $sslMode = strtolower((string)(getenv('DB_SSL_MODE') ?: ($localConfig['ssl_mode'] ?? '')));
+                $sslCa   = getenv('DB_SSL_CA') ?: ($localConfig['ssl_ca'] ?? '');
+
                 $options = [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES   => false,
                     (defined('Pdo\Mysql::ATTR_INIT_COMMAND') ? \Pdo\Mysql::ATTR_INIT_COMMAND : @PDO::MYSQL_ATTR_INIT_COMMAND) => 'SET NAMES utf8mb4',
                 ];
+
+                if (!empty($sslMode) && $sslMode !== 'disabled') {
+                    if (!empty($sslCa) && file_exists($sslCa)) {
+                        $options[defined('Pdo\Mysql::ATTR_SSL_CA') ? \Pdo\Mysql::ATTR_SSL_CA : @PDO::MYSQL_ATTR_SSL_CA] = $sslCa;
+                    } else {
+                        $options[defined('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT') ? \Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT : @PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+                    }
+                }
 
                 try {
                     self::$instance = new PDO($dsn, $user, $pass, $options);
