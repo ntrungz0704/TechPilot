@@ -934,7 +934,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'TechPilot Dev Admin','admin@techpilot.vn','0900000001','$2y$12$pgb4No7pZpfeeqdE.hr0Deki/onD82by5ibuu9FlwUDzWSCRG3.le','admin',NULL,'active',NOW(),NOW(),NULL,NULL,NULL),(2,'TechPilot Dev User','dev@techpilot.vn','0900000002','$2y$12$S93rcBE.PQXNBsddH9cQOOjyu5YffmYG1MsepnX7fgVIb4PgA/58G','customer',NULL,'active',NOW(),NOW(),NULL,NULL,NULL);
+INSERT INTO `users` VALUES (1,'TechPilot Dev Admin','admin@techpilot.vn','0900000001','$2y$12$mMAj90bOh0uejVqEmQGT8ePSNOH7WFt8KpEoojqGFaCM/f2iqRo0O','admin',NULL,'active',NOW(),NOW(),NULL,NULL,NULL),(2,'TechPilot Dev User','dev@techpilot.vn','0900000002','$2y$12$0CC2rv37Qy8qVdFOVqtnG.s8a58p/zJQOAT2r5g3jup2mfh5bISIC','customer',NULL,'active',NOW(),NOW(),NULL,NULL,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -601,22 +601,22 @@ if (extension_loaded('openssl')) {
 }
 
 // CA certificate verification
-$caPath = ini_get('curl.cainfo') ?: ini_get('openssl.cafile');
-if (!empty($caPath) && file_exists($caPath)) {
-    vPass("CA certificate verification");
-} else {
+require_once VERIFY_ROOT . '/app/core/SecureCurl.php';
+try {
     $ch = curl_init('https://generativelanguage.googleapis.com');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt_array($ch, SecureCurl::buildTlsOptions());
     curl_exec($ch);
     $sslErr = curl_errno($ch);
+    curl_close($ch);
     if ($sslErr === 0) {
         vPass("CA certificate verification");
     } else {
         vWarn("CA certificate verification warning (cURL error {$sslErr})");
     }
+} catch (\Throwable $e) {
+    vWarn("CA certificate verification warning: " . $e->getMessage());
 }
 
 require_once VERIFY_ROOT . '/app/services/AiService.php';
