@@ -147,8 +147,7 @@ class Order
             $calculatedTotal = max(0.0, $calculatedSubtotal - $discountAmount + $shippingFee);
 
             $stmt = $this->db->prepare(
-                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status, inventory_status, inventory_reserved_at)
-                 VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status, 'not_reserved', NULL)"
+                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, st[...]
             );
 
             $stmt->execute([
@@ -251,7 +250,7 @@ class Order
                 );
                 $adminNotif->execute([
                     ':title' => 'Đơn hàng mới #' . $orderCode,
-                    ':content' => 'Khách hàng ' . ($payload['customer_name'] ?? 'Khách') . ' vừa đặt đơn hàng #' . $orderCode . ' tổng trị giá ' . number_format($calculatedTotal, 0, ',', '.') . 'đ.'
+                    ':content' => 'Khách hàng ' . ($payload['customer_name'] ?? 'Khách') . ' vừa đặt đơn hàng #' . $orderCode . ' tổng trị giá ' . number_format($calculatedTotal, [...]
                 ]);
             } catch (Throwable $e) {}
 
@@ -272,12 +271,21 @@ class Order
                 'total_amount' => $calculatedTotal,
                 'items' => $resolvedItems,
             ];
-        } catch (Throwable $e) {
-            error_log('Order::create failed: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+        } catch (RuntimeException $e) {
+            // Expected business validation / domain-level failures: rollback and return false.
             if ($this->db && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
+            // Log message without stack trace to avoid noisy stderr output in CI for expected cases.
+            error_log('Order::create: ' . $e->getMessage());
             return false;
+        } catch (Throwable $e) {
+            // Unexpected errors: rollback and rethrow so CI can surface programming bugs.
+            if ($this->db && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('Order::create unexpected error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            throw $e;
         }
     }
 
