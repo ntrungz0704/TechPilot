@@ -147,7 +147,7 @@ class Order
             $calculatedTotal = max(0.0, $calculatedSubtotal - $discountAmount + $shippingFee);
 
             $stmt = $this->db->prepare(
-                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status) VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status)"
+                "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status, inventory_status) VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status, :inventory_status)"
             );
 
             $stmt->execute([
@@ -165,6 +165,7 @@ class Order
                 ':shipping_fee' => $shippingFee,
                 ':total_amount' => $calculatedTotal,
                 ':status' => 'pending',
+                ':inventory_status' => 'not_reserved',
             ]);
 
             $orderId = (int)$this->db->lastInsertId();
