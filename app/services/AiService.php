@@ -4,6 +4,10 @@
  * Tự động dự phòng ưu tiên theo thứ tự: Google Gemini -> Groq Cloud -> QwenCloud (DashScope)
  */
 
+if (!class_exists('SecureCurl')) {
+    require_once ROOT_PATH . '/app/core/SecureCurl.php';
+}
+
 class AiService
 {
     /**

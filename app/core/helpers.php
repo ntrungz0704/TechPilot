@@ -198,7 +198,8 @@ if (!function_exists('e')) {
 if (!function_exists('url')) {
     function url(string $path = ''): string
     {
-        return BASE_URL . '/' . ltrim($path, '/');
+        $baseUrl = defined('BASE_URL') ? BASE_URL : (getenv('APP_URL') ?: '');
+        return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
     }
 }
 

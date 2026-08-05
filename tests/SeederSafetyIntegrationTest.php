@@ -469,6 +469,7 @@ class SeederSafetyIntegrationTest
 
             $caughtPdoException = false;
             try {
+                @$isolatedDb->exec("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,STRICT_ALL_TABLES'");
                 $isolatedSeeder = new NewsSeederService($isolatedDb);
                 $isolatedSeeder->run($batch, false, false);
             } catch (PDOException $e) {

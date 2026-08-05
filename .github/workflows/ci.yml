@@ -112,67 +112,92 @@ jobs:
 
       - name: Run Test Suite
         run: |
+          set -eo pipefail
           echo "🧪 Running TechPilot test suite..."
-          
-          # Start a local PHP built-in server routed with router.php so web baseline tests can hit a base URL.
-          php -S 127.0.0.1:8000 router.php > /dev/null 2>&1 &
+
+          # Start a local PHP built-in server with router.php and capture stdout/stderr to a log
+          mkdir -p ci-logs
+          php -S 127.0.0.1:8000 router.php > ci-logs/php-server.log 2>&1 &
           PHP_SERVER_PID=$!
-          echo "Started PHP built-in server (PID=$PHP_SERVER_PID)"
-          
-          # Give server a moment to start
-          sleep 1
-          
+          echo "Started PHP built-in server (PID=$PHP_SERVER_PID). Logging to ci-logs/php-server.log"
+
+          # Ensure server is always cleaned up
+          trap 'echo "Stopping PHP server"; kill ${PHP_SERVER_PID} || true' EXIT
+
+          # Wait for PHP server to respond (poll with curl)
+          for i in {1..30}; do
+            if curl -sS --fail http://127.0.0.1:8000/ >/dev/null 2>&1; then
+              echo "PHP server is responding"
+              break
+            fi
+            echo "Waiting for PHP server..."
+            sleep 1
+          done
+
+          # Show first lines of server log to help debugging
+          echo "---- PHP server log (first 50 lines) ----"
+          head -n 50 ci-logs/php-server.log || true
+          echo "-----------------------------------------"
+
           passed=0
           failed=0
           skipped=0
-          
+
           for test_file in tests/*Test.php; do
             test_name=$(basename "$test_file" .php)
             echo ""
             echo "━━━ $test_name ━━━"
-            
+
             # Web baseline test requires a baseUrl argument; provide local server URL.
-            if [ "$(basename "$test_file")" = "WebBaselineRemediationTest.php" ]; then
-              if php "$test_file" http://127.0.0.1:8000 2>&1; then
+            ci_log="ci-logs/${test_name}.log"
+            if [ "$test_name" = "WebBaselineRemediationTest" ]; then
+              if php "$test_file" http://127.0.0.1:8000 > "$ci_log" 2>&1; then
                 passed=$((passed + 1))
                 echo "  ✅ PASSED"
               else
                 exit_code=$?
                 if [ $exit_code -eq 2 ]; then
                   skipped=$((skipped + 1))
-                  echo "  ⏭️  SKIPPED"
+                  echo "  ⏭️ SKIPPED"
                 else
                   failed=$((failed + 1))
                   echo "  ❌ FAILED (exit code: $exit_code)"
+                  echo "---- $test_name output ----"
+                  sed -n '1,400p' "$ci_log" || true
+                  echo "---- end $test_name output ----"
                 fi
               fi
             else
-              if php "$test_file" 2>&1; then
+              if php "$test_file" > "$ci_log" 2>&1; then
                 passed=$((passed + 1))
                 echo "  ✅ PASSED"
               else
                 exit_code=$?
                 if [ $exit_code -eq 2 ]; then
                   skipped=$((skipped + 1))
-                  echo "  ⏭️  SKIPPED"
+                  echo "  ⏭️ SKIPPED"
                 else
                   failed=$((failed + 1))
                   echo "  ❌ FAILED (exit code: $exit_code)"
+                  echo "---- $test_name output ----"
+                  sed -n '1,400p' "$ci_log" || true
+                  echo "---- end $test_name output ----"
                 fi
               fi
             fi
           done
-          
-          # Cleanup server
-          if [ -n "$PHP_SERVER_PID" ]; then
-            kill $PHP_SERVER_PID || true
-          fi
-          
+
+          # Final server log tail to capture any late traces
+          echo ""
+          echo "---- PHP server log (last 200 lines) ----"
+          tail -n 200 ci-logs/php-server.log || true
+          echo "-----------------------------------------"
+
           echo ""
           echo "══════════════════════════════════════════"
           echo "Test Results: $passed passed, $failed failed, $skipped skipped"
           echo "══════════════════════════════════════════"
-          
+
           if [ $failed -gt 0 ]; then
             exit 1
           fi

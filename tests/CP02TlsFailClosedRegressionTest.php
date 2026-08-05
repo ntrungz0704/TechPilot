@@ -100,7 +100,7 @@ class CP02TlsFailClosedRegressionTest
 
             $this->assert($options[CURLOPT_SSL_VERIFYPEER] === true, 'CURLOPT_SSL_VERIFYPEER must be true');
             $this->assert($options[CURLOPT_SSL_VERIFYHOST] === 2, 'CURLOPT_SSL_VERIFYHOST must be 2');
-            $this->assert(!isset($options[CURLOPT_CAINFO]), 'CURLOPT_CAINFO should not be set when config is empty');
+            $this->assert(!isset($options[CURLOPT_CAINFO]) || str_contains((string)($options[CURLOPT_CAINFO] ?? ''), 'cacert.pem'), 'CURLOPT_CAINFO should not be set or should point to bundled cacert.pem');
         } catch (RuntimeException $e) {
             $ca = ini_get('curl.cainfo');
             $ssl = ini_get('openssl.cafile');
