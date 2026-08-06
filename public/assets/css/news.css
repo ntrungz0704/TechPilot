@@ -827,26 +827,30 @@ html.dark-mode .news-badge {
 .news-related-list {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 8px;
 }
 .news-related-item {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--news-border);
+    padding: 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
-.news-related-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+.news-related-item:hover {
+    background: var(--news-muted-bg);
+    border-color: var(--news-border);
 }
 .news-related-img {
     flex-shrink: 0;
-    width: 88px;
-    height: 64px;
+    width: 72px;
+    height: 52px;
     border-radius: 6px;
     overflow: hidden;
     display: block;
+    background: var(--news-muted-bg);
 }
 .news-related-img img {
     width: 100%;
@@ -856,7 +860,7 @@ html.dark-mode .news-badge {
     transition: transform .25s ease;
 }
 .news-related-item:hover .news-related-img img {
-    transform: scale(1.04);
+    transform: scale(1.05);
 }
 .news-related-content {
     flex: 1;
@@ -868,23 +872,22 @@ html.dark-mode .news-badge {
 .news-related-content h5 {
     margin: 0;
     font-size: 13px;
-    font-weight: 700;
-    line-height: 1.4;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--news-text-main);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    padding-bottom: 1px;
+    transition: color 0.2s ease;
 }
-.news-related-content h5 a {
-    color: var(--news-text-main);
-    text-decoration: none;
-}
-.news-related-content h5 a:hover {
+.news-related-item:hover .news-related-content h5 {
     color: var(--news-primary);
 }
-.news-related-content h5 a:focus-visible {
-    outline: 2px solid var(--news-primary);
-    outline-offset: 2px;
+.news-related-content h5 a {
+    color: inherit;
+    text-decoration: none;
 }
 .news-related-content span {
     font-size: 11px;
