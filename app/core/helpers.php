@@ -551,7 +551,7 @@ if (!function_exists('shippingFee')) {
 }
 
 if (!function_exists('calculateCouponDiscount')) {
-    /** Tính số tiền coupon từ subtotal đã được server xác nhận. */
+    /** Tính số tiền coupon từ subtotal đã được server xác nhận (Khóa mức giảm tối đa 20% tổng giá trị). */
     function calculateCouponDiscount(array $coupon, float $subtotal): float
     {
         if ($subtotal <= 0 || $subtotal < (float)($coupon['min_order_value'] ?? 0)) {
@@ -559,8 +559,11 @@ if (!function_exists('calculateCouponDiscount')) {
         }
 
         $value = max(0.0, (float)($coupon['discount_value'] ?? 0));
-        if (($coupon['type'] ?? '') === 'percent') {
-            $discount = $subtotal * ($value / 100);
+        $type = $coupon['type'] ?? 'fixed';
+
+        if ($type === 'percent' || $type === 'percentage') {
+            $percent = min(20.0, $value);
+            $discount = $subtotal * ($percent / 100);
             $maxDiscount = max(0.0, (float)($coupon['max_discount'] ?? 0));
             if ($maxDiscount > 0) {
                 $discount = min($discount, $maxDiscount);
@@ -569,7 +572,11 @@ if (!function_exists('calculateCouponDiscount')) {
             $discount = $value;
         }
 
-        return min($subtotal, max(0.0, $discount));
+        // QUY TẮC BẢO VỆ: Mức giảm tối đa tuyệt đối KHÔNG ĐƯỢC VƯỢT QUÁ 20% giá trị đơn hàng / sản phẩm
+        $maxAllowed20Percent = $subtotal * 0.20;
+        $finalDiscount = min($discount, $maxAllowed20Percent);
+
+        return min($subtotal, max(0.0, $finalDiscount));
     }
 }
 

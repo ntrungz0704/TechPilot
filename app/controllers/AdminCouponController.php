@@ -59,6 +59,27 @@ class AdminCouponController extends Controller
             return;
         }
 
+        // Quy tắc kiểm tra mức giảm giá tối đa 20%
+        if ($type === 'percent' || $type === 'percentage') {
+            if ($discountValue > 20) {
+                flash('error', 'Mức giảm giá theo phần trăm tối đa chỉ được 20%. Bạn đã nhập ' . $discountValue . '%.');
+                $this->redirect('admin/coupons/create');
+                return;
+            }
+        } elseif ($type === 'fixed' || $type === 'fixed_amount') {
+            if ($minOrderValue <= 0) {
+                flash('error', 'Vui lòng nhập Giá trị đơn hàng tối thiểu (> 0) đối với mã giảm giá số tiền cố định để xác định hạn mức giảm tối đa 20%.');
+                $this->redirect('admin/coupons/create');
+                return;
+            }
+            $maxAllowedFixed = $minOrderValue * 0.20;
+            if ($discountValue > $maxAllowedFixed) {
+                flash('error', 'Số tiền giảm cố định (' . formatPrice($discountValue) . ') vượt quá 20% giá trị đơn hàng tối thiểu. Mức giảm tối đa cho phép là ' . formatPrice($maxAllowedFixed) . ' (20% của ' . formatPrice($minOrderValue) . ').');
+                $this->redirect('admin/coupons/create');
+                return;
+            }
+        }
+
         if ($startDate !== null && $endDate !== null && strtotime($endDate) < strtotime($startDate)) {
             flash('error', 'Thời gian kết thúc không thể trước thời gian bắt đầu.');
             $this->redirect('admin/coupons/create');
@@ -163,6 +184,27 @@ class AdminCouponController extends Controller
             flash('error', 'Vui lòng nhập mã và giá trị giảm giá hợp lệ (> 0).');
             $this->redirect('admin/coupons/edit/' . $id);
             return;
+        }
+
+        // Quy tắc kiểm tra mức giảm giá tối đa 20%
+        if ($type === 'percent' || $type === 'percentage') {
+            if ($discountValue > 20) {
+                flash('error', 'Mức giảm giá theo phần trăm tối đa chỉ được 20%. Bạn đã nhập ' . $discountValue . '%.');
+                $this->redirect('admin/coupons/edit/' . $id);
+                return;
+            }
+        } elseif ($type === 'fixed' || $type === 'fixed_amount') {
+            if ($minOrderValue <= 0) {
+                flash('error', 'Vui lòng nhập Giá trị đơn hàng tối thiểu (> 0) đối với mã giảm giá số tiền cố định để xác định hạn mức giảm tối đa 20%.');
+                $this->redirect('admin/coupons/edit/' . $id);
+                return;
+            }
+            $maxAllowedFixed = $minOrderValue * 0.20;
+            if ($discountValue > $maxAllowedFixed) {
+                flash('error', 'Số tiền giảm cố định (' . formatPrice($discountValue) . ') vượt quá 20% giá trị đơn hàng tối thiểu. Mức giảm tối đa cho phép là ' . formatPrice($maxAllowedFixed) . ' (20% của ' . formatPrice($minOrderValue) . ').');
+                $this->redirect('admin/coupons/edit/' . $id);
+                return;
+            }
         }
 
         if ($startDate !== null && $endDate !== null && strtotime($endDate) < strtotime($startDate)) {

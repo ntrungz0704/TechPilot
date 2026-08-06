@@ -1,5 +1,10 @@
 <div class="card" style="margin-bottom: 30px;">
     <h3 class="card-title">Thêm mã giảm giá mới</h3>
+
+    <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
+        <strong style="color: #1E40AF;"><i class="fa-solid fa-shield-halved"></i> Quy định giảm giá tối đa (Max 20%):</strong>
+        <span style="color: #1E3A8A; font-size: 13px; display: block; margin-top: 2px;">Để bảo toàn lợi nhuận kinh doanh, giá trị giảm giá (phần trăm hoặc cố định) tối đa không được vượt quá **20%** giá trị đơn hàng / sản phẩm. Mức giảm cố định tối đa là 20% của <i>Giá trị đơn hàng tối thiểu</i>.</span>
+    </div>
     
     <form method="post" action="<?= url('admin/coupons/store') ?>">
         <?= csrf_field() ?>
@@ -20,8 +25,8 @@
             </div>
 
             <div class="form-group">
-                <label for="discount_value">Giá trị giảm <span style="color: red;">*</span></label>
-                <input type="number" name="discount_value" id="discount_value" class="form-control" placeholder="Ví dụ: 100000" min="1" required>
+                <label for="discount_value">Giá trị giảm <span style="color: red;">*</span> <small style="color: #059669; font-weight: 600;">(Tối đa 20%)</small></label>
+                <input type="number" name="discount_value" id="discount_value" class="form-control" placeholder="Ví dụ: 20000" min="1" required>
             </div>
         </div>
 
