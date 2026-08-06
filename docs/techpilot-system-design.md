@@ -1,6 +1,6 @@
 # 📘 TÀI LIỆU THIẾT KẾ HỆ THỐNG TECHPILOT
 > **Hệ thống Thương mại Điện tử Bán lẻ Linh kiện Máy tính & Tư vấn Cấu hình AI**
-> *Tài liệu thiết kế hệ thống chuẩn hóa (System Design Document)*
+> *Tài liệu thiết kế hệ thống chuẩn hóa (System Design Document) — v2.0, đồng bộ 100% với Use Case Diagram thực tế*
 
 ---
 
@@ -10,6 +10,8 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
 1. **Khách vắng lai (Guest)**: Người dùng chưa đăng nhập hệ thống.
 2. **Khách hàng đã đăng nhập (Customer)**: Người dùng đã xác thực tài khoản cá nhân (`role = 'customer'`).
 3. **Quản trị viên (Admin)**: Người dùng có quyền truy cập hệ thống quản lý `/admin` (`role = 'admin'`).
+
+> **Ghi chú v2.0**: Bổ sung **UC-31, UC-32, UC-33** — 3 use case đã tồn tại trên Use Case Diagram thực tế (draw.io) nhưng trước đây chưa được mã hóa vào tài liệu chuẩn. Nay đã đồng bộ đầy đủ.
 
 ### 1.1 Bảng ma trận phân quyền Use Case (Phân quyền theo Role)
 
@@ -30,21 +32,26 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
 | **UC-13** | Quản lý Danh sách yêu thích (Wishlist) | 🔴 Không | 🟢 Có | 🔴 Không |
 | **UC-14** | Xem Lịch sử Đơn hàng & Theo dõi trạng thái | 🔴 Không | 🟢 Có | 🔴 Không |
 | **UC-15** | Gửi Yêu cầu Trả hàng / Hoàn tiền (Return/Refund) | 🔴 Không | 🟢 Có | 🔴 Không |
-| **UC-16** | Đánh giá & Viết nhận xét (Ràng buộc Đã mua hàng)| 🔴 Không | 🟢 Có (Verified Purchase)| 🔴 Không |
+| **UC-16** | Đánh giá & Viết nhận xét (Ràng buộc Đã mua hàng) | 🔴 Không | 🟢 Có (Verified Purchase) | 🔴 Không |
 | **UC-17** | Trò chuyện với AI Assistant về Sản phẩm cụ thể | 🟢 Có | 🟢 Có (Lưu lịch sử) | 🟢 Có |
 | **UC-18** | Xem Dashboard Tổng quan & Thống kê Doanh thu | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-19** | Quản lý Danh mục (Categories CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-20** | Quản lý Thương hiệu (Brands CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-21** | Quản lý Sản phẩm & Upload Ảnh (Products CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-22** | Quản lý Mã giảm giá (Coupons CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
-| **UC-23** | Quản lý Chương trình Flash Sale (Flash Sales CRUD)| 🔴 Không | 🔴 Không | 🟢 Có |
+| **UC-23** | Quản lý Chương trình Flash Sale (Flash Sales CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-24** | Quản lý Đơn hàng & Chuyển Trạng thái Đơn | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-25** | Xem Lịch sử Kho hàng (Inventory Audit Logs) | 🔴 Không | 🔴 Không | 🟢 Có |
-| **UC-26** | Phê duyệt / Từ chối Đánh giá (Reviews Moderation)| 🔴 Không | 🔴 Không | 🟢 Có |
+| **UC-26** | Phê duyệt / Từ chối Đánh giá (Reviews Moderation) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-27** | Quản lý Yêu cầu Đổi trả (Returns Approval) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-28** | Quản lý Bài viết & Tin tức (Posts CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-29** | Quản lý Banner quảng cáo (Banners CRUD) | 🔴 Không | 🔴 Không | 🟢 Có |
 | **UC-30** | Quản lý Tài khoản & Phân quyền User (Users Admin) | 🔴 Không | 🔴 Không | 🟢 Có |
+| **UC-31** 🆕 | Xem Thông báo Hệ thống (Order status, Flash Sale, Khuyến mãi) | 🔴 Không | 🟢 Có | 🔴 Không |
+| **UC-32** 🆕 | Xem Sản phẩm Vừa xem gần đây (Recently Viewed) | 🔴 Không | 🟢 Có | 🔴 Không |
+| **UC-33** 🆕 | Khách hàng Tự Hủy Đơn hàng (chỉ khi `order_status = pending`) | 🔴 Không | 🟢 Có | 🔴 Không |
+
+**Tổng cộng: 33 Use Cases** — 12 chung Guest+Customer, 9 riêng Customer, 15 riêng Admin (một số UC dùng chung nhiều role).
 
 ---
 
@@ -69,15 +76,18 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
   3. **Đặt hàng Nhanh**: Tự động điền thông tin người nhận từ sổ địa chỉ khi Thanh toán.
   4. **Quản lý Yêu thích (Wishlist)**: Thêm/Xóa sản phẩm khỏi danh sách yêu thích cá nhân (`wishlists`).
   5. **Theo dõi Đơn hàng**: Xem lịch sử mua hàng, chi tiết từng đơn hàng, trạng thái xử lý (Pending -> Confirmed -> Shipping -> Completed / Cancelled).
-  6. **Gửi Yêu cầu Đổi trả / Hoàn tiền**: Đối với đơn hàng đã hoàn tất, khách hàng có thể gửi yêu cầu trả hàng (`return_requests`) kèm lý do và số lượng.
-  7. **Đánh giá Sản phẩm (Verified Purchase)**: Chỉ cho phép viết đánh giá (1-5 sao) và nhận xét đối với các sản phẩm thuộc đơn hàng mà khách hàng đã mua thành công và đơn hàng ở trạng thái Hoàn tất (`order_status = 'completed'`), nhằm đảm bảo tính xác thực và tránh đánh giá ảo/spam.
-  8. **Lưu Lịch sử AI Chat**: Trò chuyện với AI Assistant về sản phẩm cụ thể và lưu vết lịch sử trong `product_ai_chat_histories`.
+  6. **Tự Hủy Đơn hàng (UC-33)** 🆕: Khách hàng có thể tự hủy đơn hàng **chỉ khi** đơn đang ở trạng thái `Pending` (chưa được Admin xác nhận / chưa thanh toán VNPay thành công). Kể từ trạng thái `Confirmed` trở đi, khách hàng KHÔNG thể tự hủy — chỉ Admin mới có quyền hủy đơn (xem Flow 4, Mục 3.4). Khi hủy, hệ thống tự động hoàn tồn kho và giải phóng quota Flash Sale nếu có.
+  7. **Gửi Yêu cầu Đổi trả / Hoàn tiền**: Đối với đơn hàng đã hoàn tất, khách hàng có thể gửi yêu cầu trả hàng (`return_requests`) kèm lý do và số lượng.
+  8. **Đánh giá Sản phẩm (Verified Purchase)**: Chỉ cho phép viết đánh giá (1-5 sao) và nhận xét đối với các sản phẩm thuộc đơn hàng mà khách hàng đã mua thành công và đơn hàng ở trạng thái Hoàn tất (`order_status = 'completed'`), nhằm đảm bảo tính xác thực và tránh đánh giá ảo/spam.
+  9. **Xem Thông báo Hệ thống (UC-31)** 🆕: Nhận và xem thông báo cập nhật trạng thái đơn hàng (VD: "Đơn hàng #TP0012 đã được xác nhận"), thông báo Flash Sale sắp diễn ra, thông báo khuyến mãi/coupon mới dành riêng cho tài khoản.
+  10. **Xem Sản phẩm Vừa xem gần đây (UC-32)** 🆕: Hệ thống ghi lại lịch sử duyệt sản phẩm của Customer (lưu theo `user_id`) và hiển thị danh sách "Sản phẩm vừa xem" để khách quay lại nhanh, hỗ trợ ra quyết định mua hàng.
+  11. **Lưu Lịch sử AI Chat**: Trò chuyện với AI Assistant về sản phẩm cụ thể và lưu vết lịch sử trong `product_ai_chat_histories`.
 
 #### 🔴 ROLE 3: QUẢN TRỊ VIÊN (ADMIN)
 - **Mô tả**: Người dùng có tài khoản với `role = 'admin'`. Truy cập toàn bộ khu vực `/admin`.
 - **Chức năng chính**:
   1. **Dashboard & Thống kê**: Xem tổng doanh thu, biểu đồ đơn hàng, thống kê số lượng khách hàng, đơn hàng mới nhất và trạng thái kho.
-  2. **Quản lý Catalog Sản phẩm**: 
+  2. **Quản lý Catalog Sản phẩm**:
      - Thêm mới/Sửa/Xóa sản phẩm, cấu hình giá bán gốc, giá khuyến mãi, số lượng tồn kho.
      - Nhập thông số JSON Specs linh kiện chi tiết (Socket, Chipset, Wattage, Storage Type, Form Factor...).
      - Upload và sắp xếp bộ sưu tập hình ảnh sản phẩm (qua `UploadService` bảo mật finfo magic bytes).
@@ -88,7 +98,7 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
   5. **Quản lý Đơn hàng & Chuyển Trạng thái**:
      - Xem danh sách đơn toàn hệ thống, lọc theo trạng thái, truy vết mã coupon đã áp dụng (`coupon_id`).
      - Duyệt chuyển trạng thái đơn (Ví dụ: Pending -> Confirmed -> Shipping -> Completed).
-     - Huỷ đơn hàng: Hệ thống tự động trả lại tồn kho sản phẩm (`inventory_logs`) VÀ giải phóng quota giữ chỗ Flash Sale (`flash_sale_reservations`).
+     - Huỷ đơn hàng: Hệ thống tự động trả lại tồn kho sản phẩm (`inventory_logs`) VÀ giải phóng quota giữ chỗ Flash Sale (`flash_sale_reservations`). Admin có quyền hủy đơn ở **bất kỳ giai đoạn nào** trước khi hoàn tất (Pending/Confirmed/Shipping), trong khi Customer chỉ được tự hủy ở giai đoạn `Pending` (xem UC-33).
   6. **Quản lý Yêu cầu Đổi trả (Returns Moderation)**: Duyệt chấp nhận hoặc từ chối các yêu cầu trả hàng từ khách hàng.
   7. **Quản lý Nhận xét & Đánh giá**: Phê duyệt hoặc ẩn các đánh giá của người dùng.
   8. **Quản lý Bài viết & Banner**: Đăng bài viết tin tức công nghệ, cấu hình banner quảng cáo trang chủ.
@@ -98,7 +108,9 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
 
 ## 2. 🗄️ SƠ ĐỒ THỰC THỂ MỐI QUAN HỆ (ERD DIAGRAM)
 
-Sơ đồ ERD chuẩn biểu diễn **toàn bộ 22 bảng cơ sở dữ liệu cốt lõi** của hệ thống TechPilot và các mối quan hệ khoá ngoại (Foreign Keys):
+Sơ đồ ERD chuẩn biểu diễn **toàn bộ 22 bảng cơ sở dữ liệu cốt lõi** của hệ thống TechPilot và các mối quan hệ khoá ngoại (Foreign Keys). *(Không thay đổi so với v1.1 — ERD đã đầy đủ và không có lỗi logic; các Use Case mới UC-31/32/33 không phát sinh bảng mới, vì:*
+- *UC-31 (Thông báo) và UC-32 (Sản phẩm vừa xem) là tính năng UI/UX ở mức trình bày, có thể triển khai bằng bảng phụ trợ nhẹ (`notifications`, `recently_viewed_products`) ở giai đoạn implementation sau — không bắt buộc phải có trong ERD lõi ở giai đoạn thiết kế này.*
+- *UC-33 (Tự hủy đơn) chỉ là một hành động cập nhật `orders.order_status = 'cancelled'`, dùng lại đúng cột đã có sẵn trong bảng `orders`, không cần bảng mới.)*
 
 ```mermaid
 erDiagram
@@ -479,7 +491,7 @@ flowchart TD
 ---
 
 ### 3.4 Flow 4: Luồng Quản lý Đơn hàng & Đổi trả (Order Fulfillment & Return/Refund Flow)
-*Đồng bộ tự động hoàn tồn kho inventory_logs và giải phóng quota flash_sale_reservations khi Hủy đơn ở mọi giai đoạn*
+*Đồng bộ tự động hoàn tồn kho `inventory_logs` và giải phóng quota `flash_sale_reservations` khi Hủy đơn ở mọi giai đoạn. Phân quyền hủy đơn: Customer chỉ tự hủy được ở `Pending` (UC-33); Admin hủy được ở mọi giai đoạn trước Completed (UC-24).*
 
 ```mermaid
 stateDiagram-v2
@@ -491,10 +503,10 @@ stateDiagram-v2
     }
     
     Pending --> Confirmed : Admin duyệt đơn / VNPay thanh toán thành công
-    Pending --> Cancelled : Khách/Admin Huỷ đơn (Hoàn Tồn kho + Giải phóng flash_sale_reservations)
+    Pending --> Cancelled : Khách TỰ hủy (UC-33) hoặc Admin hủy (Hoàn Tồn kho + Giải phóng flash_sale_reservations)
     
     Confirmed --> Shipping : Admin xuất kho & Giao cho Đơn vị vận chuyển
-    Confirmed --> Cancelled : Admin Huỷ đơn (Hoàn Tồn kho + Giải phóng flash_sale_reservations)
+    Confirmed --> Cancelled : CHỈ Admin Huỷ đơn — Khách KHÔNG còn quyền tự hủy (Hoàn Tồn kho + Giải phóng flash_sale_reservations)
     
     Shipping --> Completed : Giao hàng thành công (Cập nhật Payment = Paid nếu COD)
     Shipping --> Cancelled : Giao hàng thất bại / Khách từ chối nhận (Hoàn Tồn kho + Giải phóng flash_sale_reservations)
@@ -504,8 +516,8 @@ stateDiagram-v2
         [*] --> ReturnRequested : Khách gửi Yêu cầu Trả hàng / Hoàn tiền
     }
     
-    ReturnRequested --> ReturnApproved : Admin duyệt Chấp nhận Trả hàng
-    ReturnRequested --> ReturnRejected : Admin Từ chối Yêu cầu Trả hàng
+    ReturnRequested --> ReturnApproved : Admin duyệt Chấp nhận Trả hàng (UC-27)
+    ReturnRequested --> ReturnRejected : Admin Từ chối Yêu cầu Trả hàng (UC-27)
     
     ReturnApproved --> ReturnCompleted : Nhận lại hàng vào kho & Hoàn tiền cho khách
     
@@ -535,7 +547,13 @@ flowchart TD
     ChooseModule --> OrderMgmt[Quản lý Đơn hàng /admin/orders]
     OrderMgmt --> FilterOrders[Lọc đơn theo Trạng thái / Tìm kiếm mã đơn hoặc coupon_id]
     FilterOrders --> ChangeOrderStatus[Chuyển Trạng thái Đơn hàng]
-    ChangeOrderStatus --> AuditInventory[Hệ thống tự động ghi nhật ký biến động kho vào `inventory_logs` & giải phóng `flash_sale_reservations` nếu Cancelled]
+    ChangeOrderStatus --> AuditInventory[Hệ thống tự động ghi nhật ký biến động kho vào inventory_logs & giải phóng flash_sale_reservations nếu Cancelled]
+    
+    ChooseModule --> ReturnMgmt[Quản lý Yêu cầu Đổi trả /admin/returns — UC-27]
+    ReturnMgmt --> ReviewReturn[Xem chi tiết yêu cầu: Lý do, Sản phẩm, Số lượng, Số tiền hoàn]
+    ReviewReturn --> DecideReturn{Duyệt hay Từ chối?}
+    DecideReturn -- Duyệt --> ApproveFlow[Chuyển return_requests.status = approved → Chờ nhận hàng hoàn → Hoàn tiền]
+    DecideReturn -- Từ chối --> RejectFlow[Chuyển return_requests.status = rejected → Thông báo lý do cho Khách]
 ```
 
 ---
@@ -547,3 +565,21 @@ flowchart TD
 2. **Bảo vệ CSRF Toàn diện (CSRF Global)**: Tất cả các thao tác POST/PUT/DELETE từ Đăng nhập, Đặt hàng, Áp dụng mã giảm giá đến các chức năng CRUD Admin đều kiểm tra Token CSRF ngẫu nhiên mã hóa 32-bytes (`verifyCsrf()`).
 3. **Bảo vệ Đánh giá Hàng thật (Verified Purchase)**: Chỉ những đơn hàng đã hoàn tất thành công (`order_status = 'completed'`) mới mở quyền cho tài khoản mua viết nhận xét & đánh giá sao (UC-16), triệt tiêu đánh giá rác.
 4. **Bảo vệ Dữ liệu Giỏ hàng & Tồn kho (ACID Compliance)**: Quá trình đặt hàng và gộp giỏ hàng (Cart Merge) sử dụng giao dịch cơ sở dữ liệu `InnoDB Transaction` cùng cơ chế khóa hàng `FOR UPDATE`, đảm bảo không bao giờ xảy ra tình trạng bán vượt quá số lượng tồn kho thực tế (Over-selling) hoặc cháy quota Flash Sale (`flash_sale_reservations`).
+5. **Phân quyền Hủy đơn theo giai đoạn (UC-33 vs UC-24)** 🆕: Khách hàng chỉ được tự hủy đơn khi đơn ở trạng thái `Pending` (chưa xử lý), nhằm tránh trường hợp hủy đơn sau khi Admin đã xuất kho gây thất thoát vận hành. Từ `Confirmed` trở đi, quyền hủy đơn thuộc về Admin duy nhất — validate bắt buộc ở tầng Backend (không chỉ ẩn nút ở Frontend) để tránh bypass qua API trực tiếp.
+
+---
+
+## 📊 GHI CHÚ ĐỒNG BỘ HÓA v2.0
+
+Tài liệu này đã được cập nhật để đồng bộ **100%** với 2 Use Case Diagram thực tế (Customer Diagram & Admin Diagram) và bản ERD draw.io hiện có, dựa trên báo cáo Audit đã thực hiện trước đó. Cụ thể:
+
+| Thay đổi | Vị trí | Lý do |
+| :--- | :--- | :--- |
+| Thêm UC-31 (Xem Thông báo) | Mục 1.1 (matrix) + 1.2 (Customer, mục 9) | Đã có trên Diagram, tài liệu cũ thiếu mã hóa |
+| Thêm UC-32 (Sản phẩm vừa xem) | Mục 1.1 (matrix) + 1.2 (Customer, mục 10) | Đã có trên Diagram, tài liệu cũ thiếu mã hóa |
+| Thêm UC-33 (Tự hủy đơn hàng) | Mục 1.1 (matrix) + 1.2 (Customer, mục 6) + Flow 4 + Mục 4 (điểm 5) | Đã có trên Diagram ("Hủy đơn hàng"), tài liệu cũ thiếu mã hóa và thiếu ràng buộc rõ ràng về giai đoạn được phép hủy |
+| Làm rõ phân quyền hủy đơn Customer vs Admin | Flow 4 (stateDiagram) | Tránh nhầm lẫn giữa quyền hủy của Khách (chỉ Pending) và Admin (mọi giai đoạn trước Completed) |
+| Bổ sung nhánh Flow 5 cho UC-27 | Mục 3.5 | Trước đây Flow 5 chưa có nhánh xử lý Đổi trả, dù UC-27 đã tồn tại trong matrix — bổ sung để đồng bộ với Admin Use Case Diagram |
+| Chú thích ERD không cần bảng mới cho UC-31/32/33 | Mục 2 (đầu ERD) | Làm rõ lý do 22 bảng vẫn đủ, tránh hiểu nhầm cần audit lại ERD |
+
+**Trạng thái đồng bộ cuối cùng: ✅ 33/33 Use Case đã khớp giữa Tài liệu ↔ Diagram ↔ ERD ↔ Workflow.**
