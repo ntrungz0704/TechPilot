@@ -1,6 +1,6 @@
 # 📘 TÀI LIỆU THIẾT KẾ HỆ THỐNG TECHPILOT
 > **Hệ thống Thương mại Điện tử Bán lẻ Linh kiện Máy tính & Tư vấn Cấu hình AI**
-> *Tài liệu thiết kế hệ thống chuẩn hóa (System Design Document) — v2.0, đồng bộ 100% với Use Case Diagram thực tế*
+> *Tài liệu thiết kế hệ thống chuẩn hóa (System Design Document) — v3.0, đồng bộ 100% với Use Case Diagram + ERD 28 bảng thực tế từ codebase*
 
 ---
 
@@ -79,8 +79,8 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
   6. **Tự Hủy Đơn hàng (UC-33)** 🆕: Khách hàng có thể tự hủy đơn hàng **chỉ khi** đơn đang ở trạng thái `Pending` (chưa được Admin xác nhận / chưa thanh toán VNPay thành công). Kể từ trạng thái `Confirmed` trở đi, khách hàng KHÔNG thể tự hủy — chỉ Admin mới có quyền hủy đơn (xem Flow 4, Mục 3.4). Khi hủy, hệ thống tự động hoàn tồn kho và giải phóng quota Flash Sale nếu có.
   7. **Gửi Yêu cầu Đổi trả / Hoàn tiền**: Đối với đơn hàng đã hoàn tất, khách hàng có thể gửi yêu cầu trả hàng (`return_requests`) kèm lý do và số lượng.
   8. **Đánh giá Sản phẩm (Verified Purchase)**: Chỉ cho phép viết đánh giá (1-5 sao) và nhận xét đối với các sản phẩm thuộc đơn hàng mà khách hàng đã mua thành công và đơn hàng ở trạng thái Hoàn tất (`order_status = 'completed'`), nhằm đảm bảo tính xác thực và tránh đánh giá ảo/spam.
-  9. **Xem Thông báo Hệ thống (UC-31)** 🆕: Nhận và xem thông báo cập nhật trạng thái đơn hàng (VD: "Đơn hàng #TP0012 đã được xác nhận"), thông báo Flash Sale sắp diễn ra, thông báo khuyến mãi/coupon mới dành riêng cho tài khoản.
-  10. **Xem Sản phẩm Vừa xem gần đây (UC-32)** 🆕: Hệ thống ghi lại lịch sử duyệt sản phẩm của Customer (lưu theo `user_id`) và hiển thị danh sách "Sản phẩm vừa xem" để khách quay lại nhanh, hỗ trợ ra quyết định mua hàng.
+  9. **Xem Thông báo Hệ thống (UC-31)** 🆕: Nhận và xem thông báo cập nhật trạng thái đơn hàng (VD: "Đơn hàng #TP0012 đã được xác nhận"), thông báo Flash Sale sắp diễn ra, thông báo khuyến mãi/coupon mới dành riêng cho tài khoản — dữ liệu lưu trong bảng `notifications` (`type`, `title`, `message`, `is_read`).
+  10. **Xem Sản phẩm Vừa xem gần đây (UC-32)** 🆕: Hệ thống ghi lại lịch sử duyệt sản phẩm của Customer vào bảng `user_behavior_logs` (`action_type = 'view'`, theo `user_id`) và hiển thị danh sách "Sản phẩm vừa xem" để khách quay lại nhanh, hỗ trợ ra quyết định mua hàng. Bảng này cũng ghi nhận hành vi của Guest qua `session_id` để phục vụ mở rộng tính năng cho Guest trong tương lai nếu cần.
   11. **Lưu Lịch sử AI Chat**: Trò chuyện với AI Assistant về sản phẩm cụ thể và lưu vết lịch sử trong `product_ai_chat_histories`.
 
 #### 🔴 ROLE 3: QUẢN TRỊ VIÊN (ADMIN)
@@ -108,9 +108,12 @@ Hệ thống TechPilot hỗ trợ 3 bối cảnh / vai trò người dùng thự
 
 ## 2. 🗄️ SƠ ĐỒ THỰC THỂ MỐI QUAN HỆ (ERD DIAGRAM)
 
-Sơ đồ ERD chuẩn biểu diễn **toàn bộ 22 bảng cơ sở dữ liệu cốt lõi** của hệ thống TechPilot và các mối quan hệ khoá ngoại (Foreign Keys). *(Không thay đổi so với v1.1 — ERD đã đầy đủ và không có lỗi logic; các Use Case mới UC-31/32/33 không phát sinh bảng mới, vì:*
-- *UC-31 (Thông báo) và UC-32 (Sản phẩm vừa xem) là tính năng UI/UX ở mức trình bày, có thể triển khai bằng bảng phụ trợ nhẹ (`notifications`, `recently_viewed_products`) ở giai đoạn implementation sau — không bắt buộc phải có trong ERD lõi ở giai đoạn thiết kế này.*
-- *UC-33 (Tự hủy đơn) chỉ là một hành động cập nhật `orders.order_status = 'cancelled'`, dùng lại đúng cột đã có sẵn trong bảng `orders`, không cần bảng mới.)*
+Sơ đồ ERD chuẩn biểu diễn **toàn bộ 28 bảng cơ sở dữ liệu** của hệ thống TechPilot (khớp 100% với danh sách bảng thực tế trong codebase), chia làm 2 nhóm và các mối quan hệ khoá ngoại (Foreign Keys):
+
+**A. 22 Bảng Nghiệp vụ Cốt lõi (Core ERD)** — quản lý catalog, giỏ hàng, đơn hàng, khuyến mãi, đổi trả, nội dung.
+**B. 6 Bảng Phụ trợ Hệ thống & Nhật ký Hành vi** — hỗ trợ AI, chống spam, cá nhân hóa trải nghiệm, và migration tracking của framework.
+
+> **Cập nhật v3.0**: Trước đây (v2.0) tài liệu ghi chú rằng UC-31 (Thông báo) và UC-32 (Sản phẩm vừa xem) "chưa cần bảng riêng, để sau" — điều này **không còn đúng**. Codebase thực tế đã có sẵn bảng `notifications` (backing cho UC-31) và `user_behavior_logs` (backing cho UC-32), nên ERD được cập nhật để phản ánh đúng 28 bảng, đồng thời làm rõ luôn 2 bảng `ai_assistant_logs` / `chatbot_rate_limits` (hỗ trợ vận hành AI ở UC-05/UC-17) và `user_interest_profiles` (dùng cho gợi ý sản phẩm cá nhân hóa — chưa có UC riêng, xem ghi chú cuối mục 2).
 
 ```mermaid
 erDiagram
@@ -150,6 +153,13 @@ erDiagram
     flash_sale_items ||--o{ flash_sale_reservations : "đặt cọc quota"
     
     return_requests ||--o{ return_items : "chi tiết trả"
+
+    users ||--o{ notifications : "nhận"
+    users ||--o{ user_behavior_logs : "duyệt web"
+    products ||--o{ user_behavior_logs : "được xem/click"
+    users ||--|| user_interest_profiles : "có hồ sơ sở thích"
+    users ||--o{ ai_assistant_logs : "gọi AI (nullable)"
+    users ||--o{ chatbot_rate_limits : "giới hạn tần suất (nullable)"
 
     users {
         int id PK
@@ -350,7 +360,64 @@ erDiagram
         text answer
         timestamp created_at
     }
+
+    notifications {
+        int id PK
+        int user_id FK
+        enum type "order_status, flash_sale, promotion, system"
+        string title
+        text message
+        string link "nullable"
+        boolean is_read
+        timestamp created_at
+    }
+
+    user_behavior_logs {
+        bigint id PK
+        int user_id FK "nullable — Guest dùng session_id thay thế"
+        string session_id "nullable"
+        int product_id FK
+        enum action_type "view, search, click, add_to_cart"
+        timestamp created_at
+    }
+
+    user_interest_profiles {
+        int id PK
+        int user_id FK UK
+        json interest_categories
+        json interest_brands
+        timestamp updated_at
+    }
+
+    ai_assistant_logs {
+        bigint id PK
+        int user_id FK "nullable — Guest vẫn gọi được AI"
+        enum provider "gemini, groq, qwen, local_fallback"
+        enum feature "compare, chat, pc_builder_advice"
+        int prompt_tokens
+        int response_tokens
+        enum status "success, failed, fallback"
+        timestamp created_at
+    }
+
+    chatbot_rate_limits {
+        int id PK
+        int user_id FK "nullable — Guest giới hạn theo IP"
+        string ip_address
+        int request_count
+        timestamp window_start
+    }
+
+    migrations {
+        int id PK
+        string migration
+        int batch
+    }
 ```
+
+> **Ghi chú bảng `migrations`**: Đây là bảng hạ tầng tiêu chuẩn của framework (Laravel-style migration tracker), không mang dữ liệu nghiệp vụ và không có khóa ngoại liên kết đến các bảng khác — chỉ dùng để ghi lại lịch sử các lần chạy migration DB, nên không xuất hiện trong sơ đồ quan hệ phía trên.
+>
+> **Ghi chú bảng `user_interest_profiles`**: Bảng này phục vụ mục đích cá nhân hóa gợi ý sản phẩm (tính năng hỗ trợ AI recommend ở hậu trường), hiện **chưa gắn với UC nào cụ thể** trong Mục 1.1 vì nó không phải hành động do người dùng chủ động thực hiện, mà là dữ liệu hệ thống tự học ngầm từ hành vi (`user_behavior_logs`). Nếu tương lai có tính năng "Gợi ý cho bạn" hiển thị rõ trên UI, cần bổ sung UC riêng và `<<include>>` vào UC-01 hoặc UC-32.
 
 ---
 
@@ -547,7 +614,7 @@ flowchart TD
     ChooseModule --> OrderMgmt[Quản lý Đơn hàng /admin/orders]
     OrderMgmt --> FilterOrders[Lọc đơn theo Trạng thái / Tìm kiếm mã đơn hoặc coupon_id]
     FilterOrders --> ChangeOrderStatus[Chuyển Trạng thái Đơn hàng]
-    ChangeOrderStatus --> AuditInventory[Hệ thống tự động ghi nhật ký biến động kho vào inventory_logs & giải phóng flash_sale_reservations nếu Cancelled]
+    ChangeOrderStatus --> AuditInventory[Hệ thống tự động ghi nhật ký biến động kho vào `inventory_logs` & giải phóng `flash_sale_reservations` nếu Cancelled]
     
     ChooseModule --> ReturnMgmt[Quản lý Yêu cầu Đổi trả /admin/returns — UC-27]
     ReturnMgmt --> ReviewReturn[Xem chi tiết yêu cầu: Lý do, Sản phẩm, Số lượng, Số tiền hoàn]
@@ -569,10 +636,9 @@ flowchart TD
 
 ---
 
-## 📊 GHI CHÚ ĐỒNG BỘ HÓA v2.0
+## 📊 GHI CHÚ ĐỒNG BỘ HÓA
 
-Tài liệu này đã được cập nhật để đồng bộ **100%** với 2 Use Case Diagram thực tế (Customer Diagram & Admin Diagram) và bản ERD draw.io hiện có, dựa trên báo cáo Audit đã thực hiện trước đó. Cụ thể:
-
+### v2.0 (đã áp dụng)
 | Thay đổi | Vị trí | Lý do |
 | :--- | :--- | :--- |
 | Thêm UC-31 (Xem Thông báo) | Mục 1.1 (matrix) + 1.2 (Customer, mục 9) | Đã có trên Diagram, tài liệu cũ thiếu mã hóa |
@@ -580,6 +646,14 @@ Tài liệu này đã được cập nhật để đồng bộ **100%** với 2 
 | Thêm UC-33 (Tự hủy đơn hàng) | Mục 1.1 (matrix) + 1.2 (Customer, mục 6) + Flow 4 + Mục 4 (điểm 5) | Đã có trên Diagram ("Hủy đơn hàng"), tài liệu cũ thiếu mã hóa và thiếu ràng buộc rõ ràng về giai đoạn được phép hủy |
 | Làm rõ phân quyền hủy đơn Customer vs Admin | Flow 4 (stateDiagram) | Tránh nhầm lẫn giữa quyền hủy của Khách (chỉ Pending) và Admin (mọi giai đoạn trước Completed) |
 | Bổ sung nhánh Flow 5 cho UC-27 | Mục 3.5 | Trước đây Flow 5 chưa có nhánh xử lý Đổi trả, dù UC-27 đã tồn tại trong matrix — bổ sung để đồng bộ với Admin Use Case Diagram |
-| Chú thích ERD không cần bảng mới cho UC-31/32/33 | Mục 2 (đầu ERD) | Làm rõ lý do 22 bảng vẫn đủ, tránh hiểu nhầm cần audit lại ERD |
 
-**Trạng thái đồng bộ cuối cùng: ✅ 33/33 Use Case đã khớp giữa Tài liệu ↔ Diagram ↔ ERD ↔ Workflow.**
+### v3.0 (đã áp dụng — cập nhật ERD lên đúng 28 bảng theo codebase thực tế)
+| Thay đổi | Vị trí | Lý do |
+| :--- | :--- | :--- |
+| Thêm 6 bảng phụ trợ: `notifications`, `user_behavior_logs`, `user_interest_profiles`, `ai_assistant_logs`, `chatbot_rate_limits`, `migrations` | Mục 2 (ERD) | Đây là 6 bảng có thật trong codebase nhưng chưa từng được đưa vào ERD thiết kế trước đó — ERD giờ khớp 100% với DB thật (28/28 bảng) |
+| Sửa ghi chú sai ở v2.0 "UC-31/32 chưa cần bảng riêng" | Mục 2 (đầu ERD) | Thực tế đã có bảng `notifications` và `user_behavior_logs` backing sẵn — ghi chú cũ không còn đúng, đã gỡ và thay bằng tham chiếu bảng thật |
+| Cập nhật mô tả UC-31, UC-32 trỏ đúng tên bảng & cột thật | Mục 1.2 (Customer, mục 9-10) | Đồng bộ mô tả nghiệp vụ với tên bảng/cột thực tế thay vì mô tả chung chung |
+| Làm rõ `migrations` là bảng hạ tầng framework, không có FK nghiệp vụ | Mục 2 (ghi chú cuối ERD) | Tránh gây nhầm lẫn khi đối chiếu quan hệ — bảng này đứng độc lập |
+| Làm rõ `user_interest_profiles` chưa gắn UC nào (dữ liệu ngầm, không phải hành động chủ động của user) | Mục 2 (ghi chú cuối ERD) | Tránh bị coi là "thiếu UC" khi audit vòng sau — đây là thiết kế có chủ đích |
+
+**Trạng thái đồng bộ cuối cùng: ✅ 33/33 Use Case ↔ 28/28 Bảng Database ↔ 2 Use Case Diagram ↔ 5 Workflow — khớp hoàn toàn với codebase thực tế.**
