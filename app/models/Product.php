@@ -22,7 +22,7 @@ class Product
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN brands b ON p.brand_id = b.id
-            WHERE p.id = :id AND p.status = 'active'
+            WHERE p.id = :id AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL)
             LIMIT 1
         ");
         $stmt->execute([':id' => $id]);
@@ -40,7 +40,7 @@ class Product
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN brands b ON p.brand_id = b.id
-            WHERE p.slug = :slug AND p.status = 'active'
+            WHERE p.slug = :slug AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL)
             LIMIT 1
         ");
         $stmt->execute([':slug' => $slug]);
@@ -1135,7 +1135,7 @@ class Product
                      FROM products p
                      LEFT JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.id = :id AND p.status = 'active' LIMIT 1"
+                     WHERE p.id = :id AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) LIMIT 1"
                 );
                 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
                 $stmt->execute();
@@ -1165,7 +1165,7 @@ class Product
                      FROM products p
                      LEFT JOIN categories c ON p.category_id = c.id
                      LEFT JOIN brands b ON p.brand_id = b.id
-                     WHERE p.slug = :slug AND p.status = 'active' LIMIT 1"
+                     WHERE p.slug = :slug AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) LIMIT 1"
                 );
                 $stmt->bindValue(':slug', $slug);
                 $stmt->execute();

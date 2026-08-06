@@ -126,7 +126,10 @@
                             </td>
                             <td>
                                 <span style="font-size: 12.5px; display: block; font-weight: 600; color: var(--text-primary);"><?= e($p['category_name']) ?></span>
-                                <small style="color: var(--text-secondary);"><?= e($p['brand_name']) ?></small>
+                                <?php if (($p['category_status'] ?? 'active') === 'inactive'): ?>
+                                    <span class="badge" style="background-color: #FEE2E2; color: #991B1B; font-weight: 700; font-size: 10.5px; padding: 2px 6px; margin-top: 2px; display: inline-block;" title="Danh mục này đang tạm ẩn trên website">(Danh mục tạm ẩn)</span>
+                                <?php endif; ?>
+                                <small style="color: var(--text-secondary); display: block;"><?= e($p['brand_name']) ?></small>
                             </td>
                             <td><?= formatPrice($p['price']) ?></td>
                             <td>

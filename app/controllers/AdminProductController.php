@@ -76,7 +76,7 @@ class AdminProductController extends Controller
             $brands = $db->query('SELECT id, name FROM brands ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
 
             // Xây dựng câu truy vấn
-            $sql = 'SELECT p.*, c.name as category_name, b.name as brand_name,
+            $sql = 'SELECT p.*, c.name as category_name, c.status as category_status, b.name as brand_name,
                     (SELECT COUNT(*) FROM order_items WHERE product_id = p.id) as order_count
                     FROM products p
                     LEFT JOIN categories c ON p.category_id = c.id
