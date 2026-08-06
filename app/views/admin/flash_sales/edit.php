@@ -31,6 +31,11 @@
             </select>
         </div>
 
+        <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 12px 16px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13.5px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-circle-info" style="font-size: 16px; color: #3B82F6; flex-shrink: 0;"></i>
+            <span><strong>Quy tắc hệ thống:</strong> Tất cả sản phẩm được chọn trong đợt này sẽ đồng bộ <strong>cùng 1 thời gian Bắt đầu & Kết thúc</strong>. Hệ thống tự động ngăn chặn việc xếp 1 sản phẩm vào nhiều chiến dịch trùng khoảng thời gian.</span>
+        </div>
+
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px 0; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
             <h4 style="font-weight: 700; font-size: 15px; margin: 0;">Chọn sản phẩm tham gia và thiết lập giảm giá</h4>
             <div style="display: flex; gap: 15px; align-items: center;">

@@ -78,6 +78,44 @@ class AdminFlashSaleController extends Controller
         }
     }
 
+    private function assertNoOverlappingProductCampaigns(
+        PDO $db,
+        int $productId,
+        string $startTime,
+        string $endTime,
+        int $excludeCampaignId = 0
+    ): void {
+        $sql = "SELECT fs.id, fs.title, fs.start_time, fs.end_time
+                FROM flash_sales fs
+                INNER JOIN flash_sale_items fsi ON fsi.flash_sale_id = fs.id
+                WHERE fsi.product_id = :product_id
+                  AND fs.id != :exclude_id
+                  AND fs.status IN ('active', 'draft')
+                  AND fs.start_time < :end_time
+                  AND fs.end_time > :start_time
+                LIMIT 1 FOR UPDATE";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([
+            ':product_id'   => $productId,
+            ':exclude_id'    => $excludeCampaignId,
+            ':end_time'      => $endTime,
+            ':start_time'    => $startTime
+        ]);
+        $overlap = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($overlap) {
+            $prodStmt = $db->prepare('SELECT name FROM products WHERE id = :id LIMIT 1');
+            $prodStmt->execute([':id' => $productId]);
+            $prodName = $prodStmt->fetchColumn() ?: "ID #{$productId}";
+
+            $formattedStart = date('d/m/Y H:i', strtotime($overlap['start_time']));
+            $formattedEnd   = date('d/m/Y H:i', strtotime($overlap['end_time']));
+
+            throw new RuntimeException(
+                "Sản phẩm '{$prodName}' đã thuộc chiến dịch Flash Sale '{$overlap['title']}' ({$formattedStart} - {$formattedEnd}). Tất cả sản phẩm trong cùng một đợt Flash Sale phải có chung thời gian Bắt đầu và Kết thúc, không được thiết lập đè thời gian khác nhau."
+            );
+        }
+    }
+
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -215,6 +253,7 @@ class AdminFlashSaleController extends Controller
                         $limitUser = (int)($data['limit_per_user'] ?? 2);
                         $this->assertValidDiscountPrice($db, (int)$prodId, $discountPrice);
                         $this->assertValidItemQuantities($allocationQty, 0, $limitUser);
+                        $this->assertNoOverlappingProductCampaigns($db, (int)$prodId, $schedule['start_time'], $schedule['end_time'], 0);
 
                         $itemStmt = $db->prepare(
                             'INSERT INTO flash_sale_items (flash_sale_id, product_id, discount_price, allocation_quantity, sold_quantity, limit_per_user)
@@ -376,6 +415,7 @@ class AdminFlashSaleController extends Controller
                         $limitUser = (int)($data['limit_per_user'] ?? 2);
                         $this->assertValidDiscountPrice($db, $productId, $discountPrice);
                         $this->assertValidItemQuantities($allocationQty, $soldQty, $limitUser);
+                        $this->assertNoOverlappingProductCampaigns($db, $productId, $schedule['start_time'], $schedule['end_time'], $id);
 
                         if ($existingItem !== null) {
                             $itemStmt = $db->prepare(
