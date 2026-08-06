@@ -637,3 +637,76 @@ html.dark-mode .category-dropdown.is-static .category-dropdown__mega {
         color: #cbd5e1;
     }
 }
+
+/* ===== MEGA MENU BADGES ===== */
+.mega-panel__list a,
+.mobile-panel__list a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.mega-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 3px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    vertical-align: middle;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mega-badge i {
+    font-size: 9px;
+}
+
+/* HOT Badge (Fire Red/Orange Gradient with Glow Pulse) */
+.mega-badge--hot {
+    background: linear-gradient(135deg, #FF2A2A 0%, #FF6B00 100%);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(255, 42, 42, 0.35);
+    animation: megaHotPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes megaHotPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 6px rgba(255, 42, 42, 0.35);
+    }
+    50% {
+        transform: scale(1.06);
+        box-shadow: 0 4px 10px rgba(255, 42, 42, 0.55);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 6px rgba(255, 42, 42, 0.35);
+    }
+}
+
+/* Promo / Gift Badge (Emerald-Green Gradient) */
+.mega-badge--promo {
+    background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+/* New Badge (Cyan-Blue Gradient) */
+.mega-badge--new {
+    background: linear-gradient(135deg, #00C8FF 0%, #146EF5 100%);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(20, 110, 245, 0.35);
+}
+
+/* Default Badge */
+.mega-badge--default {
+    background: #64748B;
+    color: #FFFFFF;
+}

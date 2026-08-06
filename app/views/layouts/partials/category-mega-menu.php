@@ -19,6 +19,25 @@ $formatRangeName = function (string $name): string {
         default             => $name,
     };
 };
+
+if (!function_exists('renderSubitemNameWithBadges')) {
+    function renderSubitemNameWithBadges(string $name): string {
+        return preg_replace_callback('/\((HOT|Tặng Màn[^\)]*|Mới|NEW|KM|SALE|BEST)\)/iu', function($matches) {
+            $rawTag = trim($matches[1]);
+            $upperTag = mb_strtoupper($rawTag);
+            
+            if ($upperTag === 'HOT') {
+                return '<span class="mega-badge mega-badge--hot"><i class="fa-solid fa-fire" aria-hidden="true"></i> HOT</span>';
+            } elseif (str_contains(mb_strtolower($rawTag), 'tặng màn') || str_contains($upperTag, 'KM') || str_contains($upperTag, 'SALE')) {
+                return '<span class="mega-badge mega-badge--promo"><i class="fa-solid fa-gift" aria-hidden="true"></i> ' . htmlspecialchars($rawTag) . '</span>';
+            } elseif ($upperTag === 'MỚI' || $upperTag === 'NEW') {
+                return '<span class="mega-badge mega-badge--new"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Mới</span>';
+            } else {
+                return '<span class="mega-badge mega-badge--default">' . htmlspecialchars($rawTag) . '</span>';
+            }
+        }, htmlspecialchars($name));
+    }
+}
 ?>
 
 <div class="category-overlay" id="<?= $overlayId ?>" aria-hidden="true" hidden></div>
@@ -109,7 +128,7 @@ $formatRangeName = function (string $name): string {
                                                     }
                                                 }
                                                 ?>
-                                                <li><a href="<?= $link ?>"><?= e($subName) ?></a></li>
+                                                <li><a href="<?= $link ?>"><?= renderSubitemNameWithBadges($subName) ?></a></li>
                                             <?php endforeach; ?>
                                         </ul>
                                     </div>
@@ -168,7 +187,7 @@ $formatRangeName = function (string $name): string {
                                             }
                                         }
                                         ?>
-                                        <li><a href="<?= $link ?>"><?= e($subName) ?></a></li>
+                                        <li><a href="<?= $link ?>"><?= renderSubitemNameWithBadges($subName) ?></a></li>
                                     <?php endforeach; ?>
                                 </ul>
                             </div>

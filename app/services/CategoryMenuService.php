@@ -163,7 +163,7 @@ class CategoryMenuService
                         ['name' => 'PC RTX 3060 / 3050', 'query' => 'q=RTX+3060'],
                     ],
                     'PC Văn phòng & AI' => [
-                        ['name' => 'PC I5 - Tặng Màn 3tr', 'query' => 'q=i5'],
+                        ['name' => 'PC I5 (Tặng Màn 3tr)', 'query' => 'q=i5'],
                         ['name' => 'Homework Athlon / AMD', 'query' => 'q=Homework'],
                         ['name' => 'PC AI Workstation', 'query' => 'q=AI'],
                         ['name' => 'Window / Office bản quyền', 'query' => 'q=Windows+Office'],
