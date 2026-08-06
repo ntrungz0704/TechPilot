@@ -12,6 +12,9 @@ require_once dirname(__DIR__) . '/app/core/Router.php';
 
 ErrorHandler::register();
 
+// Tự động kiểm tra trạng thái khóa tài khoản: nếu bị Admin khóa, đăng xuất và hủy session lập tức khi thực hiện bất kỳ thao tác nào
+assertActiveUserSession();
+
 // Security Headers
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
@@ -223,6 +226,7 @@ $router->post('/admin/categories/store', 'AdminCategoryController@store');
 $router->get('/admin/categories/edit/{id}', 'AdminCategoryController@edit');
 $router->post('/admin/categories/update/{id}', 'AdminCategoryController@update');
 $router->post('/admin/categories/delete/{id}', 'AdminCategoryController@delete');
+$router->post('/admin/categories/toggle-status/{id}', 'AdminCategoryController@toggleStatus');
 
 // Admin Brand Routes
 $router->get('/admin/brands', 'AdminBrandController@index');

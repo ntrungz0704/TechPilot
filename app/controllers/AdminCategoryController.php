@@ -246,25 +246,55 @@ class AdminCategoryController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Kiểm tra xem danh mục có sản phẩm nào không (Chặn xóa cứng)
-            $stmt = $db->prepare('SELECT COUNT(*) FROM products WHERE category_id = :id');
+            // Khóa xóa cứng danh mục để bảo toàn dữ liệu
+            $stmt = $db->prepare("UPDATE categories SET status = 'inactive' WHERE id = :id");
             $stmt->execute([':id' => $id]);
-            $count = (int)$stmt->fetchColumn();
-
-            if ($count > 0) {
-                flash('error', "Không thể xoá danh mục này vì đang có {$count} sản phẩm thuộc danh mục này. Vui lòng chuyển các sản phẩm sang danh mục khác trước.");
-                $this->redirect('admin/categories');
-                return;
-            }
-
-            $stmt = $db->prepare('DELETE FROM categories WHERE id = :id');
-            if ($stmt->execute([':id' => $id])) {
-                flash('success', 'Xoá danh mục thành công!');
-            } else {
-                flash('error', 'Không thể xoá danh mục.');
-            }
+            flash('warning', 'Hệ thống đã khóa tính năng xóa cứng danh mục. Đã tự động chuyển trạng thái danh mục sang Tạm ẩn (Inactive). Các sản phẩm thuộc danh mục này cũng sẽ tự động ẩn khỏi cửa hàng.');
         }
 
         $this->redirect('admin/categories');
+    }
+
+    /** Toggle trạng thái Bật/Tắt hiển thị danh mục (POST /admin/categories/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối CSDL.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT status, name FROM categories WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $cat = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$cat) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Danh mục không tồn tại.']);
+            exit;
+        }
+
+        $newStatus = ($cat['status'] === 'active') ? 'inactive' : 'active';
+        $upStmt = $db->prepare("UPDATE categories SET status = :status WHERE id = :id");
+        $upStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        echo json_encode([
+            'success'      => true,
+            'message'      => 'Đã ' . ($newStatus === 'active' ? 'bật hiển thị' : 'tạm ẩn') . ' danh mục ' . $cat['name'],
+            'new_status'   => $newStatus,
+            'status_label' => $newStatus === 'active' ? 'Đang hoạt động' : 'Tạm ẩn'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

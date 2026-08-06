@@ -449,6 +449,66 @@ if (!function_exists('currentUser')) {
     }
 }
 
+if (!function_exists('assertActiveUserSession')) {
+    /**
+     * Tự động kiểm tra trạng thái khóa tài khoản trong Database trên mọi request.
+     * Nếu bị Admin khóa status != active, lập tức hủy Session và Đăng xuất (Logout) ngay lập tức.
+     */
+    function assertActiveUserSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (!is_array($sessionUser) || empty($sessionUser['id'])) {
+            return;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) return;
+
+        $stmt = $db->prepare('SELECT status FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => (int)$sessionUser['id']]);
+        $status = $stmt->fetchColumn();
+
+        if ($status !== 'active') {
+            // User has been locked or deactivated by Admin -> Force Immediate Logout
+            unset($_SESSION['user']);
+            unset($_SESSION['cart']);
+            unset($_SESSION['applied_coupon']);
+            if (isset($_COOKIE['remember_techpilot'])) {
+                setcookie('remember_techpilot', '', time() - 3600, '/');
+            }
+
+            $contentType   = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? ''));
+            $accept        = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
+            $requestedWith = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+
+            $isJsonRequest = str_contains($contentType, 'application/json')
+                || str_contains($accept, 'application/json')
+                || $requestedWith === 'xmlhttprequest';
+
+            if ($isJsonRequest) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'ACCOUNT_LOCKED',
+                    'message' => 'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ hỗ trợ.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } else {
+                flash('error', 'Tài khoản của bạn đã bị khóa bởi quản trị viên.');
+                $loginUrl = defined('BASE_URL') ? BASE_URL . '/auth/login' : '/auth/login';
+                header('Location: ' . $loginUrl);
+                exit;
+            }
+        }
+    }
+}
+
 if (!function_exists('cartItems')) {
     function cartItems(): array
     {
