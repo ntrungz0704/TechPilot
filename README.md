@@ -184,7 +184,7 @@ Sau khi import thành công, database sẽ có **28 bảng vật lý**, 651 sả
 
 | Role | Email | Mật khẩu | Quyền hạn |
 |------|-------|----------|-----------|
-| **Admin** | `admin@techpilot.vn` | `TechPilotAdmin2026!` | Quản trị viên hệ thống & Admin Dashboard |
+| **Admin** | `admin@techpilot.vn` | `admin123` *(hoặc `TechPilotAdmin2026!`)* | Quản trị viên hệ thống & Admin Dashboard |
 | **Customer** | `dev@techpilot.vn` | `TechPilotDev2026!` | Khách hàng mua sắm, Checkout, AI Assistant |
 
 > 💡 **Ghi chú:** Nếu chỉ cần tạo cấu trúc bảng (không có dữ liệu mẫu), dùng `database/schema.sql` thay vì `seed_dev.sql`.
