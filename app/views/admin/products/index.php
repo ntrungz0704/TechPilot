@@ -176,17 +176,8 @@
                                 </span>
                             </td>
                             <td style="text-align: center;">
-                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
-                                    <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                    
-                                    <form method="post" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('<?= ((int)($p['sold_count'] ?? 0) > 0 || $p['status'] === 'archived') ? 'Sản phẩm đã có lịch sử kinh doanh. Thao tác này sẽ chuyển sang trạng thái Lưu trữ (Archived) bảo toàn dữ liệu.' : 'Bạn có chắc chắn muốn xóa/lưu trữ sản phẩm này không?' ?>');" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <?php if ((int)($p['sold_count'] ?? 0) > 0 || $p['status'] === 'archived'): ?>
-                                            <button type="submit" class="btn btn--secondary btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; background: #F3E8FF; color: #6B21A8; border: 1px solid #D8B4FE;" title="Lưu trữ bảo toàn dữ liệu"><i class="fa-solid fa-box-archive"></i> Lưu trữ</button>
-                                        <?php else: ?>
-                                            <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;" title="Xóa sản phẩm"><i class="fa-solid fa-trash-can"></i> Xóa</button>
-                                        <?php endif; ?>
-                                    </form>
+                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 38px;">
+                                    <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 14px; font-size: 12.5px; white-space: nowrap; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                                 </div>
                             </td>
                         </tr>

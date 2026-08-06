@@ -435,57 +435,10 @@ class AdminProductController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Kiểm tra xem sản phẩm đã từng có liên kết dữ liệu lịch sử nào hay chưa
-            $hasHistory = false;
-            $reasons = [];
-
-            // 1. Kiểm tra đơn hàng (order_items)
-            $stmtOrder = $db->prepare('SELECT COUNT(*) FROM order_items WHERE product_id = :id');
-            $stmtOrder->execute([':id' => $id]);
-            if ((int)$stmtOrder->fetchColumn() > 0) {
-                $hasHistory = true;
-                $reasons[] = 'Đơn hàng';
-            }
-
-            // 2. Kiểm tra đánh giá (reviews)
-            $stmtRev = $db->prepare('SELECT COUNT(*) FROM reviews WHERE product_id = :id');
-            $stmtRev->execute([':id' => $id]);
-            if ((int)$stmtRev->fetchColumn() > 0) {
-                $hasHistory = true;
-                $reasons[] = 'Đánh giá';
-            }
-
-            // 3. Kiểm tra Flash Sale (flash_sale_items)
-            $stmtFs = $db->prepare('SELECT COUNT(*) FROM flash_sale_items WHERE product_id = :id');
-            $stmtFs->execute([':id' => $id]);
-            if ((int)$stmtFs->fetchColumn() > 0) {
-                $hasHistory = true;
-                $reasons[] = 'Flash Sale';
-            }
-
-            // 4. Kiểm tra Nhật ký tồn kho (inventory_logs)
-            $stmtLog = $db->prepare('SELECT COUNT(*) FROM inventory_logs WHERE product_id = :id');
-            $stmtLog->execute([':id' => $id]);
-            if ((int)$stmtLog->fetchColumn() > 0) {
-                $hasHistory = true;
-                $reasons[] = 'Nhật ký kho';
-            }
-
-            if ($hasHistory) {
-                // Không được xóa thật -> Chuyển sang trạng thái Archived (Lưu trữ)
-                $stmtArchive = $db->prepare("UPDATE products SET status = 'archived' WHERE id = :id");
-                $stmtArchive->execute([':id' => $id]);
-
-                flash('warning', 'Sản phẩm đã phát sinh lịch sử (' . implode(', ', $reasons) . ') nên KHÔNG ĐƯỢC XÓA THẬT. Đã tự động chuyển sang Lưu Trữ (Archived) và ẩn khỏi website.');
-            } else {
-                // Sản phẩm chưa từng bán hoặc phát sinh dữ liệu -> Cho phép Xóa thật
-                $stmtDel = $db->prepare("DELETE FROM products WHERE id = :id");
-                if ($stmtDel->execute([':id' => $id])) {
-                    flash('success', 'Đã xóa hoàn toàn sản phẩm chưa có dữ liệu thành công!');
-                } else {
-                    flash('error', 'Không thể xóa sản phẩm.');
-                }
-            }
+            // Tuyệt đối không xóa cứng sản phẩm để bảo vệ toàn vẹn dữ liệu
+            $stmtArchive = $db->prepare("UPDATE products SET status = 'archived' WHERE id = :id");
+            $stmtArchive->execute([':id' => $id]);
+            flash('warning', 'Hệ thống đã khóa tính năng xóa cứng sản phẩm. Đã tự động chuyển sản phẩm sang trạng thái Lưu trữ (Archived) và ẩn khỏi cửa hàng.');
         }
 
         $this->redirect('admin/products');
