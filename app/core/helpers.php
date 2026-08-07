@@ -473,7 +473,7 @@ if (!function_exists('assertActiveUserSession')) {
         $stmt->execute([':id' => (int)$sessionUser['id']]);
         $status = $stmt->fetchColumn();
 
-        if ($status !== 'active') {
+        if ($status !== false && $status !== 'active') {
             // User has been locked or deactivated by Admin -> Force Immediate Logout
             unset($_SESSION['user']);
             unset($_SESSION['cart']);
@@ -512,8 +512,8 @@ if (!function_exists('assertActiveUserSession')) {
 if (!function_exists('cartItems')) {
     function cartItems(): array
     {
-        if (currentUser()) {
-            return $_SESSION['cart'] ?? [];
+        if (!empty($_SESSION['cart'])) {
+            return $_SESSION['cart'];
         }
         return $_SESSION['guest_cart'] ?? [];
     }

@@ -203,7 +203,8 @@ if ($db instanceof PDO) {
             "CREATE TEMPORARY TABLE `categories` (
                 `id` INT UNSIGNED NOT NULL PRIMARY KEY,
                 `name` VARCHAR(100) NOT NULL,
-                `slug` VARCHAR(100) NOT NULL
+                `slug` VARCHAR(100) NOT NULL,
+                `status` VARCHAR(30) NOT NULL DEFAULT 'active'
             ) ENGINE=InnoDB"
         );
         $db->exec(

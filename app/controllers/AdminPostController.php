@@ -332,9 +332,14 @@ class AdminPostController extends Controller
 
             try {
                 $db = Database::getConnection();
+                /* DELETE FROM posts WHERE id = :id */
                 $stmt = $db->prepare("UPDATE posts SET status = 'hidden' WHERE id = :id");
                 if ($stmt->execute([':id' => $id])) {
                     $_SESSION['warning'] = 'Hệ thống đã khóa tính năng xóa cứng. Đã tự động chuyển trạng thái bài viết sang Tạm ẩn.';
+                    $cleaned = UploadService::deleteImage($post['image'] ?? '');
+                    if (!$cleaned) {
+                        error_log("Cảnh báo: Không thể dọn dẹp ảnh cho bài viết ID {$id}");
+                    }
                 } else {
                     $_SESSION['error'] = 'Không thể ẩn bài viết.';
                 }

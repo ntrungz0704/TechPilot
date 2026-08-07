@@ -1125,6 +1125,11 @@ class Product
     }
 
     /** Lấy 1 sản phẩm theo id */
+    public function isAvailable(): bool
+    {
+        return $this->db !== null;
+    }
+
     public function getById(int $id): array|false
     {
         if ($this->db !== null) {

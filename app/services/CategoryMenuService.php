@@ -593,9 +593,9 @@ class CategoryMenuService
                         // 2. Cột Phân khúc Theo Giá
                         $megaColumns[$catName . ' THEO GIÁ'] = [
                             ['name' => $catName . ' Dưới 10 Triệu', 'query' => 'cat=' . $catSlug . '&max_price=10000000'],
-                            ['name' => $catName . ' Từ 10 - 20 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=10000000&max_price=20000000'],
-                            ['name' => $catName . ' Từ 20 - 30 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=20000000&max_price=30000000'],
-                            ['name' => $catName . ' Trên 30 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=30000000'],
+                            ['name' => $catName . ' Từ 10 - 20 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=10000001&max_price=20000000'],
+                            ['name' => $catName . ' Từ 20 - 30 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=20000001&max_price=30000000'],
+                            ['name' => $catName . ' Trên 30 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=30000001'],
                         ];
 
                         // 3. Cột Thương hiệu Nổi Bật
