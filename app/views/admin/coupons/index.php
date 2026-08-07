@@ -49,20 +49,21 @@
                                 <span style="font-size: 12.5px; display: block; color: var(--text-secondary);">Bắt đầu: <?= $cp['start_date'] ? date('d/m/Y H:i', strtotime($cp['start_date'])) : 'Không đặt' ?></span>
                                 <span style="font-size: 12.5px; display: block; color: var(--text-secondary);">Kết thúc: <?= $cp['end_date'] ? date('d/m/Y H:i', strtotime($cp['end_date'])) : 'Không đặt' ?></span>
                             </td>
-                            <td>
-                                <span class="badge <?= $cp['status'] === 'active' ? 'badge--success' : 'badge--danger' ?>">
-                                    <?= $cp['status'] === 'active' ? 'Hoạt động' : 'Tạm khoá' ?>
-                                </span>
+                            <td style="text-align: center;">
+                                <?php $isActive = (($cp['status'] ?? 'active') === 'active'); ?>
+                                <label class="toggle-switch" title="Bật/Tắt kích hoạt mã giảm giá">
+                                    <input type="checkbox" 
+                                           class="coupon-status-toggle" 
+                                           data-coupon-id="<?= (int)$cp['id'] ?>" 
+                                           <?= $isActive ? 'checked' : '' ?>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: <?= $isActive ? '#10B981' : '#6B7280' ?>;" id="statusText_<?= (int)$cp['id'] ?>">
+                                    <?= $isActive ? 'Hoạt động' : 'Tạm khoá' ?>
+                                </div>
                             </td>
                             <td style="text-align: center;">
-                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
-                                    <a href="<?= url('admin/coupons/edit/' . $cp['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                    
-                                    <form method="post" action="<?= url('admin/coupons/delete/' . $cp['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá mã giảm giá này?');" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                    </form>
-                                </div>
+                                <a href="<?= url('admin/coupons/edit/' . $cp['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -75,3 +76,47 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggles = document.querySelectorAll('.coupon-status-toggle');
+    const csrfToken = '<?= csrf_token() ?>';
+
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const couponId = this.dataset.couponId;
+            const isChecked = this.checked;
+            const statusTextEl = document.getElementById('statusText_' + couponId);
+            
+            const formData = new FormData();
+            formData.append('_csrf', csrfToken);
+
+            fetch('<?= url("admin/coupons/toggle-status/") ?>' + couponId, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': csrfToken
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (statusTextEl) {
+                        statusTextEl.textContent = data.status_label;
+                        statusTextEl.style.color = (data.new_status === 'active') ? '#10B981' : '#6B7280';
+                    }
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra.');
+                    this.checked = !isChecked;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Không thể kết nối máy chủ.');
+                this.checked = !isChecked;
+            });
+        });
+    });
+});
+</script>

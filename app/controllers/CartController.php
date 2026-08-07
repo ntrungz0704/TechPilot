@@ -67,19 +67,16 @@ class CartController extends Controller
     public function index(): void
     {
         $user = currentUser();
-        if (!$user) {
-            flash('error', 'Vui lòng đăng nhập để xem giỏ hàng.');
-            $this->redirect('auth/login?redirect=/cart');
-            return;
-        }
-
         $db = $this->getDbConnection();
-        if ($db && !$this->hasValidUser($user, $db)) {
-            $this->clearStaleLogin();
-            return;
-        }
-        if ($db) {
-            $this->syncCartSession((int)$user['id'], $db);
+
+        if ($user) {
+            if ($db && !$this->hasValidUser($user, $db)) {
+                $this->clearStaleLogin();
+                return;
+            }
+            if ($db) {
+                $this->syncCartSession((int)$user['id'], $db);
+            }
         }
 
         $summary = (new CartService())->getSummary();
@@ -92,6 +89,7 @@ class CartController extends Controller
             'total' => $summary['total'],
             'hasUnavailableItems' => (bool)$summary['has_unavailable_items'],
             'canCheckout' => (bool)$summary['can_checkout'],
+            'isGuest' => !$user,
             'flashes' => pullFlashes(),
         ]);
     }

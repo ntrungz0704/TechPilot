@@ -23,7 +23,7 @@ class CartService
      */
     public function getItems(): array
     {
-        $cart = $_SESSION['cart'] ?? [];
+        $cart = cartItems();
         if (empty($cart)) {
             return [];
         }

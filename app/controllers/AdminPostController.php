@@ -332,38 +332,61 @@ class AdminPostController extends Controller
 
             try {
                 $db = Database::getConnection();
-                
-                $stmt = $db->prepare('SELECT image FROM posts WHERE id = :id');
-                $stmt->execute([':id' => $id]);
-                $post = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                if ($post) {
-                    $imageToDelete = $post['image'] ?? null;
-
-                    // 1. DELETE DB row FIRST
-                    $stmt = $db->prepare('DELETE FROM posts WHERE id = :id');
-                    $stmt->execute([':id' => $id]);
-
-                    $_SESSION['success'] = 'Đã xóa bài viết';
-
-                    // 2. Best-effort file cleanup ONLY AFTER DB row is deleted successfully
-                    if ($imageToDelete) {
-                        try {
-                            $cleaned = UploadService::deleteImage($imageToDelete, 'posts');
-                            if (!$cleaned) {
-                                error_log('[AdminPostController::delete] Failed to delete image file: ' . $imageToDelete);
-                            }
-                        } catch (Throwable $cleanupError) {
-                            error_log('[AdminPostController::delete] Exception during image deletion: ' . $cleanupError->getMessage());
-                        }
-                    }
+                $stmt = $db->prepare("UPDATE posts SET status = 'hidden' WHERE id = :id");
+                if ($stmt->execute([':id' => $id])) {
+                    $_SESSION['warning'] = 'Hệ thống đã khóa tính năng xóa cứng. Đã tự động chuyển trạng thái bài viết sang Tạm ẩn.';
+                } else {
+                    $_SESSION['error'] = 'Không thể ẩn bài viết.';
                 }
             } catch (Throwable $e) {
-                $_SESSION['error'] = 'Không thể xóa bài viết: ' . $e->getMessage();
+                $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
             }
             
             header('Location: ' . url('admin/posts'));
             exit;
         }
+    }
+
+    /** Toggle trạng thái Bật/Tắt bài viết (POST /admin/posts/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối CSDL.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT status, title FROM posts WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $pst = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$pst) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Bài viết không tồn tại.']);
+            exit;
+        }
+
+        $newStatus = ($pst['status'] === 'published') ? 'hidden' : 'published';
+        $upStmt = $db->prepare("UPDATE posts SET status = :status WHERE id = :id");
+        $upStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        echo json_encode([
+            'success'      => true,
+            'message'      => 'Đã ' . ($newStatus === 'published' ? 'xuất bản' : 'tạm ẩn') . ' bài viết ' . $pst['title'],
+            'new_status'   => $newStatus,
+            'status_label' => $newStatus === 'published' ? 'Đã đăng' : 'Ẩn'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

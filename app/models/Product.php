@@ -953,13 +953,11 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id WHERE p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id WHERE p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $res ?: [];
             } catch (Exception $e) {}
         }
 
@@ -982,7 +980,9 @@ class Product
                      FROM products p
                      INNER JOIN flash_sale_items fsi ON p.id = fsi.product_id
                      INNER JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
+                     LEFT JOIN categories c ON p.category_id = c.id
                      WHERE p.status = 'active'
+                       AND (c.status = 'active' OR c.status IS NULL)
                        AND p.verification_status = 'verified'
                        AND fs.status = 'active'
                        AND fs.start_time <= NOW()
@@ -1140,9 +1140,7 @@ class Product
                 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetch();
-                if ($res) {
-                    return $res;
-                }
+                return $res ?: false;
             } catch (Exception $e) {}
         }
 
@@ -1151,7 +1149,7 @@ class Product
                 return $p;
             }
         }
-        return self::getSampleProducts()[0] ?? false;
+        return false;
     }
 
     /** Lấy 1 sản phẩm theo slug (trang chi tiết) */
@@ -1170,9 +1168,7 @@ class Product
                 $stmt->bindValue(':slug', $slug);
                 $stmt->execute();
                 $res = $stmt->fetch();
-                if ($res) {
-                    return $res;
-                }
+                return $res ?: false;
             } catch (Exception $e) {}
         }
 
@@ -1181,7 +1177,7 @@ class Product
                 return $p;
             }
         }
-        return self::getSampleProducts()[0] ?? false;
+        return false;
     }
 
     /** Lấy danh sách ảnh phụ từ product_images */
@@ -1210,7 +1206,7 @@ class Product
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
                      LEFT JOIN categories c ON p.category_id = c.id
-                     WHERE p.category_id = :cat AND p.id != :id AND p.status = 'active'
+                     WHERE p.category_id = :cat AND p.id != :id AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL)
                      ORDER BY ABS({$effectivePrice} - :price) ASC, p.rating DESC, p.id DESC
                      LIMIT :limit"
                 );
@@ -1220,38 +1216,29 @@ class Product
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
                 $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $res ?: [];
             } catch (Exception $e) {}
         }
 
-        $samples = array_filter(self::getSampleProducts(), fn($p) => $p['id'] != $excludeId);
-        return array_slice(array_values($samples), 0, $limit);
+        return [];
     }
 
-    /** Danh sách toàn bộ danh mục */
-    public function getCategories(): array
+    /** Danh sách toàn bộ danh mục (mặc định lấy tất cả, nếu $activeOnly = true chỉ lấy active) */
+    public function getCategories(bool $activeOnly = false): array
     {
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->query('SELECT * FROM categories ORDER BY id ASC');
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
+                $sql = 'SELECT * FROM categories';
+                if ($activeOnly) {
+                    $sql .= " WHERE status = 'active'";
                 }
+                $sql .= ' ORDER BY id ASC';
+                $stmt = $this->db->query($sql);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             } catch (Exception $e) {}
         }
 
-        return [
-            ['id' => 1, 'name' => 'Laptop Gaming', 'slug' => 'laptop-gaming', 'icon' => 'fa-solid fa-laptop-code'],
-            ['id' => 2, 'name' => 'Laptop Văn Phòng', 'slug' => 'laptop-van-phong', 'icon' => 'fa-solid fa-laptop'],
-            ['id' => 3, 'name' => 'PC Bán Sẵn', 'slug' => 'pc-build-san', 'icon' => 'fa-solid fa-desktop'],
-            ['id' => 4, 'name' => 'Linh Kiện PC', 'slug' => 'pc-linh-kien', 'icon' => 'fa-solid fa-microchip'],
-            ['id' => 5, 'name' => 'Gaming Gear', 'slug' => 'gaming-gear', 'icon' => 'fa-solid fa-gamepad'],
-            ['id' => 6, 'name' => 'Màn Hình', 'slug' => 'man-hinh', 'icon' => 'fa-solid fa-tv'],
-            ['id' => 7, 'name' => 'Máy Tính Bộ', 'slug' => 'may-tinh-bo', 'icon' => 'fa-solid fa-server'],
-        ];
+        return [];
     }
 
     /** Lấy sản phẩm best seller hoặc phân loại theo tab cho Best Sellers */
@@ -1297,14 +1284,11 @@ class Product
                 }
                 $stmt->bindValue(count($slugs) + 1, $limit, PDO::PARAM_INT);
                 $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $stmt->fetchAll() ?: [];
             } catch (Exception $e) {}
         }
 
-        return array_slice(self::getSampleProducts(), 0, $limit);
+        return [];
     }
 
     public function getBestSellers(int $limit = 6): array
@@ -1312,17 +1296,14 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_best_seller = 1 AND p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_best_seller = 1 AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $stmt->fetchAll() ?: [];
             } catch (Exception $e) {}
         }
 
-        return array_slice(self::getSampleProducts(), 0, $limit);
+        return [];
     }
 
     public function getNewArrivals(int $limit = 6): array
@@ -1330,17 +1311,14 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_new_arrival = 1 AND p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_new_arrival = 1 AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $stmt->fetchAll() ?: [];
             } catch (Exception $e) {}
         }
 
-        return array_slice(self::getSampleProducts(), 0, $limit);
+        return [];
     }
 
     public function getAiRecommend(int $limit = 6): array
@@ -1348,17 +1326,14 @@ class Product
         if ($this->db !== null) {
             try {
                 $activeFlashPrice = activeFlashPriceSql('p');
-                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_ai_recommend = 1 AND p.status = 'active' ORDER BY p.id DESC LIMIT :limit");
+                $stmt = $this->db->prepare("SELECT p.*, {$activeFlashPrice} AS discount_price, b.name as brand_name FROM products p LEFT JOIN categories c ON p.category_id = c.id LEFT JOIN brands b ON p.brand_id = b.id WHERE p.is_ai_recommend = 1 AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY p.id DESC LIMIT :limit");
                 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
                 $stmt->execute();
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $stmt->fetchAll() ?: [];
             } catch (Exception $e) {}
         }
 
-        return array_slice(self::getSampleProducts(), 0, $limit);
+        return [];
     }
 
     /**
@@ -1535,6 +1510,9 @@ class Product
         $normalized = $this->normalizeSearchKeyword($keyword);
         $normalizedNoAccent = $this->removeVietnameseAccents($normalized);
 
+        $dbActiveCategories = $this->getCategories(true);
+        $dbActiveSlugs = array_column($dbActiveCategories, 'slug');
+
         $matchedCategorySlugs = [];
         $aliases = CatalogGroupService::getKeywordAliasMap();
 
@@ -1547,10 +1525,16 @@ class Product
         $remainingKeywordNoAccent = $normalizedNoAccent;
 
         foreach ($aliases as $alias => $slugs) {
+            $activeSlugsForAlias = array_values(array_intersect($slugs, $dbActiveSlugs));
+            if (empty($activeSlugsForAlias)) {
+                // Nếu danh mục bí danh hoàn toàn bị tạm ẩn trong CSDL, không đưa vào bộ lọc danh mục cứng
+                continue;
+            }
+
             $pattern = '/(?<=^|\s)' . preg_quote($alias, '/') . '(?=$|\s)/u';
             $matched = false;
             if (preg_match($pattern, $remainingKeyword)) {
-                $matchedCategorySlugs = array_merge($matchedCategorySlugs, $slugs);
+                $matchedCategorySlugs = array_merge($matchedCategorySlugs, $activeSlugsForAlias);
                 $remainingKeyword = preg_replace($pattern, '', $remainingKeyword);
                 $matched = true;
             }
@@ -1559,7 +1543,7 @@ class Product
             $patternNoAccent = '/(?<=^|\s)' . preg_quote($aliasNoAccent, '/') . '(?=$|\s)/u';
             if (preg_match($patternNoAccent, $remainingKeywordNoAccent)) {
                 if (!$matched) {
-                    $matchedCategorySlugs = array_merge($matchedCategorySlugs, $slugs);
+                    $matchedCategorySlugs = array_merge($matchedCategorySlugs, $activeSlugsForAlias);
                 }
                 $remainingKeywordNoAccent = preg_replace($patternNoAccent, '', $remainingKeywordNoAccent);
             }
@@ -1582,8 +1566,10 @@ class Product
             }
 
             if (empty($targetSlugs)) {
-                // Giao rỗng -> 0 kết quả
-                $conditions[] = '1 = 0';
+                if (!empty($categorySlug)) {
+                    // Giao rỗng khi chọn danh mục cụ thể bị ẩn -> 0 kết quả
+                    $conditions[] = '1 = 0';
+                }
             } else {
                 $placeholders = [];
                 foreach ($targetSlugs as $i => $slug) {
@@ -1591,7 +1577,21 @@ class Product
                     $params[$pName] = $slug;
                     $placeholders[] = $pName;
                 }
-                $conditions[] = 'c.slug IN (' . implode(', ', $placeholders) . ')';
+
+                if (!empty($categorySlug)) {
+                    // Khi chọn danh mục cụ thể ở URL dropdown -> lọc cứng theo danh mục đó
+                    $conditions[] = 'c.slug IN (' . implode(', ', $placeholders) . ')';
+                } else {
+                    // Khi tìm kiếm chung từ thanh Search bar -> cho phép tìm sản phẩm thuộc danh mục khớp HOẶC tên/thông số có chứa từ khóa
+                    $orKwClause = '';
+                    if (!empty($normalized)) {
+                        $pVal = '%' . mb_strtolower($normalized, 'UTF-8') . '%';
+                        $params[':fallback_kw_title'] = $pVal;
+                        $params[':fallback_kw_specs'] = $pVal;
+                        $orKwClause = ' OR LOWER(p.name) LIKE :fallback_kw_title OR LOWER(p.specs) LIKE :fallback_kw_specs';
+                    }
+                    $conditions[] = '(c.slug IN (' . implode(', ', $placeholders) . ')' . $orKwClause . ')';
+                }
             }
         }
 
@@ -1903,18 +1903,14 @@ class Product
                      FROM products p
                      LEFT JOIN brands b ON p.brand_id = b.id
                      LEFT JOIN categories c ON p.category_id = c.id
-                     WHERE p.id IN ($placeholders) AND p.status = 'active'"
+                     WHERE p.id IN ($placeholders) AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL)"
                 );
                 $stmt->execute(array_map('intval', $ids));
-                $res = $stmt->fetchAll();
-                if (!empty($res)) {
-                    return $res;
-                }
+                return $stmt->fetchAll() ?: [];
             } catch (Exception $e) {}
         }
 
-        $res = array_filter(self::getSampleProducts(), fn($p) => in_array($p['id'], $ids));
-        return array_values($res);
+        return [];
     }
 
     /**
@@ -1935,7 +1931,7 @@ class Product
                 FROM brands b
                 INNER JOIN products p ON p.brand_id = b.id
                 INNER JOIN categories c ON p.category_id = c.id
-                WHERE c.slug IN ($placeholders) AND p.status = 'active'
+                WHERE c.slug IN ($placeholders) AND p.status = 'active' AND c.status = 'active'
                 ORDER BY b.name ASC
             ";
             $stmt = $this->db->prepare($sql);

@@ -205,14 +205,57 @@ class AdminBannerController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            $stmt = $db->prepare('DELETE FROM banners WHERE id = :id');
+            $stmt = $db->prepare("UPDATE banners SET status = 'inactive' WHERE id = :id");
             if ($stmt->execute([':id' => $id])) {
-                flash('success', 'Xoá banner thành công!');
+                flash('warning', 'Hệ thống đã khóa tính năng xóa cứng. Đã tự động chuyển trạng thái banner sang Tạm ẩn.');
             } else {
-                flash('error', 'Không thể xoá banner.');
+                flash('error', 'Không thể tạm ẩn banner.');
             }
         }
 
         $this->redirect('admin/banners');
+    }
+
+    /** Toggle trạng thái Bật/Tắt hiển thị banner (POST /admin/banners/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối CSDL.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT status, title FROM banners WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $bn = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$bn) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Banner không tồn tại.']);
+            exit;
+        }
+
+        $newStatus = ($bn['status'] === 'active') ? 'inactive' : 'active';
+        $upStmt = $db->prepare("UPDATE banners SET status = :status WHERE id = :id");
+        $upStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        echo json_encode([
+            'success'      => true,
+            'message'      => 'Đã ' . ($newStatus === 'active' ? 'bật hiển thị' : 'tạm ẩn') . ' banner ' . $bn['title'],
+            'new_status'   => $newStatus,
+            'status_label' => $newStatus === 'active' ? 'Hiển thị' : 'Ẩn'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

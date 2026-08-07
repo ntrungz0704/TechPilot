@@ -603,8 +603,248 @@ if (!function_exists('pullFlashes')) {
             session_start();
         }
         $flashes = $_SESSION['flashes'] ?? [];
-        unset($_SESSION['flashes']);
+        $_SESSION['flashes'] = [];
         return $flashes;
+    }
+}
+
+if (!function_exists('getProductHighlightBadges')) {
+    /** Trích xuất 3-4 thông số kỹ thuật nổi bật nhất của sản phẩm thuộc tất cả 20 danh mục (GearVN Style) */
+    function getProductHighlightBadges(array $p): array
+    {
+        $specs = [];
+        $rawS = [];
+        if (!empty($p['specs'])) {
+            $rawS = is_array($p['specs']) ? $p['specs'] : json_decode($p['specs'], true);
+            if (isset($rawS['specs']) && is_array($rawS['specs'])) {
+                $rawS = $rawS['specs'];
+            }
+        }
+
+        $catSlug = strtolower((string)($p['category_slug'] ?? ''));
+        $name = (string)($p['name'] ?? '');
+
+        $get = function($key) use ($rawS) {
+            return $rawS[$key] ?? null;
+        };
+
+        $cleanStr = function($str) {
+            $str = preg_replace('/^(AMD|Intel|NVIDIA|GeForce|Radeon)®?\s*/iu', '', (string)$str);
+            $str = preg_replace('/\s*(Box|Tray|C1|C2|V2|V3|Edition)$/iu', '', $str);
+            return trim($str);
+        };
+
+        switch ($catSlug) {
+            case 'laptop':
+            case 'laptop-gaming':
+            case 'laptop-van-phong':
+                $cpu = $get('cpu_short') ?? $get('cpu_model') ?? $get('cpu');
+                if (!$cpu && preg_match('/(Intel[^\s]*|Core\s+i\d-[^\s]*|Ryzen\s+\d[^\s]*|Apple\s+M\d[^\s]*)/i', $name, $m)) {
+                    $cpu = $m[1];
+                }
+                if ($cpu) $specs[] = ['icon' => 'fa-microchip', 'text' => $cleanStr($cpu)];
+
+                $ram = $get('ram_capacity_gb') ? $get('ram_capacity_gb') . 'GB' : ($get('ram') ?? null);
+                if (!$ram && preg_match('/(\d+GB)\s+(DDR4|DDR5|LPDDR5)/i', $name, $m)) {
+                    $ram = $m[1] . ' ' . $m[2];
+                }
+                if ($ram) $specs[] = ['icon' => 'fa-memory', 'text' => (string)$ram];
+
+                $vga = $get('gpu_chip') ?? $get('gpu_short') ?? $get('vga') ?? $get('gpu');
+                if (!$vga && preg_match('/(RTX\s*\d{4}[^\s]*|GTX\s*\d{4}[^\s]*|Radeon\s+[^\s]+)/i', $name, $m)) {
+                    $vga = $m[1];
+                }
+                if ($vga) $specs[] = ['icon' => 'fa-desktop', 'text' => (string)$vga];
+
+                $ssd = $get('storage_capacity_gb') ? ($get('storage_capacity_gb') >= 1024 ? round($get('storage_capacity_gb')/1024).'TB NVMe' : $get('storage_capacity_gb').'GB NVMe') : ($get('ssd') ?? null);
+                if (!$ssd && preg_match('/(\d+(?:GB|TB))\s*(SSD|NVMe)?/i', $name, $m)) {
+                    $ssd = $m[1];
+                }
+                if ($ssd) $specs[] = ['icon' => 'fa-hard-drive', 'text' => (string)$ssd];
+
+                $screen = $get('screen_short') ?? ($get('screen_size_inch') ? $get('screen_size_inch') . '"' : null);
+                if ($screen && count($specs) < 4) $specs[] = ['icon' => 'fa-tv', 'text' => (string)$screen];
+                break;
+
+            case 'pc':
+            case 'pc-gaming':
+            case 'pc-van-phong':
+            case 'pc-build-san':
+            case 'may-tinh-bo':
+                $cpu = $get('cpu_short') ?? $get('cpu_model') ?? $get('cpu');
+                if (!$cpu && preg_match('/(i\d-\d+[A-Z]*|Ryzen\s+\d\s+\d+[A-Z]*)/i', $name, $m)) {
+                    $cpu = $m[1];
+                }
+                if ($cpu) $specs[] = ['icon' => 'fa-microchip', 'text' => $cleanStr($cpu)];
+
+                $vga = $get('gpu_chip') ?? $get('vga') ?? $get('gpu');
+                if (!$vga && preg_match('/(RTX\s*\d{4}[^\s]*|RX\s*\d{4}[^\s]*)/i', $name, $m)) {
+                    $vga = $m[1];
+                }
+                if ($vga) $specs[] = ['icon' => 'fa-desktop', 'text' => $cleanStr($vga)];
+
+                $ram = $get('ram_capacity_gb') ? $get('ram_capacity_gb') . 'GB' : ($get('ram') ?? null);
+                if (!$ram && preg_match('/(\d+GB)\s*(DDR4|DDR5)?/i', $name, $m)) {
+                    $ram = $m[1];
+                }
+                if ($ram) $specs[] = ['icon' => 'fa-memory', 'text' => (string)$ram];
+
+                $ssd = $get('storage_capacity_gb') ? ($get('storage_capacity_gb') >= 1024 ? round($get('storage_capacity_gb')/1024).'TB SSD' : $get('storage_capacity_gb').'GB SSD') : ($get('ssd') ?? null);
+                if ($ssd) $specs[] = ['icon' => 'fa-hard-drive', 'text' => (string)$ssd];
+                break;
+
+            case 'monitor':
+            case 'man-hinh':
+                $size = $get('screen_size_inch') ? $get('screen_size_inch') . '"' : null;
+                if (!$size && preg_match('/(\d{2}(?:\.\d)?)\s*(?:inch|")?/i', $name, $m)) {
+                    $size = $m[1] . '"';
+                }
+                if ($size) $specs[] = ['icon' => 'fa-expand', 'text' => $size];
+
+                $panel = $get('panel_type') ?? $get('resolution');
+                if (!$panel && preg_match('/(OLED|IPS|VA|TN|4K|2K|FHD)/i', $name, $m)) {
+                    $panel = $m[1];
+                }
+                if ($panel) $specs[] = ['icon' => 'fa-tv', 'text' => (string)$panel];
+
+                $hz = $get('refresh_rate_hz') ? $get('refresh_rate_hz') . 'Hz' : null;
+                if (!$hz && preg_match('/(\d{2,3}Hz)/i', $name, $m)) {
+                    $hz = $m[1];
+                }
+                if ($hz) $specs[] = ['icon' => 'fa-gauge-high', 'text' => $hz];
+
+                $response = $get('response_time_ms') ? $get('response_time_ms') . 'ms' : null;
+                if ($response && count($specs) < 4) $specs[] = ['icon' => 'fa-stopwatch', 'text' => $response];
+                break;
+
+            case 'vga':
+                $gpu = $get('gpu_chip') ?? $get('architecture');
+                if (!$gpu && preg_match('/(RTX\s*\d{4}[^\s]*|RX\s*\d{4}[^\s]*)/i', $name, $m)) {
+                    $gpu = $m[1];
+                }
+                if ($gpu) $specs[] = ['icon' => 'fa-desktop', 'text' => (string)$gpu];
+
+                $vram = $get('vram_gb') ? $get('vram_gb') . 'GB ' . ($get('vram_type') ?? '') : null;
+                if (!$vram && preg_match('/(\d+GB)\s*(GDDR6X|GDDR6)?/i', $name, $m)) {
+                    $vram = $m[1] . ' ' . ($m[2] ?? '');
+                }
+                if ($vram) $specs[] = ['icon' => 'fa-database', 'text' => trim($vram)];
+
+                $psuReq = $get('recommended_psu_w') ? 'PSU ' . $get('recommended_psu_w') . 'W' : null;
+                if ($psuReq) $specs[] = ['icon' => 'fa-bolt', 'text' => $psuReq];
+                break;
+
+            case 'cpu':
+                $cores = ($get('cores') && $get('threads')) ? $get('cores') . 'C/' . $get('threads') . 'T' : null;
+                if ($cores) $specs[] = ['icon' => 'fa-layer-group', 'text' => $cores];
+
+                $boost = $get('boost_clock_ghz') ? 'Up ' . $get('boost_clock_ghz') . 'GHz' : null;
+                if ($boost) $specs[] = ['icon' => 'fa-gauge-high', 'text' => $boost];
+
+                $socket = $get('socket') ? (string)$get('socket') : null;
+                if ($socket) $specs[] = ['icon' => 'fa-microchip', 'text' => $socket];
+
+                $power = $get('max_turbo_power_w') ? $get('max_turbo_power_w') . 'W' : null;
+                if ($power && count($specs) < 4) $specs[] = ['icon' => 'fa-bolt', 'text' => $power];
+                break;
+
+            case 'ram':
+                $cap = $get('total_capacity_gb') ? $get('total_capacity_gb') . 'GB' : null;
+                if (!$cap && preg_match('/(\d+GB)/i', $name, $m)) {
+                    $cap = $m[1];
+                }
+                if ($cap) $specs[] = ['icon' => 'fa-memory', 'text' => $cap];
+
+                $type = $get('memory_type') ? $get('memory_type') . ' ' . ($get('speed_mhz') ? $get('speed_mhz') . 'MHz' : '') : null;
+                if (!$type && preg_match('/(DDR4|DDR5)\s*(\d{4}MHz)?/i', $name, $m)) {
+                    $type = trim($m[1] . ' ' . ($m[2] ?? ''));
+                }
+                if ($type) $specs[] = ['icon' => 'fa-bolt', 'text' => $type];
+
+                if ($get('rgb')) $specs[] = ['icon' => 'fa-lightbulb', 'text' => 'RGB'];
+                break;
+
+            case 'storage':
+                $type = $get('drive_type') ?? ($get('interface') ? 'SSD ' . $get('interface') : null);
+                if (!$type && preg_match('/(NVMe|PCIe 4\.0|SATA 3|SSD|HDD)/i', $name, $m)) {
+                    $type = $m[1];
+                }
+                if ($type) $specs[] = ['icon' => 'fa-hard-drive', 'text' => (string)$type];
+
+                $cap = $get('capacity_gb') ? ($get('capacity_gb') >= 1024 ? round($get('capacity_gb')/1024) . 'TB' : $get('capacity_gb') . 'GB') : null;
+                if (!$cap && preg_match('/(\d+(?:GB|TB))/i', $name, $m)) {
+                    $cap = $m[1];
+                }
+                if ($cap) $specs[] = ['icon' => 'fa-database', 'text' => $cap];
+
+                $speed = $get('read_speed_mbps') ? 'Đọc ' . $get('read_speed_mbps') . 'MB/s' : null;
+                if ($speed && count($specs) < 4) $specs[] = ['icon' => 'fa-gauge-high', 'text' => $speed];
+                break;
+
+            case 'keyboard':
+                $type = $get('keyboard_type') ?? ($get('layout') ? 'Layout ' . $get('layout') : 'Phím cơ');
+                if ($type) $specs[] = ['icon' => 'fa-keyboard', 'text' => (string)$type];
+
+                $switch = $get('switch_model') ?? $get('switch_type');
+                if ($switch) $specs[] = ['icon' => 'fa-sliders', 'text' => (string)$switch];
+
+                $conn = is_array($get('connection')) ? implode('/', $get('connection')) : $get('connection');
+                if ($conn) $specs[] = ['icon' => 'fa-wifi', 'text' => (string)$conn];
+                break;
+
+            case 'mouse':
+                $sensor = $get('sensor') ?? ($get('max_dpi') ? $get('max_dpi') . ' DPI' : null);
+                if (!$sensor && preg_match('/(\d{4,5}\s*DPI)/i', $name, $m)) {
+                    $sensor = $m[1];
+                }
+                if ($sensor) $specs[] = ['icon' => 'fa-crosshair', 'text' => (string)$sensor];
+
+                $weight = $get('weight_g') ? $get('weight_g') . 'g' : null;
+                if ($weight) $specs[] = ['icon' => 'fa-feather-pointed', 'text' => $weight];
+
+                $conn = is_array($get('connection')) ? implode('/', $get('connection')) : $get('connection');
+                if ($conn && count($specs) < 4) $specs[] = ['icon' => 'fa-wifi', 'text' => $conn];
+                break;
+
+            case 'headset':
+                $sound = $get('surround_sound') ?? ($get('driver_size_mm') ? 'Driver ' . $get('driver_size_mm') . 'mm' : 'Âm thanh 7.1');
+                if ($sound) $specs[] = ['icon' => 'fa-headphones', 'text' => (string)$sound];
+
+                $conn = is_array($get('connection')) ? implode('/', $get('connection')) : $get('connection');
+                if ($conn) $specs[] = ['icon' => 'fa-wifi', 'text' => (string)$conn];
+                break;
+
+            case 'cooling':
+                $type = $get('cooler_type') ? 'Tản ' . ($get('cooler_type') === 'AIO' ? 'nước AIO' : 'khí') : null;
+                if ($type) $specs[] = ['icon' => 'fa-fan', 'text' => $type];
+
+                $cap = $get('cooling_capacity_w') ? 'TDP ' . $get('cooling_capacity_w') . 'W' : null;
+                if ($cap) $specs[] = ['icon' => 'fa-temperature-arrow-down', 'text' => $cap];
+                break;
+
+            case 'psu':
+                $watt = $get('wattage') ? $get('wattage') . 'W' : null;
+                if (!$watt && preg_match('/(\d{3,4}W)/i', $name, $m)) {
+                    $watt = $m[1];
+                }
+                if ($watt) $specs[] = ['icon' => 'fa-bolt', 'text' => $watt];
+
+                $eff = $get('efficiency_rating');
+                if ($eff) $specs[] = ['icon' => 'fa-shield-halved', 'text' => (string)$eff];
+                break;
+
+            default:
+                if (!empty($rawS)) {
+                    foreach ($rawS as $k => $v) {
+                        if (is_scalar($v) && strlen((string)$v) < 25 && count($specs) < 3) {
+                            $specs[] = ['icon' => 'fa-circle-check', 'text' => (string)$v];
+                        }
+                    }
+                }
+                break;
+        }
+
+        return array_slice($specs, 0, 4);
     }
 }
 

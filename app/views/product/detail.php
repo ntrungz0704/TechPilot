@@ -7,7 +7,7 @@ $reviews = $reviews ?? [];
 
 require_once ROOT_PATH . '/app/services/ProductSpecPresenter.php';
 
-// Product gallery helper — ensure products.image is always first and deduplicate based on resolved URLs
+// Product gallery helper — ensure products.image is always first and guarantee 4 full gallery images for all products
 function getGalleryImages(array $product, array $extraImgs): array {
     $list = [];
     $resolvedList = [];
@@ -40,8 +40,15 @@ function getGalleryImages(array $product, array $extraImgs): array {
     if (empty($list)) {
         $list[] = ''; // Add empty string to trigger placeholder via productImageUrl later
     }
+
+    // Đảm bảo LUÔN CÓ ĐỦ ĐỦ 4 HÌNH ẢNH CHO TẤT CẢ 651 SẢN PHẨM
+    $baseImg = !empty($list[0]) ? $list[0] : $mainImg;
+    while (count($list) < 4) {
+        $angleIndex = count($list) + 1;
+        $list[] = $baseImg . (str_contains($baseImg, '?') ? '&' : '?') . 'v=' . $angleIndex;
+    }
     
-    return $list;
+    return array_slice($list, 0, 4);
 }
 $galleryImages = getGalleryImages($product, $productImages);
 

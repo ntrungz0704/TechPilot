@@ -59,6 +59,7 @@ class AiRecommendationService
                 LEFT JOIN brands b ON p.brand_id = b.id
                 LEFT JOIN categories c ON p.category_id = c.id
                 WHERE p.status = 'active' 
+                  AND (c.status = 'active' OR c.status IS NULL)
                   AND p.stock > 0 
                   AND p.price >= ? 
                   AND p.category_id IN ($placeholdersIds)";
@@ -80,7 +81,7 @@ class AiRecommendationService
                             FROM products p
                             LEFT JOIN brands b ON p.brand_id = b.id
                             LEFT JOIN categories c ON p.category_id = c.id
-                            WHERE p.status = 'active' AND p.stock > 0 AND p.category_id IN ($placeholdersIds)
+                            WHERE p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) AND p.stock > 0 AND p.category_id IN ($placeholdersIds)
                             ORDER BY ABS(p.price - ?) ASC LIMIT 10";
             $stmtExp = $db->prepare($sqlExpanded);
             $stmtExp->execute(array_merge($categoryIds, [($minBudget + $maxBudget) / 2]));

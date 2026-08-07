@@ -227,6 +227,7 @@ $router->get('/admin/categories/edit/{id}', 'AdminCategoryController@edit');
 $router->post('/admin/categories/update/{id}', 'AdminCategoryController@update');
 $router->post('/admin/categories/delete/{id}', 'AdminCategoryController@delete');
 $router->post('/admin/categories/toggle-status/{id}', 'AdminCategoryController@toggleStatus');
+$router->post('/admin/categories/ai-generate', 'AdminCategoryController@aiGenerate');
 
 // Admin Brand Routes
 $router->get('/admin/brands', 'AdminBrandController@index');
@@ -235,6 +236,7 @@ $router->post('/admin/brands/store', 'AdminBrandController@store');
 $router->get('/admin/brands/edit/{id}', 'AdminBrandController@edit');
 $router->post('/admin/brands/update/{id}', 'AdminBrandController@update');
 $router->post('/admin/brands/delete/{id}', 'AdminBrandController@delete');
+$router->post('/admin/brands/toggle-status/{id}', 'AdminBrandController@toggleStatus');
 
 // Admin Product & Inventory Routes
 $router->get('/admin/products', 'AdminProductController@index');
@@ -275,6 +277,7 @@ $router->post('/admin/flash-sales/store', 'AdminFlashSaleController@store');
 $router->get('/admin/flash-sales/edit/{id}', 'AdminFlashSaleController@edit');
 $router->post('/admin/flash-sales/update/{id}', 'AdminFlashSaleController@update');
 $router->post('/admin/flash-sales/delete/{id}', 'AdminFlashSaleController@delete');
+$router->post('/admin/flash-sales/toggle-status/{id}', 'AdminFlashSaleController@toggleStatus');
 
 // Admin Coupon Routes
 $router->get('/admin/coupons', 'AdminCouponController@index');
@@ -283,6 +286,7 @@ $router->post('/admin/coupons/store', 'AdminCouponController@store');
 $router->get('/admin/coupons/edit/{id}', 'AdminCouponController@edit');
 $router->post('/admin/coupons/update/{id}', 'AdminCouponController@update');
 $router->post('/admin/coupons/delete/{id}', 'AdminCouponController@delete');
+$router->post('/admin/coupons/toggle-status/{id}', 'AdminCouponController@toggleStatus');
 
 // Admin Banner Routes
 $router->get('/admin/banners', 'AdminBannerController@index');
@@ -291,6 +295,7 @@ $router->post('/admin/banners/store', 'AdminBannerController@store');
 $router->get('/admin/banners/edit/{id}', 'AdminBannerController@edit');
 $router->post('/admin/banners/update/{id}', 'AdminBannerController@update');
 $router->post('/admin/banners/delete/{id}', 'AdminBannerController@delete');
+$router->post('/admin/banners/toggle-status/{id}', 'AdminBannerController@toggleStatus');
 
 // Admin Post Routes
 $router->get('/admin/posts', 'AdminPostController@index');
@@ -299,6 +304,7 @@ $router->post('/admin/posts/store', 'AdminPostController@store');
 $router->get('/admin/posts/edit/{id}', 'AdminPostController@edit');
 $router->post('/admin/posts/update/{id}', 'AdminPostController@update');
 $router->post('/admin/posts/delete/{id}', 'AdminPostController@delete');
+$router->post('/admin/posts/toggle-status/{id}', 'AdminPostController@toggleStatus');
 
 // Static frontend page: Thu cũ đổi mới máy cũ
 $router->get('/thu-cu-doi-moi', 'HomeController@trade_in');

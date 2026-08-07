@@ -228,7 +228,7 @@ class CompareController extends Controller
             $sql .= " FROM products p 
                     LEFT JOIN categories c ON p.category_id = c.id 
                     LEFT JOIN brands b ON p.brand_id = b.id 
-                    WHERE p.status = 'active'";
+                    WHERE p.status = 'active' AND (c.status = 'active' OR c.status IS NULL)";
 
             $params = [];
 

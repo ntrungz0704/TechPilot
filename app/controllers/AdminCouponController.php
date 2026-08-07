@@ -278,14 +278,57 @@ class AdminCouponController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            $stmt = $db->prepare('DELETE FROM coupons WHERE id = :id');
+            $stmt = $db->prepare("UPDATE coupons SET status = 'inactive' WHERE id = :id");
             if ($stmt->execute([':id' => $id])) {
-                flash('success', 'Xoá mã giảm giá thành công!');
+                flash('warning', 'Hệ thống đã khóa tính năng xóa cứng. Đã tự động chuyển trạng thái mã giảm giá sang Tạm khoá.');
             } else {
-                flash('error', 'Không thể xoá mã giảm giá.');
+                flash('error', 'Không thể tạm khoá mã giảm giá.');
             }
         }
 
         $this->redirect('admin/coupons');
+    }
+
+    /** Toggle trạng thái Bật/Tắt mã giảm giá (POST /admin/coupons/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối CSDL.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT status, code FROM coupons WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $cp = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$cp) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Mã giảm giá không tồn tại.']);
+            exit;
+        }
+
+        $newStatus = ($cp['status'] === 'active') ? 'inactive' : 'active';
+        $upStmt = $db->prepare("UPDATE coupons SET status = :status WHERE id = :id");
+        $upStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        echo json_encode([
+            'success'      => true,
+            'message'      => 'Đã ' . ($newStatus === 'active' ? 'kích hoạt' : 'tạm khoá') . ' mã giảm giá ' . $cp['code'],
+            'new_status'   => $newStatus,
+            'status_label' => $newStatus === 'active' ? 'Hoạt động' : 'Tạm khoá'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

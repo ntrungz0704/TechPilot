@@ -6,6 +6,25 @@ if (!class_exists('CategoryMenuService') && defined('ROOT_PATH') && file_exists(
     require_once ROOT_PATH . '/app/services/CategoryMenuService.php';
 }
 
+require_once ROOT_PATH . '/app/models/Product.php';
+$headerProductModel = new Product();
+$activeCategoriesHeader = $headerProductModel->getCategories(true);
+$activeCatSlugsHeader = array_column($activeCategoriesHeader, 'slug');
+
+$isGroupActive = function($groupSlug) use ($activeCatSlugsHeader) {
+    if (empty($activeCatSlugsHeader)) return true;
+    if (class_exists('CatalogGroupService')) {
+        $sourceSlugs = CatalogGroupService::resolveSourceSlugs($groupSlug);
+        foreach ($sourceSlugs as $sSlug) {
+            if (in_array($sSlug, $activeCatSlugsHeader, true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return in_array($groupSlug, $activeCatSlugsHeader, true);
+};
+
 $currentUri = $_SERVER['REQUEST_URI'] ?? '';
 $currentPath = parse_url($currentUri, PHP_URL_PATH);
 if (defined('BASE_URL') && BASE_URL !== '' && strpos($currentPath, BASE_URL) === 0) {
@@ -144,7 +163,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
 
                 <!-- Search Bar với Category Dropdown (Không re-hydrate DB, dùng $globalCategoryMenu đã có) -->
                 <form class="search-bar" action="<?= url('home/search') ?>" method="get" id="headerSearchForm" onsubmit="return cleanSearchParams(this)">
-                    <input type="text" name="q" placeholder="Bạn muốn mua gì hôm nay? Đang giảm giá 50%..." value="<?= e($qParam) ?>" required>
+                    <input type="text" name="q" placeholder="Bạn muốn mua gì hôm nay? Đang giảm giá 50%..." value="<?= e($qParam) ?>" autocomplete="off" required>
                     <select name="cat" class="search-bar__select" aria-label="Chọn danh mục tìm kiếm">
                         <option value="">Tất cả danh mục</option>
                         <?php
@@ -288,54 +307,76 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                 </form>
             </div>
             <div class="mobile-quick-categories">
+            <?php if ($isGroupActive('laptop')): ?>
                 <a href="<?= url('home/search?cat=laptop') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-laptop"></i>
                     <span>Laptop</span>
                 </a>
+            <?php endif; ?>
+            <?php if ($isGroupActive('pc')): ?>
                 <a href="<?= url('home/search?cat=pc') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-desktop"></i>
                     <span>PC</span>
                 </a>
+            <?php endif; ?>
+            <?php if ($isGroupActive('pc-linh-kien')): ?>
                 <a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-microchip"></i>
                     <span>Linh kiện</span>
                 </a>
+            <?php endif; ?>
+            <?php if ($isGroupActive('man-hinh')): ?>
                 <a href="<?= url('home/search?cat=man-hinh') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-tv"></i>
                     <span>Màn hình</span>
                 </a>
+            <?php endif; ?>
+            <?php if ($isGroupActive('gaming-gear')): ?>
                 <a href="<?= url('home/search?cat=gaming-gear') ?>" class="quick-cat-item">
                     <i class="fa-solid fa-gamepad"></i>
                     <span>Gaming Gear</span>
                 </a>
-                <button type="button" class="quick-cat-item" id="mobileQuickCatAll" aria-label="Mở tất cả danh mục" aria-expanded="false" aria-controls="categoryMegaDropdown">
-                    <i class="fa-solid fa-list"></i>
-                    <span>Tất cả</span>
-                </button>
-            </div>
+            <?php endif; ?>
+            <button type="button" class="quick-cat-item" id="mobileQuickCatAll" aria-label="Mở tất cả danh mục" aria-expanded="false" aria-controls="categoryMegaDropdown">
+                <i class="fa-solid fa-list"></i>
+                <span>Tất cả</span>
+            </button>
+        </div>
 
-            <!-- 3. Navigation Menu (Main Nav ONLY) -->
-            <nav class="main-nav" id="mainNavMenu">
-                <button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Đóng Menu chính">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <div class="container main-nav__inner">
-                    <ul class="main-nav__links">
-                        <li><a href="<?= url('/') ?>" class="<?= $activeMenu === 'home' ? 'is-active' : '' ?>">Trang chủ</a></li>
+        <!-- 3. Navigation Menu (Main Nav ONLY) -->
+        <nav class="main-nav" id="mainNavMenu">
+            <button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Đóng Menu chính">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="container main-nav__inner">
+                <ul class="main-nav__links">
+                    <li><a href="<?= url('/') ?>" class="<?= $activeMenu === 'home' ? 'is-active' : '' ?>">Trang chủ</a></li>
+                    <?php if ($isGroupActive('pc')): ?>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc') ?>" class="<?= $activeMenu === 'pc' ? 'is-active' : '' ?>">PC Gaming</a></li>
+                    <?php endif; ?>
+                    <?php if ($isGroupActive('laptop')): ?>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=laptop') ?>" class="<?= $activeMenu === 'laptop' ? 'is-active' : '' ?>">Laptop</a></li>
+                    <?php endif; ?>
+                    <?php if ($isGroupActive('pc-linh-kien')): ?>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=pc-linh-kien') ?>" class="<?= $activeMenu === 'pc-linh-kien' ? 'is-active' : '' ?>">Linh kiện PC</a></li>
+                    <?php endif; ?>
+                    <?php if ($isGroupActive('man-hinh')): ?>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=man-hinh') ?>" class="<?= $activeMenu === 'man-hinh' ? 'is-active' : '' ?>">Màn hình</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('build-pc') ?>" class="<?= $activeMenu === 'build-pc' ? 'is-active' : '' ?>" style="color: #FACC15; font-weight: 700;"><i class="fa-solid fa-screwdriver-wrench" style="margin-right: 4px;"></i> Xây dựng cấu hình</a></li>
+                    <?php endif; ?>
+                    <li class="desktop-only-link"><a href="<?= url('build-pc') ?>" class="<?= $activeMenu === 'build-pc' ? 'is-active' : '' ?>" style="color: #FACC15; font-weight: 700;"><i class="fa-solid fa-screwdriver-wrench" style="margin-right: 4px;"></i> Xây dựng cấu hình</a></li>
+                    <?php if ($isGroupActive('gaming-gear')): ?>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=gaming-gear') ?>" class="<?= $activeMenu === 'gaming-gear' ? 'is-active' : '' ?>">Gaming Gear</a></li>
+                    <?php endif; ?>
+                    <?php if ($isGroupActive('office-gear')): ?>
                         <li class="desktop-only-link"><a href="<?= url('home/search?cat=office-gear') ?>" class="<?= $activeMenu === 'office-gear' ? 'is-active' : '' ?>">Thiết bị văn phòng</a></li>
-                        <li><a href="<?= url('home/search?promo=1') ?>" class="text-hot <?= $activeMenu === 'promo' ? 'is-active' : '' ?>">Khuyến mãi <span class="dot-hot"></span></a></li>
-                        <li><a href="<?= url('post') ?>" class="<?= $activeMenu === 'post' ? 'is-active' : '' ?>">Tin công nghệ</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('ai-assistant') ?>" class="<?= $activeMenu === 'ai-assistant' ? 'is-active' : '' ?>" style="color: #8B5CF6; font-weight: 700;"><i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 4px;"></i> AI Tư vấn</a></li>
-                        <li class="desktop-only-link"><a href="<?= url('compare') ?>" class="<?= $activeMenu === 'compare' ? 'is-active' : '' ?>" style="color: #10B981; font-weight: 700;"><i class="fa-solid fa-scale-balanced" style="margin-right: 4px;"></i> So sánh</a></li>
-                    </ul>
-                </div>
-            </nav>
+                    <?php endif; ?>
+                    <li><a href="<?= url('home/search?promo=1') ?>" class="text-hot <?= $activeMenu === 'promo' ? 'is-active' : '' ?>">Khuyến mãi <span class="dot-hot"></span></a></li>
+                    <li><a href="<?= url('post') ?>" class="<?= $activeMenu === 'post' ? 'is-active' : '' ?>">Tin công nghệ</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('ai-assistant') ?>" class="<?= $activeMenu === 'ai-assistant' ? 'is-active' : '' ?>" style="color: #8B5CF6; font-weight: 700;"><i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 4px;"></i> AI Tư vấn</a></li>
+                    <li class="desktop-only-link"><a href="<?= url('compare') ?>" class="<?= $activeMenu === 'compare' ? 'is-active' : '' ?>" style="color: #10B981; font-weight: 700;"><i class="fa-solid fa-scale-balanced" style="margin-right: 4px;"></i> So sánh</a></li>
+                </ul>
+            </div>
+        </nav>
 
 
             <!-- 4. Category Mega Menu Dropdown (Desktop & Dedicated Mobile Category Drawer) -->

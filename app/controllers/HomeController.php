@@ -185,33 +185,48 @@ class HomeController extends Controller
 
         header('Content-Type: application/json; charset=utf-8');
 
-        // Require at least 2 characters (mirrors client-side guard)
-        if (safe_strlen($keyword) < 2) {
-            echo json_encode([]);
+        if (safe_strlen($keyword) < 1) {
+            echo json_encode(['products' => [], 'total' => 0, 'keyword' => ''], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         $productModel = $this->model('Product');
-        // Chỉ lấy 6 sản phẩm để hiển thị dropdown
-        $all = $productModel->search($keyword, $categorySlug, 6);
+        $limit = 8;
+        $all = $productModel->search($keyword, $categorySlug, $limit);
+        $total = $productModel->countSearch($keyword, $categorySlug);
 
-        // Chỉ trả về các trường cần thiết cho giao diện gợi ý với giá đồng bộ tuyệt đối
         $products = array_map(function ($p) {
             $eff = getEffectiveProductData($p);
-            return [
-                'id'              => $p['id'],
-                'name'            => $p['name'],
-                'slug'            => $p['slug'],
-                'image'           => $p['image'] ?? '',
-                'price'           => $eff['final_price'],
-                'original_price'  => $eff['original_price'],
-                'price_formatted' => formatPrice($eff['final_price']),
-                'has_discount'    => $eff['has_discount'],
-                'category_name'   => $p['category_name'] ?? '',
-            ];
-        }, $all);
+            $imgUrl = productImageUrl($p['image'] ?? '', $p['category_name'] ?? '', (int)$p['id']);
 
-        echo json_encode($products);
+            $origPrice = (float)($eff['original_price'] ?? $p['price'] ?? 0);
+            $finalPrice = (float)($eff['final_price'] ?? 0);
+            $discountPct = 0;
+            if ($origPrice > $finalPrice && $origPrice > 0) {
+                $discountPct = (int)round((($origPrice - $finalPrice) / $origPrice) * 100);
+            }
+
+            return [
+                'id'                       => $p['id'],
+                'name'                     => $p['name'],
+                'slug'                     => $p['slug'],
+                'url'                      => url('product/detail/' . $p['slug']),
+                'image'                    => $imgUrl,
+                'price'                    => $finalPrice,
+                'original_price'           => $origPrice,
+                'price_formatted'          => formatPrice($finalPrice),
+                'original_price_formatted' => formatPrice($origPrice),
+                'has_discount'             => $eff['has_discount'],
+                'discount_percent'         => $discountPct,
+                'category_name'            => $p['category_name'] ?? '',
+            ];
+        }, $all ?: []);
+
+        echo json_encode([
+            'products' => $products,
+            'total'    => (int)$total,
+            'keyword'  => $keyword
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     public function trade_in(): void

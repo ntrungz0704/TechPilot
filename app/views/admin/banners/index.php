@@ -34,20 +34,21 @@
                             </td>
                             <td><?= (int)$bn['position'] ?></td>
                             <td><code><?= e($bn['link']) ?></code></td>
-                            <td>
-                                <span class="badge <?= $bn['status'] === 'active' ? 'badge--success' : 'badge--danger' ?>">
-                                    <?= $bn['status'] === 'active' ? 'Hiển thị' : 'Ẩn' ?>
-                                </span>
+                            <td style="text-align: center;">
+                                <?php $isActive = (($bn['status'] ?? 'active') === 'active'); ?>
+                                <label class="toggle-switch" title="Bật/Tắt hiển thị banner">
+                                    <input type="checkbox" 
+                                           class="banner-status-toggle" 
+                                           data-banner-id="<?= (int)$bn['id'] ?>" 
+                                           <?= $isActive ? 'checked' : '' ?>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: <?= $isActive ? '#10B981' : '#6B7280' ?>;" id="statusText_<?= (int)$bn['id'] ?>">
+                                    <?= $isActive ? 'Hiển thị' : 'Tạm ẩn' ?>
+                                </div>
                             </td>
                             <td style="text-align: center;">
-                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
-                                    <a href="<?= url('admin/banners/edit/' . $bn['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                    
-                                    <form method="post" action="<?= url('admin/banners/delete/' . $bn['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá banner này không?');" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                    </form>
-                                </div>
+                                <a href="<?= url('admin/banners/edit/' . $bn['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -60,3 +61,47 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggles = document.querySelectorAll('.banner-status-toggle');
+    const csrfToken = '<?= csrf_token() ?>';
+
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const bannerId = this.dataset.bannerId;
+            const isChecked = this.checked;
+            const statusTextEl = document.getElementById('statusText_' + bannerId);
+            
+            const formData = new FormData();
+            formData.append('_csrf', csrfToken);
+
+            fetch('<?= url("admin/banners/toggle-status/") ?>' + bannerId, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': csrfToken
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (statusTextEl) {
+                        statusTextEl.textContent = data.status_label;
+                        statusTextEl.style.color = (data.new_status === 'active') ? '#10B981' : '#6B7280';
+                    }
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra.');
+                    this.checked = !isChecked;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Không thể kết nối máy chủ.');
+                this.checked = !isChecked;
+            });
+        });
+    });
+});
+</script>

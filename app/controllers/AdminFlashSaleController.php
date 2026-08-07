@@ -500,36 +500,57 @@ class AdminFlashSaleController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            $db->beginTransaction();
-            try {
-                require_once ROOT_PATH . '/app/services/FlashSaleService.php';
-
-                $campaignStmt = $db->prepare('SELECT id FROM flash_sales WHERE id = :id LIMIT 1 FOR UPDATE');
-                $campaignStmt->execute([':id' => $id]);
-                if (!$campaignStmt->fetchColumn()) {
-                    throw new RuntimeException('Chương trình Flash Sale không tồn tại.');
-                }
-
-                $itemStmt = $db->prepare(
-                    'SELECT id FROM flash_sale_items WHERE flash_sale_id = :id ORDER BY id ASC FOR UPDATE'
-                );
-                $itemStmt->execute([':id' => $id]);
-                foreach ($itemStmt->fetchAll(PDO::FETCH_COLUMN) as $itemId) {
-                    FlashSaleService::assertItemRemovable($db, (int)$itemId);
-                }
-
-                $stmt = $db->prepare('DELETE FROM flash_sales WHERE id = :id');
-                $stmt->execute([':id' => $id]);
-                $db->commit();
-                flash('success', 'Xoá chương trình Flash Sale thành công!');
-            } catch (Throwable $e) {
-                if ($db->inTransaction()) {
-                    $db->rollBack();
-                }
-                flash('error', 'Không thể xoá Flash Sale: ' . $e->getMessage());
+            $stmt = $db->prepare("UPDATE flash_sales SET status = 'cancelled' WHERE id = :id");
+            if ($stmt->execute([':id' => $id])) {
+                flash('warning', 'Hệ thống đã khóa tính năng xóa cứng. Đã tự động chuyển trạng thái Flash Sale sang Đã hủy (Tạm ẩn).');
+            } else {
+                flash('error', 'Không thể chuyển trạng thái Flash Sale.');
             }
         }
 
         $this->redirect('admin/flash-sales');
+    }
+
+    /** Toggle trạng thái Bật/Tắt Flash Sale (POST /admin/flash-sales/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối CSDL.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT status, title FROM flash_sales WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $fs = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$fs) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Flash Sale không tồn tại.']);
+            exit;
+        }
+
+        $newStatus = ($fs['status'] === 'active') ? 'cancelled' : 'active';
+        $upStmt = $db->prepare("UPDATE flash_sales SET status = :status WHERE id = :id");
+        $upStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        echo json_encode([
+            'success'      => true,
+            'message'      => 'Đã ' . ($newStatus === 'active' ? 'kích hoạt' : 'tạm hủy') . ' Flash Sale ' . $fs['title'],
+            'new_status'   => $newStatus,
+            'status_label' => $newStatus === 'active' ? 'Đang chạy' : 'Đã hủy'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

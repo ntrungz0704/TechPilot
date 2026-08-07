@@ -24,8 +24,11 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
             <?php endif; ?>
 
             <!-- Login Form -->
-            <form method="post" action="<?= url('auth/login') ?>" class="auth-form" id="loginForm" novalidate>
+            <form method="post" action="<?= url('auth/login' . (!empty($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : '')) ?>" class="auth-form" id="loginForm" novalidate>
                 <?= csrf_field() ?>
+                <?php if (!empty($_GET['redirect'] ?? $_POST['redirect'] ?? '')): ?>
+                    <input type="hidden" name="redirect" value="<?= e($_GET['redirect'] ?? $_POST['redirect'] ?? '') ?>">
+                <?php endif; ?>
 
                 <!-- Email / Phone -->
                 <div class="auth-field" id="field-email">
@@ -98,7 +101,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
             </button>
 
             <!-- Register link -->
-            <p class="auth-footer-text">Chưa có tài khoản? <a href="<?= url('auth/register') ?>" class="auth-link-accent">Đăng ký ngay</a></p>
+            <p class="auth-footer-text">Chưa có tài khoản? <a href="<?= url('auth/register' . (!empty($_GET['redirect'] ?? $_POST['redirect'] ?? '') ? '?redirect=' . urlencode($_GET['redirect'] ?? $_POST['redirect'] ?? '') : '')) ?>" class="auth-link-accent">Đăng ký ngay</a></p>
         </div>
     </section>
 

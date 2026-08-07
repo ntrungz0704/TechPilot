@@ -26,8 +26,8 @@ $savedAddresses = $savedAddresses ?? [];
 
         <?php $user = currentUser(); ?>
         <?php if (!$user): ?>
-            <div class="alert alert--info" style="background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13.5px;">
-                <i class="fa-solid fa-circle-info"></i> Bạn đang đặt hàng với vai trò <strong>Khách vãng lai</strong>. Bạn có thể <a href="<?= url('auth/login') ?>" style="color: #2563EB; font-weight: 700; text-decoration: underline;">Đăng nhập</a> để sử dụng sổ địa chỉ và theo dõi đơn hàng dễ dàng hơn.
+            <div class="alert alert--info" style="border-radius: 8px; margin-bottom: 20px; font-size: 13.5px;">
+                <i class="fa-solid fa-circle-info"></i> Bạn đang đặt hàng với vai trò <strong>Khách vãng lai</strong>. Bạn có thể <a href="<?= url('auth/login?redirect=checkout') ?>" style="font-weight: 700; text-decoration: underline;">Đăng nhập</a> để sử dụng sổ địa chỉ và theo dõi đơn hàng dễ dàng hơn.
             </div>
         <?php endif; ?>
 
@@ -119,7 +119,7 @@ $savedAddresses = $savedAddresses ?? [];
                     ); 
                 ?>
                 <div class="summary-item" style="display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border);">
-                    <div style="width: 52px; height: 52px; border-radius: 8px; border: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
+                    <div style="width: 52px; height: 52px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
                         <img src="<?= e($imgUrl) ?>" alt="<?= e($item['name']) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                     </div>
                     <div style="flex: 1; min-width: 0;">

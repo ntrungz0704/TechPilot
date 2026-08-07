@@ -9,7 +9,7 @@
     $isFlashSaleCard = $priceData['is_flash_sale'];
     ?>
 
-    <div class="product-card">
+    <div class="product-card" data-full-title="<?= e($p['name'] ?? '') ?>" title="<?= e($p['name'] ?? '') ?>">
         <?php if ($hasDiscount && $discountPercent > 0): ?>
             <?php if ($isFlashSaleCard): ?>
                 <span class="product-card__badge product-card__badge--flash" title="⚡ Flash Sale Giảm Sâu"><i class="fa-solid fa-fire-flame-curved"></i> 🔥 -<?= (int)$discountPercent ?>%</span>
@@ -25,53 +25,23 @@
             <i class="fa-solid fa-scale-balanced" style="font-size: 13px;"></i>
         </a>
         
-        <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__thumb">
+        <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__thumb" data-full-title="<?= e($p['name'] ?? '') ?>" title="<?= e($p['name'] ?? '') ?>">
             <img class="product-card__image" src="<?= e($imageUrl) ?>" alt="<?= e($p['name'] ?? '') ?>" loading="lazy">
         </a>
         
         <div class="product-card__body">
-            <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__name">
+            <a href="<?= url('product/detail/' . e($p['slug'] ?? '')) ?>" class="product-card__name" data-full-title="<?= e($p['name'] ?? '') ?>" title="<?= e($p['name'] ?? '') ?>">
                 <?= e($p['name'] ?? '') ?>
             </a>
 
             <?php
-            $quickSpecs = [];
-            if (!empty($p['specs'])) {
-                $rawS = is_array($p['specs']) ? $p['specs'] : json_decode($p['specs'], true);
-                if (isset($rawS['specs']) && is_array($rawS['specs'])) $rawS = $rawS['specs'];
-                if (is_array($rawS)) {
-                    if (!empty($rawS['cpu_short'])) $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => $rawS['cpu_short']];
-                    elseif (!empty($rawS['cpu_model'])) {
-                        $cpuClean = preg_replace('/^Intel®?\s*/iu', '', $rawS['cpu_model']);
-                        if (mb_strlen($cpuClean) > 24) {
-                            $cpuClean = mb_substr($cpuClean, 0, 24);
-                        }
-                        $quickSpecs[] = ['icon' => 'fa-microchip', 'text' => $cpuClean];
-                    }
-                    
-                    if (!empty($rawS['gpu_short'])) $quickSpecs[] = ['icon' => 'fa-desktop', 'text' => $rawS['gpu_short']];
-                    elseif (!empty($rawS['vga_short'])) $quickSpecs[] = ['icon' => 'fa-desktop', 'text' => $rawS['vga_short']];
-                    
-                    if (!empty($rawS['ram_capacity_gb'])) $quickSpecs[] = ['icon' => 'fa-memory', 'text' => $rawS['ram_capacity_gb'] . 'GB'];
-                    elseif (!empty($rawS['ram'])) $quickSpecs[] = ['icon' => 'fa-memory', 'text' => $rawS['ram']];
-                    
-                    if (!empty($rawS['storage_capacity_gb'])) {
-                        $cap = (int)$rawS['storage_capacity_gb'];
-                        $quickSpecs[] = ['icon' => 'fa-hard-drive', 'text' => $cap >= 1024 ? round($cap/1024) . 'TB' : $cap . 'GB'];
-                    } elseif (!empty($rawS['ssd'])) {
-                        $quickSpecs[] = ['icon' => 'fa-hard-drive', 'text' => $rawS['ssd']];
-                    }
-
-                    if (!empty($rawS['screen_short'])) $quickSpecs[] = ['icon' => 'fa-tv', 'text' => $rawS['screen_short']];
-                    elseif (!empty($rawS['screen_size_inch'])) $quickSpecs[] = ['icon' => 'fa-tv', 'text' => $rawS['screen_size_inch'] . '"'];
-                }
-            }
+            $quickSpecs = function_exists('getProductHighlightBadges') ? getProductHighlightBadges($p) : [];
             ?>
 
             <?php if (!empty($quickSpecs)): ?>
                 <div class="product-card__specs-box">
                     <div class="specs-pill-grid">
-                        <?php foreach (array_slice($quickSpecs, 0, 4) as $qs): ?>
+                        <?php foreach ($quickSpecs as $qs): ?>
                             <span class="specs-pill"><i class="fa-solid <?= $qs['icon'] ?>"></i> <?= e($qs['text']) ?></span>
                         <?php endforeach; ?>
                     </div>

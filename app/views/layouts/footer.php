@@ -132,6 +132,7 @@
 
     <script src="<?= url('assets/js/main.js?v=10.0') ?>"></script>
     <script src="<?= url('assets/js/category-mega-menu.js?v=10.0') ?>"></script>
+    <script src="<?= url('assets/js/live-search.js?v=3.0') ?>"></script>
     <?php foreach ($pageScripts ?? [] as $script): ?>
         <script src="<?= url($script) ?>"></script>
     <?php endforeach; ?>

@@ -33,26 +33,23 @@
                             <td><strong><?= e($pst['title']) ?></strong></td>
                             <td><?= e($pst['author_name'] ?? 'Hệ thống') ?></td>
                             <td><?= number_format($pst['views']) ?> views</td>
-                            <td>
-                                <?php
-                                $statusClass = 'badge--warning';
-                                $statusLabel = 'Nháp';
-                                if ($pst['status'] === 'published') { $statusClass = 'badge--success'; $statusLabel = 'Đã đăng'; }
-                                if ($pst['status'] === 'hidden') { $statusClass = 'badge--danger'; $statusLabel = 'Ẩn'; }
-                                ?>
-                                <span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span>
+                            <td style="text-align: center;">
+                                <?php $isPub = (($pst['status'] ?? 'published') === 'published'); ?>
+                                <label class="toggle-switch" title="Bật/Tắt xuất bản bài viết">
+                                    <input type="checkbox" 
+                                           class="post-status-toggle" 
+                                           data-post-id="<?= (int)$pst['id'] ?>" 
+                                           <?= $isPub ? 'checked' : '' ?>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div style="font-size: 11px; margin-top: 4px; font-weight: 600; color: <?= $isPub ? '#10B981' : '#6B7280' ?>;" id="statusText_<?= (int)$pst['id'] ?>">
+                                    <?= $isPub ? 'Đã đăng' : 'Ẩn' ?>
+                                </div>
                             </td>
                             <?php $pubDate = !empty($pst['published_at']) ? $pst['published_at'] : (($pst['status'] === 'published') ? ($pst['created_at'] ?? null) : null); ?>
                             <td><?= !empty($pubDate) ? date('d/m/Y H:i', strtotime((string)$pubDate)) : 'Chưa xuất bản' ?></td>
                             <td style="text-align: center;">
-                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
-                                    <a href="<?= url('admin/posts/edit/' . $pst['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                    
-                                    <form method="post" action="<?= url('admin/posts/delete/' . $pst['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá bài viết này không?');" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                    </form>
-                                </div>
+                                <a href="<?= url('admin/posts/edit/' . $pst['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -65,3 +62,47 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggles = document.querySelectorAll('.post-status-toggle');
+    const csrfToken = '<?= csrf_token() ?>';
+
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const postId = this.dataset.postId;
+            const isChecked = this.checked;
+            const statusTextEl = document.getElementById('statusText_' + postId);
+            
+            const formData = new FormData();
+            formData.append('_csrf', csrfToken);
+
+            fetch('<?= url("admin/posts/toggle-status/") ?>' + postId, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': csrfToken
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (statusTextEl) {
+                        statusTextEl.textContent = data.status_label;
+                        statusTextEl.style.color = (data.new_status === 'published') ? '#10B981' : '#6B7280';
+                    }
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra.');
+                    this.checked = !isChecked;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Không thể kết nối máy chủ.');
+                this.checked = !isChecked;
+            });
+        });
+    });
+});
+</script>

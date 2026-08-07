@@ -70,14 +70,17 @@
                                 <span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                             </td>
                             <td style="text-align: center;">
-                                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; min-height: 38px; flex-wrap: wrap;">
-                                    <a href="<?= url('admin/flash-sales/edit/' . $fs['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
-                                    
-                                    <form method="post" action="<?= url('admin/flash-sales/delete/' . $fs['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xoá chiến dịch Flash Sale này không?');" style="margin: 0;">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn--danger btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-trash-can"></i> Xoá</button>
-                                    </form>
-                                </div>
+                                <?php $isActive = (($fs['status'] ?? 'active') === 'active'); ?>
+                                <label class="toggle-switch" title="Bật/Tắt chiến dịch Flash Sale">
+                                    <input type="checkbox" 
+                                           class="fs-status-toggle" 
+                                           data-fs-id="<?= (int)$fs['id'] ?>" 
+                                           <?= $isActive ? 'checked' : '' ?>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </td>
+                            <td style="text-align: center;">
+                                <a href="<?= url('admin/flash-sales/edit/' . $fs['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -90,3 +93,43 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggles = document.querySelectorAll('.fs-status-toggle');
+    const csrfToken = '<?= csrf_token() ?>';
+
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const fsId = this.dataset.fsId;
+            const isChecked = this.checked;
+            
+            const formData = new FormData();
+            formData.append('_csrf', csrfToken);
+
+            fetch('<?= url("admin/flash-sales/toggle-status/") ?>' + fsId, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': csrfToken
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra.');
+                    this.checked = !isChecked;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Không thể kết nối máy chủ.');
+                this.checked = !isChecked;
+            });
+        });
+    });
+});
+</script>

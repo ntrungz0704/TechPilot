@@ -9,7 +9,7 @@ class CategoryMenuService
      */
     public static function getActiveMenuTree(): array
     {
-        return [
+        $tree = [
             // 1. Laptop
             [
                 'id' => 'laptop',
@@ -489,5 +489,137 @@ class CategoryMenuService
                 ]
             ]
         ];
+
+        // Dynamic Filtering & Auto-incorporation: Lọc theo các danh mục đang active trong CSDL + Tự động bổ sung danh mục mới tạo
+        try {
+            require_once ROOT_PATH . '/app/models/Product.php';
+            $productModel = new Product();
+            $activeCategories = $productModel->getCategories(true);
+            if (!empty($activeCategories)) {
+                $activeSlugs = array_column($activeCategories, 'slug');
+                $filteredTree = [];
+                $mappedSlugs = [];
+
+                foreach ($tree as $item) {
+                    $slug = $item['slug'] ?? '';
+                    $sourceSlugs = CatalogGroupService::resolveSourceSlugs($slug);
+                    $activeGroupSlugs = array_values(array_intersect($sourceSlugs, $activeSlugs));
+
+                    if (empty($activeGroupSlugs)) {
+                        continue; // Bỏ qua toàn bộ nhóm nếu tất cả danh mục thành phần đều inactive
+                    }
+
+                    // Tự động tinh chỉnh Tên hiển thị nhóm nếu có danh mục thành phần bị ẩn (VD: Main, CPU, VGA -> Main, CPU)
+                    if ($item['id'] === 'main-cpu-vga') {
+                        $parts = [];
+                        if (in_array('mainboard', $activeGroupSlugs, true)) $parts[] = 'Main';
+                        if (in_array('cpu', $activeGroupSlugs, true)) $parts[] = 'CPU';
+                        if (in_array('vga', $activeGroupSlugs, true)) $parts[] = 'VGA';
+                        if (!empty($parts)) $item['name'] = implode(', ', $parts);
+                    } elseif ($item['id'] === 'case-nguon-tan') {
+                        $parts = [];
+                        if (in_array('case', $activeGroupSlugs, true)) $parts[] = 'Case';
+                        if (in_array('psu', $activeGroupSlugs, true)) $parts[] = 'Nguồn';
+                        if (in_array('cooling', $activeGroupSlugs, true)) $parts[] = 'Tản';
+                        if (!empty($parts)) $item['name'] = implode(', ', $parts);
+                    } elseif ($item['id'] === 'o-cung-ram') {
+                        $parts = [];
+                        if (in_array('storage', $activeGroupSlugs, true)) $parts[] = 'Ổ cứng';
+                        if (in_array('ram', $activeGroupSlugs, true)) $parts[] = 'RAM';
+                        if (!empty($parts)) $item['name'] = implode(', ', $parts);
+                    }
+
+                    // Lọc từng cột con (mega_columns) và liên kết theo danh mục active thực tế
+                    if (!empty($item['mega_columns'])) {
+                        $filteredCols = [];
+                        foreach ($item['mega_columns'] as $colTitle => $links) {
+                            $validLinks = [];
+                            foreach ($links as $link) {
+                                $queryStr = $link['query'] ?? '';
+                                if (preg_match('/cat=([a-z0-9\-]+)/i', $queryStr, $m)) {
+                                    $targetCat = strtolower($m[1]);
+                                    if (!in_array($targetCat, $activeSlugs, true)) {
+                                        continue; // Bỏ qua liên kết thuộc danh mục đang bị ẩn
+                                    }
+                                }
+                                $validLinks[] = $link;
+                            }
+
+                            if (!empty($validLinks)) {
+                                $filteredCols[$colTitle] = $validLinks;
+                            }
+                        }
+                        $item['mega_columns'] = $filteredCols;
+                    }
+
+                    foreach ($activeGroupSlugs as $sSlug) {
+                        $mappedSlugs[] = $sSlug;
+                    }
+
+                    $filteredTree[] = $item;
+                }
+
+                // Tự động quét và bổ sung các danh mục MỚI TẠO trong Admin nhưng chưa thuộc nhóm mẫu sẵn
+                $unmappedCategories = array_filter($activeCategories, function($cat) use ($mappedSlugs) {
+                    return !in_array($cat['slug'], $mappedSlugs, true) && empty($cat['parent_id']);
+                });
+
+                if (!empty($unmappedCategories)) {
+                    $db = Database::getConnection();
+                    foreach ($unmappedCategories as $unmappedCat) {
+                        $catId = (int)$unmappedCat['id'];
+                        $catName = $unmappedCat['name'];
+                        $catSlug = $unmappedCat['slug'];
+                        $catIcon = !empty($unmappedCat['icon']) ? $unmappedCat['icon'] : 'fa-solid fa-layer-group';
+
+                        $megaColumns = [];
+
+                        // 1. Cột Danh mục con / Tất cả sản phẩm
+                        $colAll = [
+                            ['name' => 'Tất cả ' . $catName, 'query' => 'cat=' . $catSlug]
+                        ];
+                        if ($db) {
+                            $stmtChild = $db->prepare("SELECT name, slug FROM categories WHERE parent_id = :pid AND status = 'active' ORDER BY sort_order ASC, name ASC");
+                            $stmtChild->execute([':pid' => $catId]);
+                            $children = $stmtChild->fetchAll(PDO::FETCH_ASSOC);
+                            if (!empty($children)) {
+                                foreach ($children as $ch) {
+                                    $colAll[] = ['name' => $ch['name'], 'query' => 'cat=' . $ch['slug']];
+                                }
+                            }
+                        }
+                        $megaColumns[$catName] = $colAll;
+
+                        // 2. Cột Phân khúc Theo Giá
+                        $megaColumns[$catName . ' THEO GIÁ'] = [
+                            ['name' => $catName . ' Dưới 10 Triệu', 'query' => 'cat=' . $catSlug . '&max_price=10000000'],
+                            ['name' => $catName . ' Từ 10 - 20 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=10000000&max_price=20000000'],
+                            ['name' => $catName . ' Từ 20 - 30 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=20000000&max_price=30000000'],
+                            ['name' => $catName . ' Trên 30 Triệu', 'query' => 'cat=' . $catSlug . '&min_price=30000000'],
+                        ];
+
+                        // 3. Cột Thương hiệu Nổi Bật
+                        $megaColumns[$catName . ' THEO HÃNG'] = [
+                            ['name' => $catName . ' ASUS', 'query' => 'cat=' . $catSlug . '&brand=asus'],
+                            ['name' => $catName . ' MSI', 'query' => 'cat=' . $catSlug . '&brand=msi'],
+                            ['name' => $catName . ' Lenovo', 'query' => 'cat=' . $catSlug . '&brand=lenovo'],
+                            ['name' => $catName . ' Gigabyte / HP', 'query' => 'cat=' . $catSlug . '&brand=hp'],
+                        ];
+
+                        $filteredTree[] = [
+                            'id' => $catSlug,
+                            'name' => $catName,
+                            'slug' => $catSlug,
+                            'icon' => $catIcon,
+                            'mega_columns' => $megaColumns
+                        ];
+                    }
+                }
+
+                return $filteredTree;
+            }
+        } catch (Throwable $e) {}
+
+        return $tree;
     }
 }

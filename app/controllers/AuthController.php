@@ -73,7 +73,7 @@ class AuthController extends Controller
                             }
 
                             // Xử lý redirect an toàn sau đăng nhập
-                            $redirect = trim($_GET['redirect'] ?? '');
+                            $redirect = trim($_GET['redirect'] ?? $_POST['redirect'] ?? '');
                             if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
                                 $this->redirect(ltrim($redirect, '/'));
                             } elseif (($user['role'] ?? '') === 'admin') {
@@ -154,6 +154,45 @@ class AuthController extends Controller
                             $errors[] = 'Số điện thoại này đã được đăng ký bởi một tài khoản khác.';
                         } else {
                             if ($userModel->create($fullName, $email, $phone, $password)) {
+                                // Tự động đăng nhập tài khoản vừa tạo
+                                $user = $userModel->verify($email, $password);
+                                if ($user) {
+                                    session_regenerate_id(true);
+                                    $_SESSION['user'] = [
+                                        'id' => $user['id'],
+                                        'full_name' => $user['full_name'],
+                                        'email' => $user['email'],
+                                        'role' => $user['role']
+                                    ];
+
+                                    // Hợp nhất giỏ hàng tạm thời của Guest vào tài khoản mới
+                                    if (($user['role'] ?? '') !== 'admin' && !empty($_SESSION['guest_cart'])) {
+                                        require_once ROOT_PATH . '/app/services/CartService.php';
+                                        $db = Database::getConnection();
+                                        if ($db) {
+                                            try {
+                                                $cartService = new CartService();
+                                                $mergeResult = $cartService->mergeGuestCartIntoUser((int)$user['id'], $db);
+                                                if ($mergeResult['merged'] > 0) {
+                                                    flash('success', 'Đăng ký thành công! Đã tự động lưu sản phẩm vào giỏ hàng của bạn.');
+                                                }
+                                            } catch (Throwable $e) {
+                                                error_log('[Cart Merge Error] ' . $e->getMessage());
+                                            }
+                                        }
+                                    } else {
+                                        flash('success', 'Đăng ký tài khoản thành công!');
+                                    }
+
+                                    $redirect = trim($_GET['redirect'] ?? $_POST['redirect'] ?? '');
+                                    if (!empty($redirect) && str_starts_with($redirect, '/') && !str_contains($redirect, '//')) {
+                                        $this->redirect(ltrim($redirect, '/'));
+                                    } else {
+                                        $this->redirect('checkout');
+                                    }
+                                    return;
+                                }
+
                                 flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
                                 $this->redirect('auth/login');
                                 return;

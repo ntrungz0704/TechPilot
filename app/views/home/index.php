@@ -45,135 +45,146 @@ $reviews = $reviews ?? [];
     </div>
 
     <!-- Center: Large Hero Banner Carousel -->
+    <?php
+    $slideCheckModel = new Product();
+    $heroSlides = [];
+
+    $activeCatsList = $slideCheckModel->getCategories(true);
+    $activeCatSlugs = array_column($activeCatsList, 'slug');
+
+    // Slide 1: ROG Zephyrus / Laptop ASUS (Chỉ hiển thị nếu danh mục Laptop active)
+    if (in_array('laptop', $activeCatSlugs, true)) {
+        $rogProd = $slideCheckModel->getBySlug('asus-rog-zephyrus-g16') ?: ($slideCheckModel->getByCategorySlug('laptop', 1)[0] ?? false);
+        if ($rogProd !== false) {
+            $heroSlides[] = [
+                'bg' => url('assets/images/rog-banner-bg.jpg'),
+                'tag' => 'Sức mạnh vượt trội',
+                'title' => e($rogProd['name'] ?? 'ROG ZEPHYRUS G16'),
+                'desc' => 'Hiệu năng đỉnh cao cho game thủ & creator',
+                'specs' => ['Intel® Core™ Ultra 9', 'NVIDIA® GeForce RTX™ 4070', 'Màn hình OLED 2.5K 240Hz', 'RAM LPDDR5X 32GB'],
+                'price' => 'Chỉ từ <strong>' . number_format($rogProd['price'] ?? 39990000, 0, ',', '.') . 'đ</strong>',
+                'link' => url('product/detail/' . ($rogProd['slug'] ?? '')),
+                'btnText' => 'Mua ngay',
+                'btnIcon' => 'fa-solid fa-arrow-right',
+            ];
+        }
+
+        // Slide 2: MacBook Pro (Chỉ hiển thị nếu danh mục Laptop active)
+        $macbookProd = $slideCheckModel->getBySlug('macbook-pro-16-m3-max') ?: (($laps = $slideCheckModel->getByCategorySlug('laptop', 2)) && count($laps) > 1 ? $laps[1] : false);
+        if ($macbookProd !== false) {
+            $heroSlides[] = [
+                'bg' => url('assets/images/apple-banner-bg.jpg'),
+                'tag' => 'Cực phẩm Apple',
+                'title' => e($macbookProd['name'] ?? 'MacBook Pro 16 M3 Max'),
+                'desc' => 'Quái vật hiệu năng dành cho dân chuyên nghiệp',
+                'specs' => ['Chip Apple M3 Max 14-core', 'GPU 30-core cực mạnh', 'Màn hình Liquid Retina XDR', '36GB Unified Memory, 1TB SSD'],
+                'price' => 'Chỉ từ <strong>' . number_format($macbookProd['price'] ?? 89990000, 0, ',', '.') . 'đ</strong>',
+                'link' => url('product/detail/' . ($macbookProd['slug'] ?? '')),
+                'btnText' => 'Mua ngay',
+                'btnIcon' => 'fa-solid fa-arrow-right',
+            ];
+        }
+    }
+
+    // Slide 3: PC Gaming Ultra Max (Chỉ hiển thị nếu danh mục PC active)
+    if (in_array('pc', $activeCatSlugs, true)) {
+        $heroSlides[] = [
+            'bg' => url('assets/images/banner-1.jpg'),
+            'tag' => 'Chiến thần hiệu năng',
+            'title' => 'PC Gaming Ultra Max',
+            'desc' => 'Cỗ máy hủy diệt mọi tựa game AAA ở thiết lập cao nhất',
+            'specs' => ['CPU Intel Core i9-14900K', 'VGA NVIDIA RTX 4090 24GB', 'RAM 64GB DDR5 6000MHz', 'Tản nhiệt nước Custom'],
+            'price' => 'Chỉ từ <strong>125.000.000đ</strong>',
+            'link' => url('build-pc'),
+            'btnText' => 'Build ngay',
+            'btnIcon' => 'fa-solid fa-arrow-right',
+        ];
+    }
+
+    // Slide 4: Odyssey OLED G9 (Chỉ hiển thị nếu danh mục Monitor active)
+    if (in_array('monitor', $activeCatSlugs, true)) {
+        $samsungProd = $slideCheckModel->getBySlug('samsung-odyssey-oled-g9') ?: ($slideCheckModel->getByCategorySlug('monitor', 1)[0] ?? false);
+        if ($samsungProd !== false) {
+            $heroSlides[] = [
+                'bg' => url('assets/images/banner-3.jpg'),
+                'tag' => 'Trải nghiệm vô cực',
+                'title' => e($samsungProd['name'] ?? 'Odyssey OLED G9'),
+                'desc' => 'Màn hình cong 49 inch chuẩn điện ảnh cho đắm chìm tuyệt đối',
+                'specs' => ['Tấm nền QD-OLED siêu nét', 'Tần số quét 240Hz', 'Tốc độ phản hồi 0.03ms', 'Tỷ lệ siêu rộng 32:9'],
+                'price' => 'Chỉ từ <strong>' . number_format($samsungProd['price'] ?? 34500000, 0, ',', '.') . 'đ</strong>',
+                'link' => url('product/detail/' . ($samsungProd['slug'] ?? '')),
+                'btnText' => 'Khám phá',
+                'btnIcon' => 'fa-solid fa-arrow-right',
+            ];
+        }
+    }
+
+    // Slide 5: RTX 50 Series (Sắp ra mắt - luôn hiển thị)
+    $heroSlides[] = [
+        'bg' => url('assets/images/banner-rtx-bg.jpg'),
+        'tag' => 'Sắp ra mắt',
+        'title' => 'NVIDIA RTX 50 SERIES',
+        'desc' => 'Sẵn sàng cho kỷ nguyên đồ họa thế hệ mới',
+        'specs' => ['Kiến trúc Blackwell 4nm', 'Bộ nhớ GDDR7 siêu tốc', 'Tăng tốc AI gấp 2 lần', 'DLSS 4 tối ưu hóa hiệu năng'],
+        'price' => 'Nhận thông tin sớm nhất',
+        'link' => url('auth/register'),
+        'btnText' => 'Đăng ký ngay',
+        'btnIcon' => 'fa-solid fa-envelope',
+    ];
+    ?>
+
     <div class="hero-section__center" id="heroCarousel">
-        <div class="carousel-slide is-active" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/rog-banner-bg.jpg') ?>');">
-            <div class="carousel-slide__content">
-                <span class="carousel-slide__tag">Sức mạnh vượt trội</span>
-                <h2>ROG ZEPHYRUS G16</h2>
-                <p>Hiệu năng đỉnh cao cho game thủ &amp; creator</p>
-                <ul class="carousel-slide__specs">
-                    <li><i class="fa-solid fa-circle-check"></i> Intel® Core™ Ultra 9</li>
-                    <li><i class="fa-solid fa-circle-check"></i> NVIDIA® GeForce RTX™ 4070</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Màn hình OLED 2.5K 240Hz</li>
-                    <li><i class="fa-solid fa-circle-check"></i> RAM LPDDR5X 32GB</li>
-                </ul>
-                <div class="carousel-slide__price">
-                    Chỉ từ <strong>39.990.000đ</strong>
+        <?php foreach ($heroSlides as $idx => $slide): ?>
+            <div class="carousel-slide <?= $idx === 0 ? 'is-active' : '' ?>" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%), url('<?= $slide['bg'] ?>');">
+                <div class="carousel-slide__content">
+                    <span class="carousel-slide__tag"><?= e($slide['tag']) ?></span>
+                    <h2><?= e($slide['title']) ?></h2>
+                    <p><?= e($slide['desc']) ?></p>
+                    <ul class="carousel-slide__specs">
+                        <?php foreach ($slide['specs'] as $spec): ?>
+                            <li><i class="fa-solid fa-circle-check"></i> <?= e($spec) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <div class="carousel-slide__price">
+                        <?= $slide['price'] ?>
+                    </div>
+                    <a href="<?= $slide['link'] ?>" class="btn btn--light"><?= e($slide['btnText']) ?> <i class="<?= $slide['btnIcon'] ?>"></i></a>
                 </div>
-                <a href="<?= url('product/detail/asus-rog-zephyrus-g16') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
             </div>
-        </div>
-        
-        <!-- Slide 2: MacBook Pro -->
-        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/apple-banner-bg.jpg') ?>');">
-            <div class="carousel-slide__content">
-                <span class="carousel-slide__tag">Cực phẩm Apple</span>
-                <h2>MacBook Pro 16 M3 Max</h2>
-                <p>Quái vật hiệu năng dành cho dân chuyên nghiệp</p>
-                <ul class="carousel-slide__specs">
-                    <li><i class="fa-solid fa-circle-check"></i> Chip Apple M3 Max 14-core</li>
-                    <li><i class="fa-solid fa-circle-check"></i> GPU 30-core cực mạnh</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Màn hình Liquid Retina XDR</li>
-                    <li><i class="fa-solid fa-circle-check"></i> 36GB Unified Memory, 1TB SSD</li>
-                </ul>
-                <div class="carousel-slide__price">
-                    Chỉ từ <strong>89.990.000đ</strong>
-                </div>
-                <a href="<?= url('product/detail/macbook-pro-16-m3-max') ?>" class="btn btn--light">Mua ngay <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
-        </div>
-
-        <!-- Slide 3: PC Gaming Ultra -->
-        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/banner-1.jpg') ?>');">
-            <div class="carousel-slide__content">
-                <span class="carousel-slide__tag">Chiến thần hiệu năng</span>
-                <h2>PC Gaming Ultra Max</h2>
-                <p>Cỗ máy hủy diệt mọi tựa game AAA ở thiết lập cao nhất</p>
-                <ul class="carousel-slide__specs">
-                    <li><i class="fa-solid fa-circle-check"></i> CPU Intel Core i9-14900K</li>
-                    <li><i class="fa-solid fa-circle-check"></i> VGA NVIDIA RTX 4090 24GB</li>
-                    <li><i class="fa-solid fa-circle-check"></i> RAM 64GB DDR5 6000MHz</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Tản nhiệt nước Custom</li>
-                </ul>
-                <div class="carousel-slide__price">
-                    Chỉ từ <strong>125.000.000đ</strong>
-                </div>
-                <a href="<?= url('build-pc') ?>" class="btn btn--light">Build ngay <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
-        </div>
-
-        <!-- Slide 4: Monitor Odyssey G9 -->
-        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/banner-3.jpg') ?>');">
-            <div class="carousel-slide__content">
-                <span class="carousel-slide__tag">Trải nghiệm vô cực</span>
-                <h2>Odyssey OLED G9</h2>
-                <p>Màn hình cong 49 inch chuẩn điện ảnh cho đắm chìm tuyệt đối</p>
-                <ul class="carousel-slide__specs">
-                    <li><i class="fa-solid fa-circle-check"></i> Tấm nền QD-OLED siêu nét</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Tần số quét 240Hz</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Tốc độ phản hồi 0.03ms</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Tỷ lệ siêu rộng 32:9</li>
-                </ul>
-                <div class="carousel-slide__price">
-                    Chỉ từ <strong>34.500.000đ</strong>
-                </div>
-                <a href="<?= url('product/detail/samsung-odyssey-oled-g9') ?>" class="btn btn--light">Khám phá <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
-        </div>
-
-        <!-- Slide 5: RTX 50 SERIES (Coming soon) -->
-        <div class="carousel-slide" style="background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 45%, rgba(0, 0, 0, 0) 100%), url('<?= url('assets/images/banner-rtx-bg.jpg') ?>');">
-            <div class="carousel-slide__content">
-                <span class="carousel-slide__tag">Sắp ra mắt</span>
-                <h2>NVIDIA RTX 50 SERIES</h2>
-                <p>Sẵn sàng cho kỷ nguyên đồ họa thế hệ mới</p>
-                <ul class="carousel-slide__specs">
-                    <li><i class="fa-solid fa-circle-check"></i> Kiến trúc Blackwell 4nm</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Bộ nhớ GDDR7 siêu tốc</li>
-                    <li><i class="fa-solid fa-circle-check"></i> Tăng tốc AI gấp 2 lần</li>
-                    <li><i class="fa-solid fa-circle-check"></i> DLSS 4 tối ưu hóa hiệu năng</li>
-                </ul>
-                <div class="carousel-slide__price">
-                    Nhận thông tin sớm nhất
-                </div>
-                <a href="<?= url('auth/register') ?>" class="btn btn--light">Đăng ký ngay <i class="fa-solid fa-envelope"></i></a>
-            </div>
-        </div>
+        <?php endforeach; ?>
 
         <div class="carousel-controls">
-            <div class="carousel-dot is-active" data-index="0"></div>
-            <div class="carousel-dot" data-index="1"></div>
-            <div class="carousel-dot" data-index="2"></div>
-            <div class="carousel-dot" data-index="3"></div>
-            <div class="carousel-dot" data-index="4"></div>
+            <?php foreach ($heroSlides as $idx => $slide): ?>
+                <div class="carousel-dot <?= $idx === 0 ? 'is-active' : '' ?>" data-index="<?= $idx ?>"></div>
+            <?php endforeach; ?>
         </div>
     </div>
 
     <!-- Right: 3 Promotion Cards -->
     <div class="hero-section__right">
-        <div class="promo-card promo-card--dark">
-            <div>
-                <h4>BUILD PC THEO YÊU CẦU</h4>
-                <p>Tối ưu cấu hình - Cân mọi ngân sách</p>
+        <div class="promo-card promo-card--dark" style="background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.35) 80%), url('<?= url('assets/images/banner-build-pc.jpg') ?>') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.12);">
+            <div style="position: relative; z-index: 2;">
+                <h4 style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.7);">BUILD PC THEO YÊU CẦU</h4>
+                <p style="color: #cbd5e1; margin-bottom: 12px;">Tối ưu cấu hình - Cân mọi ngân sách</p>
             </div>
-            <a href="<?= url('build-pc') ?>" class="btn btn--outline-light btn--sm">Xem ngay</a>
+            <a href="<?= url('build-pc') ?>" class="btn btn--primary btn--sm" style="position: relative; z-index: 2;">Xem ngay</a>
         </div>
         
-        <div class="promo-card promo-card--blue">
-            <div>
-                <h4>MUA NGAY - TRẢ SAU</h4>
-                <p>Nhận hàng, kiểm tra rồi thanh toán (COD)</p>
+        <div class="promo-card promo-card--dark" style="background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.35) 80%), url('<?= url('assets/images/banner-pay-later.jpg') ?>') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.12);">
+            <div style="position: relative; z-index: 2;">
+                <h4 style="color: #60a5fa; text-shadow: 0 1px 4px rgba(0,0,0,0.7);">MUA NGAY - TRẢ SAU</h4>
+                <p style="color: #cbd5e1; margin-bottom: 12px;">Nhận hàng, kiểm tra rồi thanh toán (COD)</p>
             </div>
-            <span class="promo-card__number"><i class="fa-solid fa-truck-fast"></i></span>
-            <a href="<?= url('home/search') ?>" class="btn btn--sm">Mua ngay</a>
+            <span class="promo-card__number" style="opacity: 0.15; color: #ffffff;"><i class="fa-solid fa-truck-fast"></i></span>
+            <a href="<?= url('home/search') ?>" class="btn btn--primary btn--sm" style="position: relative; z-index: 2;">Mua ngay</a>
         </div>
         
-        <div class="promo-card">
-            <div>
-                <h4>THU CŨ ĐỔI MỚI MÁY CŨ</h4>
-                <p>Trợ giá lên tới 6 triệu đồng</p>
+        <div class="promo-card promo-card--dark" style="background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.35) 80%), url('<?= url('assets/images/banner-trade-in.jpg') ?>') center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.12);">
+            <div style="position: relative; z-index: 2;">
+                <h4 style="color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.7);">THU CŨ ĐỔI MỚI MÁY CŨ</h4>
+                <p style="color: #cbd5e1; margin-bottom: 12px;">Trợ giá lên tới 6 triệu đồng</p>
             </div>
-            <a href="<?= url('thu-cu-doi-moi') ?>" class="btn btn--sm">Xem chi tiết</a>
+            <a href="<?= url('thu-cu-doi-moi') ?>" class="btn btn--primary btn--sm" style="position: relative; z-index: 2;">Xem chi tiết</a>
         </div>
     </div>
 </section>
@@ -182,23 +193,23 @@ $reviews = $reviews ?? [];
 <section class="container">
     <div class="features-bar">
         <div class="feature-item">
-            <i class="fa-solid fa-truck-fast"></i>
+            <img src="<?= url('assets/images/feature-shipping.jpg') ?>" alt="Miễn phí giao hàng" class="feature-icon-img">
             <span>Miễn phí giao hàng<br><small>Đơn hàng từ 500k</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-shield-halved"></i>
+            <img src="<?= url('assets/images/feature-warranty.jpg') ?>" alt="Bảo hành chính hãng" class="feature-icon-img">
             <span>Bảo hành chính hãng<br><small>Cam kết 100%</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-rotate-left"></i>
+            <img src="<?= url('assets/images/feature-return.jpg') ?>" alt="Đổi trả dễ dàng" class="feature-icon-img">
             <span>Đổi trả dễ dàng<br><small>Trong 7 ngày đầu</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-money-bill-wave"></i>
+            <img src="<?= url('assets/images/feature-cod.jpg') ?>" alt="Thanh toán COD" class="feature-icon-img">
             <span>Thanh toán COD<br><small>Tiền mặt khi nhận hàng</small></span>
         </div>
         <div class="feature-item">
-            <i class="fa-solid fa-headset"></i>
+            <img src="<?= url('assets/images/feature-support.jpg') ?>" alt="Hỗ trợ kỹ thuật 24/7" class="feature-icon-img">
             <span>Hỗ trợ kỹ thuật 24/7<br><small>Hotline: 1900 1234</small></span>
         </div>
     </div>
@@ -402,13 +413,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- ===== BANNER TRUNG GIAN RTX 50 ===== -->
 <section class="container section">
-    <div class="promo-banner" style="background-image: url('<?= url('assets/images/rtx-banner.jpg') ?>');">
+    <div class="promo-banner" style="background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.45) 60%, rgba(15, 23, 42, 0.1) 100%), url('<?= url('assets/images/rtx-banner.jpg') ?>') center/cover no-repeat; min-height: 210px; border: 1px solid rgba(255, 255, 255, 0.12);">
         <div class="promo-banner__content">
             <span class="promo-banner__tag">SẮP RA MẮT</span>
-            <h3>NVIDIA GeForce RTX 50 Series</h3>
-            <p>Sức mạnh tối thượng từ kiến trúc Blackwell, dẫn đầu cuộc cách mạng đồ họa AI thế hệ mới.</p>
+            <h3 style="color: #ffffff; text-shadow: 0 2px 6px rgba(0,0,0,0.8);">NVIDIA GeForce RTX 50 Series</h3>
+            <p style="color: #e2e8f0; text-shadow: 0 1px 4px rgba(0,0,0,0.8);">Sức mạnh tối thượng từ kiến trúc Blackwell, dẫn đầu cuộc cách mạng đồ họa AI thế hệ mới.</p>
         </div>
-        <a href="<?= url('auth/register') ?>" class="btn btn--light">Đăng ký thông tin <i class="fa-solid fa-bell"></i></a>
+        <a href="<?= url('auth/register') ?>" class="btn btn--light" style="box-shadow: 0 4px 12px rgba(0,0,0,0.3);">Đăng ký thông tin <i class="fa-solid fa-bell"></i></a>
     </div>
 </section>
 

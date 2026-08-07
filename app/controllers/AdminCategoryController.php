@@ -219,6 +219,10 @@ class AdminCategoryController extends Controller
         ]);
 
         if ($success) {
+            // Tự động đồng bộ trạng thái tạm ẩn/kích hoạt cho tất cả danh mục con
+            $childStmt = $db->prepare('UPDATE categories SET status = :status WHERE parent_id = :id');
+            $childStmt->execute([':status' => $status, ':id' => $id]);
+
             flash('success', 'Đã cập nhật danh mục thành công!');
             $this->redirect('admin/categories');
         } else {
@@ -249,6 +253,11 @@ class AdminCategoryController extends Controller
             // Khóa xóa cứng danh mục để bảo toàn dữ liệu
             $stmt = $db->prepare("UPDATE categories SET status = 'inactive' WHERE id = :id");
             $stmt->execute([':id' => $id]);
+            
+            // Đồng bộ tạm ẩn toàn bộ danh mục con
+            $childStmt = $db->prepare("UPDATE categories SET status = 'inactive' WHERE parent_id = :id");
+            $childStmt->execute([':id' => $id]);
+
             flash('warning', 'Hệ thống đã khóa tính năng xóa cứng danh mục. Đã tự động chuyển trạng thái danh mục sang Tạm ẩn (Inactive). Các sản phẩm thuộc danh mục này cũng sẽ tự động ẩn khỏi cửa hàng.');
         }
 
@@ -289,11 +298,148 @@ class AdminCategoryController extends Controller
         $upStmt = $db->prepare("UPDATE categories SET status = :status WHERE id = :id");
         $upStmt->execute([':status' => $newStatus, ':id' => $id]);
 
+        // Đồng bộ toàn bộ danh mục con thuộc danh mục này
+        $childStmt = $db->prepare("UPDATE categories SET status = :status WHERE parent_id = :id");
+        $childStmt->execute([':status' => $newStatus, ':id' => $id]);
+
         echo json_encode([
             'success'      => true,
             'message'      => 'Đã ' . ($newStatus === 'active' ? 'bật hiển thị' : 'tạm ẩn') . ' danh mục ' . $cat['name'],
             'new_status'   => $newStatus,
             'status_label' => $newStatus === 'active' ? 'Đang hoạt động' : 'Tạm ẩn'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /** API Sinh thông tin danh mục tự động bằng AI (POST /admin/categories/ai-generate) */
+    public function aiGenerate(): void
+    {
+        $adminUser = $this->requireApiAdmin();
+
+        if (!$this->isPost()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        if (!verifyCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['_csrf'] ?? null)) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Phiên làm việc hết hạn, vui lòng tải lại trang.']);
+            exit;
+        }
+
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Vui lòng nhập Tên danh mục trước khi dùng AI tự động điền.']);
+            exit;
+        }
+
+        // 1. Tự động sinh Slug chuẩn tiếng Việt không dấu
+        $vietnameseSlug = function($str) {
+            $str = mb_strtolower($str, 'UTF-8');
+            $unicode = [
+                'a'=>'á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ',
+                'd'=>'đ',
+                'e'=>'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+                'i'=>'í|ì|ỉ|ĩ|ị',
+                'o'=>'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+                'u'=>'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+                'y'=>'ý|ỳ|ỷ|ỹ|ỵ',
+            ];
+            foreach ($unicode as $nonUnicode => $uni) {
+                $str = preg_replace("/($uni)/i", $nonUnicode, $str);
+            }
+            $str = preg_replace('/[^a-z0-9\s-]/', '', $str);
+            $str = preg_replace('/[\s-]+/', '-', $str);
+            return trim($str, '-');
+        };
+
+        $slug = $vietnameseSlug($name);
+        if (empty($slug)) {
+            $slug = 'danh-muc-' . time();
+        }
+
+        // 2. Nhận diện Icon phù hợp theo từ khóa tiếng Việt
+        $iconMap = [
+            'laptop'    => 'fa-solid fa-laptop',
+            'pc'        => 'fa-solid fa-desktop',
+            'màn'       => 'fa-solid fa-tv',
+            'monitor'   => 'fa-solid fa-tv',
+            'main'      => 'fa-solid fa-microchip',
+            'bo mạch'   => 'fa-solid fa-microchip',
+            'cpu'       => 'fa-solid fa-layer-group',
+            'chip'      => 'fa-solid fa-layer-group',
+            'vga'       => 'fa-solid fa-desktop',
+            'card'      => 'fa-solid fa-desktop',
+            'ram'       => 'fa-solid fa-memory',
+            'ổ cứng'    => 'fa-solid fa-hard-drive',
+            'ssd'       => 'fa-solid fa-hard-drive',
+            'hdd'       => 'fa-solid fa-hard-drive',
+            'case'      => 'fa-solid fa-box',
+            'vỏ'        => 'fa-solid fa-box',
+            'tản'       => 'fa-solid fa-fan',
+            'cooling'   => 'fa-solid fa-fan',
+            'nguồn'     => 'fa-solid fa-bolt',
+            'psu'       => 'fa-solid fa-bolt',
+            'phím'      => 'fa-solid fa-keyboard',
+            'bàn phím'  => 'fa-solid fa-keyboard',
+            'chuột'     => 'fa-solid fa-computer-mouse',
+            'mouse'     => 'fa-solid fa-computer-mouse',
+            'ghế'       => 'fa-solid fa-chair',
+            'bàn'       => 'fa-solid fa-chair',
+            'tai nghe'  => 'fa-solid fa-headphones',
+            'headset'   => 'fa-solid fa-headphones',
+            'loa'       => 'fa-solid fa-volume-high',
+            'speaker'   => 'fa-solid fa-volume-high',
+            'console'   => 'fa-solid fa-gamepad',
+            'game'      => 'fa-solid fa-gamepad',
+            'camera'    => 'fa-solid fa-camera',
+            'flycam'    => 'fa-solid fa-camera',
+            'máy ảnh'   => 'fa-solid fa-camera',
+            'sạc'       => 'fa-solid fa-battery-three-quarters',
+            'mạng'      => 'fa-solid fa-wifi',
+            'router'    => 'fa-solid fa-wifi',
+            'vr'        => 'fa-solid fa-vr-cardboard',
+            'kính'      => 'fa-solid fa-vr-cardboard',
+            'đồng hồ'   => 'fa-solid fa-stopwatch',
+            'phụ kiện'  => 'fa-solid fa-plug',
+        ];
+
+        $matchedIcon = 'fa-solid fa-tag';
+        $nameLower = mb_strtolower($name, 'UTF-8');
+        foreach ($iconMap as $kw => $iconClass) {
+            if (str_contains($nameLower, $kw)) {
+                $matchedIcon = $iconClass;
+                break;
+            }
+        }
+
+        // 3. Gọi AI Gemini / Fallback để tạo mô tả tiếng Việt cuốn hút chuẩn SEO cho e-commerce
+        $description = "Chuyên mục " . $name . " chính hãng tại TechPilot. Đa dạng mẫu mã, giá tốt hàng đầu thị trường, bảo hành uy tín và hỗ trợ giao hàng nhanh toàn quốc.";
+        try {
+            require_once ROOT_PATH . '/app/services/GeminiService.php';
+            $prompt = "Bạn là chuyên gia E-Commerce của hệ thống TechPilot. Hãy viết một đoạn mô tả ngắn (khoảng 2-3 câu ngắn gọn, 35-50 từ) hấp dẫn, chuẩn SEO bằng tiếng Việt cho danh mục sản phẩm có tên: '{$name}'. Không sử dụng markdown phức tạp hay tiêu đề, chỉ trả về văn bản mô tả thuần túy.";
+            $aiText = GeminiService::generateText($prompt);
+            if (!empty($aiText) && strlen($aiText) > 20) {
+                $description = trim(strip_tags($aiText));
+            }
+        } catch (Throwable $e) {}
+
+        // 4. Đường dẫn ảnh gợi ý
+        $image = 'assets/images/categories/category-' . $slug . '.png';
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success'     => true,
+            'name'        => $name,
+            'slug'        => $slug,
+            'icon'        => $matchedIcon,
+            'description' => $description,
+            'image'       => $image
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }

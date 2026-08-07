@@ -90,7 +90,7 @@ class PcBuilderController extends Controller
 
         $activeFlashPrice = activeFlashPriceSql('products');
         $effectivePrice = effectiveProductPriceSql('products');
-        $stmt = $db->prepare("SELECT id, name, slug, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs FROM products WHERE category_id = 2 AND status = 'active' ORDER BY {$effectivePrice} ASC LIMIT 12");
+        $stmt = $db->prepare("SELECT p.id, p.name, p.slug, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = 2 AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY {$effectivePrice} ASC LIMIT 12");
         $stmt->execute();
         $pcs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -143,11 +143,11 @@ class PcBuilderController extends Controller
             $catId = $conf['cat'];
             $searchKey = $conf['search'];
             
-            $sql = "SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0";
+            $sql = "SELECT p.id, p.name, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = :cat AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) AND p.stock > 0";
             $params = [':cat' => $catId];
 
             if (!empty($searchKey)) {
-                $sql .= " AND name LIKE :s";
+                $sql .= " AND p.name LIKE :s";
                 $params[':s'] = '%' . $searchKey . '%';
             }
 
@@ -157,7 +157,7 @@ class PcBuilderController extends Controller
             $prod = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$prod && !empty($searchKey)) {
-                $stmtFb = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs FROM products WHERE category_id = :cat AND status = 'active' AND stock > 0 ORDER BY {$effectivePrice} ASC LIMIT 1");
+                $stmtFb = $db->prepare("SELECT p.id, p.name, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = :cat AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) AND p.stock > 0 ORDER BY {$effectivePrice} ASC LIMIT 1");
                 $stmtFb->execute([':cat' => $catId]);
                 $prod = $stmtFb->fetch(PDO::FETCH_ASSOC);
             }
@@ -203,7 +203,7 @@ class PcBuilderController extends Controller
             $whereClause .= " AND name LIKE :search";
         }
         
-        $sql = "SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs, component_type, power_draw_w, recommended_psu_w FROM products WHERE ($whereClause) AND status = 'active' AND stock > 0 ORDER BY {$effectivePrice} ASC";
+        $sql = "SELECT p.id, p.name, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs, p.component_type, p.power_draw_w, p.recommended_psu_w FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE ($whereClause) AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) AND p.stock > 0 ORDER BY {$effectivePrice} ASC";
         $stmt = $db->prepare($sql);
         if ($search) {
             $stmt->execute([':search' => '%' . $search . '%']);
@@ -270,8 +270,8 @@ class PcBuilderController extends Controller
     private function getProductById(?PDO $db, int $id): ?array
     {
         if (!$db) return null;
-        $activeFlashPrice = activeFlashPriceSql('products');
-        $stmt = $db->prepare("SELECT id, name, price, sale_price, is_flash_sale, {$activeFlashPrice} AS discount_price, stock, image, specs, category_id, component_type, power_draw_w, recommended_psu_w FROM products WHERE id = :id AND status = 'active'");
+        $activeFlashPrice = activeFlashPriceSql('p');
+        $stmt = $db->prepare("SELECT p.id, p.name, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs, p.category_id, p.component_type, p.power_draw_w, p.recommended_psu_w FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = :id AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL)");
         $stmt->execute([':id' => $id]);
         $prod = $stmt->fetch(PDO::FETCH_ASSOC);
         

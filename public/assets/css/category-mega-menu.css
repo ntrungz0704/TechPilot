@@ -256,14 +256,10 @@
     text-decoration: underline;
 }
 
-.mega-panel__inner {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 28px;
-}
-
+.mega-panel__inner,
 .mega-panel__inner.is-linh-kien-grid {
-    grid-template-columns: repeat(3, 1fr);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 24px;
 }
 

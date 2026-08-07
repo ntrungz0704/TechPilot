@@ -223,25 +223,58 @@ class AdminBrandController extends Controller
         $db = Database::getConnection();
 
         if ($db) {
-            // Chặn xóa nếu có sản phẩm
-            $stmt = $db->prepare('SELECT COUNT(*) FROM products WHERE brand_id = :id');
-            $stmt->execute([':id' => $id]);
-            $count = (int)$stmt->fetchColumn();
-
-            if ($count > 0) {
-                flash('error', "Không thể xoá thương hiệu này vì đang có {$count} sản phẩm đang được liên kết. Vui lòng chuyển hoặc xoá các sản phẩm đó trước.");
-                $this->redirect('admin/brands');
-                return;
-            }
-
-            $stmt = $db->prepare('DELETE FROM brands WHERE id = :id');
+            $stmt = $db->prepare("UPDATE brands SET status = 'inactive' WHERE id = :id");
             if ($stmt->execute([':id' => $id])) {
-                flash('success', 'Xoá thương hiệu thành công!');
+                flash('warning', 'Hệ thống đã khóa tính năng xóa cứng thương hiệu. Đã tự động chuyển trạng thái thương hiệu sang Tạm ẩn.');
             } else {
-                flash('error', 'Không thể xoá thương hiệu.');
+                flash('error', 'Không thể tạm ẩn thương hiệu.');
             }
         }
 
         $this->redirect('admin/brands');
+    }
+
+    /** Toggle trạng thái Bật/Tắt hiển thị thương hiệu (POST /admin/brands/toggle-status/{id}) */
+    public function toggleStatus(string $id = ''): void
+    {
+        $adminUser = $this->requireApiAdmin();
+        $id = (int)$id;
+
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ.']);
+            exit;
+        }
+
+        require_once ROOT_PATH . '/config/database.php';
+        $db = Database::getConnection();
+        if (!$db) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi kết nối CSDL.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT status, name FROM categories WHERE id = :id LIMIT 1");
+        $stmt = $db->prepare("SELECT status, name FROM brands WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $brand = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$brand) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Thương hiệu không tồn tại.']);
+            exit;
+        }
+
+        $newStatus = ($brand['status'] === 'active') ? 'inactive' : 'active';
+        $upStmt = $db->prepare("UPDATE brands SET status = :status WHERE id = :id");
+        $upStmt->execute([':status' => $newStatus, ':id' => $id]);
+
+        echo json_encode([
+            'success'      => true,
+            'message'      => 'Đã ' . ($newStatus === 'active' ? 'bật hiển thị' : 'tạm ẩn') . ' thương hiệu ' . $brand['name'],
+            'new_status'   => $newStatus,
+            'status_label' => $newStatus === 'active' ? 'Đang hoạt động' : 'Tạm ẩn'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }
