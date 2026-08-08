@@ -176,7 +176,7 @@ $galleryImages = getGalleryImages($product, $productImages);
             <div class="product-detail__actions">
                 <div class="qty-selector">
                     <button type="button" class="qty-btn" id="qtyDecBtn" onclick="adjustQty(-1)" disabled>-</button>
-                    <input type="number" name="quantity" value="1" min="1" max="<?= (int)$product['stock'] ?>" id="qtyInput" oninput="validateQtyInput(this)" onblur="validateQtyInput(this)">
+                    <input type="number" name="quantity" value="1" min="1" max="<?= (int)$product['stock'] ?>" id="qtyInput" onfocus="this.select()" oninput="validateQtyInput(this, false)" onblur="validateQtyInput(this, true)">
                     <button type="button" class="qty-btn" id="qtyIncBtn" onclick="adjustQty(1)" <?= ((int)$product['stock'] <= 1) ? 'disabled' : '' ?>>+</button>
                 </div>
                 <button type="submit" class="btn btn--outline"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
@@ -436,10 +436,16 @@ $galleryImages = getGalleryImages($product, $productImages);
         element.classList.add('is-active');
     }
 
-    function validateQtyInput(input) {
+    function validateQtyInput(input, isFinal = false) {
         if (!input) return;
-        let val = parseInt(input.value);
         const max = parseInt(input.getAttribute('max')) || 100;
+        
+        // Trạng thái đang gõ (oninput): cho phép xóa trống tạm thời để gõ số mới
+        if (!isFinal && (input.value === '' || input.value === null)) {
+            return;
+        }
+
+        let val = parseInt(input.value);
         if (isNaN(val) || val < 1) {
             val = 1;
         }

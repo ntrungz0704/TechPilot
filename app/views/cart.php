@@ -72,7 +72,7 @@ $canCheckout = $canCheckout ?? false;
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
                                 <button type="submit" name="quantity" value="<?= max(1, (int)$item['quantity'] - 1) ?>" class="qty-btn" style="width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; font-weight: bold;">-</button>
-                                <input type="number" name="quantity" value="<?= (int)$item['quantity'] ?>" min="1" max="<?= (int)($item['stock'] ?? 100) ?>" onchange="this.form.submit()" style="width: 50px; height: 28px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-weight: 700; background: var(--bg-card); color: var(--text-primary); -moz-appearance: textfield;">
+                                <input type="number" name="quantity" value="<?= (int)$item['quantity'] ?>" min="1" max="<?= (int)($item['stock'] ?? 100) ?>" onfocus="this.select()" onchange="this.form.submit()" style="width: 50px; height: 28px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-weight: 700; background: var(--bg-card); color: var(--text-primary); -moz-appearance: textfield;">
                                 <button type="submit" name="quantity" value="<?= (int)$item['quantity'] + 1 ?>" class="qty-btn" style="width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; font-weight: bold;">+</button>
                             </form>
                             <?php else: ?>
