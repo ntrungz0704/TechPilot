@@ -264,12 +264,21 @@ class InventoryService
             $pid = (int)$item['product_id'];
             $qty = max(1, (int)$item['quantity']);
 
-            $pStmt = $db->prepare("SELECT id, stock, status FROM products WHERE id = :id FOR UPDATE");
+            $pStmt = $db->prepare("SELECT id, name, stock, status FROM products WHERE id = :id FOR UPDATE");
             $pStmt->execute([':id' => $pid]);
             $product = $pStmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$product || ($product['status'] ?? '') !== 'active' || (int)$product['stock'] < $qty) {
-                throw new RuntimeException("Sản phẩm ID {$pid} không đủ tồn kho hoặc dừng kinh doanh.");
+            $pName = !empty($product['name']) ? $product['name'] : ('Sản phẩm #' . $pid);
+
+            if (!$product || ($product['status'] ?? '') !== 'active') {
+                throw new RuntimeException("Sản phẩm {$pName} hiện đã dừng kinh doanh.");
+            }
+
+            if ((int)$product['stock'] < $qty) {
+                if ((int)$product['stock'] <= 0) {
+                    throw new RuntimeException("⚡ Sản phẩm {$pName} vừa hết hàng do vừa có khách hàng khác chốt đơn trước.");
+                }
+                throw new RuntimeException("⚡ Sản phẩm {$pName} chỉ còn " . (int)$product['stock'] . " sản phẩm trong kho (bạn đặt " . $qty . " sản phẩm). Vui lòng kiểm tra lại giỏ hàng.");
             }
 
             $oldStock = (int)$product['stock'];
