@@ -2105,7 +2105,12 @@
                 });
         }
     </script>
-    <?php $popupBanner = getActivePopupBanner(); ?>
+    <?php 
+    $reqUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '/';
+    $reqUriClean = trim((string)$reqUriPath, '/');
+    $isHomePage = ($reqUriClean === '' || $reqUriClean === 'index.php' || $reqUriClean === 'home' || $reqUriClean === 'home/index');
+    $popupBanner = $isHomePage ? getActivePopupBanner() : null; 
+    ?>
     <?php if ($popupBanner): ?>
         <!-- Modal Quảng Cáo Popup Nổi Bật Shopee Style (Không nhòe phông, Chặn cuộn trang khi chưa tắt) -->
         <div id="tpPromoPopup" class="tp-popup-overlay" role="dialog" aria-modal="true" aria-label="Quảng cáo khuyến mãi">
