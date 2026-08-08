@@ -988,6 +988,8 @@ class Product
                        AND fs.status = 'active'
                        AND fs.start_time <= NOW()
                        AND fs.end_time > NOW()
+                       AND fsi.allocation_quantity > 0
+                       AND fsi.sold_quantity < fsi.allocation_quantity
                        AND fsi.id = {$activeFlashItemId}
                      ORDER BY p.id DESC LIMIT :limit"
                 );

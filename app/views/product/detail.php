@@ -132,8 +132,26 @@ $galleryImages = getGalleryImages($product, $productImages);
                 <span class="price-save">Tiết kiệm <?= formatPrice($product['original_price'] - $product['final_price']) ?></span>
             <?php endif; ?>
             <?php if (!empty($product['is_flash_sale'])): ?>
-                <?php $fsLimit = (int)($product['fs_limit_per_user'] ?? $product['limit_per_user'] ?? 1); ?>
-                <?php if ($fsLimit > 0): ?>
+                <?php 
+                $fsLimit = (int)($product['fs_limit_per_user'] ?? $product['limit_per_user'] ?? 1);
+                $isUserLimitReached = false;
+                if ($this->db !== null) {
+                    try {
+                        require_once ROOT_PATH . '/app/services/FlashSaleService.php';
+                        $u = currentUser();
+                        $bKey = $u ? 'user:' . (int)$u['id'] : 'guest:cart';
+                        $q = FlashSaleService::quoteForPurchase($this->db, (int)$product['id'], 1, $bKey);
+                        if (($q['status'] ?? '') === 'eligible' && (int)($q['flash_qty'] ?? 0) === 0) {
+                            $isUserLimitReached = true;
+                        }
+                    } catch (Exception $e) {}
+                }
+                ?>
+                <?php if ($isUserLimitReached): ?>
+                    <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; color: #f59e0b; font-size: 12px; font-weight: 700;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Bạn đã dùng hết <?= $fsLimit ?> suất ưu đãi Flash Sale. Số lượng thêm tiếp theo sẽ tính giá niêm yết.
+                    </div>
+                <?php elseif ($fsLimit > 0): ?>
                     <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; color: #0284c7; font-size: 12px; font-weight: 700;">
                         <i class="fa-solid fa-user-shield"></i> Giới hạn Flash Sale: Tối đa <?= $fsLimit ?> sản phẩm / 1 khách hàng
                     </div>
