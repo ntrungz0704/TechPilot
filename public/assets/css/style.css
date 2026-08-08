@@ -2798,6 +2798,19 @@ html.dark-mode .product-card__price-now {
     font-weight: 700;
     color: var(--text-primary);
     background-color: transparent;
+    -moz-appearance: textfield;
+}
+
+.qty-selector input::-webkit-outer-spin-button,
+.qty-selector input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.qty-selector input:focus {
+    outline: none;
+    background-color: rgba(37, 99, 235, 0.1);
+    border-radius: 4px;
 }
 
 .qty-btn {

@@ -176,7 +176,7 @@ $galleryImages = getGalleryImages($product, $productImages);
             <div class="product-detail__actions">
                 <div class="qty-selector">
                     <button type="button" class="qty-btn" id="qtyDecBtn" onclick="adjustQty(-1)" disabled>-</button>
-                    <input type="number" name="quantity" value="1" min="1" max="<?= (int)$product['stock'] ?>" id="qtyInput" readonly>
+                    <input type="number" name="quantity" value="1" min="1" max="<?= (int)$product['stock'] ?>" id="qtyInput" oninput="validateQtyInput(this)" onblur="validateQtyInput(this)">
                     <button type="button" class="qty-btn" id="qtyIncBtn" onclick="adjustQty(1)" <?= ((int)$product['stock'] <= 1) ? 'disabled' : '' ?>>+</button>
                 </div>
                 <button type="submit" class="btn btn--outline"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
@@ -436,6 +436,24 @@ $galleryImages = getGalleryImages($product, $productImages);
         element.classList.add('is-active');
     }
 
+    function validateQtyInput(input) {
+        if (!input) return;
+        let val = parseInt(input.value);
+        const max = parseInt(input.getAttribute('max')) || 100;
+        if (isNaN(val) || val < 1) {
+            val = 1;
+        }
+        if (val > max) {
+            val = max;
+        }
+        input.value = val;
+
+        const decBtn = document.getElementById('qtyDecBtn');
+        const incBtn = document.getElementById('qtyIncBtn');
+        if (decBtn) decBtn.disabled = (val <= 1);
+        if (incBtn) incBtn.disabled = (val >= max);
+    }
+
     function adjustQty(amount) {
         const input = document.getElementById('qtyInput');
         if (!input) return;
@@ -445,10 +463,7 @@ $galleryImages = getGalleryImages($product, $productImages);
         if (val > max) val = max;
         input.value = val;
 
-        const decBtn = document.getElementById('qtyDecBtn');
-        const incBtn = document.getElementById('qtyIncBtn');
-        if (decBtn) decBtn.disabled = (val <= 1);
-        if (incBtn) incBtn.disabled = (val >= max);
+        validateQtyInput(input);
     }
 
     function buyNowSubmit() {
