@@ -154,7 +154,12 @@ if (!function_exists('getEffectiveProductData')) {
         }
 
         $flashPrice = (float)($product['discount_price'] ?? 0);
-        if ($flashPrice > 0 && $flashPrice < $finalPrice) {
+        $fsStock = isset($product['fs_stock']) ? (int)$product['fs_stock'] : (isset($product['allocation_quantity']) ? (int)$product['allocation_quantity'] : null);
+        $fsSold = isset($product['fs_sold']) ? (int)$product['fs_sold'] : (isset($product['sold_quantity']) ? (int)$product['sold_quantity'] : null);
+
+        $isFsDepleted = ($fsStock !== null && $fsSold !== null && $fsStock > 0 && $fsSold >= $fsStock);
+
+        if ($flashPrice > 0 && $flashPrice < $finalPrice && !$isFsDepleted) {
             $finalPrice = $flashPrice;
             $priceSource = 'flash';
         }

@@ -62,16 +62,25 @@
             
             <?php if ($isFlashSaleCard): ?>
                 <?php
-                $allocation = max(0, (int)($p['fs_stock'] ?? 0));
-                $sold = max(0, (int)($p['fs_sold'] ?? 0));
+                $allocation = max(0, (int)($p['fs_stock'] ?? $p['allocation_quantity'] ?? 0));
+                $sold = max(0, (int)($p['fs_sold'] ?? $p['sold_quantity'] ?? 0));
+                $limitPerUser = (int)($p['fs_limit_per_user'] ?? $p['limit_per_user'] ?? 0);
                 $percent = $allocation > 0 ? max(0, min(100, round(($sold / $allocation) * 100))) : 0;
                 $isSoldOut = ($allocation > 0 && $sold >= $allocation);
+
+                $barText = 'Đã bán ' . $sold . '/' . $allocation;
+                if ($limitPerUser > 0) {
+                    $barText .= ' (Tối đa ' . $limitPerUser . ' sp/khách)';
+                }
+                if ($isSoldOut) {
+                    $barText = '🔥 Đã bán hết suất Flash Sale';
+                }
                 ?>
                 <div class="sold-bar" style="margin-top: 6px;">
                     <div class="sold-bar__track">
                         <div class="sold-bar__fill" style="width: <?= $percent ?>%; <?= $isSoldOut ? 'background: linear-gradient(90deg, #EF4444, #DC2626);' : '' ?>"></div>
                         <div class="sold-bar__text <?= ($percent < 40 && !$isSoldOut) ? 'sold-bar__text-dark' : '' ?>" style="<?= $isSoldOut ? 'color: #FFFFFF; font-weight: 700;' : '' ?>">
-                            <?= $isSoldOut ? '🔥 Đã bán hết suất Flash Sale' : 'Đã bán ' . $sold . '/' . $allocation ?>
+                            <?= e($barText) ?>
                         </div>
                     </div>
                 </div>
