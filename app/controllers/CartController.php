@@ -270,19 +270,38 @@ class CartController extends Controller
             $db->commit();
             $this->syncCartSession((int)$user['id'], $db);
             
-            $successMsg = 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.';
+            $flashNotice = '';
+            try {
+                require_once ROOT_PATH . '/app/services/FlashSaleService.php';
+                $buyerKey = 'user:' . (int)$user['id'];
+                $quote = FlashSaleService::quoteForPurchase($db, $productId, $newQty, $buyerKey);
+                if (($quote['status'] ?? '') === 'eligible' && is_array($quote['item'] ?? null)) {
+                    $allowedFlash = (int)($quote['flash_qty'] ?? 0);
+                    if ($newQty > $allowedFlash) {
+                        $regCount = $newQty - $allowedFlash;
+                        if ($allowedFlash > 0) {
+                            $flashNotice = '⚡ Lưu ý: ' . $allowedFlash . ' sp hưởng giá Flash Sale + ' . $regCount . ' sp tính giá niêm yết do đạt giới hạn ưu đãi.';
+                        } else {
+                            $flashNotice = '⚡ Lưu ý: Sản phẩm đã hết suất Flash Sale, số lượng này được tính theo giá niêm yết.';
+                        }
+                    }
+                }
+            } catch (Exception $e) {}
+
+            $successMsg = 'Đã thêm ' . ($product['name'] ?? 'sản phẩm') . ' vào giỏ hàng.' . ($flashNotice !== '' ? ' (' . $flashNotice . ')' : '');
             
             if ($isAjax) {
                 echo json_encode([
                     'success' => true,
                     'message' => $successMsg,
+                    'flash_warning' => $flashNotice,
                     'cart_count' => array_sum(array_column($_SESSION['cart'] ?? [], 'quantity')),
                     'product_id' => $productId
                 ]);
                 return;
             }
 
-            flash('success', $successMsg);
+            flash($flashNotice !== '' ? 'warning' : 'success', $successMsg);
         } catch (Throwable $e) {
             if ($db->inTransaction()) $db->rollBack();
             if ($isAjax) {
