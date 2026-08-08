@@ -19,8 +19,8 @@ $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[
         <p class="checkout-sub">Vui lòng nhập đầy đủ địa chỉ nhận hàng để chúng tôi vận chuyển nhanh nhất.</p>
 
         <?php if (!empty($_SESSION['checkout_error'] ?? '')): ?>
-            <div class="alert alert--error">
-                <p><i class="fa-solid fa-circle-exclamation"></i> <?= e($_SESSION['checkout_error']) ?></p>
+            <div class="alert alert--error" style="line-height: 1.6; font-size: 14px; border-radius: 10px; padding: 16px 20px;">
+                <div><i class="fa-solid fa-circle-exclamation" style="font-size: 18px; margin-right: 8px; float: left; margin-top: 2px;"></i> <?= $_SESSION['checkout_error'] ?></div>
             </div>
             <?php unset($_SESSION['checkout_error']); ?>
         <?php endif; ?>

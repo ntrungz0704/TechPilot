@@ -72,9 +72,48 @@ class CartService
             $available = $stock > 0;
             $quantity = $available ? min($requestedQuantity, $stock) : 0;
 
-            $priceData = getEffectiveProductData($product);
-            $price = (float)$priceData['final_price'];
-            $lineTotal = $available ? $price * $quantity : 0.0;
+            $basePrice = (float)($product['price'] ?? 0);
+            $salePrice = (float)($product['sale_price'] ?? 0);
+            $regularPrice = ($salePrice > 0 && $salePrice < $basePrice) ? $salePrice : $basePrice;
+
+            $flashItem = null;
+            $flashQty = 0;
+            $db = Database::getConnection();
+            if ($db && $available) {
+                try {
+                    require_once ROOT_PATH . '/app/services/FlashSaleService.php';
+                    $user = currentUser();
+                    $buyerKey = 'guest:cart';
+                    if ($user && !empty($user['id'])) {
+                        $buyerKey = 'user:' . (int)$user['id'];
+                    }
+                    $flashQuote = FlashSaleService::quoteForPurchase($db, $productId, $quantity, $buyerKey);
+                    if (($flashQuote['status'] ?? '') === 'eligible' && is_array($flashQuote['item'] ?? null)) {
+                        $flashItem = $flashQuote['item'];
+                        $flashQty = min($quantity, max(1, (int)($flashQuote['flash_qty'] ?? 1)));
+                    }
+                } catch (Exception $e) {}
+            }
+
+            if ($flashItem !== null && $flashQty > 0) {
+                $flashPrice = (float)$flashItem['discount_price'];
+                $regularQty = $quantity - $flashQty;
+                $lineTotal = ($flashQty * $flashPrice) + ($regularQty * $regularPrice);
+                $price = $lineTotal / $quantity;
+                $hasDiscount = true;
+                $isFlashSale = true;
+                $priceSource = 'flash';
+                $oldPrice = $basePrice;
+            } else {
+                $priceData = getEffectiveProductData($product);
+                $price = (float)$priceData['final_price'];
+                $lineTotal = $available ? $price * $quantity : 0.0;
+                $hasDiscount = (bool)$priceData['has_discount'];
+                $isFlashSale = (bool)$priceData['is_flash_sale'];
+                $priceSource = (string)$priceData['price_source'];
+                $oldPrice = (float)$priceData['original_price'];
+            }
+
             $items[$productId] = [
                 'product_id' => $productId,
                 'slug' => (string)($product['slug'] ?? ''),
@@ -83,14 +122,15 @@ class CartService
                 'image' => (string)($product['image'] ?? ''),
                 'brand_name' => (string)($product['brand_name'] ?? ''),
                 'price' => $price,
-                'old_price' => (float)$priceData['original_price'],
-                'has_discount' => (bool)$priceData['has_discount'],
-                'is_flash_sale' => (bool)$priceData['is_flash_sale'],
-                'price_source' => (string)$priceData['price_source'],
+                'old_price' => $oldPrice,
+                'has_discount' => $hasDiscount,
+                'is_flash_sale' => $isFlashSale,
+                'price_source' => $priceSource,
                 'stock' => $stock,
                 'quantity' => $quantity,
                 'line_total' => $lineTotal,
                 'available' => $available,
+                'flash_qty' => $flashQty,
             ];
         }
 

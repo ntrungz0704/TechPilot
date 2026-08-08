@@ -165,8 +165,9 @@ class Order
             $expectedTotal = (float)($payload['total_amount'] ?? 0);
             if ($expectedTotal > 0 && abs($calculatedTotal - $expectedTotal) > 0.01) {
                 throw new RuntimeException(
-                    '⚡ Hạn mức Flash Sale hoặc giá sản phẩm vừa thay đổi trước ít giây do có người dùng khác chốt đơn trước. Giỏ hàng đã được cập nhật thành '
-                    . formatPrice($calculatedTotal) . '. Vui lòng kiểm tra lại tổng tiền trước khi bấm Thanh toán.'
+                    '⚡ <strong>Hạn mức Flash Sale vừa thay đổi!</strong> Do có khách hàng khác vừa chốt đơn trước, số suất ưu đãi sản phẩm trong giỏ của bạn vừa cập nhật lại.<br>'
+                    . '• Giá tổng đơn hàng mới: <strong>' . formatPrice($calculatedTotal) . '</strong>.<br>'
+                    . '👉 Nếu bạn đồng ý với mức giá mới, hãy kiểm tra lại và bấm <strong>[Xác nhận đặt hàng ngay]</strong> bên dưới. Hoặc <a href="' . url('cart') . '" style="color: #ffffff; text-decoration: underline; font-weight: 700;">Quay lại Giỏ hàng</a> để điều chỉnh lại số lượng.'
                 );
             }
 
