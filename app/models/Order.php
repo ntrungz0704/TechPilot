@@ -162,6 +162,14 @@ class Order
             $shippingFee = shippingFee($calculatedSubtotal);
             $calculatedTotal = max(0.0, $calculatedSubtotal - $discountAmount + $shippingFee);
 
+            $expectedTotal = (float)($payload['total_amount'] ?? 0);
+            if ($expectedTotal > 0 && abs($calculatedTotal - $expectedTotal) > 0.01) {
+                throw new RuntimeException(
+                    '⚡ Hạn mức Flash Sale hoặc giá sản phẩm vừa thay đổi trước ít giây do có người dùng khác chốt đơn trước. Giỏ hàng đã được cập nhật thành '
+                    . formatPrice($calculatedTotal) . '. Vui lòng kiểm tra lại tổng tiền trước khi bấm Thanh toán.'
+                );
+            }
+
             $stmt = $this->db->prepare(
                 "INSERT INTO orders (order_code, user_id, coupon_id, customer_name, phone, address, note, payment_method, payment_status, subtotal, discount_amount, shipping_fee, total_amount, status, inventory_status) VALUES (:order_code, :user_id, :coupon_id, :customer_name, :phone, :address, :note, :payment_method, :payment_status, :subtotal, :discount_amount, :shipping_fee, :total_amount, :status, :inventory_status)"
             );
