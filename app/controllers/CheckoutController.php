@@ -23,6 +23,12 @@ class CheckoutController extends Controller
             return null;
         }
 
+        if (($user['role'] ?? '') === 'admin') {
+            flash('error', 'Tài khoản Quản trị viên (Admin) không được phép truy cập trang thanh toán mua hàng. Vui lòng sử dụng tài khoản Khách hàng.');
+            $this->redirect('admin');
+            return null;
+        }
+
         return $user;
     }
 
@@ -37,6 +43,18 @@ class CheckoutController extends Controller
             echo json_encode([
                 'success' => false,
                 'message' => 'Vui lòng đăng nhập để sử dụng chức năng này.',
+            ], JSON_UNESCAPED_UNICODE);
+
+            return null;
+        }
+
+        if (($user['role'] ?? '') === 'admin') {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+
+            echo json_encode([
+                'success' => false,
+                'message' => 'Tài khoản Quản trị viên (Admin) không được phép thực hiện thao tác mua hàng.',
             ], JSON_UNESCAPED_UNICODE);
 
             return null;
@@ -152,10 +170,14 @@ class CheckoutController extends Controller
 
             // Chỉ truy vấn địa chỉ đã lưu khi người dùng đã đăng nhập.
             // Guest sẽ nhận $savedAddresses = [] và tự nhập địa chỉ tại form.
+            $defaultAddress = null;
             if ($user !== null && isset($user['id'])) {
                 $addrStmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
                 $addrStmt->execute([':uid' => $user['id']]);
                 $savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($savedAddresses)) {
+                    $defaultAddress = $savedAddresses[0];
+                }
             }
         }
 
@@ -168,7 +190,8 @@ class CheckoutController extends Controller
             'shipping' => $shipping,
             'total' => $total,
             'availableCoupons' => $availableCoupons,
-            'savedAddresses' => $savedAddresses
+            'savedAddresses' => $savedAddresses,
+            'defaultAddress' => $defaultAddress
         ]);
 
         unset($_SESSION['checkout_error']);
@@ -327,7 +350,13 @@ class CheckoutController extends Controller
         ]);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Áp dụng & Hủy mã giảm giá Coupon (UC17) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Xử lý Đặt hàng Checkout & Gửi Đơn (UC16) =====
+    // =========================================================================
     public function submit(): void
     {
         $user = $this->requireAuthenticatedPage('/checkout');
@@ -435,14 +464,12 @@ class CheckoutController extends Controller
         ]);
 
         if (!$order) {
-            // Khôi phục submit_token để khách hàng có thể thử lại
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
             $_SESSION['checkout_error'] = 'Không thể lưu đơn hàng hoặc sản phẩm đã hết hàng. Vui lòng thử lại.';
             $this->redirect('checkout');
             return;
         }
 
-        // Order là lớp bảo vệ cuối: luôn dùng lại tổng tiền đã được tính và khóa trong transaction.
         $cart = $order['items'] ?? $cart;
         $subtotal = (float)($order['subtotal'] ?? 0);
         $discountAmount = (float)($order['discount_amount'] ?? 0);
@@ -451,23 +478,45 @@ class CheckoutController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
-        if ($db && $user) {
+        if ($db && $user && !empty($user['id'])) {
+            $userId = (int)$user['id'];
+
+            // Tự động cập nhật SĐT cho user nếu tài khoản chưa có SĐT
+            if (!empty($phone)) {
+                $upPhoneStmt = $db->prepare("UPDATE users SET phone = :phone WHERE id = :uid AND (phone IS NULL OR phone = '')");
+                $upPhoneStmt->execute([':phone' => $phone, ':uid' => $userId]);
+            }
+
             $addrStmt = $db->prepare("SELECT COUNT(*) FROM user_addresses WHERE user_id = :uid");
-            $addrStmt->execute([':uid' => $user['id']]);
+            $addrStmt->execute([':uid' => $userId]);
             $addrCount = (int)$addrStmt->fetchColumn();
-            
+
             $saveAddress = $_POST['save_address'] ?? '0';
+            // Lưu và làm địa chỉ mặc định khi mua lần đầu hoặc có tích chọn lưu
             if ($addrCount === 0 || $saveAddress === '1') {
-                $isDefault = ($addrCount === 0) ? 1 : 0;
-                $insStmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, :province, :default)");
-                $insStmt->execute([
-                    ':uid' => $user['id'],
-                    ':name' => $customerName,
-                    ':phone' => $phone,
-                    ':addr' => $address,
-                    ':province' => '',
-                    ':default' => $isDefault
-                ]);
+                // Đặt các địa chỉ cũ về is_default = 0
+                $resetStmt = $db->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = :uid");
+                $resetStmt->execute([':uid' => $userId]);
+
+                // Kiểm tra xem địa chỉ này đã tồn tại trong sổ địa chỉ chưa
+                $checkExistingStmt = $db->prepare("SELECT id FROM user_addresses WHERE user_id = :uid AND address_line = :addr AND recipient_name = :name LIMIT 1");
+                $checkExistingStmt->execute([':uid' => $userId, ':addr' => $address, ':name' => $customerName]);
+                $existingId = $checkExistingStmt->fetchColumn();
+
+                if ($existingId) {
+                    // Cập nhật làm mặc định
+                    $upStmt = $db->prepare("UPDATE user_addresses SET phone = :phone, is_default = 1 WHERE id = :id");
+                    $upStmt->execute([':phone' => $phone, ':id' => $existingId]);
+                } else {
+                    // Thêm mới làm mặc định
+                    $insStmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, '', 1)");
+                    $insStmt->execute([
+                        ':uid' => $userId,
+                        ':name' => $customerName,
+                        ':phone' => $phone,
+                        ':addr' => $address
+                    ]);
+                }
             }
         }
 
@@ -488,11 +537,10 @@ class CheckoutController extends Controller
             'created_at' => date('d/m/Y H:i'),
         ];
 
-
-
         unset($_SESSION['cart']);
         unset($_SESSION['applied_coupon']);
         unset($_SESSION['checkout_error']);
+
         if ($paymentMethod === 'VNPAY') {
             try {
                 $paymentUrl = $this->getVnpayService()->createPaymentUrl([
@@ -507,6 +555,9 @@ class CheckoutController extends Controller
         }
         $this->redirect('checkout/success');
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Đặt hàng Checkout (UC16) =====
+    // =========================================================================
 
     public function success(): void
     {

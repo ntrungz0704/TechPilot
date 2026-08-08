@@ -2,6 +2,10 @@
 
 class AdminOrderController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Đơn hàng (UC29) =====
+    // =========================================================================
+
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -259,4 +263,7 @@ class AdminOrderController extends Controller
 
         $this->redirect('admin/orders/detail/' . $id);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Đơn hàng (UC29) =====
+    // =========================================================================
 }

@@ -64,12 +64,21 @@ class CartController extends Controller
         $_SESSION['cart'] = $sessionCart;
     }
 
+    // =========================================================================
+    // ===== Chức năng Thêm, cập nhật & quản lý Giỏ hàng (Guest/Customer) (UC15) =====
+    // =========================================================================
+
     public function index(): void
     {
         $user = currentUser();
         $db = $this->getDbConnection();
 
         if ($user) {
+            if (($user['role'] ?? '') === 'admin') {
+                flash('error', 'Tài khoản Quản trị viên (Admin) không được phép thực hiện mua hàng. Vui lòng sử dụng tài khoản Khách hàng.');
+                $this->redirect('admin');
+                return;
+            }
             if ($db && !$this->hasValidUser($user, $db)) {
                 $this->clearStaleLogin();
                 return;
@@ -98,6 +107,20 @@ class CartController extends Controller
     {
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
                || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'));
+
+        $user = currentUser();
+        if ($user && ($user['role'] ?? '') === 'admin') {
+            $adminMsg = 'Tài khoản Quản trị viên (Admin) không được phép mua hàng. Vui lòng sử dụng tài khoản Khách hàng.';
+            if ($isAjax) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'message' => $adminMsg], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            flash('error', $adminMsg);
+            $this->redirect('admin');
+            return;
+        }
 
         if (!$this->isPost()) {
             if ($isAjax) {
@@ -372,4 +395,7 @@ class CartController extends Controller
 
         $this->redirect('cart');
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Thêm, cập nhật & quản lý Giỏ hàng (UC15) =====
+    // =========================================================================
 }

@@ -2,6 +2,9 @@
 
 class HomeController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Duyệt trang chủ, Banner, Danh mục & Sản phẩm (UC07) =====
+    // =========================================================================
     public function index(): void
     {
         $productModel = $this->model('Product');
@@ -49,7 +52,13 @@ class HomeController extends Controller
 
         $this->render('home/index', $data);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Duyệt trang chủ, Banner, Danh mục & Sản phẩm (UC07) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Tìm kiếm nâng cao (Từ khóa, Facet, Lọc giá, Tồn kho) (UC08) =====
+    // =========================================================================
     /** Trang tìm kiếm sản phẩm */
     public function search(): void
     {
@@ -168,7 +177,9 @@ class HomeController extends Controller
             'pageScripts'      => ['assets/js/search-filters.js?v=1.0'],
         ]);
     }
-
+    // =========================================================================
+    // ===== Hoàn thành chức năng Tìm kiếm nâng cao (UC08) =====
+    // =========================================================================
 
     /** Trang danh mục — redirect sang search để dùng chung giao diện */
     public function category(string $slug = ''): void
@@ -177,6 +188,9 @@ class HomeController extends Controller
         exit;
     }
 
+    // =========================================================================
+    // ===== Chức năng Tìm kiếm tức thì Ajax Autocomplete Realtime (UC09) =====
+    // =========================================================================
     /** Tìm kiếm AJAX realtime */
     public function ajaxSearch(): void
     {
@@ -228,6 +242,9 @@ class HomeController extends Controller
             'keyword'  => $keyword
         ], JSON_UNESCAPED_UNICODE);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Tìm kiếm tức thì Ajax Autocomplete Realtime (UC09) =====
+    // =========================================================================
 
     public function trade_in(): void
     {

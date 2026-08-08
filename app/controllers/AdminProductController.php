@@ -47,6 +47,10 @@ class AdminProductController extends Controller
             : self::DEFAULT_PRODUCT_STATUS;
     }
 
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Sản phẩm, Specs & AI Writer (UC26) =====
+    // =========================================================================
+
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -776,4 +780,7 @@ class AdminProductController extends Controller
         echo json_encode(['success' => true, 'message' => 'Đã ghi nhận phản hồi để hoàn thiện TSIE Engine.']);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Sản phẩm, Specs & AI Writer (UC26) =====
+    // =========================================================================
 }

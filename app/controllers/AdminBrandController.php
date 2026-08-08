@@ -2,6 +2,9 @@
 
 class AdminBrandController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Thương hiệu (UC28) =====
+    // =========================================================================
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -277,4 +280,7 @@ class AdminBrandController extends Controller
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Thương hiệu (UC28) =====
+    // =========================================================================
 }

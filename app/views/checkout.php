@@ -4,6 +4,7 @@ $subtotal = $subtotal ?? 0;
 $shipping = $shipping ?? 0;
 $total = $total ?? 0;
 $savedAddresses = $savedAddresses ?? [];
+$defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[0] : null);
 ?>
 
 <section class="container breadcrumb">
@@ -40,7 +41,7 @@ $savedAddresses = $savedAddresses ?? [];
                     <select id="savedAddress" name="saved_address_id">
                         <option value="">Nhập địa chỉ khác</option>
                         <?php foreach ($savedAddresses as $saved): ?>
-                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e($saved['address_line']) ?>">
+                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e($saved['address_line']) ?>" <?= (!empty($defaultAddress['id']) && $defaultAddress['id'] == $saved['id']) ? 'selected' : '' ?>>
                                 <?= e($saved['recipient_name']) ?> — <?= e($saved['address_line']) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
                             </option>
                         <?php endforeach; ?>
@@ -50,19 +51,19 @@ $savedAddresses = $savedAddresses ?? [];
             <?php endif; ?>
             <div class="form-group">
                 <label>Họ và tên người nhận</label>
-                <input type="text" name="customer_name" required value="<?= e($_POST['customer_name'] ?? $user['full_name'] ?? $user['name'] ?? '') ?>" placeholder="Nguyễn Văn A">
+                <input type="text" name="customer_name" required value="<?= e($_POST['customer_name'] ?? $defaultAddress['recipient_name'] ?? $user['full_name'] ?? $user['name'] ?? '') ?>" placeholder="Nguyễn Văn A">
             </div>
             <div class="form-group">
                 <label>Số điện thoại</label>
-                <input type="text" name="phone" required value="<?= e($_POST['phone'] ?? $user['phone'] ?? '') ?>" placeholder="0909 123 456">
+                <input type="text" name="phone" required value="<?= e($_POST['phone'] ?? $defaultAddress['phone'] ?? $user['phone'] ?? '') ?>" placeholder="0909 123 456">
             </div>
             <div class="form-group">
                 <label>Địa chỉ nhận hàng</label>
-                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($_POST['address'] ?? '') ?></textarea>
+                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($_POST['address'] ?? $defaultAddress['address_line'] ?? '') ?></textarea>
             </div>
             <?php if ($user): ?>
                 <label class="save-address-option">
-                    <input type="checkbox" name="save_address" value="1">
+                    <input type="checkbox" name="save_address" value="1" checked>
                     <span><strong>Lưu thông tin giao hàng vào sổ địa chỉ</strong><small>Dùng lại nhanh chóng cho lần mua hàng tiếp theo.</small></span>
                 </label>
             <?php endif; ?>
@@ -166,10 +167,15 @@ $savedAddresses = $savedAddresses ?? [];
                                             <span style="color: #EF4444; font-size: 10px; font-weight: normal; margin-left: 4px;">(<?= $ac['disable_reason'] ?>)</span>
                                         <?php endif; ?>
                                     </strong>
-                                    <small style="font-size: 11px; color: var(--text-secondary);">
+                                    <small style="font-size: 11px; color: var(--text-secondary); display: block;">
                                         <?= $ac['type'] === 'percent' ? 'Giảm ' . (int)$ac['discount_value'] . '%' : 'Giảm ' . formatPrice($ac['discount_value']) ?>
                                         (Đơn từ <?= formatPrice($ac['min_order_value']) ?>)
                                     </small>
+                                    <?php if (!empty($ac['end_date'])): ?>
+                                        <small style="font-size: 10.5px; color: #2563EB; font-weight: 600; display: block; margin-top: 2px;">
+                                            <i class="fa-regular fa-clock"></i> HSD: <?= date('d/m/Y H:i', strtotime($ac['end_date'])) ?>
+                                        </small>
+                                    <?php endif; ?>
                                 </div>
                                 <button type="button" class="btn btn--outline btn--sm" style="font-size: 11px; padding: 4px 10px; font-weight: 700;" onclick="applyVoucherCode('<?= e($ac['code']) ?>')" <?= $ac['is_disabled'] ? 'disabled' : '' ?>>Dùng ngay</button>
                             </div>

@@ -4,6 +4,9 @@ require_once ROOT_PATH . '/app/services/InventoryService.php';
 
 class AdminInventoryController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Tồn kho & Ghi Log Nhập / Xuất (UC27) =====
+    // =========================================================================
     /** Lịch sử Nhập / Xuất kho: GET /admin/inventory/logs */
     public function logs(): void
     {
@@ -52,4 +55,7 @@ class AdminInventoryController extends Controller
             'filters'    => $filters,
         ]);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Tồn kho & Ghi Log (UC27) =====
+    // =========================================================================
 }

@@ -22,6 +22,7 @@
                     <option value="hero_sidebar">Hero Sidebar (Ảnh nhỏ bên cạnh slide)</option>
                     <option value="mid_banner">Mid Banner (Banner quảng cáo giữa trang)</option>
                     <option value="long_banner">Long Banner (Banner dài chân trang)</option>
+                    <option value="popup">Popup Quảng Cáo (Khung Nảy Nổi Nổi Bật)</option>
                 </select>
             </div>
 
@@ -31,9 +32,9 @@
             </div>
         </div>
 
-        <div class="form-group" style="border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background-color: #F9FAFB;">
+        <div class="form-group" style="border: 1px dashed var(--border); padding: 18px; border-radius: 12px; background-color: var(--bg-body);">
             <label for="image">Hình ảnh Banner <span style="color: red;">*</span></label>
-            <input type="file" name="image" id="image" class="form-control" style="border: none; padding: 5px 0;">
+            <input type="file" name="image" id="image" class="form-control">
             <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Chọn ảnh JPG, PNG hoặc WebP. Dung lượng tối đa 5MB.</small>
             
             <div style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px;">

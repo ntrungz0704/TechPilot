@@ -154,18 +154,23 @@ class AdminFlashSaleController extends Controller
                         'drift_count' => 0,
                     ];
                 }
-                unset($flashSale);
             } catch (Throwable $e) {
                 $quotaAuditAvailable = false;
-                error_log('Flash Sale quota audit unavailable: ' . $e->getMessage());
             }
         }
 
+        $totalPages = ceil($totalItems / $limit);
+
         $this->renderAdmin('admin/flash_sales/index', [
-            'pageTitle'  => 'Quản lý Flash Sale',
-            'activeMenu' => 'flash-sales',
-            'flashSales' => $flashSales,
-            'quotaAuditAvailable' => $quotaAuditAvailable,
+            'pageTitle'   => 'Quản lý Flash Sale',
+            'activeMenu'  => 'flash-sales',
+            'flashSales'  => $flashSales,
+            'search'      => $search,
+            'status'      => $status,
+            'page'        => $page,
+            'totalPages'  => $totalPages,
+            'totalItems'  => $totalItems,
+            'flashes'     => pullFlashes()
         ]);
     }
 
@@ -553,4 +558,7 @@ class AdminFlashSaleController extends Controller
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Flash Sale (UC31) =====
+    // =========================================================================
 }

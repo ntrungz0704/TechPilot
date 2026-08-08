@@ -29,10 +29,14 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
             </div>
 
             <!-- Server-side error alert -->
-            <?php if ($firstError): ?>
-            <div class="auth-alert auth-alert--error">
-                <i class="fa-solid fa-circle-exclamation"></i>
-                <span><?= e($firstError) ?></span>
+            <?php if (!empty($errors)): ?>
+            <div class="auth-alert auth-alert--error" style="align-items: flex-start;">
+                <i class="fa-solid fa-circle-exclamation" style="margin-top: 2px;"></i>
+                <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
+                    <?php foreach ($errors as $err): ?>
+                        <div><?= e($err) ?></div>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <?php endif; ?>
 
@@ -115,7 +119,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
                             required
                             minlength="8"
                         >
-                        <button type="button" class="auth-eye-btn" data-target="reg_password" aria-label="Hiện/ẩn mật khẩu">
+                        <button type="button" class="auth-eye-btn" data-target="reg_password" tabindex="-1" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye-slash"></i>
                         </button>
                     </div>
@@ -135,7 +139,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
                             autocomplete="new-password"
                             required
                         >
-                        <button type="button" class="auth-eye-btn" data-target="reg_confirm" aria-label="Hiện/ẩn mật khẩu">
+                        <button type="button" class="auth-eye-btn" data-target="reg_confirm" tabindex="-1" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye-slash"></i>
                         </button>
                     </div>

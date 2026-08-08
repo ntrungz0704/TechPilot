@@ -2,6 +2,9 @@
 
 class AdminCategoryController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Danh mục (UC28) =====
+    // =========================================================================
     /** List categories */
     public function index(): void
     {
@@ -443,4 +446,7 @@ class AdminCategoryController extends Controller
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Danh mục (UC28) =====
+    // =========================================================================
 }

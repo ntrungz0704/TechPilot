@@ -24,6 +24,9 @@ class PostController extends Controller
         return max(1, (int)$rawPage);
     }
 
+    // =========================================================================
+    // ===== Chức năng Đọc Tin tức công nghệ, Bài viết (UC24) =====
+    // =========================================================================
     public function index()
     {
         $page     = self::normalizeRequestedPage($_GET['page'] ?? 1);
@@ -348,4 +351,7 @@ class PostController extends Controller
         }
         return absoluteUrl($imageUrl);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Đọc Tin tức công nghệ, Bài viết (UC24) =====
+    // =========================================================================
 }

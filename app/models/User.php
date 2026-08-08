@@ -28,18 +28,53 @@ class User
         return $stmt->fetch();
     }
 
-    /** Kiểm tra số điện thoại đã tồn tại chưa */
-    public function findByPhone(string $phone): array|false
+    /** Kiểm tra số điện thoại đã tồn tại chưa (hỗ trợ quy đổi chuẩn hóa 09xx vs +849xx) */
+    public function findByPhone(string $phone, int $excludeUserId = 0): array|false
     {
         $phone = trim($phone);
         if ($phone === '') return false;
 
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE phone = :phone LIMIT 1');
-        $stmt->bindValue(':phone', $phone);
-        $stmt->execute();
-        return $stmt->fetch();
+        $digits = preg_replace('/\D/', '', $phone);
+        if ($digits === '') return false;
+
+        $normPhone = $phone;
+        if (str_starts_with($digits, '84') && strlen($digits) >= 11) {
+            $normPhone = '0' . substr($digits, 2);
+        } elseif (!str_starts_with($digits, '0')) {
+            $normPhone = '0' . $digits;
+        }
+
+        $last9 = strlen($digits) >= 9 ? substr($digits, -9) : $digits;
+
+        $sql = "SELECT * FROM users 
+                WHERE (
+                    phone = :rawPhone 
+                    OR phone = :normPhone 
+                    OR REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', '') = :digits
+                    OR RIGHT(REGEXP_REPLACE(phone, '[^0-9]', ''), 9) = :last9
+                )";
+        $params = [
+            ':rawPhone'  => $phone,
+            ':normPhone' => $normPhone,
+            ':digits'    => $digits,
+            ':last9'     => $last9,
+        ];
+
+        if ($excludeUserId > 0) {
+            $sql .= " AND id != :excludeUserId";
+            $params[':excludeUserId'] = $excludeUserId;
+        }
+
+        $sql .= " LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // =========================================================================
+    // ===== Chức năng Đăng ký tài khoản mới (UC01) =====
+    // =========================================================================
     /** Tạo tài khoản mới, trả về true/false */
     public function create(string $fullName, string $email, string $phone, string $password, string $role = 'customer'): bool
     {
@@ -56,6 +91,9 @@ class User
             ':role'      => $role,
         ]);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Đăng ký tài khoản mới (UC01) =====
+    // =========================================================================
 
     /** Xác thực đăng nhập, trả về mảng user (không có password) hoặc false */
     public function verify(string $email, string $password): array|false

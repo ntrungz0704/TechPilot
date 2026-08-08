@@ -2,6 +2,9 @@
 
 class AdminCouponController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Mã giảm giá Coupon (UC32) =====
+    // =========================================================================
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -48,8 +51,8 @@ class AdminCouponController extends Controller
         $minOrderValue = (float)($_POST['min_order_value'] ?? 0);
         $usageLimit = trim($_POST['usage_limit'] ?? '') !== '' ? (int)$_POST['usage_limit'] : null;
         $usageLimitPerUser = (int)($_POST['usage_limit_per_user'] ?? 1);
-        $startDate = trim($_POST['start_date'] ?? '') !== '' ? $_POST['start_date'] : null;
-        $endDate = trim($_POST['end_date'] ?? '') !== '' ? $_POST['end_date'] : null;
+        $startDate = trim($_POST['start_date'] ?? '') !== '' ? date('Y-m-d 00:00:00', strtotime($_POST['start_date'])) : null;
+        $endDate = trim($_POST['end_date'] ?? '') !== '' ? date('Y-m-d 00:00:00', strtotime($_POST['end_date'])) : null;
         $description = trim($_POST['description'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
 
@@ -175,8 +178,8 @@ class AdminCouponController extends Controller
         $minOrderValue = (float)($_POST['min_order_value'] ?? 0);
         $usageLimit = trim($_POST['usage_limit'] ?? '') !== '' ? (int)$_POST['usage_limit'] : null;
         $usageLimitPerUser = (int)($_POST['usage_limit_per_user'] ?? 1);
-        $startDate = trim($_POST['start_date'] ?? '') !== '' ? $_POST['start_date'] : null;
-        $endDate = trim($_POST['end_date'] ?? '') !== '' ? $_POST['end_date'] : null;
+        $startDate = trim($_POST['start_date'] ?? '') !== '' ? date('Y-m-d 00:00:00', strtotime($_POST['start_date'])) : null;
+        $endDate = trim($_POST['end_date'] ?? '') !== '' ? date('Y-m-d 00:00:00', strtotime($_POST['end_date'])) : null;
         $description = trim($_POST['description'] ?? '');
         $status = trim($_POST['status'] ?? 'active');
 
@@ -331,4 +334,7 @@ class AdminCouponController extends Controller
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Mã giảm giá Coupon (UC32) =====
+    // =========================================================================
 }

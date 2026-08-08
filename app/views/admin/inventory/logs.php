@@ -32,7 +32,7 @@ $buildUrl = function (array $overrides = []) use ($filters): string {
     </div>
 
     <!-- Bộ lọc nâng cao -->
-    <form method="get" action="<?= url('admin/inventory/logs') ?>" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+    <form method="get" action="<?= url('admin/inventory/logs') ?>" style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
         <?php if ($productId > 0): ?>
             <input type="hidden" name="product_id" value="<?= $productId ?>">
         <?php endif; ?>

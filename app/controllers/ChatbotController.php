@@ -13,6 +13,9 @@ class ChatbotController extends Controller
         $this->db = Database::getConnection();
     }
 
+    // =========================================================================
+    // ===== Chức năng Hỏi đáp Floating AI Chatbot nổi (UC14) =====
+    // =========================================================================
     /**
      * API: Nhận câu hỏi tự nhiên hoặc tương tác với Chatbot Nổi
      */
@@ -98,34 +101,6 @@ class ChatbotController extends Controller
         $_SESSION['chatbot_context']['last_user_message'] = $queryText;
 
         // 3. Phân nhánh Intent RECOMMENDATION_REQUEST -> Điều hướng sang /ai-assistant
-        if ($intent === ChatIntentClassifier::INTENT_RECOMMENDATION_REQUEST) {
-            echo json_encode([
-                'success' => true,
-                'type' => 'navigation',
-                'message' => "Mình có công cụ tư vấn chuyên sâu giúp bạn chọn máy theo ngân sách và nhu cầu.",
-                'action' => [
-                    'label' => 'Mở AI tư vấn chọn máy',
-                    'url' => url('ai-assistant')
-                ]
-            ]);
-            exit;
-        }
-
-        // 4. Phân nhánh Intent COMPARISON_REQUEST -> Điều hướng sang /compare
-        if ($intent === ChatIntentClassifier::INTENT_COMPARISON_REQUEST) {
-            echo json_encode([
-                'success' => true,
-                'type' => 'navigation',
-                'message' => "Bạn có thể chọn từ 2 đến 4 sản phẩm tại trang so sánh chuyên dụng.",
-                'action' => [
-                    'label' => 'Mở trang so sánh',
-                    'url' => url('compare')
-                ]
-            ]);
-            exit;
-        }
-
-        // 5. Kiểm tra Acknowledgment ngắn (vâng, ok, 20) khi KHÔNG có pending_confirmation
         $msgLower = mb_strtolower($queryText);
         $shortConfirmations = ['vâng', 'đúng', 'ok', 'oke', 'rồi', 'được', 'yes', '20'];
         if (in_array($msgLower, $shortConfirmations, true) && empty($_SESSION['chatbot_context']['pending_confirmation'])) {

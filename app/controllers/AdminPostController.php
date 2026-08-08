@@ -13,6 +13,9 @@ class AdminPostController extends Controller
         $this->postModel = new Post();
     }
 
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Bài viết Tin tức (UC33) =====
+    // =========================================================================
     public function index()
     {
         $this->requireAdmin();
@@ -394,4 +397,7 @@ class AdminPostController extends Controller
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Bài viết (UC33) =====
+    // =========================================================================
 }

@@ -28,9 +28,15 @@
                             </td>
                             <td><strong><?= e($bn['title']) ?></strong></td>
                             <td>
-                                <span class="badge" style="background-color: #E0F2FE; color: #0369A1; font-weight: 700;">
-                                    <?= e($bn['type']) ?>
-                                </span>
+                                <?php if (($bn['type'] ?? '') === 'popup'): ?>
+                                    <span class="badge" style="background-color: #FEF3C7; color: #D97706; font-weight: 700; border: 1px solid #FCD34D;">
+                                        🔥 Popup Quảng Cáo
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge" style="background-color: #E0F2FE; color: #0369A1; font-weight: 700;">
+                                        <?= e($bn['type'] ?? 'hero') ?>
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td><?= (int)$bn['position'] ?></td>
                             <td><code><?= e($bn['link']) ?></code></td>

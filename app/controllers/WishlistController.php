@@ -11,6 +11,9 @@ class WishlistController extends Controller
         $this->model = new Wishlist();
     }
 
+    // =========================================================================
+    // ===== Chức năng Quản lý Danh sách yêu thích Wishlist (UC21) =====
+    // =========================================================================
     public function index(): void
     {
         $user = currentUser();
@@ -100,4 +103,7 @@ class WishlistController extends Controller
         ]);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Quản lý Danh sách yêu thích Wishlist (UC21) =====
+    // =========================================================================
 }

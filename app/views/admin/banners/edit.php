@@ -23,6 +23,7 @@
                     <option value="hero_sidebar" <?= $banner['type'] === 'hero_sidebar' ? 'selected' : '' ?>>Hero Sidebar (Ảnh nhỏ bên cạnh slide)</option>
                     <option value="mid_banner" <?= $banner['type'] === 'mid_banner' ? 'selected' : '' ?>>Mid Banner (Banner quảng cáo giữa trang)</option>
                     <option value="long_banner" <?= $banner['type'] === 'long_banner' ? 'selected' : '' ?>>Long Banner (Banner dài chân trang)</option>
+                    <option value="popup" <?= $banner['type'] === 'popup' ? 'selected' : '' ?>>Popup Quảng Cáo (Khung Nảy Nổi Nổi Bật)</option>
                 </select>
             </div>
 
@@ -32,17 +33,17 @@
             </div>
         </div>
 
-        <div class="form-group" style="border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background-color: #F9FAFB;">
+        <div class="form-group" style="border: 1px dashed var(--border); padding: 18px; border-radius: 12px; background-color: var(--bg-body);">
             <label for="image">Hình ảnh Banner</label>
             
             <?php if (!empty($banner['image'])): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ảnh hiện tại:</span>
-                    <img src="<?= url('assets/images/' . e($banner['image'])) ?>" alt="<?= e($banner['title']) ?>" style="height: 60px; max-width: 100%; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= url('assets/images/' . e($banner['image'])) ?>" alt="<?= e($banner['title']) ?>" style="height: 70px; max-width: 100%; object-fit: contain; border: 1px solid var(--border); padding: 4px; border-radius: 6px; background: var(--bg-card);">
                 </div>
             <?php endif; ?>
 
-            <input type="file" name="image" id="image" class="form-control" style="border: none; padding: 5px 0;">
+            <input type="file" name="image" id="image" class="form-control">
             <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Chọn ảnh để thay thế ảnh cũ.</small>
         </div>
 

@@ -34,7 +34,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
                             required
                             minlength="8"
                         >
-                        <button type="button" class="auth-eye-btn" data-target="password" aria-label="Hiện/ẩn mật khẩu">
+                        <button type="button" class="auth-eye-btn" data-target="password" tabindex="-1" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye"></i>
                         </button>
                     </div>
@@ -53,7 +53,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
                             required
                             minlength="8"
                         >
-                        <button type="button" class="auth-eye-btn" data-target="confirm_password" aria-label="Hiện/ẩn mật khẩu">
+                        <button type="button" class="auth-eye-btn" data-target="confirm_password" tabindex="-1" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye"></i>
                         </button>
                     </div>

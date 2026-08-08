@@ -9,6 +9,9 @@ class AdminController extends Controller
         return new PdoNotificationRepository();
     }
 
+    // =========================================================================
+    // ===== Chức năng Admin Dashboard tổng quan (UC25) =====
+    // =========================================================================
     public function index(): void
     {
         $this->requireAdmin();
@@ -125,6 +128,9 @@ class AdminController extends Controller
             'statusPcts'       => $statusPcts
         ]);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Dashboard tổng quan (UC25) =====
+    // =========================================================================
 
     public function notifications(): void
     {

@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <div class="form-group" style="border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background-color: #F9FAFB;">
+        <div class="form-group" style="border: 1px dashed var(--border); padding: 18px; border-radius: 12px; background-color: var(--bg-body);">
             <label for="image">Ảnh sản phẩm</label>
             
             <?php if (!empty($product['image'])): ?>
@@ -69,7 +69,7 @@
                 </div>
             <?php endif; ?>
 
-            <input type="file" name="image" id="image" class="form-control" style="border: none; padding: 5px 0;">
+            <input type="file" name="image" id="image" class="form-control">
             <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Chọn ảnh để thay thế ảnh cũ.</small>
         </div>
 
@@ -77,7 +77,7 @@
             <label>Thông số kỹ thuật (Specs Editor)</label>
             
             <!-- Specs Interactive Mode -->
-            <div id="specsBuilderContainer" style="border: 1px solid var(--border); border-radius: var(--radius-elem); padding: 16px; background-color: #F8FAFC;">
+            <div id="specsBuilderContainer" style="border: 1px solid var(--border); border-radius: var(--radius-elem); padding: 16px; background-color: var(--bg-body);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 600;">Danh sách thuộc tính:</span>
                     <button type="button" class="btn btn--outline btn--sm" id="btnQuickTemplate" style="font-size: 11.5px; padding: 6px 12px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Áp dụng mẫu danh mục</button>

@@ -40,6 +40,9 @@ class ProfileController extends Controller
         return $user;
     }
 
+    // =========================================================================
+    // ===== Chức năng Xem Lịch sử đơn hàng & Chi tiết đơn hàng (UC18) =====
+    // =========================================================================
     /** Lịch sử đơn hàng */
     public function orders(): void
     {
@@ -71,7 +74,13 @@ class ProfileController extends Controller
             'flashes' => pullFlashes()
         ], false);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Xem Lịch sử đơn hàng & Chi tiết đơn hàng (UC18) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Thanh toán lại VNPay đơn hàng (UC19) =====
+    // =========================================================================
     public function repay(): void
     {
         $user = $this->requireLogin();
@@ -100,6 +109,9 @@ class ProfileController extends Controller
             $this->redirect('profile/order_detail?id=' . $orderId);
         }
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Thanh toán lại VNPay đơn hàng (UC19) =====
+    // =========================================================================
 
     /** Hộp thư thông báo */
     public function notifications(): void
@@ -119,6 +131,9 @@ class ProfileController extends Controller
         ], false);
     }
 
+    // =========================================================================
+    // ===== Chức năng Yêu cầu Đổi trả sản phẩm / RMA Bảo hành (UC23) =====
+    // =========================================================================
     /** Form đăng ký đổi trả sản phẩm */
     public function return(mixed $id = null): void
     {
@@ -187,7 +202,6 @@ class ProfileController extends Controller
             return;
         }
 
-
         $itemsToReturn = [];
         foreach ($quantities as $orderItemId => $qty) {
             $qty = (int)$qty;
@@ -226,7 +240,13 @@ class ProfileController extends Controller
             $this->redirect('profile/return?order_id=' . $orderId);
         }
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Yêu cầu Đổi trả sản phẩm (UC23) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Xem & Cập nhật thông tin cá nhân (UC04) =====
+    // =========================================================================
     /** Xem và cập nhật hồ sơ cá nhân: /profile hoặc /profile/index */
     public function index(): void
     {
@@ -273,7 +293,13 @@ class ProfileController extends Controller
             'flashes' => pullFlashes()
         ], false);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Xem & Cập nhật thông tin cá nhân (UC04) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Đổi mật khẩu cá nhân (UC06) =====
+    // =========================================================================
     /** Đổi mật khẩu tài khoản: /profile/change_password */
     public function change_password(): void
     {
@@ -328,6 +354,9 @@ class ProfileController extends Controller
         }
         $this->redirect('profile');
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Đổi mật khẩu cá nhân (UC06) =====
+    // =========================================================================
 
     /** Danh sách sản phẩm yêu thích (Wishlist): /profile/wishlist */
     public function wishlist(): void
@@ -342,6 +371,9 @@ class ProfileController extends Controller
         ], false);
     }
 
+    // =========================================================================
+    // ===== Chức năng Hủy đơn hàng đang chờ (UC19) =====
+    // =========================================================================
     /** Khách hàng tự hủy đơn hàng: POST /profile/cancel_order */
     public function cancel_order(): void
     {
@@ -418,8 +450,13 @@ class ProfileController extends Controller
 
         $this->redirect('profile/order_detail?id=' . $orderId);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Hủy đơn hàng đang chờ (UC19) =====
+    // =========================================================================
 
-    /** API: Lấy thông báo chưa đọc phục vụ Realtime Polling */
+    // =========================================================================
+    // ===== Chức năng Quản lý Số địa chỉ giao hàng (UC05) =====
+    // =========================================================================
     public function addresses(): void
     {
         $user = $this->requireLogin();
@@ -536,6 +573,9 @@ class ProfileController extends Controller
         }
         $this->redirect('profile/addresses');
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Quản lý Số địa chỉ giao hàng (UC05) =====
+    // =========================================================================
 
     public function apiUnreadNotifications(): void
     {

@@ -2105,6 +2105,232 @@
                 });
         }
     </script>
+    <?php $popupBanner = getActivePopupBanner(); ?>
+    <?php if ($popupBanner): ?>
+        <!-- Modal Quảng Cáo Popup Nổi Bật Shopee Style (Không nhòe phông, Chặn cuộn trang khi chưa tắt) -->
+        <div id="tpPromoPopup" class="tp-popup-overlay" role="dialog" aria-modal="true" aria-label="Quảng cáo khuyến mãi">
+            <div class="tp-popup-card">
+                <!-- Nút đóng X góc phải trên cùng Shopee Style -->
+                <button type="button" id="tpClosePopupBtn" class="tp-popup-close-btn" aria-label="Đóng quảng cáo">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <!-- Hình ảnh Banner Quảng Cáo (Clickable) -->
+                <a href="<?= e(!empty($popupBanner['link']) ? $popupBanner['link'] : '#') ?>" class="tp-popup-link" title="<?= e($popupBanner['title']) ?>">
+                    <img src="<?= bannerImageUrl($popupBanner['image']) ?>" alt="<?= e($popupBanner['title']) ?>" class="tp-popup-img">
+                </a>
+
+                <!-- Thanh tùy chọn bên dưới Popup -->
+                <div class="tp-popup-footer">
+                    <label class="tp-popup-dont-show">
+                        <input type="checkbox" id="tpDontShowToday">
+                        <span>Không hiển thị lại ngày hôm nay</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            html.tp-popup-locked,
+            body.tp-popup-locked {
+                overflow: hidden !important;
+                height: 100% !important;
+                touch-action: none !important;
+            }
+
+            .tp-popup-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.55);
+                z-index: 999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+
+            .tp-popup-overlay.tp-popup-active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .tp-popup-card {
+                position: relative;
+                background: #0f172a;
+                border-radius: 18px;
+                overflow: visible;
+                max-width: 980px;
+                width: 94vw;
+                box-shadow: 0 30px 70px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(56, 189, 248, 0.3);
+                border: 1.5px solid rgba(255, 255, 255, 0.2);
+                transform: scale(0.9);
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            .tp-popup-overlay.tp-popup-active .tp-popup-card {
+                transform: scale(1);
+            }
+
+            .tp-popup-close-btn {
+                position: absolute;
+                top: -18px;
+                right: -18px;
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: #ffffff;
+                color: #0f172a;
+                border: 1px solid rgba(0, 0, 0, 0.15);
+                font-size: 22px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 10;
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+                transition: all 0.2s ease;
+            }
+
+            .tp-popup-close-btn:hover {
+                background: #ff4d4f;
+                color: #ffffff;
+                border-color: #ff4d4f;
+                transform: scale(1.1);
+            }
+
+            .tp-popup-link {
+                display: block;
+                width: 100%;
+                border-top-left-radius: 16px;
+                border-top-right-radius: 16px;
+                overflow: hidden;
+                background: #000000;
+            }
+
+            .tp-popup-img {
+                width: 100%;
+                height: auto;
+                max-height: 75vh;
+                object-fit: contain;
+                display: block;
+                transition: transform 0.3s ease;
+            }
+
+            .tp-popup-link:hover .tp-popup-img {
+                transform: scale(1.01);
+            }
+
+            .tp-popup-footer {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 14px 24px;
+                background: #1e293b;
+                border-bottom-left-radius: 16px;
+                border-bottom-right-radius: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .tp-popup-dont-show {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: #cbd5e1;
+                font-size: 14.5px;
+                font-weight: 500;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .tp-popup-dont-show input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+                accent-color: #38bdf8;
+                cursor: pointer;
+            }
+
+            .tp-popup-dont-show:hover {
+                color: #ffffff;
+            }
+
+            @media (max-width: 640px) {
+                .tp-popup-card {
+                    max-width: 92vw;
+                }
+                .tp-popup-close-btn {
+                    top: -12px;
+                    right: -8px;
+                    width: 32px;
+                    height: 32px;
+                    font-size: 15px;
+                }
+            }
+        </style>
+
+        <script>
+            (function() {
+                const popupEl = document.getElementById('tpPromoPopup');
+                if (!popupEl) return;
+
+                // Tính toán ngày hiện tại theo Múi giờ Việt Nam (Asia/Ho_Chi_Minh) dạng YYYY-MM-DD
+                const todayVN = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
+                const hiddenDate = localStorage.getItem('techpilot_hide_popup_date');
+
+                // Nếu người dùng đã tích chọn "Không hiển thị lại ngày hôm nay" -> không mở popup
+                if (hiddenDate === todayVN) {
+                    return;
+                }
+
+                function preventScroll(e) {
+                    if (popupEl.classList.contains('tp-popup-active')) {
+                        e.preventDefault();
+                    }
+                }
+
+                // Tự động bật popup sau 0.6s và khóa cuộn trang tuyệt đối
+                setTimeout(function() {
+                    popupEl.classList.add('tp-popup-active');
+                    document.documentElement.classList.add('tp-popup-locked');
+                    document.body.classList.add('tp-popup-locked');
+                    window.addEventListener('wheel', preventScroll, { passive: false });
+                    window.addEventListener('touchmove', preventScroll, { passive: false });
+                }, 600);
+
+                function closePopup() {
+                    const dontShowCheckbox = document.getElementById('tpDontShowToday');
+                    if (dontShowCheckbox && dontShowCheckbox.checked) {
+                        localStorage.setItem('techpilot_hide_popup_date', todayVN);
+                    }
+                    popupEl.classList.remove('tp-popup-active');
+                    document.documentElement.classList.remove('tp-popup-locked');
+                    document.body.classList.remove('tp-popup-locked');
+                    window.removeEventListener('wheel', preventScroll);
+                    window.removeEventListener('touchmove', preventScroll);
+                }
+
+                const closeBtn = document.getElementById('tpClosePopupBtn');
+                if (closeBtn) closeBtn.addEventListener('click', closePopup);
+
+                popupEl.addEventListener('click', function(e) {
+                    if (e.target === popupEl) {
+                        closePopup();
+                    }
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && popupEl.classList.contains('tp-popup-active')) {
+                        closePopup();
+                    }
+                });
+            })();
+        </script>
+    <?php endif; ?>
     <script type="module" src="<?= url('assets/js/brandLogos.js') ?>"></script>
 </body>
 

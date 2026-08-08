@@ -2,6 +2,9 @@
 
 class ProductController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Xem Chi tiết sản phẩm, Specs JSON & Gallery ảnh (UC10) =====
+    // =========================================================================
     /** Trang chi tiết sản phẩm: GET /product/detail/{slug_or_id} */
     public function detail(string $slug = ''): void
     {
@@ -97,7 +100,13 @@ class ProductController extends Controller
             'recentlyViewedProducts' => $recentlyViewedProducts,
         ]);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Xem Chi tiết sản phẩm (UC10) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Đánh giá & Viết nhận xét sản phẩm (UC20) =====
+    // =========================================================================
     /** Xử lý gửi đánh giá: POST /product/review */
     public function review(): void
     {
@@ -148,7 +157,13 @@ class ProductController extends Controller
 
         $this->redirect('product/detail/' . $product['slug']);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Đánh giá & Viết nhận xét sản phẩm (UC20) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng Hỏi đáp AI Chatbot từng sản phẩm (UC14) =====
+    // =========================================================================
     /**
      * API: Trò chuyện AI về sản phẩm cụ thể
      * POST /product/ai-chat
@@ -262,4 +277,8 @@ class ProductController extends Controller
         echo json_encode(['success' => true, 'synced' => $syncedCount]);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Hỏi đáp AI Chatbot từng sản phẩm (UC14) =====
+    // =========================================================================
 }
+

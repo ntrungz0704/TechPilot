@@ -63,7 +63,7 @@ $firstError = !empty($errors) ? array_values($errors)[0] : null;
                             required
                             minlength="6"
                         >
-                        <button type="button" class="auth-eye-btn" data-target="login_password" aria-label="Hiện/ẩn mật khẩu">
+                        <button type="button" class="auth-eye-btn" data-target="login_password" tabindex="-1" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye"></i>
                         </button>
                     </div>

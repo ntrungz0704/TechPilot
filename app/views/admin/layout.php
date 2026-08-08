@@ -54,6 +54,69 @@
             --shadow-focus: 0 0 0 3px rgba(10, 91, 255, 0.3);
         }
 
+        /* Styling for File Input across Light & Dark Mode */
+        input[type="file"] {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: var(--radius-elem);
+            cursor: pointer;
+            width: 100%;
+        }
+
+        input[type="file"]::file-selector-button {
+            background-color: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            margin-right: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Comprehensive Dark Mode Overrides */
+        html.dark-mode div[style*="background-color: #F9FAFB"],
+        html.dark-mode div[style*="background-color:#F9FAFB"],
+        html.dark-mode div[style*="background-color: #f9fafb"],
+        html.dark-mode div[style*="background-color:#f9fafb"],
+        html.dark-mode div[style*="background: #F9FAFB"],
+        html.dark-mode div[style*="background:#F9FAFB"],
+        html.dark-mode div[style*="background: #FFFFFF"],
+        html.dark-mode div[style*="background:#FFFFFF"],
+        html.dark-mode div[style*="background-color: #FFFFFF"],
+        html.dark-mode div[style*="background-color:#FFFFFF"] {
+            background-color: var(--bg-card) !important;
+            background: var(--bg-card) !important;
+            border-color: var(--border) !important;
+            color: var(--text-primary) !important;
+        }
+
+        html.dark-mode div[id="aiAssistantModal"] > div {
+            background-color: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        html.dark-mode div[id="aiAssistantModal"] label {
+            color: var(--text-primary) !important;
+        }
+
+        html.dark-mode img[style*="background: #FFF"],
+        html.dark-mode img[style*="background:#FFF"],
+        html.dark-mode img[style*="background: #fff"],
+        html.dark-mode img[style*="background:#fff"],
+        html.dark-mode img[style*="background: white"] {
+            background: var(--bg-body) !important;
+            border-color: var(--border) !important;
+        }
+
         html.dark-mode .table-responsive {
             background-color: #111827 !important;
             border-color: #1E293B !important;

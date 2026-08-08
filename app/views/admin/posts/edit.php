@@ -20,17 +20,17 @@
             <?php endif; ?>
         </div>
 
-        <div class="form-group" style="border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background-color: #F9FAFB;">
+        <div class="form-group" style="border: 1px dashed var(--border); padding: 18px; border-radius: 12px; background-color: var(--bg-body);">
             <label for="image">Hình ảnh đại diện bài viết</label>
             
             <?php if (!empty($post['image'])): ?>
                 <div style="margin-bottom: 15px;">
                     <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ảnh hiện tại:</span>
-                    <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="height: 80px; width: 150px; object-fit: cover; border: 1px solid var(--border); padding: 4px; border-radius: 4px; background: #FFF;">
+                    <img src="<?= postImageUrl($post['image']) ?>" alt="<?= e($post['title']) ?>" style="height: 80px; width: 150px; object-fit: cover; border: 1px solid var(--border); padding: 4px; border-radius: 6px; background: var(--bg-card);">
                 </div>
             <?php endif; ?>
 
-            <input type="file" name="image" id="image" class="form-control" style="border: none; padding: 5px 0;">
+            <input type="file" name="image" id="image" class="form-control">
             <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Chọn ảnh để thay thế ảnh đại diện cũ.</small>
         </div>
 

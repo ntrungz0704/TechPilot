@@ -12,6 +12,9 @@ class CompareController extends Controller
         $this->model = new Compare();
     }
 
+    // =========================================================================
+    // ===== Chức năng So sánh 2-4 sản phẩm theo thông số kỹ thuật (UC11) =====
+    // =========================================================================
     public function index(): void
     {
         if (!isset($_SESSION['compare'])) {
@@ -88,7 +91,13 @@ class CompareController extends Controller
 
         $this->redirect('compare');
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng So sánh 2-4 sản phẩm theo thông số kỹ thuật (UC11) =====
+    // =========================================================================
 
+    // =========================================================================
+    // ===== Chức năng AI So sánh sản phẩm chuyên sâu theo Persona (UC12) =====
+    // =========================================================================
     /**
      * API: Phân tích so sánh 2-4 sản phẩm theo Persona & Tiêu chí ưu tiên
      */
@@ -291,4 +300,7 @@ class CompareController extends Controller
         }
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng AI So sánh sản phẩm chuyên sâu theo Persona (UC12) =====
+    // =========================================================================
 }

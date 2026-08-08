@@ -2,6 +2,10 @@
 
 class AdminUserController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Người dùng & Tài khoản (UC30) =====
+    // =========================================================================
+
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -59,7 +63,8 @@ class AdminUserController extends Controller
             'roleFilter' => $roleFilter,
             'page'       => $page,
             'totalPages' => $totalPages,
-            'totalUsers' => $totalUsers
+            'totalUsers' => $totalUsers,
+            'flashes'    => pullFlashes()
         ]);
     }
 
@@ -151,4 +156,7 @@ class AdminUserController extends Controller
 
         $this->redirect('admin/users');
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Người dùng (UC30) =====
+    // =========================================================================
 }

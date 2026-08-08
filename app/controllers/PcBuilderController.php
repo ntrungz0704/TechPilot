@@ -71,6 +71,9 @@ class PcBuilderController extends Controller
         ]
     ];
 
+    // =========================================================================
+    // ===== Chức năng Công cụ PC Builder & Phân tích PSU Headroom 30% (UC22) =====
+    // =========================================================================
     /** Trực tiếp hiển thị giao diện Build PC */
     public function index(): void
     {
@@ -80,6 +83,9 @@ class PcBuilderController extends Controller
         ];
         $this->render('pc-builder/index', $data);
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Công cụ PC Builder (UC22) =====
+    // =========================================================================
 
     /** API: Trả về danh sách PC lắp sẵn (Pre-built PCs) kèm cấu hình linh kiện chi tiết */
     public function prebuilt(): void

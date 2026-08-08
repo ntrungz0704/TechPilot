@@ -2,6 +2,9 @@
 
 class AdminBannerController extends Controller
 {
+    // =========================================================================
+    // ===== Chức năng Admin Quản lý Banner Quảng cáo (UC33) =====
+    // =========================================================================
     public function index(): void
     {
         require_once ROOT_PATH . '/config/database.php';
@@ -258,4 +261,7 @@ class AdminBannerController extends Controller
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Admin Quản lý Banner (UC33) =====
+    // =========================================================================
 }

@@ -15,6 +15,9 @@ class AiAssistantController extends Controller
         $this->db = Database::getConnection();
     }
 
+    // =========================================================================
+    // ===== Chức năng Trợ lý AI tư vấn 5 bước động (Multi-Provider Failover) (UC13) =====
+    // =========================================================================
     /**
      * Hiển thị trang khảo sát và Trợ lý AI
      */
@@ -92,6 +95,9 @@ class AiAssistantController extends Controller
         }
         exit;
     }
+    // =========================================================================
+    // ===== Hoàn thành chức năng Trợ lý AI tư vấn 5 bước động (UC13) =====
+    // =========================================================================
 
     public function saveFavorite(): void
     {
