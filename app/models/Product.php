@@ -974,6 +974,7 @@ class Product
                             fsi.discount_price as discount_price,
                             fsi.allocation_quantity as fs_stock,
                             fsi.sold_quantity as fs_sold,
+                            fsi.limit_per_user as fs_limit_per_user,
                             GREATEST(fsi.allocation_quantity - fsi.sold_quantity, 0) as fs_remaining,
                             fs.end_time as end_time,
                             fs.end_time as end_date

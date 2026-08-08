@@ -131,6 +131,14 @@ $galleryImages = getGalleryImages($product, $productImages);
                 <span class="price-old"><?= formatPrice($product['original_price']) ?></span>
                 <span class="price-save">Tiết kiệm <?= formatPrice($product['original_price'] - $product['final_price']) ?></span>
             <?php endif; ?>
+            <?php if (!empty($product['is_flash_sale'])): ?>
+                <?php $fsLimit = (int)($product['fs_limit_per_user'] ?? $product['limit_per_user'] ?? 1); ?>
+                <?php if ($fsLimit > 0): ?>
+                    <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; color: #0284c7; font-size: 12px; font-weight: 700;">
+                        <i class="fa-solid fa-user-shield"></i> Giới hạn Flash Sale: Tối đa <?= $fsLimit ?> sản phẩm / 1 khách hàng
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
 
         <!-- Ưu đãi COD -->
