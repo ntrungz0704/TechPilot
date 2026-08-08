@@ -167,7 +167,7 @@ class Order
                 throw new RuntimeException(
                     '⚡ <strong>Hạn mức Flash Sale vừa thay đổi!</strong> Do có khách hàng khác vừa chốt đơn trước, số suất ưu đãi sản phẩm trong giỏ của bạn vừa cập nhật lại.<br>'
                     . '• Giá tổng đơn hàng mới: <strong>' . formatPrice($calculatedTotal) . '</strong>.<br>'
-                    . '👉 Nếu bạn đồng ý với mức giá mới, hãy kiểm tra lại và bấm <strong>[Xác nhận đặt hàng ngay]</strong> bên dưới. Hoặc <a href="' . url('cart') . '" style="color: #ffffff; text-decoration: underline; font-weight: 700;">Quay lại Giỏ hàng</a> để điều chỉnh lại số lượng.'
+                    . '👉 Nếu bạn đồng ý với mức giá mới, hãy kiểm tra lại và bấm <strong>[Xác nhận đặt hàng ngay]</strong> bên dưới. Hoặc <a href="' . url('cart') . '" style="display: inline-block; padding: 2px 10px; background: #ffffff; color: #2563eb; font-weight: 700; border-radius: 4px; text-decoration: none; margin-left: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">Quay lại Giỏ hàng</a> để điều chỉnh lại số lượng.'
                 );
             }
 

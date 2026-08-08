@@ -38,10 +38,11 @@ class FlashSaleService
         int $quantity,
         string $buyerKey
     ): array {
-        self::requireTransaction($db, 'Quote hạn mức Flash Sale');
         if ($productId <= 0 || $quantity <= 0 || trim($buyerKey) === '') {
             throw new InvalidArgumentException('Thông tin quote Flash Sale không hợp lệ.');
         }
+
+        $forUpdate = $db->inTransaction() ? ' FOR UPDATE' : '';
 
         $stmt = $db->prepare(
             "SELECT fsi.id, fsi.flash_sale_id, fsi.product_id, fsi.discount_price,
@@ -60,8 +61,7 @@ class FlashSaleService
                    WHEN p.sale_price > 0 AND p.sale_price < p.price THEN p.sale_price
                    ELSE p.price
                END
-             ORDER BY fsi.discount_price ASC, fsi.id ASC
-             FOR UPDATE"
+             ORDER BY fsi.discount_price ASC, fsi.id ASC{$forUpdate}"
         );
         $stmt->execute([':product_id' => $productId]);
         $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
