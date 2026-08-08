@@ -268,12 +268,42 @@ $reviews = $reviews ?? [];
         </a>
     </header>
 
+    <style>
+        .flash-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border, #E2E8F0);
+            background: var(--bg-card, #FFFFFF);
+            color: var(--text-primary, #0F172A);
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .flash-arrow:hover {
+            background: var(--primary, #0A5BFF) !important;
+            color: #ffffff !important;
+            border-color: var(--primary, #0A5BFF) !important;
+            transform: translateY(-50%) scale(1.1);
+        }
+        .flash-arrow.flash-prev { left: -18px; }
+        .flash-arrow.flash-next { right: -18px; }
+    </style>
+
     <div style="position: relative;" class="flash-sale-wrapper">
         <!-- Navigation Arrows -->
-        <button type="button" class="flash-arrow flash-prev" id="flashPrevBtn" aria-label="Sản phẩm trước" style="position: absolute; left: -18px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: #FFFFFF; color: var(--text-primary); font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+        <button type="button" class="flash-arrow flash-prev" id="flashPrevBtn" aria-label="Sản phẩm trước">
             <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <button type="button" class="flash-arrow flash-next" id="flashNextBtn" aria-label="Sản phẩm tiếp" style="position: absolute; right: -18px; top: 50%; transform: translateY(-50%); z-index: 10; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: #FFFFFF; color: var(--text-primary); font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.12); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+        <button type="button" class="flash-arrow flash-next" id="flashNextBtn" aria-label="Sản phẩm tiếp">
             <i class="fa-solid fa-chevron-right"></i>
         </button>
 
