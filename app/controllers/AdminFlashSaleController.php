@@ -159,7 +159,12 @@ class AdminFlashSaleController extends Controller
             }
         }
 
-        $totalPages = ceil($totalItems / $limit);
+        $search = trim($_GET['q'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $page   = max(1, (int)($_GET['page'] ?? 1));
+        $limit  = 15;
+        $totalItems = count($flashSales);
+        $totalPages = max(1, (int)ceil($totalItems / $limit));
 
         $this->renderAdmin('admin/flash_sales/index', [
             'pageTitle'   => 'Quản lý Flash Sale',
