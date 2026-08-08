@@ -6,11 +6,17 @@ class Order
 {
     private ?PDO $db;
     private bool $useFallback;
+    private string $lastError = '';
 
     public function __construct()
     {
         $this->db = Database::getConnection();
         $this->useFallback = $this->db === null;
+    }
+
+    public function getLastError(): string
+    {
+        return $this->lastError;
     }
 
     public function create(array $payload): array|false
@@ -277,7 +283,7 @@ class Order
             if ($this->db && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            // Log message without stack trace to avoid noisy stderr output in CI for expected cases.
+            $this->lastError = $e->getMessage();
             error_log('Order::create: ' . $e->getMessage());
             return false;
         } catch (Throwable $e) {

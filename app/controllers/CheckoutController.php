@@ -465,7 +465,8 @@ class CheckoutController extends Controller
 
         if (!$order) {
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
-            $_SESSION['checkout_error'] = 'Không thể lưu đơn hàng hoặc sản phẩm đã hết hàng. Vui lòng thử lại.';
+            $err = $orderModel->getLastError();
+            $_SESSION['checkout_error'] = !empty($err) ? $err : 'Không thể lưu đơn hàng. Vui lòng thử lại.';
             $this->redirect('checkout');
             return;
         }
