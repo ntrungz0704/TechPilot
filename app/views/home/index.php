@@ -274,28 +274,34 @@ $reviews = $reviews ?? [];
             top: 50%;
             transform: translateY(-50%);
             z-index: 10;
-            width: 38px;
-            height: 38px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            border: 1px solid var(--border, #E2E8F0);
-            background: var(--bg-card, #FFFFFF);
-            color: var(--text-primary, #0F172A);
-            font-size: 15px;
+            border: 1.5px solid var(--primary, #0A5BFF) !important;
+            background: #1e293b !important;
+            color: #ffffff !important;
+            font-size: 16px;
             cursor: pointer;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .flash-arrow i {
+            color: #ffffff !important;
+            font-size: 16px !important;
+            font-weight: 900 !important;
         }
         .flash-arrow:hover {
             background: var(--primary, #0A5BFF) !important;
             color: #ffffff !important;
-            border-color: var(--primary, #0A5BFF) !important;
-            transform: translateY(-50%) scale(1.1);
+            border-color: #38bdf8 !important;
+            transform: translateY(-50%) scale(1.15) !important;
+            box-shadow: 0 8px 22px rgba(10, 91, 255, 0.5) !important;
         }
-        .flash-arrow.flash-prev { left: -18px; }
-        .flash-arrow.flash-next { right: -18px; }
+        .flash-arrow.flash-prev { left: -21px; }
+        .flash-arrow.flash-next { right: -21px; }
     </style>
 
     <div style="position: relative;" class="flash-sale-wrapper">
