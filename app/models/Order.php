@@ -81,13 +81,8 @@ class Order
                     $buyerKey
                 );
                 $flashQuoteStatus = (string)($flashQuote['status'] ?? 'none');
-                if (in_array($flashQuoteStatus, ['sold_out', 'limit_reached'], true)) {
-                    $message = $flashQuoteStatus === 'limit_reached'
-                        ? 'Bạn đã đạt giới hạn mua Flash Sale của sản phẩm ' . $dbProduct['name'] . '.'
-                        : 'Hạn mức Flash Sale của sản phẩm ' . $dbProduct['name'] . ' vừa hết.';
-                    throw new RuntimeException($message . ' Vui lòng tải lại giỏ hàng.');
-                }
 
+                // Nếu đạt điều kiện Flash Sale -> áp dụng giá Flash Sale. Nếu hết suất hoặc vượt giới hạn -> tự động về giá thường.
                 $flashItem = $flashQuoteStatus === 'eligible' && is_array($flashQuote['item'] ?? null)
                     ? $flashQuote['item']
                     : null;
