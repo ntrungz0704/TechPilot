@@ -82,15 +82,28 @@ class Order
                 );
                 $flashQuoteStatus = (string)($flashQuote['status'] ?? 'none');
 
-                // Nếu đạt điều kiện Flash Sale -> áp dụng giá Flash Sale. Nếu hết suất hoặc vượt giới hạn -> tự động về giá thường.
                 $flashItem = $flashQuoteStatus === 'eligible' && is_array($flashQuote['item'] ?? null)
                     ? $flashQuote['item']
                     : null;
-                $dbProduct['discount_price'] = $flashItem['discount_price'] ?? null;
-                $priceData = getEffectiveProductData($dbProduct);
-                $unitPrice = (float)$priceData['final_price'];
-                $lineTotal = $unitPrice * $qty;
+
+                $flashQty = ($flashItem !== null) ? min($qty, max(1, (int)($flashQuote['flash_qty'] ?? 1))) : 0;
+                $regularQty = $qty - $flashQty;
+
+                $basePrice = (float)$dbProduct['price'];
+                $salePrice = (float)($dbProduct['sale_price'] ?? 0);
+                $regularPrice = ($salePrice > 0 && $salePrice < $basePrice) ? $salePrice : $basePrice;
+
+                if ($flashItem !== null && $flashQty > 0) {
+                    $flashPrice = (float)$flashItem['discount_price'];
+                    $lineTotal = ($flashQty * $flashPrice) + ($regularQty * $regularPrice);
+                } else {
+                    $lineTotal = $qty * $regularPrice;
+                    $flashPrice = $regularPrice;
+                }
+
+                $unitPrice = $lineTotal / $qty;
                 $calculatedSubtotal += $lineTotal;
+
                 $resolvedItems[] = [
                     'product_id' => (int)$productId,
                     'name' => (string)$dbProduct['name'],
@@ -100,8 +113,10 @@ class Order
                     'price' => $unitPrice,
                     'quantity' => $qty,
                     'line_total' => $lineTotal,
-                    'price_source' => (string)$priceData['price_source'],
-                    'flash_sale_item_id' => $flashItem !== null ? (int)$flashItem['id'] : null,
+                    'price_source' => ($flashItem !== null && $flashQty > 0) ? 'flash' : 'regular',
+                    'flash_sale_item_id' => ($flashItem !== null && $flashQty > 0) ? (int)$flashItem['id'] : null,
+                    'flash_qty' => $flashQty,
+                    'flash_unit_price' => $flashPrice,
                 ];
             }
 
@@ -209,7 +224,7 @@ class Order
                     throw new RuntimeException('Không thể lấy ID chi tiết đơn hàng vừa tạo.');
                 }
 
-                if ($item['flash_sale_item_id'] !== null) {
+                if (!empty($item['flash_sale_item_id']) && !empty($item['flash_qty'])) {
                     FlashSaleService::reserveOrderItem(
                         $this->db,
                         (int)$item['flash_sale_item_id'],
@@ -217,8 +232,8 @@ class Order
                         $orderItemId,
                         $userId,
                         $buyerKey,
-                        (int)$item['quantity'],
-                        (float)$item['price']
+                        (int)$item['flash_qty'],
+                        (float)$item['flash_unit_price']
                     );
                 }
             }

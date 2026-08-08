@@ -77,27 +77,37 @@ class FlashSaleService
             $sold = (int)$candidate['sold_quantity'];
             $limit = (int)$candidate['limit_per_user'];
 
-            if ($allocation <= 0 || $sold < 0 || $sold + $quantity > $allocation) {
+            $remainingCapacity = max(0, $allocation - $sold);
+            if ($remainingCapacity <= 0) {
                 continue;
             }
             $sawCapacity = true;
 
             $usedByBuyer = self::buyerUsage($db, (int)$candidate['id'], $buyerKey);
-            if ($limit <= 0 || $usedByBuyer + $quantity > $limit) {
+            $remainingBuyerLimit = $limit > 0 ? max(0, $limit - $usedByBuyer) : $remainingCapacity;
+            if ($remainingBuyerLimit <= 0) {
                 $sawLimit = true;
                 continue;
             }
 
-            return ['status' => 'eligible', 'item' => $candidate];
+            $allowedFlashQty = min($quantity, $remainingCapacity, $remainingBuyerLimit);
+            if ($allowedFlashQty > 0) {
+                return [
+                    'status' => 'eligible',
+                    'item' => $candidate,
+                    'flash_qty' => $allowedFlashQty,
+                ];
+            }
         }
 
         if ($sawLimit) {
-            return ['status' => 'limit_reached', 'item' => null];
+            return ['status' => 'limit_reached', 'item' => null, 'flash_qty' => 0];
         }
 
         return [
             'status' => $sawCapacity ? 'limit_reached' : 'sold_out',
             'item' => null,
+            'flash_qty' => 0,
         ];
     }
 
@@ -136,8 +146,8 @@ class FlashSaleService
         if ($orderUserId !== $userId || !hash_equals($expectedBuyerKey, $buyerKey)) {
             throw new RuntimeException('Buyer identity không khớp đơn hàng.');
         }
-        if ((int)$line['quantity'] !== $quantity || abs((float)$line['price'] - $unitPrice) > 0.001) {
-            throw new RuntimeException('Giá hoặc số lượng order item không khớp reservation.');
+        if ((int)$line['quantity'] < $quantity) {
+            throw new RuntimeException('Số lượng order item nhỏ hơn reservation.');
         }
 
         $existingStmt = $db->prepare(
