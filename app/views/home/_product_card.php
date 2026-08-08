@@ -66,20 +66,12 @@
                 $sold = max(0, (int)($p['fs_sold'] ?? 0));
                 $percent = $allocation > 0 ? max(0, min(100, round(($sold / $allocation) * 100))) : 0;
                 $isSoldOut = ($allocation > 0 && $sold >= $allocation);
-                $userLimit = (int)($p['fs_limit_per_user'] ?? $p['limit_per_user'] ?? 1);
                 ?>
-                <div style="margin-top: 4px;">
-                    <?php if ($userLimit > 0): ?>
-                        <div style="font-size: 10.5px; color: var(--primary, #0284c7); font-weight: 700; text-align: center; margin-bottom: 3px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                            <i class="fa-solid fa-user-shield"></i> Tối đa <?= $userLimit ?> sản phẩm/khách
-                        </div>
-                    <?php endif; ?>
-                    <div class="sold-bar">
-                        <div class="sold-bar__track">
-                            <div class="sold-bar__fill" style="width: <?= $percent ?>%; <?= $isSoldOut ? 'background: linear-gradient(90deg, #EF4444, #DC2626);' : '' ?>"></div>
-                            <div class="sold-bar__text <?= ($percent < 40 && !$isSoldOut) ? 'sold-bar__text-dark' : '' ?>" style="<?= $isSoldOut ? 'color: #FFFFFF; font-weight: 700;' : '' ?>">
-                                <?= $isSoldOut ? '🔥 Đã bán hết suất Flash Sale' : 'Đã bán ' . $sold . '/' . $allocation ?>
-                            </div>
+                <div class="sold-bar" style="margin-top: 6px;">
+                    <div class="sold-bar__track">
+                        <div class="sold-bar__fill" style="width: <?= $percent ?>%; <?= $isSoldOut ? 'background: linear-gradient(90deg, #EF4444, #DC2626);' : '' ?>"></div>
+                        <div class="sold-bar__text <?= ($percent < 40 && !$isSoldOut) ? 'sold-bar__text-dark' : '' ?>" style="<?= $isSoldOut ? 'color: #FFFFFF; font-weight: 700;' : '' ?>">
+                            <?= $isSoldOut ? '🔥 Đã bán hết suất Flash Sale' : 'Đã bán ' . $sold . '/' . $allocation ?>
                         </div>
                     </div>
                 </div>
