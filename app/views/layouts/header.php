@@ -259,7 +259,7 @@ if ($currentPath === '' || $currentPath === 'home' || $currentPath === 'home/ind
                              aria-haspopup="true"
                              title="Tài khoản cá nhân">
                             <i class="fa-solid fa-circle-user header-action__icon" aria-hidden="true"></i>
-                            <span class="header-actions__label header-action__label header-action__username"><?= e($u['full_name']) ?></span>
+                            <span class="header-actions__label header-action__label header-action__username"><?= e($u['full_name'] ?? $u['name'] ?? $u['username'] ?? 'Tài khoản') ?></span>
                             <i class="fa-solid fa-chevron-down dropdown__chevron" aria-hidden="true"></i>
                             <div class="dropdown__menu" role="menu">
                                 <a href="<?= url('profile') ?>" role="menuitem"><i class="fa-solid fa-user" aria-hidden="true"></i> Trang cá nhân</a>

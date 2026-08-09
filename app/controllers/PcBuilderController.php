@@ -94,6 +94,7 @@ class PcBuilderController extends Controller
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
+        // activeFlashPriceSql('products')
         $activeFlashPrice = activeFlashPriceSql('p');
         $effectivePrice = effectiveProductPriceSql('p');
         $stmt = $db->prepare("SELECT p.id, p.name, p.slug, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = 2 AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY {$effectivePrice} ASC LIMIT 12");

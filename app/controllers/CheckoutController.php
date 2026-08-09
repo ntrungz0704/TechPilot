@@ -460,6 +460,7 @@ class CheckoutController extends Controller
             'discount_amount' => $discountAmount,
             'coupon_id' => $couponId,
             'total_amount' => $total,
+            'expected_total_amount' => $total,
             'items' => $cart,
         ]);
 

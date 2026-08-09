@@ -74,6 +74,7 @@ class Order
                     throw new RuntimeException('Sản phẩm ' . $dbProduct['name'] . ' không đủ tồn kho.');
                 }
 
+                // getEffectiveProductData($dbProduct)
                 $flashQuote = FlashSaleService::quoteForPurchase(
                     $this->db,
                     (int)$productId,
@@ -81,6 +82,9 @@ class Order
                     $buyerKey
                 );
                 $flashQuoteStatus = (string)($flashQuote['status'] ?? 'none');
+                if ($flashQuoteStatus === 'limit_reached') {
+                    throw new RuntimeException('Bạn đã đạt giới hạn mua Flash Sale cho sản phẩm này.');
+                }
 
                 $flashItem = $flashQuoteStatus === 'eligible' && is_array($flashQuote['item'] ?? null)
                     ? $flashQuote['item']
@@ -162,7 +166,7 @@ class Order
             $shippingFee = shippingFee($calculatedSubtotal);
             $calculatedTotal = max(0.0, $calculatedSubtotal - $discountAmount + $shippingFee);
 
-            $expectedTotal = (float)($payload['total_amount'] ?? 0);
+            $expectedTotal = (float)($payload['expected_total_amount'] ?? $payload['expected_total'] ?? 0);
             if ($expectedTotal > 0 && abs($calculatedTotal - $expectedTotal) > 0.01) {
                 throw new RuntimeException(
                     '⚡ <strong>Hạn mức Flash Sale vừa thay đổi!</strong> Do có khách hàng khác vừa chốt đơn trước, số suất ưu đãi sản phẩm trong giỏ của bạn vừa cập nhật lại.<br>'
