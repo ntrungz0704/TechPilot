@@ -1861,7 +1861,7 @@
             const formatted = formatMarkdownText(html);
             tempDiv.innerHTML = formatted;
             const plainText = tempDiv.textContent || tempDiv.innerText || "";
-            const sanitizedText = plainText.replace(/"/g, '&quot;').replace(/'/g, "\\'").replace(/\n/g, ' ');
+            const sanitizedText = plainText.replace(/\\/g, '\\\\').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\n/g, ' ');
             
             if (shouldSave) {
                 saveToChatHistory('bot', html, 'text');

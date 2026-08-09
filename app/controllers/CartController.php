@@ -338,80 +338,256 @@ class CartController extends Controller
 
     public function update(): void
     {
-        $user = currentUser();
-        if (!$user) {
-            flash('error', 'Vui lòng đăng nhập để cập nhật giỏ hàng.');
-            $this->redirect('auth/login');
-            return;
-        }
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+               || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'));
 
         if (!$this->isPost()) {
+            if ($isAjax) {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+                return;
+            }
             $this->redirect('cart');
+            return;
         }
 
         $productId = (int)($_POST['product_id'] ?? 0);
-        $quantity = max(1, (int)($_POST['quantity'] ?? 1));
+        $quantity = (int)($_POST['quantity'] ?? 1);
 
-        $db = $this->getDbConnection();
-        if (!$db || $productId <= 0) {
+        if ($productId <= 0) {
+            if ($isAjax) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Sản phẩm không hợp lệ.']);
+                return;
+            }
             $this->redirect('cart');
             return;
         }
-        if (!$this->hasValidUser($user, $db)) {
+
+        $user = currentUser();
+        $qtyAction = trim($_POST['qty_action'] ?? '');
+
+        // Guest user update logic
+        if (!$user) {
+            $productModel = $this->model('Product');
+            $product = $productModel->getActiveByIdStrict($productId);
+            if (!$product) {
+                (new CartService())->removeGuestItem($productId);
+                if ($isAjax) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Sản phẩm không hợp lệ hoặc đã dừng bán.']);
+                    return;
+                }
+                flash('error', 'Sản phẩm không hợp lệ hoặc đã dừng bán.');
+                $this->redirect('cart');
+                return;
+            }
+
+            $stock = (int)($product['stock'] ?? 0);
+            $cartService = new CartService();
+
+            if ($qtyAction !== '') {
+                $currentQty = (int)($_SESSION['guest_cart'][$productId]['quantity'] ?? 1);
+                if ($qtyAction === 'decrease') {
+                    $quantity = $currentQty - 1;
+                } elseif ($qtyAction === 'increase') {
+                    $quantity = $currentQty + 1;
+                }
+            }
+
+            if ($quantity <= 0) {
+                $cartService->removeGuestItem($productId);
+                $msg = 'Đã xóa sản phẩm khỏi giỏ hàng.';
+                if ($isAjax) {
+                    echo json_encode(['success' => true, 'message' => $msg, 'cart_count' => cartCount()]);
+                    return;
+                }
+                flash('success', $msg);
+                $this->redirect('cart');
+                return;
+            }
+
+            if ($quantity > $stock) {
+                $cartService->updateGuestItem($productId, $stock, $stock);
+                $msg = 'Số lượng cập nhật vượt quá tồn kho (' . $stock . ' sản phẩm).';
+                if ($isAjax) {
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'message' => $msg]);
+                    return;
+                }
+                flash('error', $msg);
+                $this->redirect('cart');
+                return;
+            }
+
+            $cartService->updateGuestItem($productId, $quantity, $stock);
+            $msg = 'Đã cập nhật số lượng sản phẩm.';
+
+            if ($isAjax) {
+                echo json_encode(['success' => true, 'message' => $msg, 'cart_count' => cartCount()]);
+                return;
+            }
+            flash('success', $msg);
+            $this->redirect('cart');
+            return;
+        }
+
+        // Logged-in user update logic
+        if (($user['role'] ?? '') === 'admin') {
+            $adminMsg = 'Tài khoản Quản trị viên (Admin) không được phép thao tác giỏ hàng.';
+            if ($isAjax) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => $adminMsg]);
+                return;
+            }
+            flash('error', $adminMsg);
+            $this->redirect('admin');
+            return;
+        }
+
+        $db = $this->getDbConnection();
+        if ($db && !$this->hasValidUser($user, $db)) {
+            if ($isAjax) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Phiên đăng nhập cũ không còn hợp lệ.']);
+                return;
+            }
             $this->clearStaleLogin();
             return;
         }
 
-        // Kiểm tra tồn kho
         $productModel = $this->model('Product');
         $product = $productModel->getActiveByIdStrict($productId);
         if (!$product) {
+            if ($isAjax) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Sản phẩm không hợp lệ hoặc đã dừng bán.']);
+                return;
+            }
             $this->redirect('cart');
             return;
         }
 
         $stock = (int)($product['stock'] ?? 0);
-        if ($quantity > $stock) {
-            flash('error', 'Số lượng cập nhật vượt quá tồn kho (' . $stock . ' sản phẩm).');
+
+        if ($qtyAction !== '') {
+            $currentQty = (int)($_SESSION['cart'][$productId]['quantity'] ?? 1);
+            if ($db) {
+                $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
+                $stmt = $db->prepare("SELECT quantity FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id");
+                $stmt->execute([':cart_id' => $cartId, ':product_id' => $productId]);
+                $dbQty = $stmt->fetchColumn();
+                if ($dbQty !== false) {
+                    $currentQty = (int)$dbQty;
+                }
+            }
+            if ($qtyAction === 'decrease') {
+                $quantity = $currentQty - 1;
+            } elseif ($qtyAction === 'increase') {
+                $quantity = $currentQty + 1;
+            }
+        }
+
+        if ($quantity <= 0) {
+            if ($db && $productId > 0) {
+                $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
+                $stmt = $db->prepare("DELETE FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id");
+                $stmt->execute([':cart_id' => $cartId, ':product_id' => $productId]);
+                $this->syncCartSession((int)$user['id'], $db);
+            }
+            $msg = 'Đã xóa sản phẩm khỏi giỏ hàng.';
+            if ($isAjax) {
+                echo json_encode(['success' => true, 'message' => $msg, 'cart_count' => cartCount()]);
+                return;
+            }
+            flash('success', $msg);
             $this->redirect('cart');
             return;
         }
 
-        $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
-        $stmt = $db->prepare("UPDATE cart_items SET quantity = :qty WHERE cart_id = :cart_id AND product_id = :product_id");
-        $stmt->execute([':qty' => $quantity, ':cart_id' => $cartId, ':product_id' => $productId]);
+        if ($quantity > $stock) {
+            $msg = 'Số lượng cập nhật vượt quá tồn kho (' . $stock . ' sản phẩm).';
+            if ($isAjax) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => $msg]);
+                return;
+            }
+            flash('error', $msg);
+            $this->redirect('cart');
+            return;
+        }
 
-        $this->syncCartSession((int)$user['id'], $db);
+        if ($db) {
+            $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
+            $stmt = $db->prepare("UPDATE cart_items SET quantity = :qty WHERE cart_id = :cart_id AND product_id = :product_id");
+            $stmt->execute([':qty' => $quantity, ':cart_id' => $cartId, ':product_id' => $productId]);
+            $this->syncCartSession((int)$user['id'], $db);
+        }
+
+        $msg = 'Đã cập nhật số lượng sản phẩm.';
+        if ($isAjax) {
+            echo json_encode(['success' => true, 'message' => $msg, 'cart_count' => cartCount()]);
+            return;
+        }
+        flash('success', $msg);
         $this->redirect('cart');
     }
 
     public function remove(): void
     {
-        $user = currentUser();
-        if (!$user) {
-            $this->redirect('auth/login');
-            return;
-        }
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+               || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'));
 
         if (!$this->isPost()) {
+            if ($isAjax) {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+                return;
+            }
             $this->redirect('cart');
+            return;
         }
 
         $productId = (int)($_POST['product_id'] ?? 0);
+        $user = currentUser();
+
+        if (!$user) {
+            if ($productId > 0) {
+                (new CartService())->removeGuestItem($productId);
+                flash('success', 'Đã xóa sản phẩm khỏi giỏ hàng.');
+            }
+            if ($isAjax) {
+                echo json_encode(['success' => true, 'message' => 'Đã xóa sản phẩm khỏi giỏ hàng.', 'cart_count' => cartCount()]);
+                return;
+            }
+            $this->redirect('cart');
+            return;
+        }
 
         $db = $this->getDbConnection();
         if ($db && !$this->hasValidUser($user, $db)) {
+            if ($isAjax) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Phiên đăng nhập cũ không còn hợp lệ.']);
+                return;
+            }
             $this->clearStaleLogin();
             return;
         }
+
         if ($db && $productId > 0) {
             $cartId = $this->getOrCreateCartId((int)$user['id'], $db);
             $stmt = $db->prepare("DELETE FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id");
             $stmt->execute([':cart_id' => $cartId, ':product_id' => $productId]);
             
             $this->syncCartSession((int)$user['id'], $db);
+            flash('success', 'Đã xóa sản phẩm khỏi giỏ hàng.');
         }
 
+        if ($isAjax) {
+            echo json_encode(['success' => true, 'message' => 'Đã xóa sản phẩm khỏi giỏ hàng.', 'cart_count' => cartCount()]);
+            return;
+        }
         $this->redirect('cart');
     }
     // =========================================================================

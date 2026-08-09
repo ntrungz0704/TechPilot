@@ -658,7 +658,7 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="adminSidebar" style="background-color: #091830;">
         <a href="<?= url('admin') ?>" class="sidebar__logo" style="display: flex; align-items: center; gap: 10px; padding: 16px 20px; text-decoration: none;">
-            <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Admin Logo" style="height: 32px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+            <img src="<?= url('assets/images/logo.png') ?>" alt="TechPilot Admin Logo" style="height: 32px; object-fit: contain; drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
             <span style="font-size: 18px; font-weight: 800; color: #FFFFFF; font-family: 'Inter', system-ui, -apple-system, sans-serif; letter-spacing: -0.3px; white-space: nowrap;">Tech<span style="color: #3B82F6;">Pilot</span></span>
         </a>
         <ul class="sidebar__menu">

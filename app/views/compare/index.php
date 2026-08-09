@@ -308,7 +308,7 @@
 
 <script>
     const activeCatSlug = '<?= $activeCategorySlug ?>';
-    const csrfToken = '<?= $csrf_token ?>';
+    const csrfToken = '<?= $_SESSION['csrf_token'] ?? '' ?>';
 
     function selectPersona(code, el) {
         document.querySelectorAll('#personaPills .persona-pill').forEach(p => p.classList.remove('active'));

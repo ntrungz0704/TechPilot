@@ -1132,4 +1132,3 @@ $aiConfig = require ROOT_PATH . '/config/ai-recommendation.php';
         location.href = '<?= url("ai-assistant") ?>';
     }
 </script>
-</script>

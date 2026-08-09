@@ -199,14 +199,15 @@ class CartService
 
     public function update(int $productId, int $quantity): array
     {
-        $cart = $_SESSION['cart'] ?? [];
+        $cartKey = currentUser() ? 'cart' : 'guest_cart';
+        $cart = $_SESSION[$cartKey] ?? $_SESSION['cart'] ?? $_SESSION['guest_cart'] ?? [];
         if (!isset($cart[$productId])) {
             return ['ok' => false, 'message' => 'Sản phẩm không còn trong giỏ hàng.'];
         }
 
         if ($quantity <= 0) {
             unset($cart[$productId]);
-            $_SESSION['cart'] = $cart;
+            $_SESSION[$cartKey] = $cart;
             return ['ok' => true, 'message' => 'Đã xóa sản phẩm khỏi giỏ hàng.'];
         }
 
@@ -224,16 +225,61 @@ class CartService
             'product_id' => $productId,
             'quantity' => min($quantity, $stock),
         ];
-        $_SESSION['cart'] = $cart;
+        $_SESSION[$cartKey] = $cart;
 
         return ['ok' => true, 'message' => 'Đã cập nhật giỏ hàng.'];
     }
 
     public function remove(int $productId): void
     {
-        $cart = $_SESSION['cart'] ?? [];
-        unset($cart[$productId]);
-        $_SESSION['cart'] = $cart;
+        $cartKey = currentUser() ? 'cart' : 'guest_cart';
+        if (isset($_SESSION[$cartKey][$productId])) {
+            unset($_SESSION[$cartKey][$productId]);
+        }
+        if (isset($_SESSION['guest_cart'][$productId])) {
+            unset($_SESSION['guest_cart'][$productId]);
+        }
+        if (isset($_SESSION['cart'][$productId]) && !currentUser()) {
+            unset($_SESSION['cart'][$productId]);
+        }
+    }
+
+    public function updateGuestItem(int $productId, int $quantity, int $stock): array
+    {
+        $cart = $_SESSION['guest_cart'] ?? [];
+        if (!isset($cart[$productId])) {
+            return ['ok' => false, 'message' => 'Sản phẩm không còn trong giỏ hàng.'];
+        }
+
+        if ($quantity <= 0) {
+            unset($cart[$productId]);
+            $_SESSION['guest_cart'] = $cart;
+            return ['ok' => true, 'message' => 'Đã xóa sản phẩm khỏi giỏ hàng.'];
+        }
+
+        if ($stock < 1) {
+            unset($cart[$productId]);
+            $_SESSION['guest_cart'] = $cart;
+            return ['ok' => false, 'message' => 'Sản phẩm đã hết hàng.'];
+        }
+
+        $cart[$productId] = [
+            'product_id' => $productId,
+            'quantity' => min($quantity, $stock),
+        ];
+        $_SESSION['guest_cart'] = $cart;
+
+        return ['ok' => true, 'message' => 'Đã cập nhật giỏ hàng.'];
+    }
+
+    public function removeGuestItem(int $productId): void
+    {
+        if (isset($_SESSION['guest_cart'][$productId])) {
+            unset($_SESSION['guest_cart'][$productId]);
+        }
+        if (isset($_SESSION['cart'][$productId])) {
+            unset($_SESSION['cart'][$productId]);
+        }
     }
 
     public function storeGuestItem(int $productId, int $quantity, int $stock): array

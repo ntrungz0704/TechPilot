@@ -619,7 +619,7 @@ $galleryImages = getGalleryImages($product, $productImages);
 
                 fetch('<?= url("product/ai-chat-sync-guest") ?>', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
                     body: JSON.stringify({ messages: payload, _csrf: CSRF_TOKEN })
                 })
                 .then(res => res.json())

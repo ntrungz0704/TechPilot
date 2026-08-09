@@ -12,62 +12,62 @@ class PcBuilderController extends Controller
         'cpu' => [
             'name' => 'Bộ vi xử lý (CPU)',
             'icon' => 'fa-solid fa-microchip',
-            'query' => "category_id = 5"
+            'query' => "p.category_id = 5"
         ],
         'mainboard' => [
             'name' => 'Bo mạch chủ (Mainboard)',
             'icon' => 'fa-solid fa-clone', 
-            'query' => "category_id = 4"
+            'query' => "p.category_id = 4"
         ],
         'ram' => [
             'name' => 'Bộ nhớ trong (RAM)',
             'icon' => 'fa-solid fa-server',
-            'query' => "category_id = 7"
+            'query' => "p.category_id = 7"
         ],
         'vga' => [
             'name' => 'Card màn hình (VGA)',
             'icon' => 'fa-solid fa-sd-card',
-            'query' => "category_id = 6"
+            'query' => "p.category_id = 6"
         ],
         'storage' => [
             'name' => 'Ổ cứng (SSD/HDD)',
             'icon' => 'fa-solid fa-database',
-            'query' => "category_id = 8"
+            'query' => "p.category_id = 8"
         ],
         'psu' => [
             'name' => 'Nguồn máy tính (PSU)',
             'icon' => 'fa-solid fa-plug',
-            'query' => "category_id = 11"
+            'query' => "p.category_id = 11"
         ],
         'case' => [
             'name' => 'Vỏ máy tính (Case)',
             'icon' => 'fa-solid fa-box',
-            'query' => "category_id = 9"
+            'query' => "p.category_id = 9"
         ],
         'cooler' => [
             'name' => 'Tản nhiệt PC',
             'icon' => 'fa-solid fa-fan',
-            'query' => "category_id = 10"
+            'query' => "p.category_id = 10"
         ],
         'monitor' => [
             'name' => 'Màn hình',
             'icon' => 'fa-solid fa-tv',
-            'query' => "category_id = 3"
+            'query' => "p.category_id = 3"
         ],
         'mouse' => [
             'name' => 'Chuột',
             'icon' => 'fa-solid fa-computer-mouse',
-            'query' => "category_id = 13"
+            'query' => "p.category_id = 13"
         ],
         'keyboard' => [
             'name' => 'Bàn phím',
             'icon' => 'fa-solid fa-keyboard',
-            'query' => "category_id = 12"
+            'query' => "p.category_id = 12"
         ],
         'chair' => [
             'name' => 'Ghế Gaming',
             'icon' => 'fa-solid fa-chair',
-            'query' => "category_id = 14"
+            'query' => "p.category_id = 14"
         ]
     ];
 
@@ -94,8 +94,8 @@ class PcBuilderController extends Controller
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
 
-        $activeFlashPrice = activeFlashPriceSql('products');
-        $effectivePrice = effectiveProductPriceSql('products');
+        $activeFlashPrice = activeFlashPriceSql('p');
+        $effectivePrice = effectiveProductPriceSql('p');
         $stmt = $db->prepare("SELECT p.id, p.name, p.slug, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.category_id = 2 AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) ORDER BY {$effectivePrice} ASC LIMIT 12");
         $stmt->execute();
         $pcs = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -124,8 +124,8 @@ class PcBuilderController extends Controller
 
     private function resolvePrebuiltComponents(PDO $db, array $rawSpecs): array
     {
-        $activeFlashPrice = activeFlashPriceSql('products');
-        $effectivePrice = effectiveProductPriceSql('products');
+        $activeFlashPrice = activeFlashPriceSql('p');
+        $effectivePrice = effectiveProductPriceSql('p');
         $specs = $rawSpecs['specs'] ?? $rawSpecs;
         $cpuModel = $specs['cpu_model'] ?? '';
         $mbModel = $specs['mainboard_model'] ?? '';
@@ -200,13 +200,13 @@ class PcBuilderController extends Controller
 
         require_once ROOT_PATH . '/config/database.php';
         $db = Database::getConnection();
-        $activeFlashPrice = activeFlashPriceSql('products');
-        $effectivePrice = effectiveProductPriceSql('products');
+        $activeFlashPrice = activeFlashPriceSql('p');
+        $effectivePrice = effectiveProductPriceSql('p');
 
         $whereClause = $this->parts[$partKey]['query'];
         $search = trim($_GET['search'] ?? '');
         if ($search) {
-            $whereClause .= " AND name LIKE :search";
+            $whereClause .= " AND p.name LIKE :search";
         }
         
         $sql = "SELECT p.id, p.name, p.price, p.sale_price, p.is_flash_sale, {$activeFlashPrice} AS discount_price, p.stock, p.image, p.specs, p.component_type, p.power_draw_w, p.recommended_psu_w FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE ($whereClause) AND p.status = 'active' AND (c.status = 'active' OR c.status IS NULL) AND p.stock > 0 ORDER BY {$effectivePrice} ASC";
