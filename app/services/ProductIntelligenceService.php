@@ -191,6 +191,7 @@ class ProductIntelligenceService
         $prompt .= "3. Nếu câu hỏi liên quan đến sản phẩm, ưu tiên trả lời về sản phẩm.\n";
         $prompt .= "4. Nếu câu hỏi về kiến thức công nghệ chung (so sánh chip, giải thích thuật ngữ...), hãy trả lời bình thường.\n";
         $prompt .= "5. Trả lời tự nhiên, thân thiện, ngắn gọn 2-4 câu bằng tiếng Việt. Dùng emoji phù hợp.\n";
+        $prompt .= "6. KHÔNG dùng các ký tự markdown như dấu hoa thị *, **, gạch đầu dòng *. Trình bày văn xuôi tự nhiên, rõ ràng, dễ đọc như nhân viên tư vấn con người.\n";
 
         return GeminiService::callGemini($prompt, [
             'type' => 'product_chat',

@@ -5,60 +5,60 @@
             <div class="techpilot-topbar__track">
                 <!-- Group 1 -->
                 <div class="techpilot-topbar__group">
-                    <a href="#" class="techpilot-topbar__message">
+                    <a href="<?= url('products') ?>" class="techpilot-topbar__message">
                         <i class="fa-solid fa-shield" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Sản phẩm chính hãng – Xuất VAT đầy đủ</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message">
+                    <a href="<?= url('khuyen-mai') ?>" class="techpilot-topbar__message">
                         <i class="fa-solid fa-truck-fast" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Giao nhanh – Miễn phí cho đơn từ 300K</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message">
+                    <a href="<?= url('thu-cu-doi-moi') ?>" class="techpilot-topbar__message">
                         <i class="fa-solid fa-rotate" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Thu cũ giá tốt – Lên đời tiết kiệm</span>
                     </a>
                 </div>
                 <!-- Group 2 (Clone 1) -->
                 <div class="techpilot-topbar__group" aria-hidden="true">
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('products') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-shield" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Sản phẩm chính hãng – Xuất VAT đầy đủ</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('khuyen-mai') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-truck-fast" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Giao nhanh – Miễn phí cho đơn từ 300K</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('thu-cu-doi-moi') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-rotate" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Thu cũ giá tốt – Lên đời tiết kiệm</span>
                     </a>
                 </div>
                 <!-- Group 3 (Clone 2) -->
                 <div class="techpilot-topbar__group" aria-hidden="true">
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('products') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-shield" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Sản phẩm chính hãng – Xuất VAT đầy đủ</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('khuyen-mai') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-truck-fast" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Giao nhanh – Miễn phí cho đơn từ 300K</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('thu-cu-doi-moi') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-rotate" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Thu cũ giá tốt – Lên đời tiết kiệm</span>
                     </a>
                 </div>
                 <!-- Group 4 (Clone 3) -->
                 <div class="techpilot-topbar__group" aria-hidden="true">
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('products') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-shield" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Sản phẩm chính hãng – Xuất VAT đầy đủ</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('khuyen-mai') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-truck-fast" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Giao nhanh – Miễn phí cho đơn từ 300K</span>
                     </a>
-                    <a href="#" class="techpilot-topbar__message" tabindex="-1">
+                    <a href="<?= url('thu-cu-doi-moi') ?>" class="techpilot-topbar__message" tabindex="-1">
                         <i class="fa-solid fa-rotate" aria-hidden="true"></i> 
                         <span class="techpilot-topbar__text">Thu cũ giá tốt – Lên đời tiết kiệm</span>
                     </a>

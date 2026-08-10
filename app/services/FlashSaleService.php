@@ -38,7 +38,6 @@ class FlashSaleService
         int $quantity,
         string $buyerKey
     ): array {
-        self::requireTransaction($db, 'Quote hạn mức Flash Sale');
         if ($productId <= 0 || $quantity <= 0 || trim($buyerKey) === '') {
             throw new InvalidArgumentException('Thông tin quote Flash Sale không hợp lệ.');
         }

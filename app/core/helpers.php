@@ -1174,3 +1174,37 @@ if (!function_exists('brandLogoUrl')) {
         return url($relativePath);
     }
 }
+
+if (!function_exists('formatAiMessage')) {
+    /**
+     * Định dạng câu trả lời AI cho giao diện Chat HTML:
+     * - Chuyển đổi các ký tự markdown như **bold**, *italic* thành <strong> tự nhiên
+     * - Loại bỏ ký tự dấu hoa thị * dư thừa, giữ lại thẻ ngắt dòng nl2br
+     */
+    function formatAiMessage(?string $text): string
+    {
+        $text = trim((string)$text);
+        if ($text === '') {
+            return '';
+        }
+
+        // An toàn HTML trước khi format
+        $safeHtml = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+
+        // Chuyển **bold** thành <strong>
+        $safeHtml = preg_replace('/\*\*(.*?)\*\*/s', '<strong>$1</strong>', $safeHtml);
+
+        // Chuyển *italic* hoặc *text* thành <strong> để không hiển thị dấu * thô
+        $safeHtml = preg_replace('/\*(.*?)\*/s', '<strong>$1</strong>', $safeHtml);
+
+        // Chuyển `code` thành code block nhỏ
+        $safeHtml = preg_replace('/`([^`]+)`/s', '<code style="background:#F1F5F9; padding:2px 6px; border-radius:4px; font-size:12px;">$1</code>', $safeHtml);
+
+        // Chuyển gạch đầu dòng dạng • hoặc * hoặc - ở đầu dòng
+        $safeHtml = preg_replace('/^[•\*\-]\s+(.*?)$/m', '<span style="display:block; margin-left: 12px; margin-bottom: 4px;">• $1</span>', $safeHtml);
+
+        // Giữ nguyên ngắt dòng
+        return nl2br($safeHtml);
+    }
+}
+

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryDropdown = document.getElementById('categoryMegaDropdown');
     const categoryStaticMenu = document.getElementById('categoryStaticMenu');
     let staticMenuController = null;
+    let dropdownMenuController = null;
 
     const categoryTriggers = [
         document.getElementById('categoryMenuToggle'),
@@ -199,6 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 categoryDropdown.classList.add('is-mobile-open');
             } else {
                 categoryDropdown.classList.add('is-active');
+                if (dropdownMenuController) {
+                    const firstRow = categoryDropdown.querySelector('.category-sidebar__row');
+                    if (firstRow) {
+                        const panelId = firstRow.getAttribute('data-panel-id');
+                        dropdownMenuController.activatePanel(panelId, firstRow);
+                    }
+                }
             }
         }
 
@@ -553,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Dropdown Menu (#categoryMegaDropdown)
     if (categoryDropdown) {
-        initCategoryMenu(categoryDropdown, { isStatic: false });
+        dropdownMenuController = initCategoryMenu(categoryDropdown, { isStatic: false });
     }
 
     // Initialize Homepage Static Menu (#categoryStaticMenu)

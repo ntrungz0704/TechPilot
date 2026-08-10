@@ -17,14 +17,20 @@ class AuthController extends Controller
             }
 
             if (empty($errors)) {
-                $email    = strtolower(trim($_POST['email'] ?? ''));
+                $email    = trim($_POST['email'] ?? '');
                 $password = $_POST['password'] ?? '';
                 $old['email'] = $email;
 
                 if ($email === '' || $password === '') {
-                    $errors[] = 'Vui lòng nhập đầy đủ Email và Mật khẩu.';
-                } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $errors[] = 'Email không hợp lệ.';
+                    $errors[] = 'Vui lòng nhập đầy đủ Email/Số điện thoại và Mật khẩu.';
+                } else {
+                    $isEmail    = filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+                    $cleanPhone = preg_replace('/\D/', '', $email);
+                    $isPhone    = (strlen($cleanPhone) >= 9 && strlen($cleanPhone) <= 12);
+
+                    if (!$isEmail && !$isPhone) {
+                        $errors[] = 'Email hoặc số điện thoại không hợp lệ.';
+                    }
                 }
 
                 if (empty($errors)) {
@@ -43,6 +49,7 @@ class AuthController extends Controller
                                 'id' => $user['id'],
                                 'full_name' => $user['full_name'],
                                 'email' => $user['email'],
+                                'phone' => $user['phone'] ?? '',
                                 'role' => $user['role']
                             ];
 
@@ -186,6 +193,7 @@ class AuthController extends Controller
                                 'id' => $user['id'],
                                 'full_name' => $user['full_name'],
                                 'email' => $user['email'],
+                                'phone' => $user['phone'] ?? '',
                                 'role' => $user['role']
                             ];
 

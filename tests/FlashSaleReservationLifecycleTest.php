@@ -247,7 +247,7 @@ if ($db instanceof PDO && file_exists($servicePath)) {
 
         $transactionGuarded = false;
         try {
-            FlashSaleService::quoteForPurchase($db, 1, 1, 'user:10');
+            FlashSaleService::reserveOrderItem($db, 1, 100, 1000, 10, 'user:10', 2, 700000);
         } catch (LogicException) {
             $transactionGuarded = true;
         }

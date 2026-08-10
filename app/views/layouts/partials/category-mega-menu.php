@@ -1,5 +1,12 @@
 <?php
-$menuTree = $globalCategoryMenu ?? [];
+if (empty($globalCategoryMenu) && class_exists('CategoryMenuService')) {
+    try {
+        $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
+    } catch (Throwable $e) {
+        $globalCategoryMenu = [];
+    }
+}
+$menuTree = !empty($globalCategoryMenu) ? $globalCategoryMenu : (class_exists('CategoryMenuService') ? CategoryMenuService::getActiveMenuTree() : []);
 $isStatic = $isStatic ?? false;
 $wrapperClass = $isStatic ? 'category-dropdown is-static' : 'category-dropdown';
 $wrapperId = $isStatic ? 'categoryStaticMenu' : 'categoryMegaDropdown';

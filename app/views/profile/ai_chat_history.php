@@ -3,20 +3,7 @@
 <main class="container section" id="main-content" style="margin-top: 40px; min-height: 65vh;">
     <div style="display: flex; gap: 30px; flex-wrap: wrap;">
         <!-- Left Sidebar Menu -->
-        <aside style="width: 250px; background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow-card); align-self: flex-start;">
-            <h3 style="font-weight: 700; margin-bottom: 20px; font-size: 16px;"><i class="fa-solid fa-user-gear" style="margin-right: 8px; color: var(--primary);"></i> Quản lý tài khoản</h3>
-            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; font-size: 14.5px;">
-                <li><a href="<?= url('profile') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-user" style="width: 20px;"></i> Hồ sơ cá nhân</a></li>
-                <li><a href="<?= url('profile/orders') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-box-open" style="width: 20px;"></i> Đơn hàng của tôi</a></li>
-                <li><a href="<?= url('profile/wishlist') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-heart" style="width: 20px;"></i> Sản phẩm yêu thích</a></li>
-                <li><a href="<?= url('profile/ai-chat-history') ?>" style="text-decoration: none; color: var(--primary); font-weight: 700;"><i class="fa-solid fa-robot" style="width: 20px;"></i> Lịch sử trò chuyện AI</a></li>
-                <li><a href="<?= url('profile/notifications') ?>" style="text-decoration: none; color: var(--text-secondary);"><i class="fa-solid fa-bell" style="width: 20px;"></i> Thông báo hệ thống</a></li>
-                <?php if (($user['role'] ?? '') === 'admin'): ?>
-                    <li><a href="<?= url('admin') ?>" style="text-decoration: none; color: #0B63E5; font-weight: 700;"><i class="fa-solid fa-user-shield" style="width: 20px;"></i> Trang quản lý Admin</a></li>
-                <?php endif; ?>
-                <li><a href="<?= url('auth/logout') ?>" style="text-decoration: none; color: #EF4444;" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất?');"><i class="fa-solid fa-right-from-bracket" style="width: 20px;"></i> Đăng xuất</a></li>
-            </ul>
-        </aside>
+        <?php $activeMenu = 'ai-chat-history'; include ROOT_PATH . '/app/views/profile/_sidebar.php'; ?>
 
         <!-- Right Content Area -->
         <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 24px;">
@@ -59,7 +46,7 @@
                                             <?= e($s['product_name']) ?>
                                         </div>
                                         <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                            <?= ($s['last_message_role'] === 'user' ? 'Bạn: ' : 'AI: ') . e($s['last_message']) ?>
+                                            <?= ($s['last_message_role'] === 'user' ? 'Bạn: ' : 'AI: ') . e(str_replace(['*', '**'], '', $s['last_message'])) ?>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px; color: #94A3B8;">
                                             <span><?= date('d/m H:i', strtotime($s['last_chat_at'])) ?></span>
@@ -104,7 +91,7 @@
                                                     <img src="<?= url('assets/images/chatbot-avatar.png') ?>" alt="AI" style="width:100%; height:100%; object-fit:cover;">
                                                 </div>
                                                 <div style="background-color: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; max-width: 85%; line-height: 1.5; color: var(--text-primary);">
-                                                    <div><?= nl2br(e($h['message'])) ?></div>
+                                                    <div><?= formatAiMessage($h['message']) ?></div>
                                                     <div style="font-size: 10px; color: #94A3B8; margin-top: 4px;"><?= date('H:i, d/m/Y', strtotime($h['created_at'])) ?></div>
                                                 </div>
                                             </div>

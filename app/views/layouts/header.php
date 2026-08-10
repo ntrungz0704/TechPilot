@@ -6,6 +6,14 @@ if (!class_exists('CategoryMenuService') && defined('ROOT_PATH') && file_exists(
     require_once ROOT_PATH . '/app/services/CategoryMenuService.php';
 }
 
+if (empty($globalCategoryMenu) && class_exists('CategoryMenuService')) {
+    try {
+        $globalCategoryMenu = CategoryMenuService::getActiveMenuTree();
+    } catch (Throwable $e) {
+        $globalCategoryMenu = [];
+    }
+}
+
 require_once ROOT_PATH . '/app/models/Product.php';
 $headerProductModel = new Product();
 $activeCategoriesHeader = $headerProductModel->getCategories(true);

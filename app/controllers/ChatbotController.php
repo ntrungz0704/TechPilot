@@ -170,7 +170,7 @@ class ChatbotController extends Controller
 
         // 8. General AI Q&A via GeminiService
         try {
-            $generalPrompt = "Bạn là trợ lý ảo TechPilot AI. Khách hàng đang trò chuyện với bạn:\n\"$queryText\"\n\nHãy trả lời một cách tự nhiên, lịch sự, tư vấn công nghệ máy tính chuẩn xác và thân thiện. Trả lời bằng tiếng Việt ngắn gọn.";
+            $generalPrompt = "Bạn là trợ lý ảo TechPilot AI. Khách hàng đang trò chuyện với bạn:\n\"$queryText\"\n\nHãy trả lời một cách tự nhiên, lịch sự, tư vấn công nghệ máy tính chuẩn xác và thân thiện. Trả lời bằng tiếng Việt ngắn gọn, KHÔNG dùng các ký tự markdown dấu hoa thị *, ** trong câu trả lời.";
             $answer = GeminiService::callGemini($generalPrompt);
 
             echo json_encode([

@@ -172,14 +172,37 @@ class CheckoutController extends Controller
             // Guest sẽ nhận $savedAddresses = [] và tự nhập địa chỉ tại form.
             $defaultAddress = null;
             if ($user !== null && isset($user['id'])) {
+                $uStmt = $db->prepare("SELECT id, full_name, email, phone, role FROM users WHERE id = :id LIMIT 1");
+                $uStmt->execute([':id' => (int)$user['id']]);
+                $dbUser = $uStmt->fetch(PDO::FETCH_ASSOC);
+                if ($dbUser) {
+                    $user = array_merge($user, $dbUser);
+                    $_SESSION['user'] = $user;
+                }
+
                 $addrStmt = $db->prepare("SELECT * FROM user_addresses WHERE user_id = :uid ORDER BY is_default DESC, id DESC");
                 $addrStmt->execute([':uid' => $user['id']]);
                 $savedAddresses = $addrStmt->fetchAll(PDO::FETCH_ASSOC);
                 if (!empty($savedAddresses)) {
                     $defaultAddress = $savedAddresses[0];
+                } else {
+                    // Trích xuất địa chỉ từ đơn hàng gần nhất nếu tài khoản chưa có trong sổ địa chỉ
+                    $lastOrderStmt = $db->prepare("SELECT customer_name, phone, address FROM orders WHERE user_id = :uid AND address != '' ORDER BY id DESC LIMIT 1");
+                    $lastOrderStmt->execute([':uid' => $user['id']]);
+                    $lastOrder = $lastOrderStmt->fetch(PDO::FETCH_ASSOC);
+                    if ($lastOrder) {
+                        $defaultAddress = [
+                            'recipient_name' => $lastOrder['customer_name'],
+                            'phone' => $lastOrder['phone'],
+                            'address_line' => $lastOrder['address'],
+                        ];
+                    }
                 }
             }
         }
+
+        $checkoutInput = $_SESSION['checkout_input'] ?? [];
+        unset($_SESSION['checkout_input']);
 
         $this->render('checkout', [
             'pageTitle' => 'Thanh toán',
@@ -191,7 +214,8 @@ class CheckoutController extends Controller
             'total' => $total,
             'availableCoupons' => $availableCoupons,
             'savedAddresses' => $savedAddresses,
-            'defaultAddress' => $defaultAddress
+            'defaultAddress' => $defaultAddress,
+            'checkoutInput' => $checkoutInput
         ]);
 
         unset($_SESSION['checkout_error']);
@@ -370,8 +394,27 @@ class CheckoutController extends Controller
             return;
         }
 
+        $customerName = trim($_POST['customer_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $note = trim($_POST['note'] ?? '');
+        $paymentMethod = trim($_POST['payment_method'] ?? 'COD');
+        $saveAddress = $_POST['save_address'] ?? '0';
+        $savedAddressId = $_POST['saved_address_id'] ?? '';
+
+        $inputData = [
+            'customer_name' => $customerName,
+            'phone' => $phone,
+            'address' => $address,
+            'note' => $note,
+            'payment_method' => $paymentMethod,
+            'save_address' => $saveAddress,
+            'saved_address_id' => $savedAddressId,
+        ];
+
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
             $_SESSION['checkout_error'] = 'Phiên làm việc hết hạn, vui lòng thử lại.';
+            $_SESSION['checkout_input'] = $inputData;
             $this->redirect('checkout');
             return;
         }
@@ -397,6 +440,7 @@ class CheckoutController extends Controller
         if (!empty($savedToken) && ($submitToken === '' || $submitToken !== $savedToken)) {
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
             $_SESSION['checkout_error'] = 'Trang thanh toán đã được làm mới. Vui lòng thử lại.';
+            $_SESSION['checkout_input'] = $inputData;
             $this->redirect('checkout');
             return;
         }
@@ -404,15 +448,10 @@ class CheckoutController extends Controller
         // Huỷ bỏ submit_token ngay lập tức để chặn các request tiếp theo
         unset($_SESSION['submit_token']);
 
-        $customerName = trim($_POST['customer_name'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
-        $address = trim($_POST['address'] ?? '');
-        $note = trim($_POST['note'] ?? '');
-        $paymentMethod = trim($_POST['payment_method'] ?? 'COD');
-
         if ($customerName === '' || $phone === '' || $address === '') {
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
             $_SESSION['checkout_error'] = 'Vui lòng điền đầy đủ Họ và tên người nhận, Số điện thoại và Địa chỉ nhận hàng.';
+            $_SESSION['checkout_input'] = $inputData;
             $this->redirect('checkout');
             return;
         }
@@ -426,6 +465,7 @@ class CheckoutController extends Controller
             if (!$vnpayService->isConfigured()) {
                 $_SESSION['submit_token'] = bin2hex(random_bytes(16));
                 $_SESSION['checkout_error'] = 'Thanh toán qua VNPay tạm thời chưa khả dụng trên môi trường thử nghiệm. Vui lòng chọn phương thức Thanh toán khi nhận hàng (COD).';
+                $_SESSION['checkout_input'] = $inputData;
                 $this->redirect('checkout');
                 return;
             }
@@ -468,6 +508,7 @@ class CheckoutController extends Controller
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
             $err = $orderModel->getLastError();
             $_SESSION['checkout_error'] = !empty($err) ? $err : 'Không thể lưu đơn hàng. Vui lòng thử lại.';
+            $_SESSION['checkout_input'] = $inputData;
             $this->redirect('checkout');
             return;
         }

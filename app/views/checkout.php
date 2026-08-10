@@ -5,6 +5,16 @@ $shipping = $shipping ?? 0;
 $total = $total ?? 0;
 $savedAddresses = $savedAddresses ?? [];
 $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[0] : null);
+$checkoutInput = $checkoutInput ?? [];
+$user = currentUser();
+
+$valName = $checkoutInput['customer_name'] ?? $_POST['customer_name'] ?? $defaultAddress['recipient_name'] ?? $user['full_name'] ?? $user['name'] ?? '';
+$valPhone = $checkoutInput['phone'] ?? $_POST['phone'] ?? $defaultAddress['phone'] ?? $user['phone'] ?? '';
+$valAddress = $checkoutInput['address'] ?? $_POST['address'] ?? $defaultAddress['address_line'] ?? '';
+$valNote = $checkoutInput['note'] ?? $_POST['note'] ?? '';
+$valPayment = $checkoutInput['payment_method'] ?? $_POST['payment_method'] ?? 'COD';
+$valSaveAddr = isset($checkoutInput['save_address']) ? ($checkoutInput['save_address'] === '1') : true;
+$valSavedAddrId = $checkoutInput['saved_address_id'] ?? $_POST['saved_address_id'] ?? ($defaultAddress['id'] ?? '');
 ?>
 
 <section class="container breadcrumb">
@@ -41,7 +51,7 @@ $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[
                     <select id="savedAddress" name="saved_address_id">
                         <option value="">Nhập địa chỉ khác</option>
                         <?php foreach ($savedAddresses as $saved): ?>
-                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e($saved['address_line']) ?>" <?= (!empty($defaultAddress['id']) && $defaultAddress['id'] == $saved['id']) ? 'selected' : '' ?>>
+                            <option value="<?= (int)$saved['id'] ?>" data-name="<?= e($saved['recipient_name']) ?>" data-phone="<?= e($saved['phone']) ?>" data-address="<?= e($saved['address_line']) ?>" <?= ($valSavedAddrId == $saved['id']) ? 'selected' : '' ?>>
                                 <?= e($saved['recipient_name']) ?> — <?= e($saved['address_line']) ?><?= !empty($saved['is_default']) ? ' (Mặc định)' : '' ?>
                             </option>
                         <?php endforeach; ?>
@@ -51,19 +61,19 @@ $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[
             <?php endif; ?>
             <div class="form-group">
                 <label>Họ và tên người nhận</label>
-                <input type="text" name="customer_name" required value="<?= e($_POST['customer_name'] ?? $defaultAddress['recipient_name'] ?? $user['full_name'] ?? $user['name'] ?? '') ?>" placeholder="Nguyễn Văn A">
+                <input type="text" name="customer_name" required value="<?= e($valName) ?>" placeholder="Nguyễn Văn A">
             </div>
             <div class="form-group">
                 <label>Số điện thoại</label>
-                <input type="text" name="phone" required value="<?= e($_POST['phone'] ?? $defaultAddress['phone'] ?? $user['phone'] ?? '') ?>" placeholder="0909 123 456">
+                <input type="text" name="phone" required value="<?= e($valPhone) ?>" placeholder="0909 123 456">
             </div>
             <div class="form-group">
                 <label>Địa chỉ nhận hàng</label>
-                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($_POST['address'] ?? $defaultAddress['address_line'] ?? '') ?></textarea>
+                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($valAddress) ?></textarea>
             </div>
             <?php if ($user): ?>
                 <label class="save-address-option">
-                    <input type="checkbox" name="save_address" value="1" checked>
+                    <input type="checkbox" name="save_address" value="1" <?= $valSaveAddr ? 'checked' : '' ?>>
                     <span><strong>Lưu thông tin giao hàng vào sổ địa chỉ</strong><small>Dùng lại nhanh chóng cho lần mua hàng tiếp theo.</small></span>
                 </label>
             <?php endif; ?>
@@ -76,7 +86,7 @@ $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[
                             type="radio"
                             name="payment_method"
                             value="COD"
-                            checked
+                            <?= $valPayment === 'COD' ? 'checked' : '' ?>
                             class="payment-radio">
 
                         <span class="payment-text">
@@ -90,6 +100,7 @@ $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[
                             type="radio"
                             name="payment_method"
                             value="VNPAY"
+                            <?= $valPayment === 'VNPAY' ? 'checked' : '' ?>
                             class="payment-radio">
 
                         <span class="payment-text">
@@ -101,7 +112,7 @@ $defaultAddress = $defaultAddress ?? (!empty($savedAddresses) ? $savedAddresses[
             </div>
             <div class="form-group">
                 <label>Ghi chú đơn hàng (Không bắt buộc)</label>
-                <textarea name="note" rows="3" placeholder="Ví dụ: Giao hàng vào giờ hành chính, gọi điện trước khi giao..."></textarea>
+                <textarea name="note" rows="3" placeholder="Ví dụ: Giao hàng vào giờ hành chính, gọi điện trước khi giao..."><?= e($valNote) ?></textarea>
             </div>
             <input type="hidden" name="submit_token" value="<?= e($_SESSION['submit_token'] ?? '') ?>">
             <button type="submit" class="btn btn--block" style="height: 48px; font-size: 15px;">Xác nhận đặt hàng ngay <i class="fa-solid fa-square-check"></i></button>

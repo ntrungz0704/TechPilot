@@ -1975,13 +1975,16 @@
 
         // Format Markdown cơ bản
         function formatMarkdownText(text) {
+            if (!text) return '';
             return text
-                .replace(/\n/g, '<br>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px;">$1</code>')
                 .replace(/✔️/g, '<span style="color:#10B981;">✔️</span>')
                 .replace(/✔/g, '<span style="color:#10B981;">✔</span>')
                 .replace(/⚠️/g, '<span style="color:#FBBF24;">⚠️</span>')
-                .replace(/• (.*?)(<br>|$)/g, '<li style="margin-left: 10px;">$1</li>');
+                .replace(/^[•\*\-]\s+(.*?)$/gm, '<li style="margin-left: 10px; margin-bottom: 4px;">$1</li>')
+                .replace(/\n/g, '<br>');
         }
 
         // Khởi động các tác vụ nhanh ban đầu
@@ -2105,11 +2108,13 @@
                 });
         }
     </script>
-    <?php 
+    <?php
     $reqUriPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '/';
     $reqUriClean = trim((string)$reqUriPath, '/');
     $isHomePage = ($reqUriClean === '' || $reqUriClean === 'index.php' || $reqUriClean === 'home' || $reqUriClean === 'home/index');
     $popupBanner = $isHomePage ? getActivePopupBanner() : null; 
+    $popupUser = currentUser();
+    $popupScopeKey = ($popupUser && !empty($popupUser['id'])) ? 'user_' . (int)$popupUser['id'] : 'guest';
     ?>
     <?php if ($popupBanner): ?>
         <!-- Modal Quảng Cáo Popup Nổi Bật Shopee Style (Không nhòe phông, Chặn cuộn trang khi chưa tắt) -->
@@ -2139,7 +2144,7 @@
             html.tp-popup-locked,
             body.tp-popup-locked {
                 overflow: hidden !important;
-                height: 100% !important;
+                height: 100vh !important;
                 touch-action: none !important;
             }
 
@@ -2149,15 +2154,15 @@
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background: rgba(0, 0, 0, 0.55);
-                z-index: 999999;
+                background-color: rgba(0, 0, 0, 0.78);
+                z-index: 99999;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 padding: 20px;
                 opacity: 0;
                 visibility: hidden;
-                transition: opacity 0.3s ease, visibility 0.3s ease;
+                transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             .tp-popup-overlay.tp-popup-active {
@@ -2167,87 +2172,86 @@
 
             .tp-popup-card {
                 position: relative;
-                background: #0f172a;
-                border-radius: 18px;
-                overflow: visible;
-                max-width: 980px;
-                width: 94vw;
-                box-shadow: 0 30px 70px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(56, 189, 248, 0.3);
-                border: 1.5px solid rgba(255, 255, 255, 0.2);
-                transform: scale(0.9);
-                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                width: 90vw;
+                max-width: 820px;
+                background: #ffffff;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
+                transform: scale(0.88) translateY(20px);
+                transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+                display: flex;
+                flex-direction: column;
             }
 
             .tp-popup-overlay.tp-popup-active .tp-popup-card {
-                transform: scale(1);
+                transform: scale(1) translateY(0);
             }
 
             .tp-popup-close-btn {
                 position: absolute;
-                top: -18px;
-                right: -18px;
-                width: 44px;
-                height: 44px;
+                top: 14px;
+                right: 14px;
+                width: 40px;
+                height: 40px;
                 border-radius: 50%;
-                background: #ffffff;
-                color: #0f172a;
-                border: 1px solid rgba(0, 0, 0, 0.15);
-                font-size: 22px;
+                background: rgba(0, 0, 0, 0.65);
+                color: #ffffff;
+                border: 2px solid rgba(255, 255, 255, 0.9);
+                font-size: 20px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
                 z-index: 10;
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
                 transition: all 0.2s ease;
+                backdrop-filter: blur(6px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             }
 
             .tp-popup-close-btn:hover {
-                background: #ff4d4f;
+                background: #ef4444;
                 color: #ffffff;
-                border-color: #ff4d4f;
-                transform: scale(1.1);
+                border-color: #ef4444;
+                transform: rotate(90deg) scale(1.1);
             }
 
             .tp-popup-link {
                 display: block;
                 width: 100%;
-                border-top-left-radius: 16px;
-                border-top-right-radius: 16px;
+                background: transparent;
                 overflow: hidden;
-                background: #000000;
+                line-height: 0;
             }
 
             .tp-popup-img {
                 width: 100%;
                 height: auto;
-                max-height: 75vh;
+                max-height: 80vh;
                 object-fit: contain;
                 display: block;
                 transition: transform 0.3s ease;
             }
 
             .tp-popup-link:hover .tp-popup-img {
-                transform: scale(1.01);
+                transform: scale(1.015);
             }
 
             .tp-popup-footer {
+                padding: 14px 22px;
+                background: #f8fafc;
+                border-top: 1px solid #e2e8f0;
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                padding: 14px 24px;
-                background: #1e293b;
-                border-bottom-left-radius: 16px;
-                border-bottom-right-radius: 16px;
-                border-top: 1px solid rgba(255, 255, 255, 0.08);
+                justify-content: space-between;
             }
 
             .tp-popup-dont-show {
-                display: flex;
+                display: inline-flex;
                 align-items: center;
                 gap: 10px;
-                color: #cbd5e1;
-                font-size: 14.5px;
+                font-size: 14px;
+                color: #475569;
                 font-weight: 500;
                 cursor: pointer;
                 user-select: none;
@@ -2256,24 +2260,48 @@
             .tp-popup-dont-show input[type="checkbox"] {
                 width: 18px;
                 height: 18px;
-                accent-color: #38bdf8;
+                accent-color: #2563eb;
                 cursor: pointer;
             }
 
             .tp-popup-dont-show:hover {
-                color: #ffffff;
+                color: #1e293b;
             }
 
-            @media (max-width: 640px) {
+            /* Dark mode overrides for modal */
+            .dark .tp-popup-card {
+                background: #1e293b;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            }
+
+            .dark .tp-popup-footer {
+                background: #0f172a;
+                border-top-color: #334155;
+            }
+
+            .dark .tp-popup-dont-show {
+                color: #cbd5e1;
+            }
+
+            .dark .tp-popup-dont-show:hover {
+                color: #f8fafc;
+            }
+
+            @media (max-width: 850px) {
                 .tp-popup-card {
-                    max-width: 92vw;
+                    width: 94vw;
+                    max-width: 94vw;
+                    border-radius: 14px;
                 }
                 .tp-popup-close-btn {
-                    top: -12px;
-                    right: -8px;
-                    width: 32px;
-                    height: 32px;
-                    font-size: 15px;
+                    top: 10px;
+                    right: 10px;
+                    width: 34px;
+                    height: 34px;
+                    font-size: 17px;
+                }
+                .tp-popup-footer {
+                    padding: 12px 16px;
                 }
             }
         </style>
@@ -2283,11 +2311,14 @@
                 const popupEl = document.getElementById('tpPromoPopup');
                 if (!popupEl) return;
 
+                const popupScopeKey = '<?= $popupScopeKey ?>';
+                const storageKey = 'techpilot_hide_popup_date_' + popupScopeKey;
+
                 // Tính toán ngày hiện tại theo Múi giờ Việt Nam (Asia/Ho_Chi_Minh) dạng YYYY-MM-DD
                 const todayVN = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
-                const hiddenDate = localStorage.getItem('techpilot_hide_popup_date');
+                const hiddenDate = localStorage.getItem(storageKey);
 
-                // Nếu người dùng đã tích chọn "Không hiển thị lại ngày hôm nay" -> không mở popup
+                // Nếu tài khoản/khách hiện tại đã tích chọn "Không hiển thị lại ngày hôm nay" -> không mở popup
                 if (hiddenDate === todayVN) {
                     return;
                 }
@@ -2310,7 +2341,7 @@
                 function closePopup() {
                     const dontShowCheckbox = document.getElementById('tpDontShowToday');
                     if (dontShowCheckbox && dontShowCheckbox.checked) {
-                        localStorage.setItem('techpilot_hide_popup_date', todayVN);
+                        localStorage.setItem(storageKey, todayVN);
                     }
                     popupEl.classList.remove('tp-popup-active');
                     document.documentElement.classList.remove('tp-popup-locked');

@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Cho phép truy cập trực tiếp file/thư mục thật trong public
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Giữ nguyên các file/thư mục thật ở gốc nếu có
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Điều hướng mọi request còn lại vào public/index.php
+    RewriteRule ^(.*)$ public/index.php?url=$1 [L,QSA]
+</IfModule>

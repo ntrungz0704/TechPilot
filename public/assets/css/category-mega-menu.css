@@ -205,7 +205,7 @@
 /* ===== MEGA PANELS (DESKTOP) ===== */
 .category-dropdown__mega {
     flex-grow: 1;
-    background: #f8fafc;
+    background: #ffffff;
     position: relative;
     padding: 20px 28px;
     min-height: 380px;

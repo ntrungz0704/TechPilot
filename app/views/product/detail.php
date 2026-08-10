@@ -763,10 +763,13 @@ $galleryImages = getGalleryImages($product, $productImages);
     }
 
     function formatMarkdownText(text) {
+        if (!text) return '';
         return text
-            .replace(/\n/g, '<br>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/• (.*?)(<br>|$)/g, '<li style="margin-left: 15px; margin-bottom: 4px;">$1</li>');
+            .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+            .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px;">$1</code>')
+            .replace(/^[•\*\-]\s+(.*?)$/gm, '<li style="margin-left: 15px; margin-bottom: 4px;">$1</li>')
+            .replace(/\n/g, '<br>');
     }
 
     // Near-realtime Stock Polling cho trang Chi tiết sản phẩm

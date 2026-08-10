@@ -95,10 +95,14 @@ class User
     // ===== Hoàn thành chức năng Đăng ký tài khoản mới (UC01) =====
     // =========================================================================
 
-    /** Xác thực đăng nhập, trả về mảng user (không có password) hoặc false */
-    public function verify(string $email, string $password): array|false
+    /** Xác thực đăng nhập (hỗ trợ cả Email và Số điện thoại), trả về mảng user (không có password) hoặc false */
+    public function verify(string $identity, string $password): array|false
     {
-        $user = $this->findByEmail($email);
+        $identity = trim($identity);
+        $user = $this->findByEmail($identity);
+        if (!$user) {
+            $user = $this->findByPhone($identity);
+        }
 
         if ($user) {
             $isPasswordValid = password_verify($password, $user['password'])
