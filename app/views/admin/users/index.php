@@ -70,14 +70,18 @@
                                     </form>
 
                                     <!-- Change role button -->
-                                    <form method="post" action="<?= url('admin/users/change_role/' . $u['id']) ?>" style="margin: 0; display: flex; gap: 4px; align-items: center;">
-                                        <?= csrf_field() ?>
-                                        <select name="role" style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 600; background-color: var(--bg-card); color: var(--text-primary); outline: none;">
-                                            <option value="customer" <?= $u['role'] === 'customer' ? 'selected' : '' ?>>Customer</option>
-                                            <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
-                                        </select>
-                                        <button type="submit" class="btn btn--outline btn--sm" style="padding: 6px 8px; font-size: 11px;" title="Cập nhật quyền"><i class="fa-solid fa-check"></i></button>
-                                    </form>
+                                    <?php if ((int)$u['id'] === 1): ?>
+                                        <span style="font-size: 11.5px; color: #94A3B8; font-style: italic;"><i class="fa-solid fa-lock"></i> Quản trị tối cao</span>
+                                    <?php else: ?>
+                                        <form method="post" action="<?= url('admin/users/change_role/' . $u['id']) ?>" style="margin: 0; display: flex; gap: 4px; align-items: center;">
+                                            <?= csrf_field() ?>
+                                            <select name="role" style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 600; background-color: var(--bg-card); color: var(--text-primary); outline: none;">
+                                                <option value="customer" selected>Customer</option>
+                                                <option value="admin" disabled style="color: #94A3B8;">Admin (Đã khóa)</option>
+                                            </select>
+                                            <button type="submit" class="btn btn--outline btn--sm" style="padding: 6px 8px; font-size: 11px;" title="Cập nhật quyền"><i class="fa-solid fa-check"></i></button>
+                                        </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

@@ -138,6 +138,14 @@ class AdminUserController extends Controller
 
         // Nhận role dạng chuỗi (admin/customer), không dùng role_id
         $newRole = trim($_POST['role'] ?? 'customer');
+
+        // Khóa bảo mật: Hệ thống chỉ hỗ trợ duy nhất 1 tài khoản Admin tối cao
+        if ($newRole === 'admin' && $id !== 1) {
+            flash('error', 'Hệ thống chỉ cho phép duy nhất 1 tài khoản Admin tối cao. Không thể nâng cấp tài khoản khác lên Admin!');
+            $this->redirect('admin/users');
+            return;
+        }
+
         if (!in_array($newRole, ['admin', 'customer'])) {
             $newRole = 'customer';
         }
