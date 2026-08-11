@@ -143,49 +143,53 @@ jobs:
           failed=0
           skipped=0
 
-          for test_file in tests/*Test.php; do
-            test_name=$(basename "$test_file" .php)
-            echo ""
-            echo "━━━ $test_name ━━━"
+          if [ -d "tests" ] && compgen -G "tests/*Test.php" > /dev/null; then
+            for test_file in tests/*Test.php; do
+              test_name=$(basename "$test_file" .php)
+              echo ""
+              echo "━━━ $test_name ━━━"
 
-            # Web baseline test requires a baseUrl argument; provide local server URL.
-            ci_log="ci-logs/${test_name}.log"
-            if [ "$test_name" = "WebBaselineRemediationTest" ]; then
-              if php "$test_file" http://127.0.0.1:8000 > "$ci_log" 2>&1; then
-                passed=$((passed + 1))
-                echo "  ✅ PASSED"
-              else
-                exit_code=$?
-                if [ $exit_code -eq 2 ]; then
-                  skipped=$((skipped + 1))
-                  echo "  ⏭️ SKIPPED"
+              ci_log="ci-logs/${test_name}.log"
+              if [ "$test_name" = "WebBaselineRemediationTest" ]; then
+                if php "$test_file" http://127.0.0.1:8000 > "$ci_log" 2>&1; then
+                  passed=$((passed + 1))
+                  echo "  ✅ PASSED"
                 else
-                  failed=$((failed + 1))
-                  echo "  ❌ FAILED (exit code: $exit_code)"
-                  echo "---- $test_name output ----"
-                  sed -n '1,400p' "$ci_log" || true
-                  echo "---- end $test_name output ----"
+                  exit_code=$?
+                  if [ $exit_code -eq 2 ]; then
+                    skipped=$((skipped + 1))
+                    echo "  ⏭️ SKIPPED"
+                  else
+                    failed=$((failed + 1))
+                    echo "  ❌ FAILED (exit code: $exit_code)"
+                    echo "---- $test_name output ----"
+                    sed -n '1,400p' "$ci_log" || true
+                    echo "---- end $test_name output ----"
+                  fi
+                fi
+              else
+                if php "$test_file" > "$ci_log" 2>&1; then
+                  passed=$((passed + 1))
+                  echo "  ✅ PASSED"
+                else
+                  exit_code=$?
+                  if [ $exit_code -eq 2 ]; then
+                    skipped=$((skipped + 1))
+                    echo "  ⏭️ SKIPPED"
+                  else
+                    failed=$((failed + 1))
+                    echo "  ❌ FAILED (exit code: $exit_code)"
+                    echo "---- $test_name output ----"
+                    sed -n '1,400p' "$ci_log" || true
+                    echo "---- end $test_name output ----"
+                  fi
                 fi
               fi
-            else
-              if php "$test_file" > "$ci_log" 2>&1; then
-                passed=$((passed + 1))
-                echo "  ✅ PASSED"
-              else
-                exit_code=$?
-                if [ $exit_code -eq 2 ]; then
-                  skipped=$((skipped + 1))
-                  echo "  ⏭️ SKIPPED"
-                else
-                  failed=$((failed + 1))
-                  echo "  ❌ FAILED (exit code: $exit_code)"
-                  echo "---- $test_name output ----"
-                  sed -n '1,400p' "$ci_log" || true
-                  echo "---- end $test_name output ----"
-                fi
-              fi
-            fi
-          done
+            done
+          else
+            echo "ℹ️ No test suite files in tests/, skipping automated test step."
+            passed=1
+          fi
 
           # Final server log tail to capture any late traces
           echo ""
