@@ -82,11 +82,15 @@ class PaymentController extends Controller
         $failUrl = url('payment/vnpay-return?' . implode('&', $failHashParts) . '&vnp_SecureHash=' . $failHash);
 
         $displayAmount = number_format($amount / 100, 0, ',', '.') . 'đ';
+        $qrData = $successUrl;
+        $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=' . urlencode($qrData);
 
         $this->render('payment/vnpay_sandbox', [
-            'pageTitle' => 'Cổng thanh toán VNPay (Sandbox Simulator)',
+            'pageTitle' => 'Cổng thanh toán VNPAY-QR (Mô phỏng Test)',
             'orderCode' => $txnRef,
+            'amountRaw' => $amount / 100,
             'displayAmount' => $displayAmount,
+            'qrImageUrl' => $qrImageUrl,
             'successUrl' => $successUrl,
             'failUrl' => $failUrl
         ]);
