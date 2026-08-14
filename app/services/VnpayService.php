@@ -27,8 +27,8 @@ class VnpayService
         }
         date_default_timezone_set('Asia/Ho_Chi_Minh');
 
-        $amount = (int) $order['total'];
-        $orderCode = (string) $order['order_code'];
+        $amount = (int) ($order['total'] ?? $order['total_amount'] ?? 0);
+        $orderCode = (string) ($order['order_code'] ?? '');
 
         $params = [
             'vnp_Version' => '2.1.0',
