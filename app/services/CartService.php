@@ -78,6 +78,7 @@ class CartService
 
             $flashItem = null;
             $flashQty = 0;
+            $flashQuoteStatus = 'none';
             $db = Database::getConnection();
             if ($db && $available) {
                 try {
@@ -88,7 +89,8 @@ class CartService
                         $buyerKey = 'user:' . (int)$user['id'];
                     }
                     $flashQuote = FlashSaleService::quoteForPurchase($db, $productId, $quantity, $buyerKey);
-                    if (($flashQuote['status'] ?? '') === 'eligible' && is_array($flashQuote['item'] ?? null)) {
+                    $flashQuoteStatus = (string)($flashQuote['status'] ?? 'none');
+                    if ($flashQuoteStatus === 'eligible' && is_array($flashQuote['item'] ?? null)) {
                         $flashItem = $flashQuote['item'];
                         $flashQty = min($quantity, max(1, (int)($flashQuote['flash_qty'] ?? 1)));
                     }
@@ -130,6 +132,9 @@ class CartService
                 'line_total' => $lineTotal,
                 'available' => $available,
                 'flash_qty' => $flashQty,
+                'flash_quote_status' => $flashQuoteStatus,
+                'has_flash_sale' => ($flashQuoteStatus === 'eligible' || $flashQuoteStatus === 'limit_reached'),
+                'is_limit_reached' => ($flashQuoteStatus === 'limit_reached' || ($flashQty > 0 && $quantity > $flashQty)),
             ];
         }
 

@@ -52,17 +52,24 @@ $canCheckout = $canCheckout ?? false;
                                     </a>
                                 </h3>
                                 <p><?= formatPrice($item['price']) ?> / sản phẩm trung bình</p>
-                                <?php if (!empty($item['is_flash_sale']) && isset($item['flash_qty'])): ?>
-                                    <?php $fq = (int)$item['flash_qty']; $rq = (int)$item['quantity'] - $fq; ?>
-                                    <?php if ($fq > 0 && $rq > 0): ?>
-                                        <div style="margin-top: 4px; font-size: 12px; font-weight: 600; color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 3px 8px; border-radius: 4px; display: inline-block;">
-                                            ⚡ <?= $fq ?> sp giá Flash Sale + <?= $rq ?> sp giá niêm yết
-                                        </div>
-                                    <?php elseif ($fq === 0 && (int)$item['quantity'] > 0): ?>
-                                        <div style="margin-top: 4px; font-size: 12px; font-weight: 600; color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 3px 8px; border-radius: 4px; display: inline-block;">
-                                            🔥 Đã hết suất Flash Sale (tính giá niêm yết)
-                                        </div>
-                                    <?php endif; ?>
+                                <?php 
+                                    $fq = (int)($item['flash_qty'] ?? 0); 
+                                    $qty = (int)($item['quantity'] ?? 1);
+                                    $rq = max(0, $qty - $fq);
+                                    $status = (string)($item['flash_quote_status'] ?? '');
+                                ?>
+                                <?php if ($fq > 0 && $rq > 0): ?>
+                                    <div style="margin-top: 6px; font-size: 12px; font-weight: 600; color: #d97706; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                                        <i class="fa-solid fa-bolt"></i> <span><strong><?= $fq ?></strong> sp giá Flash Sale + <strong><?= $rq ?></strong> sp tính giá gốc (vượt giới hạn ưu đãi)</span>
+                                    </div>
+                                <?php elseif ($fq > 0 && $rq === 0): ?>
+                                    <div style="margin-top: 6px; font-size: 12px; font-weight: 600; color: #dc2626; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                                        <i class="fa-solid fa-bolt"></i> <span>Áp dụng giá Flash Sale (<?= $fq ?> sản phẩm)</span>
+                                    </div>
+                                <?php elseif ($status === 'limit_reached'): ?>
+                                    <div style="margin-top: 6px; font-size: 12px; font-weight: 600; color: #d97706; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> <span>Đã đạt giới hạn mua Flash Sale (Toàn bộ được tính theo giá niêm yết)</span>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>

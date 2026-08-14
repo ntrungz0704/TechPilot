@@ -137,6 +137,17 @@ $valSavedAddrId = $checkoutInput['saved_address_id'] ?? $_POST['saved_address_id
                     <div style="flex: 1; min-width: 0;">
                         <span style="display: block; font-weight: 600; font-size: 13.5px; line-height: 1.35; color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?= e($item['name']) ?></span>
                         <span style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: block;">Số lượng: <strong><?= (int)$item['quantity'] ?></strong></span>
+                        <?php 
+                            $fq = (int)($item['flash_qty'] ?? 0); 
+                            $qty = (int)($item['quantity'] ?? 1);
+                            $rq = max(0, $qty - $fq);
+                            $status = (string)($item['flash_quote_status'] ?? '');
+                        ?>
+                        <?php if ($fq > 0 && $rq > 0): ?>
+                            <span style="font-size: 11.5px; font-weight: 600; color: #d97706; margin-top: 3px; display: block;">⚡ <?= $fq ?> sp Flash Sale + <?= $rq ?> sp giá gốc</span>
+                        <?php elseif ($status === 'limit_reached'): ?>
+                            <span style="font-size: 11.5px; font-weight: 600; color: #d97706; margin-top: 3px; display: block;">⚠️ Đã đạt giới hạn Flash Sale (tính giá gốc)</span>
+                        <?php endif; ?>
                     </div>
                     <strong style="font-size: 14px; color: var(--primary); white-space: nowrap;"><?= formatPrice($item['line_total']) ?></strong>
                 </div>
