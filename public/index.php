@@ -44,8 +44,18 @@ $cspDirectives = [
 header('Content-Security-Policy: ' . implode('; ', $cspDirectives));
 
 // Lấy phần URL sau index.php, ví dụ: product/detail/asus-rog-zephyrus-g16
-$url = $_GET['url'] ?? '';
-$path = '/' . trim(parse_url($url, PHP_URL_PATH), '/');
+if (isset($_GET['url']) && $_GET['url'] !== '') {
+    $url = $_GET['url'];
+} else {
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+    $url = parse_url($requestUri, PHP_URL_PATH) ?? '/';
+
+    // Loại bỏ BASE_URL prefix nếu có (ví dụ khi chạy trong subdirectory)
+    if (defined('BASE_URL') && BASE_URL !== '' && str_starts_with($url, BASE_URL)) {
+        $url = substr($url, strlen(BASE_URL));
+    }
+}
+$path = '/' . trim(parse_url($url, PHP_URL_PATH) ?? '', '/');
 
 // Kiểm tra bảo mật CSRF cho toàn bộ các POST request (chống giả mạo yêu cầu)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -143,10 +153,16 @@ $router->get('/product/detail/{slug}', 'ProductController@detail');
 // Auth Routes
 $router->get('/auth/login', 'AuthController@login');
 $router->post('/auth/login', 'AuthController@login');
+$router->get('/login', 'AuthController@login');
+$router->post('/login', 'AuthController@login');
 $router->get('/auth/register', 'AuthController@register');
 $router->post('/auth/register', 'AuthController@register');
+$router->get('/register', 'AuthController@register');
+$router->post('/register', 'AuthController@register');
 $router->get('/auth/logout', 'AuthController@logout');
 $router->post('/auth/logout', 'AuthController@logout');
+$router->get('/logout', 'AuthController@logout');
+$router->post('/logout', 'AuthController@logout');
 $router->get('/auth/forgot', 'AuthController@forgot');
 $router->post('/auth/forgot', 'AuthController@forgot');
 $router->get('/auth/reset', 'AuthController@reset');
@@ -320,6 +336,8 @@ $router->post('/pc-builder/add-to-cart', 'PcBuilderController@addToCart');
 // News Routes
 $router->get('/tin-tuc', 'NewsController@index');
 $router->get('/tin-tuc/{slug}', 'NewsController@show');
+$router->get('/news', 'NewsController@index');
+$router->get('/news/{slug}', 'NewsController@show');
 $router->get('/post', 'PostController@index');
 $router->get('/post/detail/{slug}', 'PostController@detail');
 $router->get('/post/{slug}', 'PostController@detail');
