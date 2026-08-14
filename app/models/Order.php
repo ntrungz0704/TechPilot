@@ -82,15 +82,12 @@ class Order
                     $buyerKey
                 );
                 $flashQuoteStatus = (string)($flashQuote['status'] ?? 'none');
-                if ($flashQuoteStatus === 'limit_reached') {
-                    throw new RuntimeException('Bạn đã đạt giới hạn mua Flash Sale cho sản phẩm này.');
-                }
 
-                $flashItem = $flashQuoteStatus === 'eligible' && is_array($flashQuote['item'] ?? null)
+                $flashItem = ($flashQuoteStatus === 'eligible' && is_array($flashQuote['item'] ?? null))
                     ? $flashQuote['item']
                     : null;
 
-                $flashQty = ($flashItem !== null) ? min($qty, max(1, (int)($flashQuote['flash_qty'] ?? 1))) : 0;
+                $flashQty = ($flashItem !== null) ? min($qty, max(0, (int)($flashQuote['flash_qty'] ?? 0))) : 0;
                 $regularQty = $qty - $flashQty;
 
                 $basePrice = (float)$dbProduct['price'];

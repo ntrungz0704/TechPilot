@@ -285,6 +285,8 @@ class CartController extends Controller
                             $flashNotice = '⚡ Lưu ý: Sản phẩm đã hết suất Flash Sale, số lượng này được tính theo giá niêm yết.';
                         }
                     }
+                } elseif (($quote['status'] ?? '') === 'limit_reached') {
+                    $flashNotice = '⚡ Lưu ý: Bạn đã đạt giới hạn mua Flash Sale, sản phẩm được tính theo giá niêm yết.';
                 }
             } catch (Exception $e) {}
 

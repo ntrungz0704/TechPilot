@@ -78,7 +78,7 @@ class FlashSaleService
             $limit = (int)$candidate['limit_per_user'];
 
             $remainingCapacity = max(0, $allocation - $sold);
-            if ($remainingCapacity < $quantity) {
+            if ($remainingCapacity <= 0) {
                 continue;
             }
             $sawCapacity = true;

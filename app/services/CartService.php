@@ -105,13 +105,12 @@ class CartService
                 $priceSource = 'flash';
                 $oldPrice = $basePrice;
             } else {
-                $priceData = getEffectiveProductData($product);
-                $price = (float)$priceData['final_price'];
+                $price = $regularPrice;
                 $lineTotal = $available ? $price * $quantity : 0.0;
-                $hasDiscount = (bool)$priceData['has_discount'];
-                $isFlashSale = (bool)$priceData['is_flash_sale'];
-                $priceSource = (string)$priceData['price_source'];
-                $oldPrice = (float)$priceData['original_price'];
+                $hasDiscount = ($salePrice > 0 && $salePrice < $basePrice);
+                $isFlashSale = false;
+                $priceSource = $hasDiscount ? 'sale' : 'base';
+                $oldPrice = $basePrice;
             }
 
             $items[$productId] = [

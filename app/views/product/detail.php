@@ -141,7 +141,7 @@ $galleryImages = getGalleryImages($product, $productImages);
                         $u = currentUser();
                         $bKey = $u ? 'user:' . (int)$u['id'] : 'guest:cart';
                         $q = FlashSaleService::quoteForPurchase($this->db, (int)$product['id'], 1, $bKey);
-                        if (($q['status'] ?? '') === 'eligible' && (int)($q['flash_qty'] ?? 0) === 0) {
+                        if (($q['status'] ?? '') === 'limit_reached' || (($q['status'] ?? '') === 'eligible' && (int)($q['flash_qty'] ?? 0) === 0)) {
                             $isUserLimitReached = true;
                         }
                     } catch (Exception $e) {}
