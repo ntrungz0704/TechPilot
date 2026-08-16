@@ -73,23 +73,50 @@
             <?= csrf_field() ?>
             <input type="hidden" name="id" id="addr-id" value="">
             
-            <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">Họ và tên người nhận</label>
-                    <input type="text" name="recipient_name" id="addr-name" required style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                    <label style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Họ và tên người nhận <span style="color:#EF4444">*</span></label>
+                    <input type="text" name="recipient_name" id="addr-name" required style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">Số điện thoại</label>
-                    <input type="text" name="phone" id="addr-phone" required style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                    <label style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Số điện thoại <span style="color:#EF4444">*</span></label>
+                    <input type="tel" name="phone" id="addr-phone" required placeholder="+84 901 234 567" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; font-weight:600;">
+                    <div id="addrPhoneError" style="display:none; color: #EF4444; font-size: 12px; margin-top: 2px;"></div>
+                    <small style="color: var(--text-secondary); font-size: 11.5px;">Chuẩn +84 (10 hoặc 11 chữ số, ví dụ: +84901234567 hoặc 0901234567)</small>
                 </div>
                 
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">Địa chỉ cụ thể</label>
-                    <textarea name="address_line" id="addr-line" rows="3" required style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;"></textarea>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Tỉnh / Thành phố <span style="color:#EF4444">*</span></label>
+                        <select name="province" id="addr-province" required style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13.5px; outline: none; background: white;">
+                            <option value="">-- Chọn Tỉnh / TP --</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Quận / Huyện <span style="color:#EF4444">*</span></label>
+                        <select name="district" id="addr-district" required disabled style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13.5px; outline: none; background: white;">
+                            <option value="">-- Chọn Quận / Huyện --</option>
+                        </select>
+                    </div>
                 </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Phường / Xã <span style="color:#EF4444">*</span></label>
+                        <select name="ward" id="addr-ward" required disabled style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13.5px; outline: none; background: white;">
+                            <option value="">-- Chọn Phường / Xã --</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Số nhà, tên đường <span style="color:#EF4444">*</span></label>
+                        <input type="text" name="address_detail" id="addr-detail" required placeholder="Số nhà, tên đường..." style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13.5px; outline: none; background: white;">
+                    </div>
+                </div>
+
+                <input type="hidden" name="address_line" id="addr-line" value="">
                 
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
                     <input type="checkbox" name="is_default" id="addr-default" value="1" style="width: 16px; height: 16px; accent-color: var(--primary);">
                     <label for="addr-default" style="font-size: 14px; color: var(--text-primary);">Đặt làm địa chỉ mặc định</label>
                 </div>
@@ -104,6 +131,24 @@
 </div>
 
 <script>
+    let modalAddrSelector = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.TechPilotAddress) {
+            modalAddrSelector = window.TechPilotAddress.initSelector({
+                province: '#addr-province',
+                district: '#addr-district',
+                ward: '#addr-ward',
+                detail: '#addr-detail',
+                fullAddress: '#addr-line'
+            });
+
+            const phoneInput = document.getElementById('addr-phone');
+            const phoneError = document.getElementById('addrPhoneError');
+            window.TechPilotAddress.attachPhoneFormatter(phoneInput, phoneError);
+        }
+    });
+
     function showAddModal() {
         document.getElementById('modal-title').innerText = 'Thêm địa chỉ mới';
         document.getElementById('address-form').action = '<?= url("profile/add-address") ?>';
@@ -111,7 +156,11 @@
         document.getElementById('addr-name').value = '';
         document.getElementById('addr-phone').value = '';
         document.getElementById('addr-line').value = '';
+        document.getElementById('addr-detail').value = '';
         document.getElementById('addr-default').checked = false;
+        if (modalAddrSelector) {
+            modalAddrSelector.setValues('', '', '', '');
+        }
         document.getElementById('address-modal').style.display = 'flex';
     }
 
@@ -123,6 +172,10 @@
         document.getElementById('addr-phone').value = addr.phone;
         document.getElementById('addr-line').value = addr.address_line;
         document.getElementById('addr-default').checked = addr.is_default == 1;
+        
+        if (modalAddrSelector && addr.address_line) {
+            modalAddrSelector.prefill(addr.address_line);
+        }
         document.getElementById('address-modal').style.display = 'flex';
     }
 

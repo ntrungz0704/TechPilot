@@ -39,13 +39,25 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <label style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Số điện thoại</label>
-                        <input type="text" name="phone" value="<?= e($user['phone'] ?? '') ?>" required style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14.5px; outline: none;">
+                        <label style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Số điện thoại <span style="color:#EF4444">*</span></label>
+                        <input type="tel" name="phone" id="profilePhone" value="<?= e($user['phone'] ?? '') ?>" required placeholder="+84 901 234 567" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14.5px; outline: none; font-weight: 600;">
+                        <div id="profilePhoneError" style="display:none; color: #EF4444; font-size: 12.5px; margin-top: 2px;"></div>
+                        <small style="color: var(--text-secondary); font-size: 12px;"><i class="fa-solid fa-circle-info"></i> Định dạng chuẩn: <strong>+84</strong> (10 hoặc 11 chữ số, ví dụ: +84901234567 hoặc 0901234567)</small>
                     </div>
 
                     <button type="submit" class="btn" style="align-self: flex-start; padding: 10px 24px; font-size: 14px; font-weight: 600;">Lưu thay đổi</button>
                 </form>
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (window.TechPilotAddress) {
+                        const phoneInput = document.getElementById('profilePhone');
+                        const phoneError = document.getElementById('profilePhoneError');
+                        window.TechPilotAddress.attachPhoneFormatter(phoneInput, phoneError);
+                    }
+                });
+            </script>
 
             <div style="background-color: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-card);">
                 <h3 style="margin-top:0"><i class="fa-solid fa-location-dot" style="color:var(--primary)"></i> Sổ địa chỉ</h3>

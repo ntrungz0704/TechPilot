@@ -186,6 +186,10 @@ $router->post('/product/review', 'ProductController@review');
 
 // Profile & Account Routes
 $router->get('/profile', 'ProfileController@index');
+$router->get('/profile/index', 'ProfileController@index');
+$router->post('/profile', 'ProfileController@index');
+$router->post('/profile/index', 'ProfileController@index');
+$router->post('/profile/update', 'ProfileController@index');
 $router->get('/profile/orders', 'ProfileController@orders');
 $router->get('/profile/order_detail', 'ProfileController@order_detail');
 $router->get('/profile/order_detail/{id}', 'ProfileController@order_detail');
@@ -196,13 +200,20 @@ $router->get('/profile/wishlist', 'ProfileController@wishlist');
 $router->get('/profile/return', 'ProfileController@return');
 $router->get('/profile/return/{id}', 'ProfileController@return');
 $router->post('/profile/submit_return', 'ProfileController@submit_return');
+$router->post('/profile/submit-return', 'ProfileController@submit_return');
 $router->post('/profile/change_password', 'ProfileController@change_password');
+$router->post('/profile/change-password', 'ProfileController@change_password');
 $router->post('/profile/cancel_order', 'ProfileController@cancel_order');
+$router->post('/profile/cancel-order', 'ProfileController@cancel_order');
 $router->get('/profile/addresses', 'ProfileController@addresses');
 $router->post('/profile/add-address', 'ProfileController@add_address');
+$router->post('/profile/add_address', 'ProfileController@add_address');
 $router->post('/profile/edit-address', 'ProfileController@edit_address');
+$router->post('/profile/edit_address', 'ProfileController@edit_address');
 $router->post('/profile/delete-address', 'ProfileController@delete_address');
+$router->post('/profile/delete_address', 'ProfileController@delete_address');
 $router->post('/profile/set-default-address', 'ProfileController@set_default_address');
+$router->post('/profile/set_default_address', 'ProfileController@set_default_address');
 $router->post('/profile/repay', 'ProfileController@repay');
 
 // Payment Callbacks
@@ -279,7 +290,13 @@ $router->post('/admin/orders/update_status/{id}', 'AdminOrderController@updateSt
 $router->get('/admin/users', 'AdminUserController@index');
 $router->get('/admin/customers', 'AdminUserController@index');
 $router->post('/admin/users/toggle_status/{id}', 'AdminUserController@toggleStatus');
+$router->post('/admin/users/toggle-status/{id}', 'AdminUserController@toggleStatus');
 $router->post('/admin/users/change_role/{id}', 'AdminUserController@changeRole');
+$router->post('/admin/users/change-role/{id}', 'AdminUserController@changeRole');
+$router->post('/admin/customers/toggle_status/{id}', 'AdminUserController@toggleStatus');
+$router->post('/admin/customers/toggle-status/{id}', 'AdminUserController@toggleStatus');
+$router->post('/admin/customers/change_role/{id}', 'AdminUserController@changeRole');
+$router->post('/admin/customers/change-role/{id}', 'AdminUserController@changeRole');
 
 // Admin Review Routes
 $router->get('/admin/reviews', 'AdminReviewController@index');

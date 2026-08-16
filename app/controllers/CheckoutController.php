@@ -394,21 +394,37 @@ class CheckoutController extends Controller
             return;
         }
 
-        $customerName = trim($_POST['customer_name'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
-        $address = trim($_POST['address'] ?? '');
-        $note = trim($_POST['note'] ?? '');
+        $customerName  = trim($_POST['customer_name'] ?? '');
+        $phone         = trim($_POST['phone'] ?? '');
+        $province      = trim($_POST['province'] ?? '');
+        $district      = trim($_POST['district'] ?? '');
+        $ward          = trim($_POST['ward'] ?? '');
+        $addressDetail = trim($_POST['address_detail'] ?? '');
+        $address       = trim($_POST['address'] ?? '');
+        $note          = trim($_POST['note'] ?? '');
         $paymentMethod = trim($_POST['payment_method'] ?? 'COD');
-        $saveAddress = $_POST['save_address'] ?? '0';
-        $savedAddressId = $_POST['saved_address_id'] ?? '';
+        $saveAddress   = $_POST['save_address'] ?? '0';
+        $savedAddressId= $_POST['saved_address_id'] ?? '';
+
+        // Tự động ghép địa chỉ đầy đủ từ 4 trường phân cấp hành chính nếu có
+        if ($province !== '' || $district !== '' || $ward !== '' || $addressDetail !== '') {
+            $addrParts = array_filter([$addressDetail, $ward, $district, $province], fn($p) => trim((string)$p) !== '');
+            if (!empty($addrParts)) {
+                $address = implode(', ', $addrParts);
+            }
+        }
 
         $inputData = [
-            'customer_name' => $customerName,
-            'phone' => $phone,
-            'address' => $address,
-            'note' => $note,
-            'payment_method' => $paymentMethod,
-            'save_address' => $saveAddress,
+            'customer_name'    => $customerName,
+            'phone'            => $phone,
+            'province'         => $province,
+            'district'         => $district,
+            'ward'             => $ward,
+            'address_detail'   => $addressDetail,
+            'address'          => $address,
+            'note'             => $note,
+            'payment_method'   => $paymentMethod,
+            'save_address'     => $saveAddress,
             'saved_address_id' => $savedAddressId,
         ];
 
@@ -450,11 +466,23 @@ class CheckoutController extends Controller
 
         if ($customerName === '' || $phone === '' || $address === '') {
             $_SESSION['submit_token'] = bin2hex(random_bytes(16));
-            $_SESSION['checkout_error'] = 'Vui lòng điền đầy đủ Họ và tên người nhận, Số điện thoại và Địa chỉ nhận hàng.';
+            $_SESSION['checkout_error'] = 'Vui lòng điền đầy đủ Họ và tên người nhận, Số điện thoại và Địa chỉ nhận hàng (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà/Đường).';
             $_SESSION['checkout_input'] = $inputData;
             $this->redirect('checkout');
             return;
         }
+
+        // Kiểm tra định dạng số điện thoại Việt Nam (+84 với 10 hoặc 11 số)
+        if (!isValidVietnamesePhone($phone)) {
+            $_SESSION['submit_token'] = bin2hex(random_bytes(16));
+            $_SESSION['checkout_error'] = 'Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại định dạng +84 (10 hoặc 11 số, ví dụ: +84901234567 hoặc 0901234567).';
+            $_SESSION['checkout_input'] = $inputData;
+            $this->redirect('checkout');
+            return;
+        }
+
+        // Chuẩn hóa số điện thoại về định dạng +84
+        $phone = formatPhone($phone);
 
         if (!in_array($paymentMethod, ['COD', 'VNPAY'], true)) {
             $paymentMethod = 'COD';

@@ -268,6 +268,23 @@ class ProfileController extends Controller
                 return;
             }
 
+            // Kiểm tra định dạng số điện thoại Việt Nam (+84 với 10 hoặc 11 số)
+            if (!isValidVietnamesePhone($phone)) {
+                flash('error', 'Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại định dạng +84 (10 hoặc 11 số, ví dụ: +84901234567 hoặc 0901234567).');
+                $this->redirect('profile');
+                return;
+            }
+
+            $phone = formatPhone($phone);
+
+            // Kiểm tra số điện thoại có bị trùng với tài khoản khác không
+            $existingUser = $this->userModel->findByPhone($phone, (int)$user['id']);
+            if ($existingUser) {
+                flash('error', 'Số điện thoại này đã được sử dụng bởi tài khoản khác.');
+                $this->redirect('profile');
+                return;
+            }
+
             $ok = $this->userModel->updateProfile((int)$user['id'], $fullName, $phone);
             if ($ok) {
                 // Cập nhật lại thông tin user trong Session
@@ -483,14 +500,32 @@ class ProfileController extends Controller
 
         $name = trim($_POST['recipient_name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
-        $address = trim($_POST['address_line'] ?? '');
+        $province = trim($_POST['province'] ?? '');
+        $district = trim($_POST['district'] ?? '');
+        $ward = trim($_POST['ward'] ?? '');
+        $addressLine = trim($_POST['address_line'] ?? '');
         $isDefault = isset($_POST['is_default']) ? 1 : 0;
 
-        if ($name === '' || $phone === '' || $address === '') {
-            flash('error', 'Vui lòng điền đầy đủ thông tin.');
+        if ($province !== '' || $district !== '' || $ward !== '') {
+            $parts = array_filter([$addressLine, $ward, $district, $province], fn($p) => trim((string)$p) !== '');
+            if (!empty($parts)) {
+                $addressLine = implode(', ', $parts);
+            }
+        }
+
+        if ($name === '' || $phone === '' || $addressLine === '') {
+            flash('error', 'Vui lòng điền đầy đủ thông tin người nhận, số điện thoại và địa chỉ.');
             $this->redirect('profile/addresses');
             return;
         }
+
+        if (!isValidVietnamesePhone($phone)) {
+            flash('error', 'Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại định dạng +84 (10 hoặc 11 số).');
+            $this->redirect('profile/addresses');
+            return;
+        }
+
+        $phone = formatPhone($phone);
 
         $db = Database::getConnection();
         if ($db) {
@@ -504,8 +539,8 @@ class ProfileController extends Controller
                 }
             }
 
-            $stmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, '', :def)");
-            if ($stmt->execute([':uid' => $user['id'], ':name' => $name, ':phone' => $phone, ':addr' => $address, ':def' => $isDefault])) {
+            $stmt = $db->prepare("INSERT INTO user_addresses (user_id, recipient_name, phone, address_line, province, is_default) VALUES (:uid, :name, :phone, :addr, :prov, :def)");
+            if ($stmt->execute([':uid' => $user['id'], ':name' => $name, ':phone' => $phone, ':addr' => $addressLine, ':prov' => $province, ':def' => $isDefault])) {
                 flash('success', 'Thêm địa chỉ thành công.');
             } else {
                 flash('error', 'Lỗi hệ thống.');
@@ -522,14 +557,32 @@ class ProfileController extends Controller
         $id = (int)($_POST['id'] ?? 0);
         $name = trim($_POST['recipient_name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
-        $address = trim($_POST['address_line'] ?? '');
+        $province = trim($_POST['province'] ?? '');
+        $district = trim($_POST['district'] ?? '');
+        $ward = trim($_POST['ward'] ?? '');
+        $addressLine = trim($_POST['address_line'] ?? '');
         $isDefault = isset($_POST['is_default']) ? 1 : 0;
 
-        if ($id <= 0 || $name === '' || $phone === '' || $address === '') {
+        if ($province !== '' || $district !== '' || $ward !== '') {
+            $parts = array_filter([$addressLine, $ward, $district, $province], fn($p) => trim((string)$p) !== '');
+            if (!empty($parts)) {
+                $addressLine = implode(', ', $parts);
+            }
+        }
+
+        if ($id <= 0 || $name === '' || $phone === '' || $addressLine === '') {
             flash('error', 'Dữ liệu không hợp lệ.');
             $this->redirect('profile/addresses');
             return;
         }
+
+        if (!isValidVietnamesePhone($phone)) {
+            flash('error', 'Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại định dạng +84 (10 hoặc 11 số).');
+            $this->redirect('profile/addresses');
+            return;
+        }
+
+        $phone = formatPhone($phone);
 
         $db = Database::getConnection();
         if ($db) {
@@ -537,8 +590,8 @@ class ProfileController extends Controller
                 $db->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = :uid")->execute([':uid' => $user['id']]);
             }
 
-            $stmt = $db->prepare("UPDATE user_addresses SET recipient_name = :name, phone = :phone, address_line = :addr, is_default = :def WHERE id = :id AND user_id = :uid");
-            $stmt->execute([':name' => $name, ':phone' => $phone, ':addr' => $address, ':def' => $isDefault, ':id' => $id, ':uid' => $user['id']]);
+            $stmt = $db->prepare("UPDATE user_addresses SET recipient_name = :name, phone = :phone, address_line = :addr, province = :prov, is_default = :def WHERE id = :id AND user_id = :uid");
+            $stmt->execute([':name' => $name, ':phone' => $phone, ':addr' => $addressLine, ':prov' => $province, ':def' => $isDefault, ':id' => $id, ':uid' => $user['id']]);
             flash('success', 'Cập nhật địa chỉ thành công.');
         }
         $this->redirect('profile/addresses');

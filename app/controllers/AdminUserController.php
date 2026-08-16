@@ -26,9 +26,11 @@ class AdminUserController extends Controller
             $params = [];
 
             if ($search !== '') {
-                $sql .= ' AND (full_name LIKE :search OR email LIKE :search OR phone LIKE :search)';
-                $countSql .= ' AND (full_name LIKE :search OR email LIKE :search OR phone LIKE :search)';
-                $params[':search'] = '%' . $search . '%';
+                $sql .= ' AND (full_name LIKE :search1 OR email LIKE :search2 OR phone LIKE :search3)';
+                $countSql .= ' AND (full_name LIKE :search1 OR email LIKE :search2 OR phone LIKE :search3)';
+                $params[':search1'] = '%' . $search . '%';
+                $params[':search2'] = '%' . $search . '%';
+                $params[':search3'] = '%' . $search . '%';
             }
 
             if ($roleFilter !== '') {

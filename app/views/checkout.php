@@ -60,16 +60,49 @@ $valSavedAddrId = $checkoutInput['saved_address_id'] ?? $_POST['saved_address_id
                 </div>
             <?php endif; ?>
             <div class="form-group">
-                <label>Họ và tên người nhận</label>
+                <label>Họ và tên người nhận <span style="color:#EF4444">*</span></label>
                 <input type="text" name="customer_name" required value="<?= e($valName) ?>" placeholder="Nguyễn Văn A">
             </div>
             <div class="form-group">
-                <label>Số điện thoại</label>
-                <input type="text" name="phone" required value="<?= e($valPhone) ?>" placeholder="0909 123 456">
+                <label>Số điện thoại <span style="color:#EF4444">*</span></label>
+                <input type="tel" name="phone" id="checkoutPhone" required value="<?= e($valPhone) ?>" placeholder="+84 901 234 567" style="font-weight: 600;">
+                <div id="phoneErrorMsg" style="display:none; color: #EF4444; font-size: 12.5px; margin-top: 4px;"></div>
+                <small style="color: var(--text-secondary); font-size: 12px;"><i class="fa-solid fa-circle-info"></i> Định dạng chuẩn: <strong>+84</strong> (10 hoặc 11 chữ số, ví dụ: +84901234567 hoặc 0901234567)</small>
             </div>
-            <div class="form-group">
-                <label>Địa chỉ nhận hàng</label>
-                <textarea name="address" required rows="4" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"><?= e($valAddress) ?></textarea>
+            
+            <div class="checkout-address-section" style="display: flex; flex-direction: column; gap: 14px; background: #F8FAFC; border: 1px solid var(--border); border-radius: var(--radius-elem); padding: 18px;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> Địa chỉ nhận hàng
+                </div>
+                <div class="form-row-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size: 13px;">Tỉnh / Thành phố <span style="color:#EF4444">*</span></label>
+                        <select name="province" id="checkoutProvince" required style="background: white;">
+                            <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 13px;">Quận / Huyện <span style="color:#EF4444">*</span></label>
+                        <select name="district" id="checkoutDistrict" required disabled style="background: white;">
+                            <option value="">-- Chọn Quận / Huyện --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size: 13px;">Phường / Xã <span style="color:#EF4444">*</span></label>
+                        <select name="ward" id="checkoutWard" required disabled style="background: white;">
+                            <option value="">-- Chọn Phường / Xã --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 13px;">Số nhà, tên đường, tòa nhà <span style="color:#EF4444">*</span></label>
+                        <input type="text" name="address_detail" id="checkoutAddressDetail" required placeholder="Ví dụ: Số 123 Đường Lê Lợi" style="background: white;">
+                    </div>
+                </div>
+
+                <input type="hidden" name="address" id="checkoutFullAddress" value="<?= e($valAddress) ?>">
             </div>
             <?php if ($user): ?>
                 <label class="save-address-option">
@@ -220,6 +253,27 @@ $valSavedAddrId = $checkoutInput['saved_address_id'] ?? $_POST['saved_address_id
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        let addrSelector = null;
+        if (window.TechPilotAddress) {
+            addrSelector = window.TechPilotAddress.initSelector({
+                province: '#checkoutProvince',
+                district: '#checkoutDistrict',
+                ward: '#checkoutWard',
+                detail: '#checkoutAddressDetail',
+                fullAddress: '#checkoutFullAddress'
+            });
+
+            const phoneInput = document.getElementById('checkoutPhone');
+            const phoneError = document.getElementById('phoneErrorMsg');
+            window.TechPilotAddress.attachPhoneFormatter(phoneInput, phoneError);
+
+            // Tự động điền dữ liệu địa chỉ ban đầu nếu có
+            const initAddr = <?= json_encode($valAddress) ?>;
+            if (initAddr && addrSelector) {
+                addrSelector.prefill(initAddr);
+            }
+        }
+
         const savedAddress = document.getElementById('savedAddress');
         if (savedAddress) savedAddress.addEventListener('change', function() {
             const option = this.options[this.selectedIndex];
@@ -227,8 +281,17 @@ $valSavedAddrId = $checkoutInput['saved_address_id'] ?? $_POST['saved_address_id
             const saveCheckbox = document.querySelector('[name="save_address"]');
             if (saveCheckbox) saveCheckbox.checked = false;
             document.querySelector('[name="customer_name"]').value = option.dataset.name || '';
-            document.querySelector('[name="phone"]').value = option.dataset.phone || '';
-            document.querySelector('[name="address"]').value = option.dataset.address || '';
+            const phoneEl = document.getElementById('checkoutPhone');
+            if (phoneEl) {
+                phoneEl.value = option.dataset.phone || '';
+                if (window.TechPilotAddress) {
+                    const res = window.TechPilotAddress.validatePhone(phoneEl.value);
+                    if (res.isValid) phoneEl.value = res.formatted;
+                }
+            }
+            if (addrSelector && option.dataset.address) {
+                addrSelector.prefill(option.dataset.address);
+            }
         });
 
         const applyBtn = document.getElementById('applyCouponBtn');

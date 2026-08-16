@@ -38,24 +38,56 @@ if (!function_exists('getActivePopupBanner')) {
     }
 }
 
+if (!function_exists('cleanPhoneDigits')) {
+    function cleanPhoneDigits(?string $phone): string
+    {
+        $phone = trim($phone ?? '');
+        return preg_replace('/[^\d+]/', '', $phone);
+    }
+}
+
 if (!function_exists('formatPhone')) {
     function formatPhone(?string $phone): string
     {
-        $phone = trim($phone ?? '');
-
-        if ($phone === '') {
+        $cleaned = cleanPhoneDigits($phone);
+        if ($cleaned === '') {
             return '';
         }
 
-        if (str_starts_with($phone, '0')) {
-            return '+84' . substr($phone, 1);
+        if (str_starts_with($cleaned, '+84')) {
+            return $cleaned;
         }
 
-        if (!str_starts_with($phone, '+84')) {
-            return '+84' . $phone;
+        if (str_starts_with($cleaned, '84')) {
+            return '+' . $cleaned;
         }
 
-        return $phone;
+        if (str_starts_with($cleaned, '0')) {
+            return '+84' . substr($cleaned, 1);
+        }
+
+        return '+84' . $cleaned;
+    }
+}
+
+if (!function_exists('isValidVietnamesePhone')) {
+    /**
+     * Kiểm tra số điện thoại Việt Nam hợp lệ (định dạng +84 với 10 hoặc 11 số)
+     * Hỗ trợ nhập +84xxxxxxxxx, 0xxxxxxxxx, 84xxxxxxxxx (10 - 11 số)
+     */
+    function isValidVietnamesePhone(?string $phone): bool
+    {
+        $cleaned = cleanPhoneDigits($phone);
+        if ($cleaned === '') {
+            return false;
+        }
+
+        // Chấp nhận +84 / 84 / 0 theo sau bởi 9 hoặc 10 chữ số (tổng 10-11 số)
+        if (preg_match('/^(\+84|84|0)[1-9][0-9]{8,9}$/', $cleaned)) {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -472,8 +504,9 @@ if (!function_exists('currentUser')) {
 
 if (!function_exists('assertActiveUserSession')) {
     /**
-     * Tự động kiểm tra trạng thái khóa tài khoản trong Database trên mọi request.
-     * Nếu bị Admin khóa status != active, lập tức hủy Session và Đăng xuất (Logout) ngay lập tức.
+     * Tự động kiểm tra trạng thái và đồng bộ dữ liệu tài khoản từ Database trên mọi request.
+     * - Nếu bị Admin khóa status != active, lập tức hủy Session và Đăng xuất (Logout) ngay lập tức.
+     * - Nếu còn active, tự động đồng bộ vai trò (role), họ tên, sđt mới nhất khi Admin thay đổi.
      */
     function assertActiveUserSession(): void
     {
@@ -490,11 +523,11 @@ if (!function_exists('assertActiveUserSession')) {
         $db = Database::getConnection();
         if (!$db) return;
 
-        $stmt = $db->prepare('SELECT status FROM users WHERE id = :id LIMIT 1');
+        $stmt = $db->prepare('SELECT id, email, full_name, phone, role, status, address FROM users WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => (int)$sessionUser['id']]);
-        $status = $stmt->fetchColumn();
+        $freshUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($status !== false && $status !== 'active') {
+        if (!$freshUser || $freshUser['status'] !== 'active') {
             // User has been locked or deactivated by Admin -> Force Immediate Logout
             unset($_SESSION['user']);
             unset($_SESSION['cart']);
@@ -525,6 +558,15 @@ if (!function_exists('assertActiveUserSession')) {
                 $loginUrl = defined('BASE_URL') ? BASE_URL . '/auth/login' : '/auth/login';
                 header('Location: ' . $loginUrl);
                 exit;
+            }
+        } else {
+            // Đồng bộ dữ liệu mới nhất từ DB vào Session
+            $_SESSION['user']['full_name'] = $freshUser['full_name'];
+            $_SESSION['user']['phone']     = $freshUser['phone'];
+            $_SESSION['user']['role']      = $freshUser['role'];
+            $_SESSION['user']['status']    = $freshUser['status'];
+            if (isset($freshUser['address'])) {
+                $_SESSION['user']['address'] = $freshUser['address'];
             }
         }
     }
@@ -623,8 +665,23 @@ if (!function_exists('pullFlashes')) {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        $flashes = $_SESSION['flashes'] ?? [];
+        $rawFlashes = $_SESSION['flashes'] ?? [];
         $_SESSION['flashes'] = [];
+
+        $flashes = [];
+        foreach ($rawFlashes as $f) {
+            if (is_array($f) && isset($f['type'], $f['message'])) {
+                $flashes[] = $f;
+                if (!isset($flashes[$f['type']])) {
+                    $flashes[$f['type']] = $f['message'];
+                }
+            } elseif (is_string($f)) {
+                $flashes[] = ['type' => 'info', 'message' => $f];
+                if (!isset($flashes['info'])) {
+                    $flashes['info'] = $f;
+                }
+            }
+        }
         return $flashes;
     }
 }
