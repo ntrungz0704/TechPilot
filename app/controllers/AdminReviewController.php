@@ -80,6 +80,7 @@ class AdminReviewController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/reviews');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -101,6 +102,7 @@ class AdminReviewController extends Controller
         }
 
         $this->redirect('admin/reviews');
+        return;
     }
 
     public function hide(string $id = ''): void
@@ -109,6 +111,7 @@ class AdminReviewController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/reviews');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -130,5 +133,6 @@ class AdminReviewController extends Controller
         }
 
         $this->redirect('admin/reviews');
+        return;
     }
 }

@@ -335,6 +335,9 @@ class AdminPostController extends Controller
 
             try {
                 $db = Database::getConnection();
+                $fetchStmt = $db->prepare('SELECT image FROM posts WHERE id = :id LIMIT 1');
+                $fetchStmt->execute([':id' => $id]);
+                $post = $fetchStmt->fetch(PDO::FETCH_ASSOC);
                 /* DELETE FROM posts WHERE id = :id */
                 $stmt = $db->prepare("UPDATE posts SET status = 'hidden' WHERE id = :id");
                 if ($stmt->execute([':id' => $id])) {

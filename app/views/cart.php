@@ -1,6 +1,7 @@
 <?php
 $cartItems = $cartItems ?? [];
 $subtotal = $subtotal ?? 0;
+$shipping = $shipping ?? 0;
 $total = $total ?? 0;
 $hasUnavailableItems = $hasUnavailableItems ?? false;
 $canCheckout = $canCheckout ?? false;
@@ -77,7 +78,7 @@ $canCheckout = $canCheckout ?? false;
                             <?php if ($itemAvailable): ?>
                             <form method="post" action="<?= url('cart/update') ?>" class="qty-form" style="display: flex; align-items: center; gap: 4px;">
                                 <?= csrf_field() ?>
-                                <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
+                                <input type="hidden" name="product_id" value="<?= (int)($item['product_id'] ?? $item['id'] ?? 0) ?>">
                                 <button type="submit" name="qty_action" value="decrease" class="qty-btn" style="width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; font-weight: bold;" aria-label="Giảm số lượng">-</button>
                                 <input type="number" name="quantity" value="<?= (int)$item['quantity'] ?>" min="1" max="<?= (int)($item['stock'] ?? 100) ?>" onfocus="this.select()" onchange="this.form.submit()" style="width: 50px; height: 28px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-weight: 700; background: var(--bg-card); color: var(--text-primary); -moz-appearance: textfield;">
                                 <button type="submit" name="qty_action" value="increase" class="qty-btn" style="width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; font-weight: bold;" aria-label="Tăng số lượng">+</button>
@@ -87,7 +88,7 @@ $canCheckout = $canCheckout ?? false;
                             <?php endif; ?>
                             <form method="post" action="<?= url('cart/remove') ?>">
                                 <?= csrf_field() ?>
-                                <input type="hidden" name="product_id" value="<?= (int)$item['product_id'] ?>">
+                                <input type="hidden" name="product_id" value="<?= (int)($item['product_id'] ?? $item['id'] ?? 0) ?>">
                                 <button type="submit" class="btn btn--outline btn--sm" style="box-shadow: none;">Xóa</button>
                             </form>
                         </div>

@@ -206,6 +206,7 @@ class AdminFlashSaleController extends Controller
     {
         if (!$this->isPost()) {
             $this->redirect('admin/flash-sales');
+            return;
         }
 
         $this->requireAdmin();
@@ -282,6 +283,7 @@ class AdminFlashSaleController extends Controller
                 $db->commit();
                 flash('success', 'Tạo chương trình Flash Sale thành công!');
                 $this->redirect('admin/flash-sales');
+                return;
 
             } catch (Throwable $e) {
                 if ($db->inTransaction()) {
@@ -289,6 +291,7 @@ class AdminFlashSaleController extends Controller
                 }
                 flash('error', 'Lỗi: ' . $e->getMessage());
                 $this->redirect('admin/flash-sales/create');
+                return;
             }
         }
     }
@@ -347,6 +350,7 @@ class AdminFlashSaleController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/flash-sales');
+            return;
         }
 
         $this->requireAdmin();
@@ -481,6 +485,7 @@ class AdminFlashSaleController extends Controller
                 $db->commit();
                 flash('success', 'Cập nhật Flash Sale thành công!');
                 $this->redirect('admin/flash-sales');
+                return;
 
             } catch (Throwable $e) {
                 if ($db->inTransaction()) {
@@ -488,6 +493,7 @@ class AdminFlashSaleController extends Controller
                 }
                 flash('error', 'Lỗi: ' . $e->getMessage());
                 $this->redirect('admin/flash-sales/edit/' . $id);
+                return;
             }
         }
     }
@@ -497,6 +503,7 @@ class AdminFlashSaleController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/flash-sales');
+            return;
         }
 
         $this->requireAdmin();
@@ -519,6 +526,7 @@ class AdminFlashSaleController extends Controller
         }
 
         $this->redirect('admin/flash-sales');
+        return;
     }
 
     /** Toggle trạng thái Bật/Tắt Flash Sale (POST /admin/flash-sales/toggle-status/{id}) */

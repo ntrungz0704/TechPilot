@@ -35,6 +35,7 @@ class AdminCouponController extends Controller
     {
         if (!$this->isPost()) {
             $this->redirect('admin/coupons');
+            return;
         }
 
         $this->requireAdmin();
@@ -124,9 +125,11 @@ class AdminCouponController extends Controller
             if ($success) {
                 flash('success', 'Đã thêm mã giảm giá thành công!');
                 $this->redirect('admin/coupons');
+                return;
             } else {
                 flash('error', 'Không thể lưu mã giảm giá.');
                 $this->redirect('admin/coupons/create');
+                return;
             }
         }
     }
@@ -162,6 +165,7 @@ class AdminCouponController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/coupons');
+            return;
         }
 
         $this->requireAdmin();
@@ -256,9 +260,11 @@ class AdminCouponController extends Controller
             if ($success) {
                 flash('success', 'Đã cập nhật mã giảm giá thành công!');
                 $this->redirect('admin/coupons');
+                return;
             } else {
                 flash('error', 'Không thể cập nhật mã giảm giá.');
                 $this->redirect('admin/coupons/edit/' . $id);
+                return;
             }
         }
     }
@@ -268,6 +274,7 @@ class AdminCouponController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/coupons');
+            return;
         }
 
         $this->requireAdmin();
@@ -290,6 +297,7 @@ class AdminCouponController extends Controller
         }
 
         $this->redirect('admin/coupons');
+        return;
     }
 
     /** Toggle trạng thái Bật/Tắt mã giảm giá (POST /admin/coupons/toggle-status/{id}) */

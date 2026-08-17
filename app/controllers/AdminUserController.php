@@ -76,6 +76,7 @@ class AdminUserController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/users');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -115,6 +116,7 @@ class AdminUserController extends Controller
         }
 
         $this->redirect('admin/users');
+        return;
     }
 
     public function changeRole(string $id = ''): void
@@ -123,6 +125,7 @@ class AdminUserController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/users');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -165,6 +168,7 @@ class AdminUserController extends Controller
         }
 
         $this->redirect('admin/users');
+        return;
     }
     // =========================================================================
     // ===== Hoàn thành chức năng Admin Quản lý Người dùng (UC30) =====

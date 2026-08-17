@@ -20,6 +20,7 @@ class WishlistController extends Controller
         if (!$user) {
             flash('error', 'Vui lòng đăng nhập để xem sản phẩm yêu thích.');
             $this->redirect('auth/login');
+            return;
         }
 
         $items = $this->model->getItems((int)$user['id']);
@@ -37,6 +38,7 @@ class WishlistController extends Controller
         if (!$user) {
             flash('error', 'Vui lòng đăng nhập để lưu sản phẩm yêu thích.');
             $this->redirect('auth/login');
+            return;
         }
 
         if ($this->isPost()) {
@@ -52,6 +54,7 @@ class WishlistController extends Controller
         }
 
         $this->redirect($_SERVER['HTTP_REFERER'] ?? 'wishlist');
+        return;
     }
 
     public function remove(): void
@@ -59,6 +62,7 @@ class WishlistController extends Controller
         $user = currentUser();
         if (!$user) {
             $this->redirect('auth/login');
+            return;
         }
 
         if ($this->isPost()) {
@@ -70,6 +74,7 @@ class WishlistController extends Controller
         }
 
         $this->redirect('wishlist');
+        return;
     }
 
     public function toggle(): void

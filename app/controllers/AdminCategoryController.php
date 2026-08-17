@@ -67,6 +67,7 @@ class AdminCategoryController extends Controller
     {
         if (!$this->isPost()) {
             $this->redirect('admin/categories');
+            return;
         }
 
         $this->requireAdmin();
@@ -123,9 +124,11 @@ class AdminCategoryController extends Controller
         if ($success) {
             flash('success', 'Đã thêm danh mục thành công!');
             $this->redirect('admin/categories');
+            return;
         } else {
             flash('error', 'Không thể lưu danh mục vào database.');
             $this->redirect('admin/categories/create');
+            return;
         }
     }
 
@@ -168,6 +171,7 @@ class AdminCategoryController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/categories');
+            return;
         }
 
         $this->requireAdmin();
@@ -228,9 +232,11 @@ class AdminCategoryController extends Controller
 
             flash('success', 'Đã cập nhật danh mục thành công!');
             $this->redirect('admin/categories');
+            return;
         } else {
             flash('error', 'Không thể cập nhật danh mục.');
             $this->redirect('admin/categories/edit/' . $id);
+            return;
         }
     }
 
@@ -240,6 +246,7 @@ class AdminCategoryController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/categories');
+            return;
         }
 
         $this->requireAdmin();
@@ -265,6 +272,7 @@ class AdminCategoryController extends Controller
         }
 
         $this->redirect('admin/categories');
+        return;
     }
 
     /** Toggle trạng thái Bật/Tắt hiển thị danh mục (POST /admin/categories/toggle-status/{id}) */

@@ -55,7 +55,9 @@
                                 <div style="display: flex; gap: 10px;">
                                     <a href="<?= url('profile/order_detail?id=' . (int)$order['id']) ?>" class="btn btn--light btn--sm">Chi Tiết</a>
                                     <!-- Nút đổi trả chỉ cho phép nếu trạng thái thích hợp -->
+                                    <?php if (in_array($order['status'], ['completed', 'shipping'], true)): ?>
                                     <a href="<?= url('profile/return?order_id=' . (int)$order['id']) ?>" class="btn btn--sm" style="background-color: #F59E0B; border-color: #D97706;">Yêu Cầu Đổi Trả</a>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

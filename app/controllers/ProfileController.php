@@ -66,6 +66,7 @@ class ProfileController extends Controller
         if (!$order) {
             flash('error', 'Đơn hàng không tồn tại.');
             $this->redirect('profile/orders');
+            return;
         }
 
         $this->render('profile/order_detail', [
@@ -84,12 +85,16 @@ class ProfileController extends Controller
     public function repay(): void
     {
         $user = $this->requireLogin();
-        if (!$this->isPost()) $this->redirect('profile/orders');
+        if (!$this->isPost()) {
+            $this->redirect('profile/orders');
+            return;
+        }
         $orderId = (int)($_POST['order_id'] ?? 0);
         $order = $this->orderModel->getById($orderId, (int)$user['id']);
         if (!$order || ($order['payment_method'] ?? '') !== 'VNPAY' || ($order['status'] ?? '') === 'cancelled' || !in_array($order['payment_status'] ?? '', ['failed', 'pending'], true)) {
             flash('error', 'Đơn hàng này không thể thanh toán lại.');
             $this->redirect('profile/orders');
+            return;
         }
 
         require_once ROOT_PATH . '/app/services/VnpayService.php';
@@ -107,6 +112,7 @@ class ProfileController extends Controller
         } catch (Throwable $e) {
             flash('error', 'Không thể kết nối VNPay. Vui lòng thử lại sau.');
             $this->redirect('profile/order_detail?id=' . $orderId);
+            return;
         }
     }
     // =========================================================================
@@ -156,6 +162,7 @@ class ProfileController extends Controller
         if (($order['payment_status'] ?? '') !== 'paid') {
             flash('error', 'Chỉ đơn hàng đã thanh toán thành công mới có thể yêu cầu đổi trả.');
             $this->redirect('profile/order_detail?id=' . $orderId);
+            return;
         }
         
         $this->render('profile/return', [
@@ -171,11 +178,13 @@ class ProfileController extends Controller
         $user = $this->requireLogin();
         if (!$this->isPost()) {
             $this->redirect('profile/orders');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
             flash('error', 'Phiên làm việc hết hạn. Thử lại.');
             $this->redirect('profile/orders');
+            return;
         }
 
         $orderId = (int)($_POST['order_id'] ?? 0);
@@ -183,6 +192,7 @@ class ProfileController extends Controller
         if (!$order || ($order['payment_status'] ?? '') !== 'paid') {
             flash('error', 'Đơn hàng chưa thanh toán hoặc không hợp lệ.');
             $this->redirect('profile/orders');
+            return;
         }
         $reason = trim((string)($_POST['reason'] ?? ''));
         $description = trim((string)($_POST['description'] ?? ''));
@@ -217,6 +227,7 @@ class ProfileController extends Controller
         if (empty($itemsToReturn)) {
             flash('error', 'Vui lòng chọn ít nhất một sản phẩm và số lượng để đổi trả.');
             $this->redirect('profile/return?order_id=' . $orderId);
+            return;
         }
 
         $ok = $this->returnModel->create((int)$user['id'], $orderId, $reason, $description, $itemsToReturn);
@@ -235,9 +246,11 @@ class ProfileController extends Controller
             }
 
             $this->redirect('profile/orders');
+            return;
         } else {
             flash('error', 'Đã xảy ra lỗi khi tạo yêu cầu đổi trả.');
             $this->redirect('profile/return?order_id=' . $orderId);
+            return;
         }
     }
     // =========================================================================
@@ -496,7 +509,10 @@ class ProfileController extends Controller
     public function add_address(): void
     {
         $user = $this->requireLogin();
-        if (!$this->isPost()) $this->redirect('profile/addresses');
+        if (!$this->isPost()) {
+            $this->redirect('profile/addresses');
+            return;
+        }
 
         $name = trim($_POST['recipient_name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
@@ -547,12 +563,16 @@ class ProfileController extends Controller
             }
         }
         $this->redirect('profile/addresses');
+        return;
     }
 
     public function edit_address(): void
     {
         $user = $this->requireLogin();
-        if (!$this->isPost()) $this->redirect('profile/addresses');
+        if (!$this->isPost()) {
+            $this->redirect('profile/addresses');
+            return;
+        }
 
         $id = (int)($_POST['id'] ?? 0);
         $name = trim($_POST['recipient_name'] ?? '');
@@ -595,12 +615,16 @@ class ProfileController extends Controller
             flash('success', 'Cập nhật địa chỉ thành công.');
         }
         $this->redirect('profile/addresses');
+        return;
     }
 
     public function delete_address(): void
     {
         $user = $this->requireLogin();
-        if (!$this->isPost()) $this->redirect('profile/addresses');
+        if (!$this->isPost()) {
+            $this->redirect('profile/addresses');
+            return;
+        }
 
         $id = (int)($_POST['id'] ?? 0);
         $db = Database::getConnection();
@@ -610,12 +634,16 @@ class ProfileController extends Controller
             flash('success', 'Xóa địa chỉ thành công.');
         }
         $this->redirect('profile/addresses');
+        return;
     }
 
     public function set_default_address(): void
     {
         $user = $this->requireLogin();
-        if (!$this->isPost()) $this->redirect('profile/addresses');
+        if (!$this->isPost()) {
+            $this->redirect('profile/addresses');
+            return;
+        }
 
         $id = (int)($_POST['id'] ?? 0);
         $db = Database::getConnection();
@@ -625,6 +653,7 @@ class ProfileController extends Controller
             flash('success', 'Đã đặt làm địa chỉ mặc định.');
         }
         $this->redirect('profile/addresses');
+        return;
     }
     // =========================================================================
     // ===== Hoàn thành chức năng Quản lý Số địa chỉ giao hàng (UC05) =====

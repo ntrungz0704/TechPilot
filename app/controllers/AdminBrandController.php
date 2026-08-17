@@ -44,6 +44,7 @@ class AdminBrandController extends Controller
     {
         if (!$this->isPost()) {
             $this->redirect('admin/brands');
+            return;
         }
 
         $this->requireAdmin();
@@ -106,9 +107,11 @@ class AdminBrandController extends Controller
         if ($success) {
             flash('success', 'Đã thêm thương hiệu thành công!');
             $this->redirect('admin/brands');
+            return;
         } else {
             flash('error', 'Không thể lưu thương hiệu.');
             $this->redirect('admin/brands/create');
+            return;
         }
     }
 
@@ -143,6 +146,7 @@ class AdminBrandController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/brands');
+            return;
         }
 
         $this->requireAdmin();
@@ -202,9 +206,11 @@ class AdminBrandController extends Controller
         if ($success) {
             flash('success', 'Đã cập nhật thương hiệu thành công!');
             $this->redirect('admin/brands');
+            return;
         } else {
             flash('error', 'Không thể cập nhật thương hiệu.');
             $this->redirect('admin/brands/edit/' . $id);
+            return;
         }
     }
 
@@ -213,6 +219,7 @@ class AdminBrandController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/brands');
+            return;
         }
 
         $this->requireAdmin();
@@ -235,6 +242,7 @@ class AdminBrandController extends Controller
         }
 
         $this->redirect('admin/brands');
+        return;
     }
 
     /** Toggle trạng thái Bật/Tắt hiển thị thương hiệu (POST /admin/brands/toggle-status/{id}) */

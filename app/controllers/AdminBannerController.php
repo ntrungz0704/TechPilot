@@ -35,6 +35,7 @@ class AdminBannerController extends Controller
     {
         if (!$this->isPost()) {
             $this->redirect('admin/banners');
+            return;
         }
 
         $this->requireAdmin();
@@ -94,9 +95,11 @@ class AdminBannerController extends Controller
             if ($success) {
                 flash('success', 'Đã thêm banner thành công!');
                 $this->redirect('admin/banners');
+                return;
             } else {
                 flash('error', 'Không thể lưu banner.');
                 $this->redirect('admin/banners/create');
+                return;
             }
         }
     }
@@ -132,6 +135,7 @@ class AdminBannerController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/banners');
+            return;
         }
 
         $this->requireAdmin();
@@ -183,9 +187,11 @@ class AdminBannerController extends Controller
             if ($success) {
                 flash('success', 'Đã cập nhật banner thành công!');
                 $this->redirect('admin/banners');
+                return;
             } else {
                 flash('error', 'Không thể cập nhật banner.');
                 $this->redirect('admin/banners/edit/' . $id);
+                return;
             }
         }
     }
@@ -195,6 +201,7 @@ class AdminBannerController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/banners');
+            return;
         }
 
         $this->requireAdmin();
@@ -217,6 +224,7 @@ class AdminBannerController extends Controller
         }
 
         $this->redirect('admin/banners');
+        return;
     }
 
     /** Toggle trạng thái Bật/Tắt hiển thị banner (POST /admin/banners/toggle-status/{id}) */

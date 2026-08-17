@@ -265,6 +265,7 @@ class AuthController extends Controller
         session_destroy();
         session_start(); // regenerate a fresh empty session
         $this->redirect('/');
+        return;
     }
     // =========================================================================
     // ===== Hoàn thành chức năng Đăng xuất Tài khoản (UC02) =====
@@ -330,6 +331,7 @@ class AuthController extends Controller
         $token = $_GET['token'] ?? '';
         if (empty($token)) {
             $this->redirect('auth/login');
+            return;
         }
 
         require_once ROOT_PATH . '/config/database.php';
@@ -343,6 +345,7 @@ class AuthController extends Controller
         if (!$user) {
             flash('error', 'Link khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.');
             $this->redirect('auth/login');
+            return;
         }
 
         $errors = [];

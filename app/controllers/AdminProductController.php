@@ -186,6 +186,7 @@ class AdminProductController extends Controller
         $this->requireAdmin();
         if (!$this->isPost()) {
             $this->redirect('admin/products');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -278,9 +279,11 @@ class AdminProductController extends Controller
         if ($success) {
             flash('success', 'Đã thêm sản phẩm thành công!');
             $this->redirect('admin/products');
+            return;
         } else {
             flash('error', 'Không thể lưu sản phẩm vào database.');
             $this->redirect('admin/products/create');
+            return;
         }
     }
 
@@ -325,6 +328,7 @@ class AdminProductController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/products');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -420,9 +424,11 @@ class AdminProductController extends Controller
         if ($success) {
             flash('success', 'Đã cập nhật sản phẩm thành công!');
             $this->redirect('admin/products');
+            return;
         } else {
             flash('error', 'Không thể cập nhật sản phẩm.');
             $this->redirect('admin/products/edit/' . $id);
+            return;
         }
     }
 
@@ -433,6 +439,7 @@ class AdminProductController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/products');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -452,6 +459,7 @@ class AdminProductController extends Controller
         }
 
         $this->redirect('admin/products');
+        return;
     }
 
     /** Toggle trạng thái Hiển thị / Tạm ẩn cho sản phẩm qua AJAX (POST /admin/products/toggle-status/{id}) */
@@ -599,6 +607,7 @@ class AdminProductController extends Controller
         }
 
         $this->redirect('admin/products');
+        return;
     }
 
     /** API Hỗ trợ sinh dữ liệu sản phẩm bằng AI: POST /admin/products/ai-assistant */

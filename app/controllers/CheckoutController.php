@@ -625,6 +625,7 @@ class CheckoutController extends Controller
             }
         }
         $this->redirect('checkout/success');
+        return;
     }
     // =========================================================================
     // ===== Hoàn thành chức năng Đặt hàng Checkout (UC16) =====
@@ -639,6 +640,7 @@ class CheckoutController extends Controller
         $order = $_SESSION['last_order'] ?? null;
         if (!$order) {
             $this->redirect('cart');
+            return;
         }
 
         $this->render('checkout-success', [

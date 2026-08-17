@@ -119,6 +119,7 @@ class AdminOrderController extends Controller
         $id = (int)$id;
         if (!$this->isPost()) {
             $this->redirect('admin/orders');
+            return;
         }
 
         if (!verifyCsrf($_POST['_csrf'] ?? null)) {
@@ -262,6 +263,7 @@ class AdminOrderController extends Controller
         }
 
         $this->redirect('admin/orders/detail/' . $id);
+        return;
     }
     // =========================================================================
     // ===== Hoàn thành chức năng Admin Quản lý Đơn hàng (UC29) =====
