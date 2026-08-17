@@ -21,7 +21,7 @@ if (file_exists($localFile)) {
 $tmnCode = trim((string)($local['tmn_code'] ?? (getenv('VNPAY_TMN_CODE') ?: '')));
 $hashSecret = trim((string)($local['hash_secret'] ?? (getenv('VNPAY_HASH_SECRET') ?: '')));
 $hasGatewayCredentials = strlen($tmnCode) === 8 && $hashSecret !== '';
-$simulatorEnabled = $appEnv === 'development' && !$hasGatewayCredentials;
+$simulatorEnabled = false;
 
 $mode = 'disabled';
 $paymentUrl = '';
@@ -33,12 +33,12 @@ if ($hasGatewayCredentials) {
     if ($paymentUrl === '') {
         $paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
     }
-} elseif ($simulatorEnabled) {
-    $mode = 'local_simulator';
-    $tmnCode = 'DEMO0001';
-    $simulatorHashSecret = 'TECHPILOT_LOCAL_VNPAY_SIMULATOR_ONLY';
-    $hashSecret = $simulatorHashSecret;
-    $paymentUrl = $appUrl . '/payment/vnpay-sandbox-sim';
+} elseif ($appEnv === 'development') {
+    // Development mode: dùng VNPay sandbox thật (không phải simulator ảo)
+    $mode = 'gateway';
+    $tmnCode = 'CGXZLS0Z';
+    $hashSecret = 'KQWNBEWIRFXGXMTBKRZDNVEYSQMWLKZG';
+    $paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
 } else {
     // Fail closed: production/testing thiếu credential không được dùng giá trị demo.
     $tmnCode = '';
