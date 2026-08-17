@@ -624,7 +624,7 @@ class CheckoutController extends Controller
                 $_SESSION['last_order']['payment_error'] = 'VNPay chưa được cấu hình. Vui lòng liên hệ cửa hàng.';
             }
         }
-        $this->redirect('checkout/success');
+        $this->redirect('checkout/success?order_code=' . urlencode($order['order_code'] ?? ''));
         return;
     }
     // =========================================================================
@@ -633,13 +633,45 @@ class CheckoutController extends Controller
 
     public function success(): void
     {
-        if ($this->requireAuthenticatedPage('/checkout') === null) {
+        $user = $this->requireAuthenticatedPage('/checkout');
+        if ($user === null) {
             return;
         }
 
         $order = $_SESSION['last_order'] ?? null;
+
+        // Fallback: nếu session bị mất (VNPay redirect, reload trang, v.v.),
+        // thử lấy đơn hàng gần nhất từ database
         if (!$order) {
-            $this->redirect('cart');
+            $orderCode = trim($_GET['order_code'] ?? '');
+            $orderModel = $this->model('Order');
+
+            if ($orderCode !== '') {
+                // Tìm theo order_code cụ thể (VNPay return)
+                $dbOrder = $orderModel->getByCode($orderCode);
+                if ($dbOrder && (int)$dbOrder['user_id'] === (int)$user['id']) {
+                    $order = $this->buildOrderFromDb($dbOrder);
+                }
+            }
+
+            // Nếu vẫn chưa có, lấy đơn hàng mới nhất (trong 10 phút)
+            if (!$order) {
+                require_once ROOT_PATH . '/config/database.php';
+                $db = Database::getConnection();
+                $stmt = $db->prepare(
+                    "SELECT * FROM orders WHERE user_id = :uid AND created_at >= NOW() - INTERVAL 10 MINUTE ORDER BY id DESC LIMIT 1"
+                );
+                $stmt->execute([':uid' => (int)$user['id']]);
+                $dbOrder = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($dbOrder) {
+                    $order = $this->buildOrderFromDb($dbOrder);
+                }
+            }
+        }
+
+        if (!$order) {
+            flash('info', 'Không tìm thấy đơn hàng. Vui lòng kiểm tra trong mục "Đơn hàng của tôi".');
+            $this->redirect('profile/orders');
             return;
         }
 
@@ -647,5 +679,27 @@ class CheckoutController extends Controller
             'pageTitle' => 'Đặt hàng thành công',
             'order' => $order,
         ]);
+    }
+
+    /**
+     * Chuyển đổi dữ liệu đơn hàng từ DB sang format hiển thị trang success.
+     */
+    private function buildOrderFromDb(array $dbOrder): array
+    {
+        return [
+            'customer_name'  => $dbOrder['customer_name'] ?? '',
+            'phone'          => $dbOrder['phone'] ?? '',
+            'address'        => $dbOrder['address'] ?? '',
+            'note'           => $dbOrder['note'] ?? '',
+            'payment_method' => $dbOrder['payment_method'] ?? 'COD',
+            'payment_status' => $dbOrder['payment_status'] ?? 'unpaid',
+            'order_code'     => $dbOrder['order_code'] ?? '',
+            'status'         => $dbOrder['status'] ?? 'pending',
+            'subtotal'       => (float)($dbOrder['subtotal'] ?? 0),
+            'discount'       => (float)($dbOrder['discount_amount'] ?? 0),
+            'shipping'       => (float)($dbOrder['shipping_fee'] ?? 0),
+            'total'          => (float)($dbOrder['total_amount'] ?? 0),
+            'created_at'     => !empty($dbOrder['created_at']) ? date('d/m/Y H:i', strtotime($dbOrder['created_at'])) : date('d/m/Y H:i'),
+        ];
     }
 }

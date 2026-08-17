@@ -7,6 +7,7 @@ class PaymentController extends Controller
     public function vnpayReturn(): void
     {
         $result = $this->process($_GET);
+        $orderCode = trim((string)($_GET['vnp_TxnRef'] ?? ''));
         if ($result['valid'] && $result['paid']) {
             unset($_SESSION['last_order']['payment_error']);
             flash('success', 'Thanh toán VNPay thành công.');
@@ -16,7 +17,7 @@ class PaymentController extends Controller
                 $_SESSION['last_order']['payment_error'] = $result['message'];
             }
         }
-        $this->redirect('checkout/success');
+        $this->redirect('checkout/success' . ($orderCode !== '' ? '?order_code=' . urlencode($orderCode) : ''));
     }
 
     public function vnpayIpn(): void
