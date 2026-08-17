@@ -203,6 +203,9 @@ class AdminProductController extends Controller
         $stock = (int)($_POST['stock'] ?? 0);
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
+        if ($specs === '' || !json_validate($specs)) {
+            $specs = null;
+        }
         $status = self::normalizeProductStatus(trim($_POST['status'] ?? self::DEFAULT_PRODUCT_STATUS));
 
         // Validation
@@ -339,6 +342,9 @@ class AdminProductController extends Controller
         $stock = (int)($_POST['stock'] ?? 0);
         $description = trim($_POST['description'] ?? '');
         $specs = trim($_POST['specs'] ?? '');
+        if ($specs === '' || !json_validate($specs)) {
+            $specs = null;
+        }
         $status = self::normalizeProductStatus(trim($_POST['status'] ?? self::DEFAULT_PRODUCT_STATUS));
 
         // Validation
