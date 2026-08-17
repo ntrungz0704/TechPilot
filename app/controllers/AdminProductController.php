@@ -209,21 +209,27 @@ class AdminProductController extends Controller
         }
         $status = self::normalizeProductStatus(trim($_POST['status'] ?? self::DEFAULT_PRODUCT_STATUS));
 
+        // Lưu dữ liệu form để repopulate khi validation fail
+        $formInput = compact('name', 'slug', 'categoryId', 'brandId', 'price', 'salePrice', 'stock', 'description', 'specs', 'status');
+
         // Validation
         if ($name === '' || $categoryId === 0 || $brandId === 0) {
             flash('error', 'Vui lòng điền đầy đủ tên sản phẩm, danh mục và thương hiệu.');
+            $_SESSION['product_form_input'] = $formInput;
             $this->redirect('admin/products/create');
             return;
         }
 
         if ($price < 0 || $stock < 0) {
             flash('error', 'Giá bán và số lượng tồn kho không được âm.');
+            $_SESSION['product_form_input'] = $formInput;
             $this->redirect('admin/products/create');
             return;
         }
 
         if ($salePrice !== null && $salePrice > $price) {
             flash('error', 'Giá khuyến mãi không được lớn hơn giá gốc.');
+            $_SESSION['product_form_input'] = $formInput;
             $this->redirect('admin/products/create');
             return;
         }
@@ -275,6 +281,8 @@ class AdminProductController extends Controller
             ':specs'       => $specs,
             ':status'      => $status
         ]);
+
+        unset($_SESSION['product_form_input']);
 
         if ($success) {
             flash('success', 'Đã thêm sản phẩm thành công!');

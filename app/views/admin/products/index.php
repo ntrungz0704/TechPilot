@@ -181,6 +181,10 @@
                             <td style="text-align: center;">
                                 <div style="display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 38px;">
                                     <a href="<?= url('admin/products/edit/' . $p['id']) ?>" class="btn btn--outline btn--sm" style="padding: 6px 14px; font-size: 12.5px; white-space: nowrap; font-weight: 600;"><i class="fa-solid fa-pen-to-square"></i> Sửa</a>
+                                    <form method="POST" action="<?= url('admin/products/delete/' . $p['id']) ?>" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm &quot;<?= e($p['name']) ?>&quot;?');" style="margin: 0;">
+                                        <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+                                        <button type="submit" class="btn btn--sm" style="padding: 6px 14px; font-size: 12.5px; white-space: nowrap; font-weight: 600; background: #dc2626; color: #fff; border: none; cursor: pointer;"><i class="fa-solid fa-trash"></i> Xóa</button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

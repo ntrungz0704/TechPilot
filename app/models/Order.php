@@ -281,6 +281,20 @@ class Order
                 ]);
             } catch (Throwable $e) {}
 
+            // Gửi thông báo cho Customer xác nhận đơn hàng
+            if ($userId > 0) {
+                try {
+                    $custNotif = $this->db->prepare(
+                        'INSERT INTO notifications (user_id, title, content) VALUES (:uid, :title, :content)'
+                    );
+                    $custNotif->execute([
+                        ':uid' => $userId,
+                        ':title' => 'Đặt hàng thành công #' . $orderCode,
+                        ':content' => 'Đơn hàng #' . $orderCode . ' của bạn đã được tiếp nhận. Tổng trị giá: ' . number_format($calculatedTotal, 0, ',', '.') . 'đ. Chúng tôi sẽ xử lý trong thời gian sớm nhất.',
+                    ]);
+                } catch (Throwable $e) {}
+            }
+
             $this->db->commit();
 
             return [
