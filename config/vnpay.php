@@ -36,8 +36,8 @@ if ($hasGatewayCredentials) {
 } elseif ($appEnv === 'development') {
     // Development mode: dùng VNPay sandbox thật (không phải simulator ảo)
     $mode = 'gateway';
-    $tmnCode = 'CGXZLS0Z';
-    $hashSecret = 'KQWNBEWIRFXGXMTBKRZDNVEYSQMWLKZG';
+    $tmnCode = 'XSO8DF9F';
+    $hashSecret = 'CG8MNX7NN7NARZTQV00JV5IW42G0TTHI';
     $paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
 } else {
     // Fail closed: production/testing thiếu credential không được dùng giá trị demo.
